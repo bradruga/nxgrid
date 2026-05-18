@@ -1,0 +1,197 @@
+﻿@typeparam T
+
+@inject IJSRuntime JsRuntime
+
+<CascadingValue Value="@this">
+    @ChildContent
+</CascadingValue>
+
+<div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px"
+     tabindex="0"
+     @onkeydown="@OnGridKeyDown">
+    <div class="nx-grid-header-row" style="@rowStyle">
+        <div class="nx-grid-row-start @(ShowRowNumbers ? "nx-grid-row-number" : "")"
+             @onmousedown="@OnCornerMouseDown">
+            @if (ShowRowNumbers) { <span>#</span> }
+        </div>
+
+        @foreach (var column in columns)
+        {
+            <div class="nx-grid-cell"
+                 style="@column.HeaderCellStyle"
+                 aria-label="@column.Title"
+                 @onmousedown="@(args => OnColumnHeaderMouseDown(args, column))"
+                 @onmousedown:preventDefault
+                 @onmouseenter="@(args => OnColumnHeaderMouseEnter(args, column))">
+                <div class="nx-grid-column-title-wrap">
+                    <span class="nx-grid-column-title"
+                              @onclick="@(async () => { if (HasColumnMenu) await OnColumnClick(column); })">
+                        @if (column.HeaderTemplate != null)
+                        {
+                            @column.HeaderTemplate
+                        }
+                        else
+                        {
+                            @column.Title
+                        }
+                    </span>
+
+                    @if (column.SortState == 1)
+                    {
+                        <span class="nx-grid-sort-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
+                                <path fill="currentColor" d="M412.6 49.7C407.2 38.8 396.1 32 384 32s-23.2 6.8-28.6 17.7c-50.7 101.3-77.3 154.7-80 160c-7.9 15.8-1.5 35 14.3 42.9s35 1.5 42.9-14.3l7.2-14.3h88.4l7.2 14.3c7.9 15.8 27.1 22.2 42.9 14.3s22.2-27.1 14.3-42.9c-2.7-5.3-29.3-58.7-80-160M384 135.6l20.2 40.4h-40.4zM288 320c0 17.7 14.3 32 32 32h50.7l-73.4 73.4c-9.2 9.2-11.9 22.9-6.9 34.9S307.1 480 320 480h128c17.7 0 32-14.3 32-32s-14.3-32-32-32h-50.7l73.4-73.4c9.2-9.2 11.9-22.9 6.9-34.9S460.9 288 448 288H320c-17.7 0-32 14.3-32 32M150.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-80 80c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L96 141.3V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.3l25.4 25.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-80-80z"/>
+                            </svg>
+                        </span>
+                    }
+                    else if (column.SortState == 2)
+                    {
+                        <span class="nx-grid-sort-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
+                                <path fill="currentColor" d="m230.6 390.6l-80 80c-12.5 12.5-32.8 12.5-45.3 0l-80-80c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L96 370.7V64c0-17.7 14.3-32 32-32s32 14.3 32 32v306.7l25.4-25.4c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3zm182-340.9c50.7 101.3 77.3 154.7 80 160c7.9 15.8 1.5 35-14.3 42.9s-35 1.5-42.9-14.3l-7.2-14.3h-88.4l-7.2 14.3c-7.9 15.8-27.1 22.2-42.9 14.3s-22.2-27.1-14.3-42.9c2.7-5.3 29.3-58.7 80-160C360.8 38.9 371.9 32 384 32s23.2 6.8 28.6 17.7M384 135.6L363.8 176h40.4zM288 320c0-17.7 14.3-32 32-32h128c12.9 0 24.6 7.8 29.6 19.8s2.2 25.7-6.9 34.9L397.3 416H448c17.7 0 32 14.3 32 32s-14.3 32-32 32H320c-12.9 0-24.6-7.8-29.6-19.8s-2.2-25.7 6.9-34.9l73.4-73.4H320c-17.7 0-32-14.3-32-32z"/>
+                            </svg>
+                        </span>
+                    }
+
+                    @if (column.FilterState.Count > 0)
+                    {
+                        <span class="nx-grid-sort-icon">
+                            @* https://icon-sets.iconify.design/tabler/filter-filled/ *@
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M20 3H4a1 1 0 0 0-1 1v2.227l.008.223a3 3 0 0 0 .772 1.795L8 12.886V21a1 1 0 0 0 1.316.949l6-2l.108-.043A1 1 0 0 0 16 19v-6.586l4.121-4.12A3 3 0 0 0 21 6.171V4a1 1 0 0 0-1-1"/>
+                            </svg>
+                        </span>
+                    }
+                </div>
+
+                @if (HasColumnMenu)
+                {
+                    <button class="nx-grid-menu-button"
+                            @onclick="@(() => OnColumnButtonClick(column))"
+                            @onmousedown:stopPropagation>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="m7 10l5 5l5-5z"/>
+                        </svg>
+                    </button>
+                }
+
+                <div class="nx-grid-resize-grip"
+                     @onmousedown="@(args => OnResizeGripMouseDown(args, column))"
+                     @onmousedown:stopPropagation
+                     onmousedown:preventDefault>
+                </div>
+            </div>
+        }
+    </div>
+    
+    <Virtualize Items="@rowIndices" ItemSize="@((float)RowHeight)" OverscanCount="12">
+        <NxGridRow T="T"
+                       @key="context"
+                       Row="@filteredData[context]"
+                       RowIndex="@context"
+                       Columns="@columns"
+                       RowStyle="@rowStyle"
+                       SelectedRange="@selectedRange"
+                       ShowRowNumbers="@ShowRowNumbers"
+                       IsEditing="@isEditing"
+                       EditRow="@editRow"
+                       EditCol="@editCol"
+                       EditValue="@editValue"
+                       CellStyleFunc="@GetCellStyle"
+                       OnMouseDown="@OnCellMouseDown"
+                       OnMouseEnter="@OnCellMouseEnter"
+                       OnMouseUp="@OnCellMouseUp"
+                       OnContextMenu="@OnCellContextMenu"
+                       OnDoubleClick="@OnCellDoubleClick"
+                       OnEditInput="@OnEditInputChange"
+                       OnEditKeyDown="@OnEditInputKeyDown"
+                       OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
+                       OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+                       OnComboButtonClick="@OnComboButtonClick"
+                       Cursor="@Cursor"
+                       RenderToken="@renderToken" />
+    </Virtualize>
+
+    @if (openColumn != null)
+    {
+        <div class="nx-grid-column-menu" style="top:@(menuTop)px;left:@(menuLeft)px;@(menuNeedsPositioning ? "visibility:hidden;" : "")">
+            <button class="nx-grid-menu-item"
+                    @onclick="@OnSortAscendingClick">
+                <span class="nx-grid-menu-item-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
+                        <path fill="currentColor" d="M412.6 49.7C407.2 38.8 396.1 32 384 32s-23.2 6.8-28.6 17.7c-50.7 101.3-77.3 154.7-80 160c-7.9 15.8-1.5 35 14.3 42.9s35 1.5 42.9-14.3l7.2-14.3h88.4l7.2 14.3c7.9 15.8 27.1 22.2 42.9 14.3s22.2-27.1 14.3-42.9c-2.7-5.3-29.3-58.7-80-160M384 135.6l20.2 40.4h-40.4zM288 320c0 17.7 14.3 32 32 32h50.7l-73.4 73.4c-9.2 9.2-11.9 22.9-6.9 34.9S307.1 480 320 480h128c17.7 0 32-14.3 32-32s-14.3-32-32-32h-50.7l73.4-73.4c9.2-9.2 11.9-22.9 6.9-34.9S460.9 288 448 288H320c-17.7 0-32 14.3-32 32M150.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-80 80c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L96 141.3V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.3l25.4 25.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-80-80z"/>
+                    </svg>
+                </span>
+                Sort Ascending
+            </button>
+            <button class="nx-grid-menu-item"
+                    @onclick="@OnSortDescendingClick">
+                <span class="nx-grid-menu-item-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
+                        <path fill="currentColor" d="m230.6 390.6l-80 80c-12.5 12.5-32.8 12.5-45.3 0l-80-80c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L96 370.7V64c0-17.7 14.3-32 32-32s32 14.3 32 32v306.7l25.4-25.4c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3zm182-340.9c50.7 101.3 77.3 154.7 80 160c7.9 15.8 1.5 35-14.3 42.9s-35 1.5-42.9-14.3l-7.2-14.3h-88.4l-7.2 14.3c-7.9 15.8-27.1 22.2-42.9 14.3s-22.2-27.1-14.3-42.9c2.7-5.3 29.3-58.7 80-160C360.8 38.9 371.9 32 384 32s23.2 6.8 28.6 17.7M384 135.6L363.8 176h40.4zM288 320c0-17.7 14.3-32 32-32h128c12.9 0 24.6 7.8 29.6 19.8s2.2 25.7-6.9 34.9L397.3 416H448c17.7 0 32 14.3 32 32s-14.3 32-32 32H320c-12.9 0-24.6-7.8-29.6-19.8s-2.2-25.7 6.9-34.9l73.4-73.4H320c-17.7 0-32-14.3-32-32z"/>
+                    </svg>
+                </span>
+                Sort Descending
+            </button>
+            <button class="nx-grid-menu-item"
+                    @onclick="@OnClearSortClick">
+                <span class="nx-grid-menu-item-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9l9-7l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    </svg>
+                </span>
+                Clear Sort
+            </button>
+
+            <div class="nx-grid-menu-divider"></div>
+            <NxGridFilter T="@T"
+                              Data="@Data"
+                              Columns="@columns"
+                              Column="@openColumn"
+                              OnFilter="@OnFilterOk"
+                              OnCancel="@OnFilterCancel"/>
+        </div>
+    }
+
+    @if (showContextMenu)
+    {
+        <div class="nx-grid-context-menu" style="position:fixed;left:@(contextMenuX)px;top:@(contextMenuY)px;z-index:1000;">
+            <button class="nx-grid-context-item"
+                    @onclick="@OnContextMenuCopyClick">
+                Copy
+            </button>
+        </div>
+    }
+
+    @if (isEditing && editCol >= 0 && editCol < columns.Count
+         && columns[editCol].ComboBoxOptions != null && isComboOpen)
+    {
+        <div class="nx-grid-combo-dropdown"
+             style="position:fixed;top:@(comboDropdownTop)px;left:@(comboDropdownLeft)px;width:@(comboDropdownWidth)px;z-index:1001;">
+            @if (comboFilteredOptions.Count == 0)
+            {
+                <div class="nx-grid-combo-no-options">No matches</div>
+            }
+            else
+            {
+                @for (var i = 0; i < comboFilteredOptions.Count; i++)
+                {
+                    var optIdx = i;
+                    <div class="nx-grid-combo-item @(i == comboHighlightIndex ? "nx-grid-combo-item-active" : "")"
+                         @onmousedown="@(() => OnComboItemMouseDown(optIdx))"
+                         @onmousedown:preventDefault>
+                        @comboFilteredOptions[i]
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    @if (Overlays != null)
+    {
+        <div style="position:absolute; top:0; left:0; pointer-events:none;">
+            @Overlays
+        </div>
+    }
+</div>
+

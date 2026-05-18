@@ -1,0 +1,25 @@
+﻿@using NxGrid.Demo.Shared
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["NxGrid.Demo.Server.styles.css"]" />
+    <link rel="stylesheet" href="@Assets["_content/NxGrid/nx-grid.css"]" />
+    <link rel="stylesheet" href="_content/NxGrid.Demo.Shared/demo.css" />
+    <ImportMap />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+<Routes @rendermode="InteractiveServer" />
+
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>

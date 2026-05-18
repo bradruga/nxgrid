@@ -1,0 +1,303 @@
+@typeparam T
+
+<button class="nx-grid-menu-item"
+        @onclick="@OnClearClick">
+    <span class="nx-grid-menu-item-icon">
+        @* https://icon-sets.iconify.design/tabler/filter-x/ *@
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.758 19.414L9 21v-8.5L4.52 7.572A2 2 0 0 1 4 6.227V4h16v2.172a2 2 0 0 1-.586 1.414L15 12v1.5m7 8.5l-5-5m0 5l5-5"/>
+        </svg>
+    </span>
+    Clear Filter From <strong>@(Column.Title)</strong>
+</button>
+<div class="nx-grid-filter-body">
+    @if (useDateFilter == false)
+    {
+        <div class="nx-grid-filter-row">
+            <input class="nx-grid-filter-input"
+                   placeholder="Search"
+                   value="@searchText"
+                   @oninput="@OnSearchInput"
+                   @onkeydown="@OnSearchKeyDown"/>
+        </div>
+    }
+    else
+    {
+        <div class="nx-grid-filter-date-row">
+            <label class="nx-grid-filter-date-label" for="search-date-from">
+                Start
+            </label>
+            <input id="search-date-from"
+                   class="nx-grid-filter-input"
+                   placeholder="Search Start"
+                   value="@searchDateFrom"
+                   @oninput="@OnDateFromChange"
+                   @onkeydown="@OnSearchKeyDown"/>
+        </div>
+
+        <div class="nx-grid-filter-date-row">
+            <label class="nx-grid-filter-date-label" for="search-date-thru">
+                End
+            </label>
+            <input id="search-date-thru"
+                   class="nx-grid-filter-input"
+                   placeholder="Search End"
+                   value="@searchDateThru"
+                   @oninput="@OnDateThruChange"
+                   @onkeydown="@OnSearchKeyDown"/>
+        </div>
+    }
+
+    <div class="nx-grid-filter-listbox">
+        <div class="nx-grid-filter-item">
+            <input id="select-all" type="checkbox"
+                   checked="@selectAll"
+                   @oninput="@OnSelectAllChanged"/>
+            <label for="select-all">
+                (Select All)
+            </label>
+        </div>
+
+        <Virtualize Items="@filteredItems">
+            <div class="nx-grid-filter-item">
+                <input id="@context.Id"
+                       type="checkbox"
+                       checked="@context.Selected"
+                       @oninput="@(args => OnItemChanged(context, args))"/>
+                <label for="@context.Id">
+                    @context.Label
+                </label>
+            </div>
+        </Virtualize>
+    </div>
+</div>
+
+<div class="nx-grid-filter-footer">
+    <button class="nx-grid-btn nx-grid-btn-primary"
+            @onclick="@OnOkClick">
+        OK
+    </button>
+    <button class="nx-grid-btn nx-grid-btn-secondary"
+            @onclick="@OnCancel">
+        Cancel
+    </button>
+</div>
+
+@code {
+    // Parameters
+    [Parameter] public List<T> Data { get; set; } = [];
+    [Parameter, EditorRequired] public List<NxGridColumn<T>> Columns { get; set; } = [];
+    [Parameter, EditorRequired] public NxGridColumn<T> Column { get; set; } = null!;
+    [Parameter] public EventCallback<List<object?>> OnFilter { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    // Private Variables
+    private bool selectAll;
+    private List<FilterItem> filterItems = [];
+    private List<FilterItem> filteredItems = [];
+    private string? loadedColumnTitle;
+    private string? searchText;
+
+    private bool useDateFilter;
+    private string? searchDateFrom;
+    private string? searchDateThru;
+
+    protected override void OnParametersSet()
+    {
+        if (Column.Title == loadedColumnTitle) return;
+        loadedColumnTitle = Column.Title;
+
+        // Filter data by other columns
+        var filteredData = Data;
+        foreach (var column in Columns)
+        {
+            if (column == Column) continue;
+            filteredData = column.FilterData(filteredData);
+        }
+
+        // Group by current column
+        filterItems = filteredData
+            .GroupBy(x => new
+            {
+                Value = Column.GetNormalizedValue(x),
+                Text = Column.Getter != null ? Column.Getter(x)?.ToString() : ""
+            })
+            .Select(x => new FilterItem
+            {
+                Key = x.Key.Value,
+                Id = x.Key.Value?.ToString()?.ToLower().Replace(" ", "-") ?? "",
+                Name = x.Key.Value?.ToString() ?? "(Blanks)",
+                Label = x.Key.Value == null ? $"(Blanks) ({x.Count():#,0})" : $"{x.Key.Text} ({x.Count():#,0})",
+                Selected = Column.FilterState.Count == 0 || Column.FilterState.Select(v => v?.ToString()).Contains(x.Key.Value?.ToString())
+            })
+            .OrderBy(x => x.Label).ToList();
+
+        selectAll = filterItems.All(x => x.Selected);
+
+        useDateFilter = filterItems.Any(x => x.Key is DateTime);
+
+        ApplySearchFilter();
+    }
+
+    private void OnSelectAllChanged(ChangeEventArgs args)
+    {
+        selectAll = (bool?)args.Value == true;
+
+        foreach (var item in filterItems)
+        {
+            item.Selected = selectAll;
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnItemChanged(FilterItem item, ChangeEventArgs args)
+    {
+        item.Selected = (bool?)args.Value == true;
+        selectAll = filterItems.All(x => x.Selected);
+        StateHasChanged();
+    }
+
+    private async Task OnClearClick()
+    {
+        await OnFilter.InvokeAsync([]);
+    }
+
+    private async Task OnOkClick()
+    {
+        var values = selectAll && IsNoFilter()
+            ? []
+            : filteredItems.Where(x => x.Selected).Select(x => x.Key).ToList();
+
+        await OnFilter.InvokeAsync(values);
+    }
+
+    private bool IsNoFilter()
+    {
+        if (useDateFilter == false) return string.IsNullOrWhiteSpace(searchText);
+
+        var dateFrom = ParseDateText(searchDateFrom, true);
+        var dateThru = ParseDateText(searchDateThru, false);
+
+        return dateFrom == null && dateThru == null;
+    }
+
+    private class FilterItem
+    {
+        public object? Key { get; set; }
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Label { get; set; } = "";
+        public bool Selected { get; set; }
+    }
+
+    private void OnSearchInput(ChangeEventArgs args)
+    {
+        searchText = args.Value?.ToString();
+        LiveUpdateSearch();
+    }
+
+    private void OnDateFromChange(ChangeEventArgs args)
+    {
+        searchDateFrom = args.Value?.ToString() ?? "";
+        LiveUpdateSearch();
+    }
+
+    private void OnDateThruChange(ChangeEventArgs args)
+    {
+        searchDateThru = args.Value?.ToString() ?? "";
+        LiveUpdateSearch();
+    }
+
+    private void LiveUpdateSearch()
+    {
+        ApplySearchFilter();
+
+        foreach (var item in filteredItems)
+        {
+            item.Selected = true;
+        }
+
+        selectAll = true;
+
+        StateHasChanged();
+    }
+
+    private async Task OnSearchKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await OnOkClick();
+        }
+    }
+
+    private void ApplySearchFilter()
+    {
+        if (useDateFilter == false)
+        {
+            filteredItems = string.IsNullOrWhiteSpace(searchText)
+                ? filterItems
+                : filterItems.Where(x => x.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        else
+        {
+            var dateFrom = ParseDateText(searchDateFrom, true);
+            var dateThru = ParseDateText(searchDateThru, false);
+
+            filteredItems = dateFrom == null && searchDateThru == null
+                ? filterItems
+                : filterItems.Where(x => (dateFrom == null || (DateTime?)x.Key >= dateFrom) &&
+                                         (dateThru == null || (DateTime?)x.Key <= dateThru)).ToList();
+        }
+
+        selectAll = filterItems.All(x => x.Selected);
+    }
+
+    private static DateTime? ParseDateText(string? s, bool start)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+
+        try
+        {
+            if (s.Length == 4 && int.TryParse(s, out var i))
+            {
+                return start
+                    ? new DateTime(i, 1, 1)
+                    : new DateTime(i, 12, 31);
+            }
+
+            var parts = s.Split('-', '/', '.');
+
+            if (parts.Length == 2 &&
+                int.TryParse(parts[0], out var m1) &&
+                int.TryParse(parts[1], out var d1))
+            {
+                return new DateTime(DateTime.Now.Year, m1, d1);
+            }
+
+            if (parts.Length == 3 &&
+                int.TryParse(parts[0], out var m2) &&
+                int.TryParse(parts[1], out var d2) &&
+                parts[2].Length == 4 &&
+                int.TryParse(parts[2], out var y2))
+            {
+                return new DateTime(y2, m2, d2);
+            }
+
+            if (parts.Length == 3 &&
+                int.TryParse(parts[0], out var m3) &&
+                int.TryParse(parts[1], out var d3) &&
+                parts[2].Length == 2 &&
+                int.TryParse(parts[2], out var y3))
+            {
+                return new DateTime(2000 + y3, m3, d3);
+            }
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+}

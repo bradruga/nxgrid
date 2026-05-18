@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Blazor -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web"                   Version="10.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly"           Version="10.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" />
+    <!-- Testing -->
+    <PackageVersion Include="bunit"                        Version="2.7.2" />
+    <PackageVersion Include="coverlet.collector"           Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk"       Version="17.14.1" />
+    <!-- Playwright E2E -->
+    <PackageVersion Include="Microsoft.Playwright.NUnit"   Version="1.50.0" />
+    <PackageVersion Include="NUnit"                        Version="4.2.2" />
+    <PackageVersion Include="NUnit3TestAdapter"            Version="4.6.0" />
+  </ItemGroup>
+</Project>

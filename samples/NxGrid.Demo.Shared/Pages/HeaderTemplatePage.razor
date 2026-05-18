@@ -1,0 +1,138 @@
+@page "/header-template"
+
+<PageTitle>Header Templates — NxGrid</PageTitle>
+
+<h1>Header Templates</h1>
+<p class="doc-intro">
+    <code>HeaderTemplate</code> replaces a column header's <code>Title</code> text with arbitrary
+    markup — checkboxes, SVG icons, badge counts, or multi-line content. Sort/filter icons and the
+    ▾ menu button still render after the template. <code>Title</code> continues to serve as the
+    <code>aria-label</code>, column menu label, and state-persistence key.
+</p>
+
+<div class="doc-section">
+    <h2>"Select All" Checkbox</h2>
+    <p class="doc-note">
+        The "Billable" column header contains a checkbox wired to the entire list. Checking it marks
+        every row billable; unchecking clears them all. Interactive elements inside a
+        <code>HeaderTemplate</code> need <code>@@onmousedown:stopPropagation</code> (prevents
+        column-range selection) and <code>@@onclick:stopPropagation</code> (prevents opening the
+        column menu).
+    </p>
+    <NxGrid T="LineItem" @ref="billableGrid" Data="@lines" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn T="LineItem" Title="Description"
+                      Getter="@(x => x.Description)" Width="280" />
+        <NxGridColumn T="LineItem" Title="Amount"
+                      Getter="@(x => x.Amount.ToString("C"))"
+                      ValueGetter="@(x => x.Amount)"
+                      Width="120" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="LineItem" Title="Billable"
+                      Getter="@(x => x.IsBillable ? "✓" : "–")"
+                      Width="110" Alignment="NxGridColumnAlignment.Center">
+            <HeaderTemplate>
+                <input type="checkbox"
+                       checked="@AllBillable"
+                       @onchange="ToggleAllBillable"
+                       @onmousedown:stopPropagation
+                       @onclick:stopPropagation
+                       title="Toggle all billable" />
+                <span>Billable</span>
+            </HeaderTemplate>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@checkboxCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Icon + Label</h2>
+    <p class="doc-note">
+        Pair an inline SVG icon with a text label for richer column headers. Any markup is valid —
+        styled spans, badge counts, or multi-line text.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn T="Person" Title="Name"
+                      Getter="@(x => x.FirstName + " " + x.LastName)" Width="180">
+            <HeaderTemplate>
+                @* person icon — materialdesignicons *@
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                     style="vertical-align:-1px;opacity:0.65;flex-shrink:0">
+                    <path fill="currentColor" d="M12 12q-1.65 0-2.825-1.175T8 8t1.175-2.825T12 4t2.825 1.175T16 8t-1.175 2.825T12 12m-8 8v-2.8q0-.85.438-1.562T5.6 14.55q1.55-.775 3.15-1.162T12 13t3.25.388t3.15 1.162q.725.375 1.163 1.088T20 17.2V20z"/>
+                </svg>
+                <span>Name</span>
+            </HeaderTemplate>
+        </NxGridColumn>
+        <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" Width="160">
+            <HeaderTemplate>
+                @* briefcase icon *@
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                     style="vertical-align:-1px;opacity:0.65;flex-shrink:0">
+                    <path fill="currentColor" d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2m4 4V4h-4v2z"/>
+                </svg>
+                <span>Department</span>
+            </HeaderTemplate>
+        </NxGridColumn>
+        <NxGridColumn T="Person" Title="Age" Getter="@(x => x.Age)"
+                      Width="80" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@iconCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>API reference</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Parameter</th><th>Type</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>HeaderTemplate</code></td>
+                <td><code>RenderFragment?</code></td>
+                <td>
+                    Custom markup rendered inside the column header cell instead of <code>Title</code>.
+                    Sort/filter icons and the ▾ menu button still appear after the template content.
+                    <code>Title</code> remains the <code>aria-label</code>, column menu label, and
+                    state-persistence key fallback. When not set, <code>Title</code> renders as normal.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="doc-note" style="margin-top:12px">
+        Interactive elements inside a <code>HeaderTemplate</code> should include both
+        <code>@@onmousedown:stopPropagation</code> and <code>@@onclick:stopPropagation</code> to
+        prevent triggering column-range selection and opening the column menu respectively.
+    </p>
+</div>
+
+@code {
+    class LineItem
+    {
+        public string Description { get; set; } = "";
+        public decimal Amount { get; set; }
+        public bool IsBillable { get; set; }
+    }
+
+    NxGrid<LineItem> billableGrid = null!;
+
+    List<LineItem> lines =
+    [
+        new() { Description = "UX audit",            Amount = 1_200m, IsBillable = true  },
+        new() { Description = "Design system work",   Amount = 3_400m, IsBillable = true  },
+        new() { Description = "Internal meeting",     Amount =   600m, IsBillable = false },
+        new() { Description = "API integration",      Amount = 2_100m, IsBillable = true  },
+        new() { Description = "Team onboarding",      Amount =   800m, IsBillable = false },
+        new() { Description = "Deploy pipeline",      Amount = 1_750m, IsBillable = true  },
+    ];
+
+    bool AllBillable => lines.All(x => x.IsBillable);
+
+    void ToggleAllBillable(ChangeEventArgs e)
+    {
+        var value = (bool)(e.Value ?? false);
+        foreach (var line in lines)
+            line.IsBillable = value;
+        billableGrid.ForceRerender();
+    }
+
+    string checkboxCode = DemoCodeSamples.HeaderTemplateCheckbox;
+    string iconCode     = DemoCodeSamples.HeaderTemplateIcon;
+}

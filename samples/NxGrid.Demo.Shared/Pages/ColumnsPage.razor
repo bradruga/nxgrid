@@ -1,0 +1,97 @@
+@page "/columns"
+
+<PageTitle>Columns — NxGrid</PageTitle>
+
+<h1>Columns</h1>
+<p class="doc-intro">
+    <code>NxGridColumn&lt;T&gt;</code> controls how each column displays, sorts, and renders.
+    Key features: custom cell templates, text alignment, a separate <code>ValueGetter</code>
+    for sort/filter vs. display, and min/max width constraints.
+</p>
+
+<div class="doc-section">
+    <h2>Alignment</h2>
+    <p class="doc-note">Use <code>Alignment</code> to control text alignment within cells. Numeric columns typically use Right alignment.</p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn T="Person" Title="Name (Left)"    Getter="@(x => x.FirstName)"  Width="180" Alignment="NxGridColumnAlignment.Left" />
+        <NxGridColumn T="Person" Title="Dept (Center)"  Getter="@(x => x.Department)" Width="160" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn T="Person" Title="Age (Right)"    Getter="@(x => x.Age)"        Width="130" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@alignmentCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Custom Templates</h2>
+    <p class="doc-note">
+        Use <code>Template</code> to render any content inside a cell. The grid still provides padding,
+        borders, and selection highlighting — the template fills the inner content area.
+        The <code>Context</code> attribute names the row object variable.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell" RowHeight="32">
+        <NxGridColumn T="Person" Title="Name"       Getter="@(x => x.FirstName + " " + x.LastName)" Width="180" />
+        <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" Width="180">
+            <Template Context="p">
+                <span style="@GetDeptBadgeStyle(p)">@p.Department</span>
+            </Template>
+        </NxGridColumn>
+        <NxGridColumn T="Person" Title="Age" Getter="@(x => x.Age)" Width="160" Alignment="NxGridColumnAlignment.Right">
+            <Template Context="p">
+                <div style="width:100%;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+                    <div style="height:6px;background:#0078d4;border-radius:3px;width:@Math.Clamp(p.Age * 2, 4, 120)px;flex-shrink:0;"></div>
+                    <span style="font-size:12px;color:#555;min-width:24px;text-align:right;">@p.Age</span>
+                </div>
+            </Template>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@templateCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>ValueGetter — Separate Sort/Filter Value</h2>
+    <p class="doc-note">
+        <code>Getter</code> controls what is displayed. <code>ValueGetter</code> controls what is
+        used for sorting and filtering. Click the "Age" column header to sort — it sorts numerically
+        even though the display value is a formatted string.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn T="Person" Title="Name"            Getter="@(x => x.FirstName + " " + x.LastName)" Width="180" />
+        <NxGridColumn T="Person" Title="Age — try sorting!" Getter="@(x => x.Age + " yrs")"
+                      ValueGetter="@(x => x.Age)" Width="240" />
+        <NxGridColumn T="Person" Title="Department"      Getter="@(x => x.Department)" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@valueGetterCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Width, MinWidth, MaxWidth</h2>
+    <p class="doc-note">Drag any column resize grip to see the constraints in action. The Id column is fixed at 50px; the Name column can grow freely.</p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn T="Person" Title="Id (fixed 50px)" Getter="@(x => x.Id)"         Width="50"  MinWidth="50"  MaxWidth="50" />
+        <NxGridColumn T="Person" Title="First (80–200)"  Getter="@(x => x.FirstName)"  Width="120" MinWidth="80"  MaxWidth="200" />
+        <NxGridColumn T="Person" Title="Department (grows freely)" Getter="@(x => x.Department)" Width="160" />
+    </NxGrid>
+    <table class="doc-table" style="margin-top:12px">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Width</td><td>100</td><td>Initial column width in pixels</td></tr>
+            <tr><td>MinWidth</td><td>—</td><td>Minimum width the user can drag to</td></tr>
+            <tr><td>MaxWidth</td><td>—</td><td>Maximum width the user can drag to. When null, the column grows to fill available space.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    string GetDeptBadgeStyle(Person p) => p.Department switch
+    {
+        "Engineering" => "background:#dbeafe;color:#1e40af;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;",
+        "Finance"     => "background:#d1fae5;color:#065f46;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;",
+        "Marketing"   => "background:#fef3c7;color:#92400e;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;",
+        "HR"          => "background:#ede9fe;color:#5b21b6;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;",
+        "Sales"       => "background:#fce7f3;color:#9d174d;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;",
+        _             => "background:#f3f4f6;color:#374151;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;"
+    };
+
+    string alignmentCode   = DemoCodeSamples.Alignment;
+    string templateCode    = DemoCodeSamples.Template;
+    string valueGetterCode = DemoCodeSamples.ValueGetter;
+}

@@ -1,0 +1,119 @@
+@page "/state-persistence"
+@inject IJSRuntime JS
+
+<PageTitle>State Persistence — NxGrid</PageTitle>
+
+<h1>State Persistence</h1>
+<p class="doc-intro">
+    Set <code>StateKey</code> on the grid and it automatically saves column widths, sort order,
+    and filter selections to <code>localStorage</code> after every user change, restoring them
+    on the next visit — across page navigations and full browser refreshes.
+</p>
+
+<div class="doc-section">
+    <h2>Try it</h2>
+    <p class="doc-note">
+        Sort by a column, apply a filter from the ▾ menu, or drag a column resize grip.
+        Then navigate to another page using the sidebar and come back — your settings are restored.
+        Click <strong>Show saved state</strong> to see what is stored in <code>localStorage</code>.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn" @onclick="@ResetColumns">Reset columns</button>
+        <button class="doc-btn doc-btn-secondary" @onclick="@RefreshSavedState">Show saved state</button>
+    </div>
+    <NxGrid T="Person" @ref="grid" Data="@people"
+            StateKey="demo-state-persistence"
+            Style="height:400px"
+            Cursor="@NxGridCursor.Cell"
+            ShowRowNumbers="true">
+        <NxGridColumn T="Person" Id="id"    Title="Id"          Getter="@(x => x.Id)"         Width="55"  MaxWidth="55" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Id="first" Title="First Name"  Getter="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn T="Person" Id="last"  Title="Last Name"   Getter="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn T="Person" Id="age"   Title="Age"         Getter="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Id="dept"  Title="Department"  Getter="@(x => x.Department)" />
+    </NxGrid>
+
+    @if (savedJson != null)
+    {
+        <div style="margin-top:12px;">
+            <div style="font-size:12px;color:#666;margin-bottom:4px;">localStorage["demo-state-persistence"]</div>
+            <pre class="doc-code">@savedJson</pre>
+        </div>
+    }
+
+    <pre class="doc-code" style="margin-top:12px">@persistenceCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Reset programmatically</h2>
+    <p class="doc-note">
+        <code>ClearSavedState()</code> removes the <code>localStorage</code> entry and
+        immediately resets all columns to their declared defaults — sort cleared, filters cleared,
+        widths back to <code>Width</code>. No page reload required.
+    </p>
+    <pre class="doc-code">@clearCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Column Id</h2>
+    <p class="doc-note">
+        Set <code>Id</code> on each column so saved state survives <code>Title</code> renames
+        (e.g. localisation or copy edits). Without <code>Id</code>, the grid falls back to
+        <code>Title</code> as the identity key — which works, but breaks silently if the title
+        ever changes. Columns with neither are excluded from persistence.
+    </p>
+    <table class="doc-table">
+        <thead><tr><th>Has Id?</th><th>Has Title?</th><th>Persistence key used</th></tr></thead>
+        <tbody>
+            <tr><td>✔</td><td>any</td><td>Id</td></tr>
+            <tr><td>✗</td><td>✔</td><td>Title</td></tr>
+            <tr><td>✗</td><td>✗</td><td>excluded</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>First-render flash</h2>
+    <div class="doc-tip">
+        State is restored in <code>OnAfterRenderAsync</code>, after the JS module loads.
+        There is a brief initial render with the declared default column state before saved
+        configuration is applied. This is unavoidable with Blazor's JS interop lifecycle.
+        If the default ordering matters on first paint, consider pre-loading state server-side
+        and passing it through a session or protected storage before the component renders.
+    </div>
+</div>
+
+@code {
+    NxGrid<Person>? grid;
+    List<Person> people = SampleData.GeneratePeople(50);
+    string? savedJson;
+
+    async Task ResetColumns()
+    {
+        if (grid != null) await grid.ClearSavedState();
+        savedJson = null;
+    }
+
+    async Task RefreshSavedState()
+    {
+        var raw = await JS.InvokeAsync<string?>("localStorage.getItem", "demo-state-persistence");
+        if (raw == null)
+        {
+            savedJson = "(no saved state)";
+            return;
+        }
+        try
+        {
+            var doc = System.Text.Json.JsonDocument.Parse(raw);
+            savedJson = System.Text.Json.JsonSerializer.Serialize(
+                doc, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            savedJson = raw;
+        }
+    }
+
+    string persistenceCode = DemoCodeSamples.StatePersistence;
+    string clearCode       = DemoCodeSamples.ClearSavedState;
+}

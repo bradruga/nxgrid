@@ -1,0 +1,104 @@
+@page "/layout"
+
+<PageTitle>Layout Options — NxGrid</PageTitle>
+
+<h1>Layout Options</h1>
+<p class="doc-intro">
+    NxGrid offers several layout and display parameters. Toggle the options below to see them in action.
+    All parameters can be combined freely.
+</p>
+
+<div class="doc-section">
+    <h2>Interactive Toggle Demo</h2>
+    <div class="doc-controls">
+        <label><input type="checkbox" @bind="showRowNumbers" /> <strong>ShowRowNumbers</strong></label>
+        <label><input type="checkbox" @bind="rowBanding" />    <strong>RowBanding</strong></label>
+        <label><input type="checkbox" @bind="hasColumnMenu" /> <strong>HasColumnMenu</strong></label>
+        <label><input type="checkbox" @bind="headerClickSelects" /> <strong>HeaderClickSelects</strong></label>
+    </div>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;font-weight:600;">Cursor:</span>
+        <label><input type="radio" name="cursor" @onchange="@(() => cursor = NxGridCursor.Default)" checked="@(cursor == NxGridCursor.Default)" /> Default</label>
+        <label><input type="radio" name="cursor" @onchange="@(() => cursor = NxGridCursor.Cell)"    checked="@(cursor == NxGridCursor.Cell)" />    Cell</label>
+        <label><input type="radio" name="cursor" @onchange="@(() => cursor = NxGridCursor.Pointer)" checked="@(cursor == NxGridCursor.Pointer)" /> Pointer</label>
+    </div>
+    <NxGrid T="Person" Data="@layoutPeople"
+            ShowRowNumbers="@showRowNumbers"
+            RowBanding="@rowBanding"
+            HasColumnMenu="@hasColumnMenu"
+            HeaderClickSelects="@headerClickSelects"
+            Cursor="@cursor"
+            OnColumnResized="@OnColumnResized">
+        <NxGridColumn T="Person" Title="Id"         Getter="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn T="Person" Title="First Name" Getter="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn T="Person" Title="Last Name"  Getter="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn T="Person" Title="Age"        Getter="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" />
+    </NxGrid>
+    <div class="doc-output">@resizeLog</div>
+</div>
+
+<div class="doc-section">
+    <h2>Overlays</h2>
+    <p class="doc-note">
+        The <code>Overlays</code> parameter renders a <code>RenderFragment</code> in an
+        <code>absolute</code>-positioned, <code>pointer-events:none</code> layer that covers the entire grid.
+        Use it for custom row highlights, tooltips, or annotations that sit on top of the grid content.
+        The demo below highlights Finance rows with a yellow band.
+    </p>
+    <NxGrid T="Person" Data="@layoutPeople" HasColumnMenu="false">
+        <ChildContent>
+            <NxGridColumn T="Person" Title="Id"         Getter="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+            <NxGridColumn T="Person" Title="First Name" Getter="@(x => x.FirstName)"  Width="130" />
+            <NxGridColumn T="Person" Title="Last Name"  Getter="@(x => x.LastName)"   Width="130" />
+            <NxGridColumn T="Person" Title="Age"        Getter="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+            <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" />
+        </ChildContent>
+        <Overlays>
+            @for (var i = 0; i < layoutPeople.Count; i++)
+            {
+                if (layoutPeople[i].Department == "Finance")
+                {
+                    var top = (i + 1) * 28;
+                    <div style="position:absolute;top:@(top)px;left:0;right:0;height:28px;background:rgba(234,179,8,0.12);border-left:3px solid rgba(234,179,8,0.6);pointer-events:none;"></div>
+                }
+            }
+        </Overlays>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@overlaysCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Layout Parameters</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>ShowRowNumbers</td><td>false</td><td>Renders a sticky left gutter with 1-based row numbers</td></tr>
+            <tr><td>RowBanding</td><td>true</td><td>Alternates even/odd row background colors</td></tr>
+            <tr><td>HasColumnMenu</td><td>true</td><td>Shows the ▾ button in each column header for sort and filter</td></tr>
+            <tr><td>HeaderClickSelects</td><td>false</td><td>Click a column header to select the entire column; click the row-number gutter to select the entire row</td></tr>
+            <tr><td>Cursor</td><td>Default</td><td>CSS cursor applied to body cells. <code>Default</code> → default, <code>Cell</code> → cell crosshair, <code>Pointer</code> → hand</td></tr>
+            <tr><td>RowHeight</td><td>28</td><td>Row height in pixels — also controls the header height</td></tr>
+            <tr><td>Class / Style</td><td>—</td><td>Extra CSS class or inline style applied to the outermost grid element</td></tr>
+            <tr><td>Overlays</td><td>—</td><td>RenderFragment rendered in a pointer-events-none absolute layer above the grid</td></tr>
+            <tr><td>OnColumnResized</td><td>—</td><td>Action&lt;int, int&gt; — fires with (columnIndex, newWidthPx) when a resize grip is dragged</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<Person> layoutPeople = SampleData.GetPeopleCopy();
+    bool showRowNumbers = true;
+    bool rowBanding = true;
+    bool hasColumnMenu = true;
+    bool headerClickSelects;
+    NxGridCursor cursor = NxGridCursor.Cell;
+    string resizeLog = "Drag a column resize grip to see OnColumnResized fire…";
+
+    void OnColumnResized(int columnIndex, int newWidthPx)
+    {
+        resizeLog = $"OnColumnResized: column {columnIndex} → {newWidthPx}px";
+    }
+
+    string overlaysCode = DemoCodeSamples.Overlays;
+}

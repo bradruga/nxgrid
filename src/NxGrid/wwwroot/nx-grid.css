@@ -1,0 +1,469 @@
+:root {
+  --nx-grid-border: #E0E0E0;
+  --nx-grid-header-bg: #F0F0F0;
+  --nx-grid-header-border: #999999;
+  --nx-grid-row-even-bg: #e7e7e7;
+  --nx-grid-row-odd-bg: #ececec;
+  --nx-grid-surface: #fff;
+  --nx-grid-selection-bg: #C7C7C7;
+  --nx-grid-selected-border: #AFAFAF;
+  --nx-grid-accent: #0078d4;
+  --nx-grid-accent-dark: #005a9e;
+  --nx-grid-selection-border: #217346;
+  --nx-grid-row-number-fg: #666;
+  --nx-grid-icon-fg: #000;
+  --nx-grid-icon-muted-fg: #555;
+  --nx-grid-hover-bg: #f0f0f0;
+  --nx-grid-item-hover-bg: #e8f4ff;
+  --nx-grid-muted-fg: #888;
+  --nx-grid-shadow: rgba(0, 0, 0, 0.15);
+}
+
+.nx-grid {
+  border: 1px solid var(--nx-grid-border);
+  overflow-x: auto;
+  overflow-y: auto;
+  position: relative;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  outline: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.nx-grid-header-row {
+  border-bottom: 1px solid var(--nx-grid-border);
+  font-weight: bold;
+  display: flex;
+  position: sticky;
+  top: 0;
+  background-color: var(--nx-grid-header-bg);
+  z-index: 2;
+}
+
+.nx-grid-column-title {
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nx-grid-column-title-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.nx-grid-sort-icon {
+  flex-shrink: 0;
+  margin-left: 4px;
+  color: var(--nx-grid-accent);
+  display: inline-flex;
+  align-items: center;
+}
+
+.nx-grid-row {
+  display: flex;
+  background-color: var(--nx-grid-row-even-bg);
+}
+
+.nx-grid-row .nx-grid-cell,
+.nx-grid-row .nx-grid-row-start {
+  border-bottom: 1px solid var(--nx-grid-border);
+}
+
+.nx-grid-row:nth-child(odd) {
+  background-color: var(--nx-grid-row-odd-bg);
+}
+
+.nx-grid-no-banding .nx-grid-row,
+.nx-grid-no-banding .nx-grid-row:nth-child(odd) {
+  background-color: var(--nx-grid-surface);
+}
+
+.nx-grid-cell {
+  border-right: 1px solid var(--nx-grid-border);
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.nx-grid-cell-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.nx-grid-header-row {
+  border-bottom-color: var(--nx-grid-header-border);
+}
+
+.nx-grid-header-row .nx-grid-cell,
+.nx-grid-header-row .nx-grid-row-start,
+.nx-grid-row .nx-grid-row-start {
+  border-right-color: var(--nx-grid-header-border);
+  border-bottom-color: var(--nx-grid-header-border);
+}
+
+.nx-grid-header-row .nx-grid-cell {
+  position: relative;
+}
+
+.nx-grid-header-row .nx-grid-cell:hover .nx-grid-resize-grip {
+  border-color: var(--nx-grid-accent);
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cell-anchor {
+  border-right-color: var(--nx-grid-selected-border);
+  border-bottom-color: var(--nx-grid-selected-border);
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cell-selected {
+  background-color: var(--nx-grid-selection-bg);
+  border-right-color: var(--nx-grid-selected-border);
+  border-bottom-color: var(--nx-grid-selected-border);
+}
+
+.nx-grid-edit-input {
+  position: absolute;
+  inset: 0;
+  padding: 2px 6px;
+  border: 2px solid var(--nx-grid-selection-border);
+  box-sizing: border-box;
+  background: var(--nx-grid-surface);
+  font-size: inherit;
+  font-family: inherit;
+  outline: none;
+  z-index: 2;
+}
+
+.nx-grid-row-start {
+  border-right: 1px solid var(--nx-grid-border);
+  width: 32px;
+  min-width: 32px;
+  background-color: var(--nx-grid-header-bg);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.nx-grid-row-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--nx-grid-row-number-fg);
+}
+
+.nx-grid-menu-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 4px;
+  cursor: pointer;
+  color: var(--nx-grid-icon-fg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.nx-grid-menu-button:hover {
+  color: var(--nx-grid-accent);
+}
+
+.nx-grid-menu-button:active {
+  color: var(--nx-grid-accent-dark);
+}
+
+.nx-grid-column-menu {
+  width: 300px;
+  background-color: var(--nx-grid-surface);
+  border: 1px solid var(--nx-grid-border);
+  box-shadow: 0 4px 12px var(--nx-grid-shadow);
+  position: fixed;
+  z-index: 1000;
+  padding: 4px 0;
+}
+
+.nx-grid-resize-grip {
+  width: 10px;
+  border-right: 4px solid transparent;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  cursor: col-resize;
+}
+
+.nx-grid-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-family: inherit;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.nx-grid-menu-item:hover {
+  background-color: var(--nx-grid-item-hover-bg);
+}
+
+.nx-grid-menu-item:active {
+  background-color: var(--nx-grid-selection-bg);
+}
+
+.nx-grid-menu-item-icon {
+  flex-shrink: 0;
+  color: var(--nx-grid-accent);
+  display: inline-flex;
+  align-items: center;
+}
+
+.nx-grid-menu-divider {
+  height: 1px;
+  background-color: var(--nx-grid-border);
+  margin: 4px 0;
+}
+
+.nx-grid-context-menu {
+  background-color: var(--nx-grid-surface);
+  border: 1px solid var(--nx-grid-border);
+  box-shadow: 0 4px 12px var(--nx-grid-shadow);
+  border-radius: 4px;
+  padding: 4px 0;
+  min-width: 120px;
+}
+
+.nx-grid-context-item {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-family: inherit;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.nx-grid-context-item:hover {
+  background-color: var(--nx-grid-item-hover-bg);
+}
+
+.nx-grid-filter-body {
+  padding: 4px 12px 8px 36px;
+}
+
+.nx-grid-filter-row {
+  margin-bottom: 8px;
+}
+
+.nx-grid-filter-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.nx-grid-filter-date-label {
+  width: 35px;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.nx-grid-filter-input {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: inherit;
+  border: 1px solid var(--nx-grid-border);
+  background: var(--nx-grid-surface);
+  box-sizing: border-box;
+  outline: none;
+}
+
+.nx-grid-filter-input:focus {
+  border-color: var(--nx-grid-accent);
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+.nx-grid-filter-listbox {
+  border: 1px solid var(--nx-grid-border);
+  height: 300px;
+  overflow-y: auto;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: var(--nx-grid-surface);
+  box-sizing: border-box;
+}
+
+.nx-grid-filter-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.nx-grid-filter-item input[type=checkbox] {
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.nx-grid-filter-item label {
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.nx-grid-filter-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.nx-grid-btn {
+  padding: 5px 16px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+
+.nx-grid-btn-primary {
+  background-color: var(--nx-grid-accent);
+  color: #fff;
+  border-color: var(--nx-grid-accent);
+}
+
+.nx-grid-btn-primary:hover {
+  background-color: var(--nx-grid-accent-dark);
+  border-color: var(--nx-grid-accent-dark);
+}
+
+.nx-grid-btn-secondary {
+  background-color: transparent;
+  color: var(--nx-grid-accent);
+  border-color: var(--nx-grid-border);
+}
+
+.nx-grid-btn-secondary:hover {
+  background-color: var(--nx-grid-hover-bg);
+  border-color: var(--nx-grid-accent);
+}
+
+.nx-grid-combo-wrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  border: 2px solid var(--nx-grid-selection-border);
+  box-sizing: border-box;
+  background: var(--nx-grid-surface);
+  z-index: 2;
+}
+
+.nx-grid-combo-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  font-size: inherit;
+  font-family: inherit;
+  outline: none;
+}
+
+.nx-grid-combo-button {
+  background: none;
+  border: none;
+  border-left: 1px solid var(--nx-grid-border);
+  padding: 0;
+  width: var(--nx-grid-row-height);
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--nx-grid-icon-muted-fg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.nx-grid-combo-button:hover {
+  color: var(--nx-grid-accent);
+  background-color: var(--nx-grid-hover-bg);
+}
+
+.nx-grid-combo-button:active {
+  color: var(--nx-grid-accent-dark);
+}
+
+.nx-grid-combo-button-idle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--nx-grid-row-height);
+  border: none;
+  border-left: 1px solid var(--nx-grid-border);
+  border-radius: 0;
+  background: transparent;
+  z-index: 1;
+}
+
+.nx-grid-combo-dropdown {
+  background: var(--nx-grid-surface);
+  border: 1px solid var(--nx-grid-border);
+  box-shadow: 0 2px 8px var(--nx-grid-shadow);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.nx-grid-combo-item {
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.nx-grid-combo-item:hover {
+  background-color: var(--nx-grid-item-hover-bg);
+}
+
+.nx-grid-combo-item-active {
+  background-color: var(--nx-grid-selection-bg);
+}
+
+.nx-grid-combo-no-options {
+  padding: 4px 8px;
+  color: var(--nx-grid-muted-fg);
+  font-style: italic;
+  font-size: 13px;
+}

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/NxGrid.Demo.Server/NxGrid.Demo.Server.csproj" />
+    <Project Path="samples/NxGrid.Demo.Shared/NxGrid.Demo.Shared.csproj" />
+    <Project Path="samples/NxGrid.Demo.Wasm/NxGrid.Demo.Wasm.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NxGrid.Tests/NxGrid.Tests.csproj" />
+    <Project Path="tests/NxGrid.Playwright/NxGrid.Playwright.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/NxGrid/NxGrid.csproj" />
+  </Folder>
+</Solution>

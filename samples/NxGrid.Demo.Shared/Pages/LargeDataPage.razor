@@ -1,0 +1,85 @@
+@page "/large-data"
+
+<PageTitle>Large Data — NxGrid</PageTitle>
+
+<h1>Large Data</h1>
+<p class="doc-intro">
+    NxGrid uses Blazor's <code>&lt;Virtualize&gt;</code> component to render only the rows visible
+    in the viewport — the rest are represented by placeholder space. This keeps rendering fast
+    for datasets of tens of thousands of rows. The grid below shows @bigData.Count.ToString("N0") rows.
+</p>
+
+<div class="doc-section">
+    <h2>Virtualized Grid — @bigData.Count.ToString("N0") Rows</h2>
+    <div class="doc-controls">
+        <button class="doc-btn" @onclick="ScrollToEndAsync">ScrollToEnd()</button>
+        <button class="doc-btn doc-btn-secondary" @onclick="AddRow">Add row + ForceRerender()</button>
+        <span style="font-size:13px;color:#555;">Total rows: <strong>@bigData.Count.ToString("N0")</strong></span>
+    </div>
+    <NxGrid T="Person" @ref="bigGrid" Data="@bigData"
+            Style="height:400px"
+            ShowRowNumbers="true"
+            Cursor="@NxGridCursor.Cell">
+        <NxGridColumn T="Person" Title="#"           Getter="@(x => x.Id)"         Width="65"  MaxWidth="65" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="First Name"  Getter="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn T="Person" Title="Last Name"   Getter="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn T="Person" Title="Age"         Getter="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="Department"  Getter="@(x => x.Department)" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>ScrollToEnd()</h2>
+    <pre class="doc-code">@scrollCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>ForceRerender()</h2>
+    <p class="doc-note">
+        Use <code>ForceRerender()</code> after mutating the <code>Data</code> list from outside Blazor's
+        normal parameter-update path — for example, after receiving new rows via SignalR or a background task.
+    </p>
+    <pre class="doc-code">@forceRerenderCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>How Virtualization Works</h2>
+    <div class="doc-tip">
+        The grid gives the <code>&lt;Virtualize&gt;</code> component a fixed <code>ItemSize</code>
+        equal to <code>RowHeight</code> (default 28px). The virtualizer calculates the total scroll height
+        from the row count, renders only the rows in the visible viewport (plus an overscan buffer of 12),
+        and replaces off-screen rows with empty spacer elements. The result is near-constant rendering
+        cost regardless of total row count.
+    </div>
+    <p class="doc-note" style="margin-top:8px">
+        For virtualization to work, the grid needs a fixed height. Set it via the
+        <code>Style</code> parameter: <code>Style="height:400px"</code>.
+    </p>
+</div>
+
+@code {
+    List<Person> bigData = SampleData.GeneratePeople(5000);
+    NxGrid<Person> bigGrid = null!;
+    int nextId = 5001;
+
+    async Task ScrollToEndAsync()
+    {
+        await bigGrid.ScrollToEnd();
+    }
+
+    void AddRow()
+    {
+        bigData.Add(new Person
+        {
+            Id = nextId++,
+            FirstName = "New",
+            LastName = "Row",
+            Age = 30,
+            Department = "Engineering"
+        });
+        bigGrid.ForceRerender();
+    }
+
+    string scrollCode        = DemoCodeSamples.ScrollToEnd;
+    string forceRerenderCode = DemoCodeSamples.ForceRerender;
+}

@@ -1,0 +1,73 @@
+@page "/"
+
+<PageTitle>NxGrid — Live Documentation</PageTitle>
+
+<h1>NxGrid</h1>
+<p class="doc-intro">
+    A high-performance, virtualized data grid for Blazor (.NET 10). Supports sorting, filtering,
+    multi-cell rectangular selection, inline editing, copy/paste, and full keyboard navigation.
+    Published as a NuGet package.
+</p>
+
+<div class="doc-section">
+    <h2>Quick Start</h2>
+    <pre class="doc-code">@quickStartCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Live Example</h2>
+    <p class="doc-note">Click any cell to select it. Use the column headers to sort or filter. Double-click or press <kbd class="doc-kbd">F2</kbd> to edit a cell.</p>
+    <NxGrid T="Person" Data="@homePeople" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+        <NxGridColumn T="Person" Title="Id"    Getter="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn T="Person" Title="First" Getter="@(x => x.FirstName)"  Width="120" Setter="@((x, v) => x.FirstName = v ?? "")" />
+        <NxGridColumn T="Person" Title="Last"  Getter="@(x => x.LastName)"   Width="120" Setter="@((x, v) => x.LastName = v ?? "")" />
+        <NxGridColumn T="Person" Title="Age"   Getter="@(x => x.Age)"        Width="70"  Setter="@((x, v) => x.Age = int.TryParse(v, out var i) ? i : x.Age)" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="Department"
+                      Getter="@(x => x.Department)"
+                      Setter="@((x, v) => x.Department = v ?? "")"
+                      ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing", "Sales"])" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>Feature Pages</h2>
+    <div class="feature-grid">
+        <a href="/selection" class="feature-card">
+            <div class="feature-card-title">Selection</div>
+            <div class="feature-card-desc">Rectangular range selection, OnSelectionChanged event, programmatic SelectRow</div>
+        </a>
+        <a href="/editing" class="feature-card">
+            <div class="feature-card-title">Editing</div>
+            <div class="feature-card-desc">Inline cell editing, combo-box dropdowns, per-row editability, TransformPastedValue</div>
+        </a>
+        <a href="/columns" class="feature-card">
+            <div class="feature-card-title">Columns</div>
+            <div class="feature-card-desc">Custom templates, alignment, ValueGetter, width constraints, column menu</div>
+        </a>
+        <a href="/keyboard" class="feature-card">
+            <div class="feature-card-title">Keyboard</div>
+            <div class="feature-card-desc">All keyboard shortcuts: navigation, editing, copy/paste, and custom OnKeyPressed hotkeys</div>
+        </a>
+        <a href="/large-data" class="feature-card">
+            <div class="feature-card-title">Large Data</div>
+            <div class="feature-card-desc">Virtualized rendering of thousands of rows, ScrollToEnd, ForceRerender</div>
+        </a>
+        <a href="/stress-test" class="feature-card">
+            <div class="feature-card-title">Stress Test</div>
+            <div class="feature-card-desc">500,000 rows × 50 columns — 25 million cells rendered with constant-time scrolling</div>
+        </a>
+        <a href="/layout" class="feature-card">
+            <div class="feature-card-title">Layout Options</div>
+            <div class="feature-card-desc">Row numbers, banding, column menu toggle, cursor style, header-click selection, overlays</div>
+        </a>
+        <a href="/theming" class="feature-card">
+            <div class="feature-card-title">Theming</div>
+            <div class="feature-card-desc">All CSS custom properties, live dark-mode toggle, CellStyle per-cell styling</div>
+        </a>
+    </div>
+</div>
+
+@code {
+    List<Person> homePeople = SampleData.GetPeopleCopy();
+    string quickStartCode = DemoCodeSamples.QuickStart;
+}

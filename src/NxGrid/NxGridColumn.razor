@@ -1,0 +1,90 @@
+﻿@typeparam T
+
+@code {
+    // Cascading Parameters
+    [CascadingParameter] public NxGrid<T>? Parent { get; set; }
+    
+    // Parameters
+    [Parameter] public string? Id { get; set; }
+    [Parameter] public Func<T, object?>? Getter { get; set; }
+    [Parameter] public Func<T, object?>? ValueGetter { get; set; }
+    [Parameter] public Action<T, string?>? Setter { get; set; }
+    [Parameter] public Func<T, bool>? EditableGetter { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public int Width { get; set; } = 100;
+    [Parameter] public int? MinWidth { get; set; }
+    [Parameter] public int? MaxWidth { get; set; }
+    [Parameter] public NxGridColumnAlignment Alignment { get; set; }
+    [Parameter] public bool Nullable { get; set; }
+    [Parameter] public RenderFragment<T>? Template { get; set; }
+    [Parameter] public RenderFragment? HeaderTemplate { get; set; }
+    [Parameter] public Func<IEnumerable<string?>>? ComboBoxOptions { get; set; }
+
+    // Public Properties
+    public string HeaderCellStyle { get; private set; } = "";
+    public string CellStyle { get; private set; } = "";
+    public int SortState { get; set; }
+    public List<object?> FilterState { get; set; } = [];
+    public int? UserWidth { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Parent?.AddColumn(this);
+    }
+
+    protected override void OnParametersSet()
+    {
+        HeaderCellStyle = BuildHeaderCellStyle();
+        CellStyle = BuildCellStyle();
+    }
+
+    public void BuildStyles()
+    {
+        HeaderCellStyle = BuildHeaderCellStyle();
+        CellStyle = BuildCellStyle();
+    }
+    
+    private string BuildWidthStyle()
+    {
+        if (UserWidth != null)
+            return $"width:{UserWidth}px;min-width:{UserWidth}px;max-width:{UserWidth}px;";
+
+        var style = $"width:{Width}px;";
+        style += MinWidth != null ? $"min-width:{MinWidth}px;" : $"min-width:{Width}px;";
+        style += MaxWidth != null ? $"max-width:{MaxWidth}px;" : "flex-grow:1;";
+        return style;
+    }
+
+    private string BuildHeaderCellStyle() => BuildWidthStyle().TrimEnd(';');
+
+    private string BuildCellStyle()
+    {
+        var style = BuildWidthStyle();
+        if (Alignment == NxGridColumnAlignment.Center) style += "text-align:center;";
+        else if (Alignment == NxGridColumnAlignment.Right) style += "text-align:right;";
+        return style;
+    }
+    
+    public List<T> FilterData(List<T> data)
+    {
+        if (FilterState.Count == 0) return data;
+        var filterStrings = FilterState.Select(v => v?.ToString()).ToHashSet();
+        return data.Where(x => filterStrings.Contains(GetNormalizedValue(x)?.ToString())).ToList();
+    }
+
+    public object? GetNormalizedValue(T item)
+    {
+        var getter = ValueGetter ?? Getter;
+        return getter == null ? null : NormalizeObject(getter(item));
+    }
+
+    private static object? NormalizeObject(object? value)
+    {
+        if (value is string s && string.IsNullOrWhiteSpace(s))
+        {
+            return null;
+        }
+
+        return value;
+    }
+}

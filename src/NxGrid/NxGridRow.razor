@@ -1,0 +1,263 @@
+@typeparam T
+
+<div class="nx-grid-row" style="@RowStyle">
+    <div class="nx-grid-row-start @(ShowRowNumbers ? "nx-grid-row-number" : "")"
+         @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
+         @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
+        @if (ShowRowNumbers) { <span>@(RowIndex + 1)</span> }
+    </div>
+
+    @for (var ci = 0; ci < Columns.Count; ci++)
+    {
+        var col = Columns[ci];
+        var colIdx = ci;
+        var isAnchor = SelectedRange != null && RowIndex == SelectedRange.StartRow && ci == SelectedRange.StartCol;
+        var selected = SelectedRange?.IsCellInRange(RowIndex, ci) == true && !isAnchor;
+
+        <div class="nx-grid-cell @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : "")"
+             style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
+             @onmousedown="@(args => HandleMouseDown(args, col))"
+             @onmouseenter="@(args => HandleMouseEnter(args, col))"
+             @onmouseup="@(() => OnMouseUp?.Invoke(Row, col))"
+             @oncontextmenu="@(args => OnContextMenu?.Invoke(args, Row, col))"
+             @oncontextmenu:preventDefault
+             @ondblclick="@(() => OnDoubleClick?.Invoke(Row, col))">
+            @if (IsEditing && EditRow == RowIndex && EditCol == colIdx)
+            {
+                @if (col.ComboBoxOptions != null)
+                {
+                    <div class="nx-grid-combo-wrapper">
+                        <input class="nx-grid-combo-input"
+                               @ref="editInputRef"
+                               value="@EditValue"
+                               @oninput="@(e => OnEditInput?.Invoke(e))"
+                               @onkeydown="@(e => HandleEditKeyDown(e))"
+                               @onkeydown:stopPropagation
+                               @onmousedown:stopPropagation
+                               @onmouseup:stopPropagation />
+                        <button class="nx-grid-combo-button"
+                                @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                                @onmousedown:stopPropagation
+                                @onmousedown:preventDefault>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
+                                </button>
+                    </div>
+                }
+                else
+                {
+                    <input class="nx-grid-edit-input"
+                           @ref="editInputRef"
+                           value="@EditValue"
+                           @oninput="@(e => OnEditInput?.Invoke(e))"
+                           @onkeydown="@(e => HandleEditKeyDown(e))"
+                           @onkeydown:stopPropagation
+                           @onmousedown:stopPropagation
+                           @onmouseup:stopPropagation />
+                }
+            }
+            else if (col.Template == null)
+            {
+                <span class="nx-grid-cell-text">
+                    @if (col.Getter != null) { @(col.Getter(Row)) }
+                </span>
+                @if (col.ComboBoxOptions != null && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
+                     && (col.EditableGetter == null || col.EditableGetter(Row)))
+                {
+                    <button class="nx-grid-combo-button nx-grid-combo-button-idle"
+                            @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                            @onmousedown:stopPropagation
+                            @onmousedown:preventDefault>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
+                            </button>
+                }
+            }
+            else
+            {
+                <span class="nx-grid-cell-text">
+                    @col.Template(Row)
+                </span>
+                @if (col.ComboBoxOptions != null && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
+                     && (col.EditableGetter == null || col.EditableGetter(Row)))
+                {
+                    <button class="nx-grid-combo-button nx-grid-combo-button-idle"
+                            @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                            @onmousedown:stopPropagation
+                            @onmousedown:preventDefault>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
+                            </button>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public T Row { get; set; } = default!;
+    [Parameter] public int RowIndex { get; set; }
+    [Parameter] public List<NxGridColumn<T>> Columns { get; set; } = [];
+    [Parameter] public string RowStyle { get; set; } = "";
+    [Parameter] public NxGridRange? SelectedRange { get; set; }
+    [Parameter] public bool ShowRowNumbers { get; set; }
+    [Parameter] public bool IsEditing { get; set; }
+    [Parameter] public int EditRow { get; set; }
+    [Parameter] public int EditCol { get; set; }
+    [Parameter] public string EditValue { get; set; } = "";
+    [Parameter] public Func<T, NxGridColumn<T>, bool, string>? CellStyleFunc { get; set; }
+    [Parameter] public Func<MouseEventArgs, T, NxGridColumn<T>, Task>? OnMouseDown { get; set; }
+    [Parameter] public Func<MouseEventArgs, T, NxGridColumn<T>, Task>? OnMouseEnter { get; set; }
+    [Parameter] public Action<T, NxGridColumn<T>>? OnMouseUp { get; set; }
+    [Parameter] public Action<MouseEventArgs, T, NxGridColumn<T>>? OnContextMenu { get; set; }
+    [Parameter] public Action<T, NxGridColumn<T>>? OnDoubleClick { get; set; }
+    [Parameter] public Action<ChangeEventArgs>? OnEditInput { get; set; }
+    [Parameter] public Func<KeyboardEventArgs, Task>? OnEditKeyDown { get; set; }
+    [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseDown { get; set; }
+    [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseEnter { get; set; }
+    [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
+    [Parameter] public NxGridCursor Cursor { get; set; }
+    [Parameter] public int RenderToken { get; set; }
+
+    private string CursorStyle => Cursor switch
+    {
+        NxGridCursor.Cell    => "cursor:cell;",
+        NxGridCursor.Pointer => "cursor:pointer;",
+        _                    => ""
+    };
+
+    private ElementReference editInputRef;
+
+    // Snapshot of parameters from the last render — used by ShouldRender.
+    // The selection range is stored as a value tuple rather than a reference so that
+    // in-place mutations to NxGridRange (e.g. during mouse-drag) are detected correctly.
+    private T? prevRow;
+    private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevRangeSnapshot;
+    private bool prevIsEditing;
+    private NxGridCursor prevCursor;
+    private int prevEditRow = -1;
+    private int prevEditCol = -1;
+    private string prevEditValue = "";
+    private int prevRenderToken = -1;
+
+    // Track which edit session we've already focused so we focus exactly once per cell entry
+    private (int Row, int Col) focusedSession = (-1, -1);
+
+    private Task HandleMouseDown(MouseEventArgs args, NxGridColumn<T> col) =>
+        OnMouseDown?.Invoke(args, Row, col) ?? Task.CompletedTask;
+
+    private Task HandleMouseEnter(MouseEventArgs args, NxGridColumn<T> col) =>
+        OnMouseEnter?.Invoke(args, Row, col) ?? Task.CompletedTask;
+
+    private Task HandleEditKeyDown(KeyboardEventArgs args) =>
+        OnEditKeyDown?.Invoke(args) ?? Task.CompletedTask;
+
+    protected override bool ShouldRender()
+    {
+        var rowChanged    = !EqualityComparer<T>.Default.Equals(prevRow, Row);
+        var selChanged    = SelectionChangedForRow();
+        var editChanged   = EditChangedForRow();
+        var tokenChanged  = RenderToken != prevRenderToken;
+        var cursorChanged = Cursor != prevCursor;
+
+        if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged)
+            return false;
+
+        // Save snapshot so the next call can compare against it
+        prevRow           = Row;
+        prevRangeSnapshot = GetRangeSnapshot();
+        prevIsEditing     = IsEditing;
+        prevEditRow       = EditRow;
+        prevEditCol       = EditCol;
+        prevEditValue     = EditValue;
+        prevRenderToken   = RenderToken;
+        prevCursor        = Cursor;
+
+        return true;
+    }
+
+    private (int, int, int, int)? GetRangeSnapshot() =>
+        SelectedRange == null ? null : (
+            Math.Min(SelectedRange.StartRow, SelectedRange.EndRow),
+            Math.Max(SelectedRange.StartRow, SelectedRange.EndRow),
+            Math.Min(SelectedRange.StartCol, SelectedRange.EndCol),
+            Math.Max(SelectedRange.StartCol, SelectedRange.EndCol));
+
+    private bool SelectionChangedForRow()
+    {
+        var curr = GetRangeSnapshot();
+        if (curr == prevRangeSnapshot) return false;
+
+        // Fast path: if neither snapshot touches this row, nothing changed for us
+        var prevTouches = prevRangeSnapshot is var (pr0, pr1, _, _) && RowIndex >= pr0 && RowIndex <= pr1;
+        var currTouches = curr              is var (cr0, cr1, _, _) && RowIndex >= cr0 && RowIndex <= cr1;
+        if (!prevTouches && !currTouches) return false;
+
+        // At least one range touches this row — check each column
+        for (var c = 0; c < Columns.Count; c++)
+        {
+            var was = prevRangeSnapshot is var (r0p, r1p, c0p, c1p) && RowIndex >= r0p && RowIndex <= r1p && c >= c0p && c <= c1p;
+            var now = curr              is var (r0c, r1c, c0c, c1c) && RowIndex >= r0c && RowIndex <= r1c && c >= c0c && c <= c1c;
+            if (was != now) return true;
+        }
+
+        // Re-render when this row's edge status changes (top/bottom border of selection)
+        if (prevRangeSnapshot.HasValue && curr.HasValue)
+        {
+            var prevIsEdgeRow = RowIndex == prevRangeSnapshot.Value.Item1 || RowIndex == prevRangeSnapshot.Value.Item2;
+            var currIsEdgeRow = RowIndex == curr.Value.Item1           || RowIndex == curr.Value.Item2;
+            if (prevIsEdgeRow || currIsEdgeRow) return true;
+
+            // Re-render when column edges change for in-range rows (left/right border cells)
+            if (currTouches && (prevRangeSnapshot.Value.Item3 != curr.Value.Item3 ||
+                                prevRangeSnapshot.Value.Item4 != curr.Value.Item4))
+                return true;
+        }
+
+        return false;
+    }
+
+    private string GetSelectionBorderStyle(int row, int col)
+    {
+        if (SelectedRange == null || !SelectedRange.IsCellInRange(row, col))
+            return "";
+
+        var minRow = Math.Min(SelectedRange.StartRow, SelectedRange.EndRow);
+        var maxRow = Math.Max(SelectedRange.StartRow, SelectedRange.EndRow);
+        var minCol = Math.Min(SelectedRange.StartCol, SelectedRange.EndCol);
+        var maxCol = Math.Max(SelectedRange.StartCol, SelectedRange.EndCol);
+
+        var shadows = new System.Text.StringBuilder();
+        if (row == minRow) shadows.Append("inset 0 2px 0 0 var(--nx-grid-selection-border),");
+        if (row == maxRow) shadows.Append("inset 0 -2px 0 0 var(--nx-grid-selection-border),");
+        if (col == minCol) shadows.Append("inset 2px 0 0 0 var(--nx-grid-selection-border),");
+        if (col == maxCol) shadows.Append("inset -2px 0 0 0 var(--nx-grid-selection-border),");
+
+        return shadows.Length > 0
+            ? $"box-shadow:{shadows.ToString().TrimEnd(',')};"
+            : "";
+    }
+
+    private bool EditChangedForRow()
+    {
+        var wasAffected = prevIsEditing && prevEditRow == RowIndex;
+        var isAffected  = IsEditing    && EditRow     == RowIndex;
+        if (!wasAffected && !isAffected) return false;
+        if (wasAffected != isAffected)   return true;
+        return prevEditCol != EditCol || prevEditValue != EditValue;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsEditing && EditRow == RowIndex)
+        {
+            var session = (EditRow, EditCol);
+            if (session != focusedSession)
+            {
+                focusedSession = session;
+                try { await editInputRef.FocusAsync(); } catch { }
+            }
+        }
+        else
+        {
+            focusedSession = (-1, -1);
+        }
+    }
+}

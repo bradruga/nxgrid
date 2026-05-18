@@ -1,0 +1,54 @@
+@page "/stress-test"
+
+<PageTitle>Stress Test — NxGrid</PageTitle>
+
+<h1>Stress Test</h1>
+<p class="doc-intro">
+    @RowCount.ToString("N0") rows × @ColCount columns = @(((long)RowCount * ColCount).ToString("N0")) cells.
+    NxGrid renders only the rows visible in the viewport at any time — scrolling to any position
+    is instant regardless of dataset size.
+</p>
+
+<div class="doc-section">
+    <div class="doc-controls">
+        <button class="doc-btn" @onclick="ScrollToEndAsync">ScrollToEnd()</button>
+        <span style="font-size:13px;color:#555;">
+            <strong>@RowCount.ToString("N0")</strong> rows ·
+            <strong>@ColCount</strong> cols ·
+            <strong>@(((long)RowCount * ColCount).ToString("N0"))</strong> total cells
+        </span>
+    </div>
+    <NxGrid T="WideRow" @ref="grid" Data="@rows"
+            Style="height:600px"
+            ShowRowNumbers="true"
+            HasColumnMenu="false"
+            Cursor="@NxGridCursor.Cell">
+        <NxGridColumn T="WideRow" Title="#"
+                      Getter="@(x => x.Id)"
+                      Width="75" MaxWidth="75"
+                      Alignment="NxGridColumnAlignment.Right" />
+        @for (int c = 0; c < ColCount - 1; c++)
+        {
+            var col = c;
+            <NxGridColumn T="WideRow"
+                          Title="@($"C{col + 1:D2}")"
+                          Getter="@(x => x.GetValue(col))"
+                          Width="80"
+                          Alignment="NxGridColumnAlignment.Right" />
+        }
+    </NxGrid>
+    <p class="doc-note" style="margin-top:8px">
+        Column values are computed on the fly — the entire dataset fits in ~2 MB
+        (500,000 × 4-byte structs). Columns C01–C25 show integers; C26–C49 show decimals.
+    </p>
+</div>
+
+@code {
+    const int RowCount = 500_000;
+    const int ColCount = 50;
+
+    List<WideRow> rows = SampleData.GenerateWideRows(RowCount);
+    NxGrid<WideRow> grid = null!;
+
+    async Task ScrollToEndAsync() => await grid.ScrollToEnd();
+}

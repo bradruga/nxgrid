@@ -1,0 +1,93 @@
+@page "/selection"
+
+<PageTitle>Selection — NxGrid</PageTitle>
+
+<h1>Selection</h1>
+<p class="doc-intro">
+    Selection is always a rectangular range. Click a cell to anchor the selection,
+    then <kbd class="doc-kbd">Shift+click</kbd> or <kbd class="doc-kbd">Shift+Arrow</kbd> to extend it.
+    <code>OnSelectionChanged</code> fires on every change — mouse, keyboard, or programmatic.
+</p>
+
+<div class="doc-section">
+    <h2>Interactive Example</h2>
+    <div class="doc-controls">
+        <label>
+            <input type="checkbox" @bind="headerClickSelects" />
+            <strong>HeaderClickSelects</strong> — click a column header to select the whole column
+        </label>
+        <button class="doc-btn" @onclick="SelectAlice">SelectRow(alice)</button>
+        <button class="doc-btn doc-btn-secondary" @onclick="ClearOutput">Clear log</button>
+    </div>
+    <NxGrid T="Person" @ref="grid" Data="@people"
+            OnSelectionChanged="@OnSelectionChanged"
+            HeaderClickSelects="@headerClickSelects"
+            ShowRowNumbers="true"
+            Cursor="@NxGridCursor.Cell">
+        <NxGridColumn T="Person" Title="Id"         Getter="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn T="Person" Title="First Name" Getter="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn T="Person" Title="Last Name"  Getter="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn T="Person" Title="Age"        Getter="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" />
+    </NxGrid>
+    <div class="doc-output">@selectionText</div>
+</div>
+
+<div class="doc-section">
+    <h2>OnSelectionChanged</h2>
+    <pre class="doc-code">@selectionCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Programmatic Selection — SelectRow()</h2>
+    <pre class="doc-code">@selectRowCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>NxGridSelectionRange&lt;T&gt; Properties</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>StartRow / EndRow</td><td>int</td><td>First and last row index in the currently filtered/sorted data</td></tr>
+            <tr><td>StartCol / EndCol</td><td>int</td><td>First and last column index</td></tr>
+            <tr><td>Items</td><td>List&lt;T&gt;</td><td>Unique row objects in the range</td></tr>
+            <tr><td>Columns</td><td>List&lt;NxGridColumn&lt;T&gt;&gt;</td><td>Column objects in the range</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<Person> people = SampleData.GetPeopleCopy();
+    NxGrid<Person> grid = null!;
+    bool headerClickSelects;
+    string selectionText = "Click a cell to see selection info…";
+
+    void OnSelectionChanged(NxGridSelectionArgs<Person> args)
+    {
+        var range = args.Ranges.FirstOrDefault();
+        if (range == null) { selectionText = "No selection"; return; }
+
+        var rows = range.EndRow - range.StartRow + 1;
+        var cols = range.EndCol - range.StartCol + 1;
+        var preview = range.Items.Take(3).Select(p => $"{p.FirstName} {p.LastName}");
+        var names = string.Join(", ", preview) + (range.Items.Count > 3 ? "…" : "");
+
+        selectionText =
+            $"{rows} row{(rows == 1 ? "" : "s")} × {cols} col{(cols == 1 ? "" : "s")} " +
+            $"[rows {range.StartRow}–{range.EndRow}, cols {range.StartCol}–{range.EndCol}]" +
+            $"  →  {names}";
+    }
+
+    async Task SelectAlice()
+    {
+        var alice = people.FirstOrDefault(p => p.FirstName == "Alice");
+        if (alice != null) await grid.SelectRow(alice);
+    }
+
+    void ClearOutput() => selectionText = "";
+
+    string selectionCode = DemoCodeSamples.Selection;
+    string selectRowCode = DemoCodeSamples.SelectRow;
+}

@@ -1,0 +1,91 @@
+@page "/theming"
+
+<PageTitle>Theming — NxGrid</PageTitle>
+
+<h1>Theming</h1>
+<p class="doc-intro">
+    All NxGrid colors are CSS custom properties — override them on <code>:root</code> or any ancestor element.
+    Font size and family inherit from the parent; override the <code>.nx-grid</code> class to change them.
+    The <code>CellStyle</code> parameter lets you apply inline styles per cell.
+</p>
+
+<div class="doc-section">
+    <h2>Dark Theme Toggle</h2>
+    <p class="doc-note">
+        Wrap the grid in an element with the custom properties overridden to switch themes.
+        No JS required — pure CSS variables.
+    </p>
+    <div class="doc-controls">
+        <label><input type="checkbox" @bind="darkMode" /> Enable dark theme</label>
+    </div>
+    <div class="@(darkMode ? "demo-dark-theme" : "")">
+        <NxGrid T="Person" Data="@SampleData.People.ToList()" ShowRowNumbers="true" Cursor="@NxGridCursor.Cell">
+            <NxGridColumn T="Person" Title="Id"         Getter="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+            <NxGridColumn T="Person" Title="First Name" Getter="@(x => x.FirstName)"  Width="130" />
+            <NxGridColumn T="Person" Title="Last Name"  Getter="@(x => x.LastName)"   Width="130" />
+            <NxGridColumn T="Person" Title="Age"        Getter="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+            <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" />
+        </NxGrid>
+    </div>
+    <pre class="doc-code" style="margin-top:12px">@darkThemeCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>CellStyle — Per-Cell Inline Styles</h2>
+    <p class="doc-note">
+        Provide a <code>Func&lt;T, NxGridColumn&lt;T&gt;, string?&gt;</code> to return an inline style string
+        per cell. The style is applied before selection color blending, so the selection highlight
+        mixes correctly with a custom background color.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" CellStyle="@GetCellStyle" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+        <NxGridColumn T="Person" Title="Id"         Getter="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn T="Person" Title="First Name" Getter="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn T="Person" Title="Last Name"  Getter="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn T="Person" Title="Age"        Getter="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@cellStyleCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>CSS Custom Properties Reference</h2>
+    <table class="doc-table">
+        <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>--nx-grid-border</td><td>#E0E0E0</td><td>Cell border color</td></tr>
+            <tr><td>--nx-grid-header-bg</td><td>#F0F0F0</td><td>Header row background</td></tr>
+            <tr><td>--nx-grid-header-border</td><td>#999999</td><td>Header border color</td></tr>
+            <tr><td>--nx-grid-row-even-bg</td><td>#e7e7e7</td><td>Even row background (RowBanding)</td></tr>
+            <tr><td>--nx-grid-row-odd-bg</td><td>#ececec</td><td>Odd row background (RowBanding)</td></tr>
+            <tr><td>--nx-grid-surface</td><td>#fff</td><td>Edit input background, combo-box surface</td></tr>
+            <tr><td>--nx-grid-selection-bg</td><td>#C7C7C7</td><td>Selected cell background</td></tr>
+            <tr><td>--nx-grid-selected-border</td><td>#AFAFAF</td><td>Border color of selected cells</td></tr>
+            <tr><td>--nx-grid-selection-border</td><td>#217346</td><td>Edit-mode input border (Excel green)</td></tr>
+            <tr><td>--nx-grid-accent</td><td>#0078d4</td><td>Focus rings, sort icons, hover accents</td></tr>
+            <tr><td>--nx-grid-accent-dark</td><td>#005a9e</td><td>Active/pressed states</td></tr>
+            <tr><td>--nx-grid-row-number-fg</td><td>#666</td><td>Row number gutter text color</td></tr>
+            <tr><td>--nx-grid-icon-fg</td><td>#000</td><td>Header icon color</td></tr>
+            <tr><td>--nx-grid-icon-muted-fg</td><td>#555</td><td>Muted icon color</td></tr>
+            <tr><td>--nx-grid-hover-bg</td><td>#f0f0f0</td><td>Menu item hover background</td></tr>
+            <tr><td>--nx-grid-item-hover-bg</td><td>#e8f4ff</td><td>Combo/filter item hover background</td></tr>
+            <tr><td>--nx-grid-muted-fg</td><td>#888</td><td>Muted text (e.g. "No matches")</td></tr>
+            <tr><td>--nx-grid-shadow</td><td>rgba(0,0,0,0.15)</td><td>Dropdown / menu shadow</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    bool darkMode;
+
+    string? GetCellStyle(Person p, NxGridColumn<Person> col)
+    {
+        if (col.Title == "Age" && p.Age >= 50)
+            return "color:#dc2626;font-weight:600;";
+        if (col.Title == "Department" && p.Department == "Engineering")
+            return "background-color:#eff6ff;";
+        return null;
+    }
+
+    string darkThemeCode = DemoCodeSamples.DarkTheme;
+    string cellStyleCode = DemoCodeSamples.CellStyle;
+}

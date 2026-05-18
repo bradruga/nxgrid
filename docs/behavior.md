@@ -1,0 +1,341 @@
+# NxGrid — Runtime Behavior Reference
+
+This document describes how NxGrid behaves at runtime. It covers the mechanics behind the public API — the rules, edge cases, and algorithms that are not obvious from the parameter list alone. See `api-design.md` for the parameter reference.
+
+---
+
+## Data pipeline
+
+`Data` is the source of truth. The grid maintains a separate `filteredData` list that is what actually renders. The pipeline runs in this order:
+
+1. **Filter** — each column's `FilterState` is applied sequentially (AND logic).
+2. **Sort** — the active sort column is applied to the filtered result.
+3. **Virtualize** — `<Virtualize>` renders only visible rows from `filteredData`, with 12-row overscan.
+
+The pipeline re-runs (`ApplyFilterAndSort`) when:
+- `OnParametersSet` detects that `Data` has a different reference or a different count than the last render.
+- Sort or filter state changes via the column menu.
+- `ForceRerender()` is called explicitly.
+
+`ForceRerender()` also increments an internal render token to force every row to re-render, which is necessary when cells have been mutated externally without changing `Data.Count`.
+
+---
+
+## Sorting
+
+**Sort states:** `0` = unsorted, `1` = ascending, `2` = descending. Only one column can be sorted at a time — activating sort on any column clears all others to `0`.
+
+**Null/empty values sort to the bottom** regardless of ascending or descending direction. The sort predicate pushes rows where the cell value is null or whitespace-only to the end before applying the primary comparison.
+
+**Sort key:** `ValueGetter` is used if set, otherwise `Getter`. If neither is set, the column cannot be sorted.
+
+**Two ways to change sort:**
+- Click the column title (only when `HasColumnMenu = true`; cycles 0 → 1 → 2 → 0).
+- Use the column menu (Sort Ascending / Sort Descending / Clear Sort), which sets the state directly.
+
+When `HeaderClickSelects = true`, clicking a column header selects the full column instead of cycling sort. Sort cycling via title click is disabled in that mode.
+
+A sort icon (↑ or ↓) appears in the column header when SortState is 1 or 2. A filter icon appears when FilterState is non-empty.
+
+---
+
+## Filtering
+
+`FilterState` is a list of **included** values (a whitelist). An empty list means no filter. Rows are included only when the cell value appears in `FilterState`.
+
+The filter key is `ValueGetter ?? Getter`. The value is normalized before comparison: a string that is null or whitespace-only is treated as `null`. This means filtering for `null` will match both actual `null` and whitespace-only strings.
+
+Multiple columns can be filtered simultaneously; each filter is applied in column order (AND).
+
+Filters are applied before sort, so the sort operates on the already-filtered dataset.
+
+The column menu's filter panel populates itself from the current `Data` list (not `filteredData`), showing all distinct values.
+
+---
+
+## Selection
+
+The internal selection is a single `NxGridRange` with `StartRow/StartCol` (anchor) and `EndRow/EndCol` (cursor). The anchor and cursor can be in any order — Start is not guaranteed to be ≤ End.
+
+The `NxGridSelectionRange<T>` exposed through `OnSelectionChanged` always has normalized coordinates (`StartRow ≤ EndRow`, `StartCol ≤ EndCol`) and fully populated `Items` and `Columns` lists.
+
+**No selection:** the grid starts with no selection. Many keyboard actions create a selection at (0, 0) if none exists.
+
+### Mouse selection
+
+| Interaction | Behavior |
+|---|---|
+| Left-click a cell | Single-cell selection (anchor = cursor = clicked cell) |
+| Shift+left-click | Extends selection: anchor stays, cursor moves to clicked cell |
+| Left-drag | Continuously extends selection as the mouse moves over cells |
+| Right-click a selected cell | Preserves existing selection |
+| Right-click an unselected cell | Single-selects that cell first, then shows context menu |
+
+### Header and row-number selection (requires `HeaderClickSelects = true`)
+
+| Interaction | Behavior |
+|---|---|
+| Click column header | Selects full column (rows 0 to last) |
+| Shift+click column header | Extends from the last header-click anchor |
+| Drag across column headers | Selects all spanned columns |
+| Click row number | Selects full row (columns 0 to last) |
+| Shift+click row number | Extends from the last row-number-click anchor |
+| Click top-left corner | Selects all cells |
+
+When `HeaderClickSelects = false`, clicking row numbers has no effect, and clicking the corner has no effect.
+
+### Programmatic selection
+
+`SelectRow(T row)` finds the row in `filteredData`, selects it spanning all columns (like a row-number click), scrolls it into view, and fires `OnSelectionChanged`. If the row is not present in `filteredData` (e.g. filtered out), the call is a no-op.
+
+---
+
+## Keyboard navigation
+
+Key events are handled at the grid container level. **All key handling is suppressed while a cell is being edited** — the edit input's `@onkeydown:stopPropagation` ensures editing keys never reach the grid handler.
+
+If there is no active selection when a navigation key is pressed, a selection is created at (0, 0) and the key has no further effect for that press.
+
+### Navigation keys
+
+| Key | Behavior |
+|---|---|
+| Arrow keys | Move selection one cell in that direction |
+| Shift + Arrow | Extend selection (cursor moves, anchor stays) |
+| Ctrl/⌘ + Arrow | Jump to edge of data block (see below) |
+| Home | Jump to column 0 (row unchanged) |
+| End | Jump to last column (row unchanged) |
+| Ctrl/⌘ + Home | Jump to (0, 0) |
+| Ctrl/⌘ + End | Jump to last cell |
+| Shift + Home/End/Ctrl+Home/End | Extend selection to that target |
+| Page Up / Page Down | Move by the visible page height in rows; column unchanged |
+| Tab | Move right; wraps to column 0 of the next row at the last column; wraps from last row back to first row |
+| Shift+Tab | Move left; wraps to last column of the previous row at column 0; wraps from first row back to last row |
+| Enter | Move down one row; **clamped at last row, no wrap** |
+| Shift+Enter | Move up one row; clamped at row 0 |
+
+All navigation scrolls the target cell into view via JS interop.
+
+Page size is queried from JS (based on actual container height and `RowHeight`). If JS is not yet initialized, page size defaults to 10.
+
+### Ctrl+Arrow edge-jumping
+
+The algorithm matches Excel's behavior:
+
+1. **On data (current cell is non-empty):** walk in the direction to the last contiguous non-empty cell in the block. If the current cell is already at the trailing edge of its block, fall through to step 2.
+2. **On empty (or at trailing edge):** skip forward to the first non-empty cell found in that direction.
+3. **If no non-empty cell found:** jump to the absolute edge (row 0 / last row / column 0 / last column).
+
+A cell is "empty" if its value (from `ValueGetter ?? Getter`) is null or its `ToString()` is whitespace-only.
+
+### Unhandled keys
+
+Any key not matched by the grid (and not a printable character that would start editing) is forwarded to the `OnKeyPressed` callback, if one is registered. After the callback, the grid triggers a re-render so any side effects from the host are reflected.
+
+---
+
+## Editing
+
+A column is editable only when it has a `Setter`. `EditableGetter` can further restrict editability per row — cells where it returns `false` are read-only even though the column has a `Setter`.
+
+### Entering edit mode
+
+| Trigger | Initial edit value |
+|---|---|
+| F2 | Existing cell value (cursor at end) |
+| Double-click | Existing cell value (cursor at end) |
+| Any printable character | That character only (existing value replaced) |
+
+Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctrl+C does not open the editor.
+
+### Committing an edit
+
+| Trigger | Post-commit navigation |
+|---|---|
+| Enter | Move down one row (clamped, no wrap) |
+| Tab | Move right (wraps like the Tab navigation key) |
+| Click another cell | No navigation; selection moves to the clicked cell |
+
+On commit, `Setter` is called with the current `editValue` string. The host is responsible for parsing (e.g. `int.Parse`). After the setter call, focus returns to the grid container.
+
+### Cancelling an edit
+
+Escape cancels the edit. `Setter` is never called. The data is unchanged because the model was never mutated during editing — `editValue` is a separate field. Focus returns to the grid.
+
+### Edit mode and mouse clicks
+
+If a cell is clicked while another cell is being edited, the edit is committed first (moving selection to the clicked cell), not cancelled.
+
+---
+
+## Combo box
+
+Combo box editing applies to columns that have `ComboBoxOptions` set. The behavior differs from plain text editing:
+
+**Opening the dropdown:**
+
+| Trigger | Dropdown opens? |
+|---|---|
+| F2 | No — edit mode with existing value, dropdown stays closed |
+| Double-click | No — edit mode with existing value, dropdown stays closed |
+| Typing a character | Yes — dropdown opens and filters immediately |
+| Down Arrow (while editing) | Yes — opens (or if already open, moves highlight down) |
+| ▾ button click | Toggles; opens showing all options unfiltered |
+
+**Filtering:** options are filtered case-insensitively by the current `editValue`. When the combo button is used to open the dropdown, all options are shown regardless of the current edit value. "No matches" is displayed when the filter returns an empty list.
+
+`ComboBoxOptions` is called fresh on each open, so the list can be dynamic.
+
+**Keyboard while dropdown is open:**
+
+| Key | Behavior |
+|---|---|
+| Down Arrow | Moves highlight down (clamps at last item) |
+| Up Arrow | Moves highlight up (clamps at index 0) |
+| Enter | Selects highlighted item (if any), then commits; or commits current text if nothing highlighted |
+| Tab | Same as Enter |
+| Escape | Closes dropdown, stays in edit mode; a second Escape then cancels the edit |
+
+**Mouse:** clicking a dropdown item commits that value immediately. The mousedown event is preventDefault'd to prevent the input from losing focus before the click is processed.
+
+---
+
+## Delete
+
+The Delete key clears all cells in the current selection. For each cell:
+
+1. If the column has no `Setter`, the cell is skipped.
+2. If `EditableGetter` returns `false` for that row, the cell is skipped.
+3. The default value is determined by sampling the first non-null value in `filteredData` for that column (using `ValueGetter ?? Getter`) to learn the underlying type:
+   - Numeric types (`int`, `long`, `short`, `decimal`, `double`, `float`): default is `"0"`, or `null` if `Nullable = true`.
+   - `string`: default is `""` (empty string).
+   - No sample found or unrecognized type: default is `null`.
+
+---
+
+## Clipboard
+
+### Copy (Ctrl/⌘+C or context menu)
+
+Copies the current selection as tab-separated values (TSV), one row per line. Cell values come from `Getter` (not `ValueGetter`), so the copied text matches what is displayed. The copy origin `(startRow, startCol)` is recorded for use during paste.
+
+### Paste (Ctrl/⌘+V)
+
+Paste reads plain text from the clipboard and parses it as TSV (rows split on `\n`, cells split on `\t`). Paste skips cells that have no `Setter` or where `EditableGetter` returns `false`.
+
+**Single-cell paste** (clipboard contains exactly one row and one column):
+
+The single value is written to every cell in the current selection. If `TransformPastedValue` is set, it is called for each target cell as `(value, targetRow - copyOrigin.row, targetCol - copyOrigin.col)`, allowing formula-style reference adjustment.
+
+**Multi-cell paste** (clipboard contains multiple rows or columns):
+
+The paste origin is the top-left corner of the current selection. The clipboard grid is laid over the data starting at that origin. Cells outside the grid bounds are skipped. `TransformPastedValue` is called with the delta from the copy origin to the paste origin (a fixed offset applied to all cells, not per-cell): `(value, pasteOriginRow - copyOrigin.row, pasteOriginCol - copyOrigin.col)`.
+
+---
+
+## Column resize
+
+Dragging the resize grip at the right edge of any column header initiates a JS-driven drag interaction that returns the new width in pixels.
+
+**Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns are resized to the same new width simultaneously.
+
+After resize, `OnColumnResized` fires once per resized column with `(columnIndex, newWidthPx)`.
+
+**`UserWidth`** is set on the column object after a user drag. Once set, it takes precedence over `Width`/`MinWidth`/`MaxWidth`, and all three CSS width properties are pinned to the same value (no flex growth).
+
+---
+
+## Column width and layout
+
+Before a user resize, column widths are determined by:
+
+| Condition | CSS applied |
+|---|---|
+| Always | `width: {Width}px` |
+| `MinWidth` set | `min-width: {MinWidth}px` |
+| `MinWidth` not set | `min-width: {Width}px` |
+| `MaxWidth` set | `max-width: {MaxWidth}px` |
+| `MaxWidth` not set | `flex-grow: 1` (column fills available space) |
+
+After a user resize, `UserWidth` overrides all of the above: `width`, `min-width`, and `max-width` are all fixed to `UserWidth`.
+
+The header and data rows share the same `rowStyle`, which sets a `min-width` equal to the sum of all columns' `MinWidth ?? Width` plus 32 px for the row-number gutter. This prevents the grid from collapsing below a usable minimum when the container is narrow.
+
+---
+
+## Cell styling and selection color blending
+
+`CellStyle(row, column)` is called for every cell on every render. The result is appended to the column's built-in style string.
+
+When a cell is selected, the selection highlight is applied by blending rather than overriding:
+
+1. The combined style string is scanned for a `background-color` property with a hex value (`#RGB` or `#RRGGBB`; alpha is not supported).
+2. If found, that hex color is blended 50/50 (per channel) with the selection color `#cce4ff`, and the original `background-color` declaration is removed.
+3. The blended color is written back as `background-color`.
+4. If no hex `background-color` is present, `background-color: #cce4ff` is appended directly.
+
+This means a custom cell background will visually mix with the selection highlight rather than being hidden by it.
+
+---
+
+## State persistence
+
+When `StateKey` is non-null, the grid serialises its current column configuration to `localStorage` after any user action that changes column state: sort, filter, column width (post-resize). Deserialisation runs once in `OnAfterRenderAsync(firstRender=true)`, after the JS module has loaded.
+
+**Serialised shape (JSON, camelCase):**
+
+```json
+{
+  "columns": [
+    { "id": "desc", "width": 200 },
+    { "id": "qty", "width": null }
+  ],
+  "sort": { "columnId": "desc", "direction": 1 },
+  "filters": { "dept": ["Engineering", "Sales"] }
+}
+```
+
+`width` is only non-null when the user has explicitly dragged the resize grip. Columns that have never been resized have `"width": null` and use their declared `Width` parameter on restore.
+
+**Column identity:** each column is identified by `Id` if set, falling back to `Title`. Columns with neither are excluded from state persistence.
+
+**Stale entries:** saved entries for column ids that no longer exist in the current column set are silently ignored.
+
+**Filter value matching:** filter values are stored as strings. On restore, the grid scans `Data` to find the actual typed values whose `ToString()` matches each stored string, then sets `FilterState` with those typed values. Rows that no longer exist in `Data` simply produce no match and are excluded.
+
+**First-render flash:** because `localStorage` is only accessible via JS interop, state is restored after the initial render. There will be a brief flash of the default (unsorted, unfiltered) state before saved configuration is applied. This is unavoidable with client-side JS interop.
+
+**`ClearSavedState()`** removes the `localStorage` entry for `StateKey` and immediately resets all column state in memory to defaults (`UserWidth = null`, `SortState = 0`, `FilterState = []`), re-runs the filter/sort pipeline, and calls `StateHasChanged()`. The visual change is immediate — no page reload required.
+
+---
+
+## Context menu
+
+Right-clicking any cell opens a context menu at the cursor position. The only option is **Copy**, which is equivalent to Ctrl+C.
+
+The menu is positioned with `position:fixed` at the mouse coordinates. It closes when it loses focus (via a JS callback).
+
+---
+
+## JS interop and initialization
+
+The JS module (`nx-grid.js`) is lazily imported on first render. Several behaviors are unavailable until it is ready:
+
+- Clipboard read/write
+- Scroll-into-view
+- Column resize drag
+- Column menu and combo dropdown positioning
+- Page size calculation for Page Up/Down (falls back to 10 rows)
+- Mac platform detection (`isMac`; affects whether Ctrl or Meta is the modifier key)
+
+`ScrollToEnd()` polls with a 20 ms delay until JS interop is initialized, then scrolls to the last row.
+
+All other JS-dependent operations are no-ops if `jsInterop` is null, and silently succeed once it is ready.
+
+---
+
+## Column menu positioning
+
+When the column menu opens, it is rendered off-screen (hidden via `visibility:hidden`) on the first render pass. After render, JS measures the button position and the menu is repositioned and made visible. A two-render cycle is unavoidable for correct positioning.
+
+An `openingMenu` flag prevents the "lost focus" JS callback from immediately closing the menu during the frame it opens.
