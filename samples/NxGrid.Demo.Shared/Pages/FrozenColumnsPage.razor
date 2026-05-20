@@ -1,0 +1,74 @@
+@page "/frozen-columns"
+
+<PageTitle>Frozen Columns — NxGrid</PageTitle>
+
+<h1>Frozen Columns</h1>
+<p class="doc-intro">
+    Set <code>Frozen="true"</code> on any column to pin it with CSS <code>position: sticky</code>.
+    Frozen columns stick to both edges of the scroll area — they stay visible whether you scroll
+    left or right. Use the ▾ column menu to freeze or unfreeze columns at runtime.
+</p>
+
+<div class="doc-section">
+    <h2>Try it</h2>
+    <p class="doc-note">
+        Scroll the grid horizontally. <strong>Employee</strong> and <strong>Department</strong> stay
+        pinned to the left. Try opening the ▾ menu on any column to freeze it too, or to unfreeze
+        the existing ones.
+    </p>
+    <NxGrid T="SalesRow" Data="@rows" Style="height:360px" ShowRowNumbers="true" Cursor="@NxGridCursor.Cell" HasColumnMenu="true">
+        <NxGridColumn T="SalesRow" Title="Employee"   Display="@(x => x.Name)"       Width="140" Frozen="true" />
+        <NxGridColumn T="SalesRow" Title="Department" Display="@(x => x.Department)" Width="130" Frozen="true" />
+        <NxGridColumn T="SalesRow" Title="Jan"   Property="@(x => x.Jan)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Feb"   Property="@(x => x.Feb)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Mar"   Property="@(x => x.Mar)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Apr"   Property="@(x => x.Apr)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="May"   Property="@(x => x.May)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Jun"   Property="@(x => x.Jun)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Jul"   Property="@(x => x.Jul)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Aug"   Property="@(x => x.Aug)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Sep"   Property="@(x => x.Sep)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Oct"   Property="@(x => x.Oct)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Nov"   Property="@(x => x.Nov)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Dec"   Property="@(x => x.Dec)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="SalesRow" Title="Total" Display="@(x => x.Total.ToString("N0"))" Width="95" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Both edges</h2>
+    <p class="doc-note">
+        Frozen columns are sticky on both the left and the right side of the scroll area.
+        If a frozen column's natural position is off-screen to the right, it sticks to the right
+        edge of the viewport until you scroll past it, then releases to its natural position,
+        then sticks to the left edge as you continue scrolling. This keeps frozen columns
+        visible at all scroll positions without any extra configuration.
+    </p>
+</div>
+
+<div class="doc-section">
+    <h2>Preventing user changes</h2>
+    <p class="doc-note">
+        Set <code>Freezable="false"</code> to remove the freeze toggle from the column menu,
+        keeping the frozen state under developer control only.
+    </p>
+    <pre class="doc-code">@freezableCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>State persistence</h2>
+    <p class="doc-note">
+        When <code>StateKey</code> is set on the grid, user-toggled frozen state is included in
+        the saved payload alongside column widths and sort order. Columns declared with
+        <code>Frozen="true"</code> at design time are always frozen on first load; saved state
+        can only override columns the user has explicitly toggled.
+    </p>
+</div>
+
+@code {
+    List<SalesRow> rows = SampleData.GenerateSalesRows(20);
+
+    string basicCode    = DemoCodeSamples.FrozenColumns;
+    string freezableCode = DemoCodeSamples.FrozenColumnsFreezable;
+}

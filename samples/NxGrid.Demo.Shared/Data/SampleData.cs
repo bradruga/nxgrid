@@ -57,4 +57,25 @@ public static class SampleData
             Department = Departments[rng.Next(Departments.Length)]
         }).ToList();
     }
+
+    private static readonly string[] FullNames =
+    [
+        "Alice Johnson", "Bob Smith", "Carol Williams", "David Brown", "Eve Davis",
+        "Frank Miller", "Grace Wilson", "Henry Moore", "Iris Taylor", "Jack Anderson",
+        "Karen Thomas", "Leo Jackson", "Mia White", "Noah Harris", "Olivia Martin",
+        "Paul Thompson", "Quinn Garcia", "Rose Martinez", "Sam Robinson", "Tara Clark"
+    ];
+
+    public static List<SalesRow> GenerateSalesRows(int count)
+    {
+        var rng = new Random(7);
+        return Enumerable.Range(0, count).Select(i => new SalesRow(
+            FullNames[i % FullNames.Length],
+            Departments[rng.Next(Departments.Length)],
+            rng.Next(3_000, 12_000), rng.Next(3_000, 12_000), rng.Next(3_000, 12_000),
+            rng.Next(3_000, 12_000), rng.Next(3_000, 12_000), rng.Next(3_000, 12_000),
+            rng.Next(3_000, 12_000), rng.Next(3_000, 12_000), rng.Next(3_000, 12_000),
+            rng.Next(3_000, 12_000), rng.Next(3_000, 12_000), rng.Next(3_000, 12_000)
+        )).ToList();
+    }
 }

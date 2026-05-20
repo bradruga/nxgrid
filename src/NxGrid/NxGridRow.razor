@@ -14,7 +14,7 @@
         var isAnchor = SelectedRange != null && RowIndex == SelectedRange.StartRow && ci == SelectedRange.StartCol;
         var selected = SelectedRange?.IsCellInRange(RowIndex, ci) == true && !isAnchor;
 
-        <div class="nx-grid-cell @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : "")"
+        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : "")"
              style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
              @onmousedown="@(args => HandleMouseDown(args, col))"
              @onmouseenter="@(args => HandleMouseEnter(args, col))"

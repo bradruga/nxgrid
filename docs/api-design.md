@@ -118,6 +118,8 @@ Task  ClearSavedState()      // remove the localStorage entry for StateKey and r
 | `MinWidth` | `int?` | — | Minimum width in pixels during user resize. |
 | `MaxWidth` | `int?` | — | Maximum width in pixels during user resize. When null, the column grows to fill space. |
 | `Alignment` | `NxGridColumnAlignment` | `Left` | `Left`, `Center`, or `Right`. |
+| `Frozen` | `bool` | `false` | Pins the column to the left of the scroll area using `position: sticky`. Multiple frozen columns stack left-to-right in declaration order; all frozen columns appear before unfrozen ones regardless of original declaration order. Freezing a column at runtime (via the column menu) clears the active selection. |
+| `Freezable` | `bool` | `true` | When `true`, the column menu shows a "Freeze column / Unfreeze column" toggle. Set to `false` to prevent the user from changing the frozen state. The user-toggled state is included in `StateKey` persistence. |
 | `Template` | `RenderFragment<T>?` | — | Custom cell renderer. The cell container (padding, selection highlight) is still rendered by the grid; the template fills the inner content. |
 | `HeaderTemplate` | `RenderFragment?` | — | Custom markup rendered inside the column header cell instead of `Title`. Sort/filter icons and the menu button still appear. The resolved title (see `Title` fallback rules above) is still used as the `aria-label` and column menu label; state-persistence uses explicit `Title` only. Interactive elements inside the template (e.g. a checkbox) should include `@onmousedown:stopPropagation` (prevents column-range selection) and `@onclick:stopPropagation` (prevents opening the column menu). |
 
@@ -263,6 +265,5 @@ Things that cannot be changed through CSS variables (require a CSS override targ
 
 - **Server-side data** — Current `Data: List<T>` is always in-memory. A future `OnReadData: Func<NxGridReadArgs, Task<NxGridReadResult<T>>>` callback would let the host supply a page of data on demand, with `NxGridReadArgs` carrying sort/filter/page state.
 - **Column reordering** — drag-to-reorder columns not yet implemented.
-- **Frozen columns** — beyond the row-number gutter, no multi-column freeze yet.
 - **Row grouping / aggregates** — not planned for v1.
 - **`@bind-SelectedItems`** — convenience two-way binding shorthand for the common single-row selection case. Currently requires `OnSelectionChanged` handler.

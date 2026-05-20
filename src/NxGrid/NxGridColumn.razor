@@ -22,6 +22,8 @@
     [Parameter] public RenderFragment<T>? Template { get; set; }
     [Parameter] public RenderFragment? HeaderTemplate { get; set; }
     [Parameter] public Func<IEnumerable<string?>>? ComboBoxOptions { get; set; }
+    [Parameter] public bool Frozen { get; set; }
+    [Parameter] public bool Freezable { get; set; } = true;
 
     // Public Properties
     public string HeaderCellStyle { get; private set; } = "";
@@ -29,6 +31,11 @@
     public int SortState { get; set; }
     public List<object?> FilterState { get; set; } = [];
     public int? UserWidth { get; set; }
+    public bool? UserFrozen { get; set; }
+    public bool IsFrozen => UserFrozen ?? Frozen;
+    public int? StickyLeft { get; set; }
+    public int? StickyRight { get; set; }
+    public bool IsLastFrozen { get; set; }
 
     // Effective getters: explicit parameters take priority, then compiled Property getter
     public Func<T, object?>? EffectiveGetter => Display ?? _compiledPropertyGetter;
@@ -164,13 +171,27 @@
         return style;
     }
 
-    private string BuildHeaderCellStyle() => BuildWidthStyle().TrimEnd(';');
+    private string BuildHeaderCellStyle()
+    {
+        var style = BuildWidthStyle().TrimEnd(';');
+        if (StickyLeft is int left)
+        {
+            var right = StickyRight is int r ? $";right:{r}px" : "";
+            style += $";position:sticky;left:{left}px{right};z-index:1;background-color:var(--nx-grid-header-bg)";
+        }
+        return style;
+    }
 
     private string BuildCellStyle()
     {
         var style = BuildWidthStyle();
         if (Alignment == NxGridColumnAlignment.Center) style += "text-align:center;";
         else if (Alignment == NxGridColumnAlignment.Right) style += "text-align:right;";
+        if (StickyLeft is int left)
+        {
+            var right = StickyRight is int r ? $"right:{r}px;" : "";
+            style += $"position:sticky;left:{left}px;{right}z-index:1;background-color:inherit;";
+        }
         return style;
     }
 

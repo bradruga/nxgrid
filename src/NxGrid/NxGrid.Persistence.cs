@@ -6,6 +6,7 @@ internal class PersistedColumnState
 {
     public string Id { get; set; } = "";
     public int? Width { get; set; }
+    public bool? Frozen { get; set; }
 }
 
 internal class PersistedSortState
@@ -48,7 +49,7 @@ public partial class NxGrid<T>
         {
             var id = GetColumnId(column);
             if (id == null) continue;
-            state.Columns.Add(new PersistedColumnState { Id = id, Width = column.UserWidth });
+            state.Columns.Add(new PersistedColumnState { Id = id, Width = column.UserWidth, Frozen = column.UserFrozen });
         }
 
         var sortCol = columns.FirstOrDefault(c => c.SortState != 0);
@@ -85,11 +86,11 @@ public partial class NxGrid<T>
         foreach (var savedCol in state.Columns)
         {
             var column = FindColumn(savedCol.Id);
-            if (column == null || savedCol.Width == null) continue;
-            column.UserWidth = savedCol.Width;
-            column.BuildStyles();
+            if (column == null) continue;
+            if (savedCol.Width != null) column.UserWidth = savedCol.Width;
+            if (savedCol.Frozen != null) column.UserFrozen = savedCol.Frozen;
         }
-        rowStyle = BuildRowStyle();
+        ComputeFrozenOffsets();
 
         if (state.Sort != null)
         {
@@ -129,12 +130,12 @@ public partial class NxGrid<T>
         foreach (var column in columns)
         {
             column.UserWidth = null;
+            column.UserFrozen = null;
             column.SortState = 0;
             column.FilterState = [];
-            column.BuildStyles();
         }
 
-        rowStyle = BuildRowStyle();
+        ComputeFrozenOffsets();
         ApplyFilterAndSort();
         renderToken++;
         StateHasChanged();

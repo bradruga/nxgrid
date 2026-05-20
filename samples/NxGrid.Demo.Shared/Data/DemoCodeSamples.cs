@@ -359,6 +359,26 @@ void OnSignalRRowReceived(Person newRow)
 }
 """;
 
+    public static readonly string FrozenColumns = """
+<NxGrid T="SalesRow" Data="@rows" Style="height:360px" ShowRowNumbers="true">
+    <NxGridColumn T="SalesRow" Title="Employee"   Display="@(x => x.Name)"       Width="140" Frozen="true" />
+    <NxGridColumn T="SalesRow" Title="Department" Display="@(x => x.Department)" Width="130" Frozen="true" />
+    <NxGridColumn T="SalesRow" Title="Jan"   Property="@(x => x.Jan)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn T="SalesRow" Title="Feb"   Property="@(x => x.Feb)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+    @* ... *@
+    <NxGridColumn T="SalesRow" Title="Total" Display="@(x => x.Total.ToString("N0"))" Width="95" Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+
+@* Any column without Freezable="false" shows "Freeze / Unfreeze column" in the ▾ menu. *@
+""";
+
+    public static readonly string FrozenColumnsFreezable = """
+@* Freezable="false" removes the freeze toggle from the column menu.
+   Use it when the frozen state should be developer-controlled only. *@
+<NxGridColumn T="..." Title="ID" Property="@(x => x.Id)"
+              Width="60" Frozen="true" Freezable="false" />
+""";
+
     public static readonly string HeaderTemplateIcon = """
 <NxGridColumn T="Person" Title="Name" Display="@(x => x.FirstName + " " + x.LastName)">
     <HeaderTemplate>

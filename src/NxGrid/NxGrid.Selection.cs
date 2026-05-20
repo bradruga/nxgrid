@@ -249,10 +249,9 @@ public partial class NxGrid<T>
             foreach (var idx in columnsToResize)
             {
                 columns[idx].UserWidth = width;
-                columns[idx].BuildStyles();
                 OnColumnResized?.Invoke(idx, width);
             }
-            rowStyle = BuildRowStyle();
+            ComputeFrozenOffsets();
             renderToken++;
             StateHasChanged();
             await SaveStateAsync();

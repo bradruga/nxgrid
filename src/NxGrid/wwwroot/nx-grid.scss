@@ -500,3 +500,9 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
     font-style: italic;
     font-size: 13px;
 }
+
+// ── Frozen columns ────────────────────────────────────────────────────────────
+
+.nx-grid-cell-frozen-last {
+    box-shadow: 2px 0 4px var(--nx-grid-shadow);
+}

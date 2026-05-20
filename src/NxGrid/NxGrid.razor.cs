@@ -115,7 +115,7 @@ public partial class NxGrid<T>
 
     protected override void OnParametersSet()
     {
-        rowStyle = BuildRowStyle();
+        ComputeFrozenOffsets();
 
         if (Data.Count != loadedDataCount || !ReferenceEquals(Data, loadedData))
         {
@@ -130,7 +130,7 @@ public partial class NxGrid<T>
         if (!columns.Contains(column))
         {
             columns.Add(column);
-            rowStyle = BuildRowStyle();
+            ComputeFrozenOffsets();
         }
     }
 
@@ -146,7 +146,7 @@ public partial class NxGrid<T>
         if (columns.Count != lastColumnCount)
         {
             lastColumnCount = columns.Count;
-            rowStyle = BuildRowStyle();
+            ComputeFrozenOffsets();
             StateHasChanged();
         }
 
