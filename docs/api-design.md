@@ -65,7 +65,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `OnSelectionChanged` | `EventCallback<NxGridSelectionArgs<T>>` | Fires on every selection change (mouse, keyboard, programmatic). |
 | `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. |
 | `OnColumnResized` | `Action<int, int>?` | `(columnIndex, newWidthPx)` — fires when the user drags a resize grip. |
-| `OnCellDoubleClicked` | `Func<T, NxGridColumn<T>, Task>?` | Fires on double-click for columns that have no `Setter` (i.e. non-editable). |
+| `OnCellDoubleClicked` | `Func<T, NxGridColumn<T>, Task>?` | Fires on double-click for columns that are not editable. |
 
 ### Styling
 
@@ -189,7 +189,7 @@ var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
 
 ## Editing
 
-A column is editable when it has a `Setter`. The grid enters edit mode on F2, double-click, or any printable keystroke. The host is responsible for parsing (e.g. `int.Parse`).
+A column is editable when `Editable` is set (column-level or via the grid-level `Editable`) and the grid has an `OnUpdate` handler. The grid enters edit mode on F2, double-click, or any printable keystroke.
 
 Set `Editable="true"` on the grid (all columns editable) or on individual columns (column-level override), and subscribe to `OnUpdate`. The grid enters edit mode on F2, double-click, or any printable keystroke. `OnUpdate` fires once per operation — single-cell commit, paste, or delete — with all affected rows grouped by row. The host applies changes to the model and persists them.
 
@@ -235,21 +235,24 @@ All colors are overridable. Set these on `:root` or any ancestor element:
 
 ```css
 :root {
-    --nx-grid-border:        #ccc;
-    --nx-grid-header-bg:     #e6e6e6;
-    --nx-grid-row-even-bg:   #e7e7e7;
-    --nx-grid-row-odd-bg:    #ececec;
-    --nx-grid-surface:       #fff;
-    --nx-grid-selection-bg:  #cce4ff;
-    --nx-grid-accent:        #0078d4;   /* focus rings, hover states */
-    --nx-grid-accent-dark:   #005a9e;   /* active/pressed states */
-    --nx-grid-row-number-fg: #666;
-    --nx-grid-icon-fg:       #000;
-    --nx-grid-icon-muted-fg: #555;
-    --nx-grid-hover-bg:      #f0f0f0;
-    --nx-grid-item-hover-bg: #e8f4ff;
-    --nx-grid-muted-fg:      #888;
-    --nx-grid-shadow:        rgba(0, 0, 0, 0.15);
+    --nx-grid-border:           #E0E0E0;
+    --nx-grid-header-bg:        #F0F0F0;
+    --nx-grid-header-border:    #999999;  /* header cell borders (darker than body) */
+    --nx-grid-row-even-bg:      #e7e7e7;
+    --nx-grid-row-odd-bg:       #ececec;
+    --nx-grid-surface:          #fff;
+    --nx-grid-selection-bg:     #C7C7C7;  /* selected cell background */
+    --nx-grid-selected-border:  #AFAFAF;  /* border around selected cells */
+    --nx-grid-selection-border: #217346;  /* green border on the active edit input */
+    --nx-grid-accent:           #0078d4;  /* focus rings, hover states */
+    --nx-grid-accent-dark:      #005a9e;  /* active/pressed states */
+    --nx-grid-row-number-fg:    #666;
+    --nx-grid-icon-fg:          #000;
+    --nx-grid-icon-muted-fg:    #555;
+    --nx-grid-hover-bg:         #f0f0f0;
+    --nx-grid-item-hover-bg:    #e8f4ff;
+    --nx-grid-muted-fg:         #888;
+    --nx-grid-shadow:           rgba(0, 0, 0, 0.15);
 }
 ```
 

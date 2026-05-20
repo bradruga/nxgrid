@@ -27,7 +27,7 @@ The pipeline re-runs (`ApplyFilterAndSort`) when:
 
 **Null/empty values sort to the bottom** regardless of ascending or descending direction. The sort predicate pushes rows where the cell value is null or whitespace-only to the end before applying the primary comparison.
 
-**Sort key:** `ValueGetter` is used if set, otherwise `Getter`. If neither is set, the column cannot be sorted.
+**Sort key:** `Property` is the primary sort key. If `Property` is not set but `Display` is, `Display` is used as the sort key. If neither is set, the column cannot be sorted.
 
 **Two ways to change sort:**
 - Click the column title (only when `HasColumnMenu = true`; cycles 0 → 1 → 2 → 0).
@@ -43,13 +43,13 @@ A sort icon (↑ or ↓) appears in the column header when SortState is 1 or 2. 
 
 `FilterState` is a list of **included** values (a whitelist). An empty list means no filter. Rows are included only when the cell value appears in `FilterState`.
 
-The filter key is `ValueGetter ?? Getter`. The value is normalized before comparison: a string that is null or whitespace-only is treated as `null`. This means filtering for `null` will match both actual `null` and whitespace-only strings.
+The filter key is `Property ?? Display` (same priority as sort). The value is normalized before comparison: a string that is null or whitespace-only is treated as `null`. This means filtering for `null` will match both actual `null` and whitespace-only strings.
 
 Multiple columns can be filtered simultaneously; each filter is applied in column order (AND).
 
 Filters are applied before sort, so the sort operates on the already-filtered dataset.
 
-The column menu's filter panel populates itself from the current `Data` list (not `filteredData`), showing all distinct values.
+The column menu's filter panel populates itself from the current `Data` list (not `filteredData`), showing all distinct values. Values are obtained via the same `Property ?? Display` key used for sort/filter.
 
 ---
 
@@ -126,7 +126,7 @@ The algorithm matches Excel's behavior:
 2. **On empty (or at trailing edge):** skip forward to the first non-empty cell found in that direction.
 3. **If no non-empty cell found:** jump to the absolute edge (row 0 / last row / column 0 / last column).
 
-A cell is "empty" if its value (from `ValueGetter ?? Getter`) is null or its `ToString()` is whitespace-only.
+A cell is "empty" if its value (from `Property ?? Display`) is null or its `ToString()` is whitespace-only.
 
 ### Unhandled keys
 
@@ -136,7 +136,7 @@ Any key not matched by the grid (and not a printable character that would start 
 
 ## Editing
 
-A column is editable only when it has a `Setter`. `EditableGetter` can further restrict editability per row — cells where it returns `false` are read-only even though the column has a `Setter`.
+A column is editable when `Editable` is set (either at the column level or via the grid-level `Editable` parameter) and the grid has an `OnUpdate` handler. `EditableGetter` can further restrict editability per row — cells where it returns `false` are read-only even if the column is otherwise editable.
 
 ### Entering edit mode
 
@@ -156,11 +156,11 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 | Tab | Move right (wraps like the Tab navigation key) |
 | Click another cell | No navigation; selection moves to the clicked cell |
 
-On commit, `Setter` is called with the current `editValue` string. The host is responsible for parsing (e.g. `int.Parse`). After the setter call, focus returns to the grid container.
+On commit, `OnUpdate` is called with a list of `NxGridRowSaveArgs<T>`. Each entry contains the row and its `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
 
 ### Cancelling an edit
 
-Escape cancels the edit. `Setter` is never called. The data is unchanged because the model was never mutated during editing — `editValue` is a separate field. Focus returns to the grid.
+Escape cancels the edit. `OnUpdate` is never called. The data is unchanged because the model was never mutated during editing — `editValue` is a separate field. Focus returns to the grid.
 
 ### Edit mode and mouse clicks
 
@@ -204,9 +204,9 @@ Combo box editing applies to columns that have `ComboBoxOptions` set. The behavi
 
 The Delete key clears all cells in the current selection. For each cell:
 
-1. If the column has no `Setter`, the cell is skipped.
+1. If the column is not editable, the cell is skipped.
 2. If `EditableGetter` returns `false` for that row, the cell is skipped.
-3. The default value is determined by sampling the first non-null value in `filteredData` for that column (using `ValueGetter ?? Getter`) to learn the underlying type:
+3. The default value is determined by sampling the first non-null value in `filteredData` for that column (using `Property ?? Display`) to learn the underlying type:
    - Numeric types (`int`, `long`, `short`, `decimal`, `double`, `float`): default is `"0"`, or `null` if `Nullable = true`.
    - `string`: default is `""` (empty string).
    - No sample found or unrecognized type: default is `null`.
@@ -217,11 +217,11 @@ The Delete key clears all cells in the current selection. For each cell:
 
 ### Copy (Ctrl/⌘+C or context menu)
 
-Copies the current selection as tab-separated values (TSV), one row per line. Cell values come from `Getter` (not `ValueGetter`), so the copied text matches what is displayed. The copy origin `(startRow, startCol)` is recorded for use during paste.
+Copies the current selection as tab-separated values (TSV), one row per line. Cell values come from `Display ?? Property` (the same value that is rendered), so the copied text matches what is displayed. The copy origin `(startRow, startCol)` is recorded for use during paste.
 
 ### Paste (Ctrl/⌘+V)
 
-Paste reads plain text from the clipboard and parses it as TSV (rows split on `\n`, cells split on `\t`). Paste skips cells that have no `Setter` or where `EditableGetter` returns `false`.
+Paste reads plain text from the clipboard and parses it as TSV (rows split on `\n`, cells split on `\t`). Paste skips cells that are not editable or where `EditableGetter` returns `false`.
 
 **Single-cell paste** (clipboard contains exactly one row and one column):
 
@@ -270,9 +270,9 @@ The header and data rows share the same `rowStyle`, which sets a `min-width` equ
 When a cell is selected, the selection highlight is applied by blending rather than overriding:
 
 1. The combined style string is scanned for a `background-color` property with a hex value (`#RGB` or `#RRGGBB`; alpha is not supported).
-2. If found, that hex color is blended 50/50 (per channel) with the selection color `#cce4ff`, and the original `background-color` declaration is removed.
+2. If found, that hex color is blended 50/50 (per channel) with the selection color `#C7C7C7`, and the original `background-color` declaration is removed.
 3. The blended color is written back as `background-color`.
-4. If no hex `background-color` is present, `background-color: #cce4ff` is appended directly.
+4. If no hex `background-color` is present, `background-color: #C7C7C7` is appended directly.
 
 This means a custom cell background will visually mix with the selection highlight rather than being hidden by it.
 

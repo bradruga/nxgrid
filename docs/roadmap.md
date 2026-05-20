@@ -22,7 +22,7 @@ Small, self-contained improvements with no breaking API changes.
 
 **What:** A `Validator` parameter on `NxGridColumn` — a `Func<T, string?, string?>` that returns `null` for a valid value or an error message string. Invalid commits are blocked and the cell is highlighted until the value is corrected or the edit is cancelled.
 
-**Why:** Currently there is no way to reject a bad edit. The host's `Setter` is called regardless, forcing validation to happen after the fact (e.g. clamping to a range, silently reverting). This leads to the edited cell briefly showing the invalid value before the host re-renders.
+**Why:** Currently there is no way to reject a bad edit. The host's `OnUpdate` handler is called regardless, forcing validation to happen after the fact (e.g. clamping to a range, silently reverting). This leads to the edited cell briefly showing the invalid value before the host re-renders.
 
 **Design:** The input border turns red and the error message appears below the cell. Escape still cancels to the original value. Tab and Enter do not commit while invalid.
 
@@ -40,7 +40,7 @@ Small, self-contained improvements with no breaking API changes.
 
 **What:** Allow multiple columns to be sorted simultaneously, with a defined priority order. The column menu would show the sort rank (1st, 2nd, etc.) when multiple columns are active.
 
-**Why:** Single-column sort is insufficient for many datasets. Sorting by Department then by Name within each department is a basic use case that currently requires a custom `ValueGetter` workaround.
+**Why:** Single-column sort is insufficient for many datasets. Sorting by Department then by Name within each department is a basic use case that currently requires a custom `Display` workaround.
 
 **Design:** Shift+click a column header (or menu item) adds it as a secondary sort rather than replacing the primary. `SortState` would grow a `SortPriority` field.
 
@@ -62,7 +62,7 @@ Small, self-contained improvements with no breaking API changes.
 
 **Why:** A top-requested feature for any data grid. The grid already holds the filtered/sorted view and knows the column structure.
 
-**Design:** Uses the browser's download API via JS interop. Exports only visible (filtered) rows. Column values come from `Getter`. A future overload could accept column and row selectors.
+**Design:** Uses the browser's download API via JS interop. Exports only visible (filtered) rows. Column values come from `Display ?? Property` (what is rendered). A future overload could accept column and row selectors.
 
 ---
 
@@ -95,16 +95,6 @@ Significant new capabilities. Some may require breaking API changes or substanti
 **Why:** Users expect to be able to rearrange columns to match their workflow. Currently the column order is fixed by markup order.
 
 **Design:** Drag handle on each header cell. Visual insertion indicator between columns during drag. Column order is reflected in copy/paste output.
-
----
-
-### Frozen columns
-
-**What:** A `Frozen` parameter on `NxGridColumn`. Frozen columns are pinned to the left edge and do not scroll horizontally. Multiple columns can be frozen.
-
-**Why:** Wide grids with many columns need a stable key column (e.g. Name or ID) visible while scrolling right. The row-number gutter is already frozen; this extends that to data columns.
-
-**Design:** Frozen columns are rendered in a separate fixed-width div overlapping the scrollable area, similar to the existing row-number gutter. Selection and keyboard navigation span both sections.
 
 ---
 
