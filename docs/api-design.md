@@ -10,9 +10,9 @@ This document is the authoritative reference for NxGrid's public surface. It dri
 @using NxGrid
 
 <NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged">
-    <NxGridColumn T="Person" Title="Name"       Getter="@(x => x.Name)"       Width="200" />
-    <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)"              />
-    <NxGridColumn T="Person" Title="Age"        Getter="@(x => x.Age)"        Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn T="Person" Title="Name"       Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)"              />
+    <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"        Alignment="NxGridColumnAlignment.Right" />
 </NxGrid>
 
 @code {
@@ -77,7 +77,9 @@ If writing that felt painful, the API is wrong. It doesn't.
 
 | Parameter | Type | Notes |
 |---|---|---|
+| `Editable` | `bool` | `false` | Default editability for all columns. Individual columns can override with their own `Editable` parameter. Has no effect without `OnUpdate`. |
 | `TransformPastedValue` | `Func<string, int, int, string>?` | `(rawValue, rowDelta, colDelta)` — lets the host rewrite pasted text before it is committed (e.g. formula adjustment). |
+| `OnUpdate` | `Func<IReadOnlyList<NxGridRowSaveArgs<T>>, Task>?` | Fires after any edit — single-cell commit, paste, or delete. Receives one `NxGridRowSaveArgs<T>` per affected row, each with the full list of cell changes. The host is responsible for applying changes to the model and persisting them. Required for editing to be enabled. |
 
 ### Public methods
 
@@ -96,10 +98,10 @@ Task  ClearSavedState()      // remove the localStorage entry for StateKey and r
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `Getter` | `Func<T, object?>?` | Display value for a cell. Also used for sorting/filtering unless `ValueGetter` is set. |
-| `ValueGetter` | `Func<T, object?>?` | Override the value used for sort/filter (e.g. when `Getter` returns a formatted string but you want numeric sort). |
-| `Setter` | `Action<T, string?>?` | Makes the column editable. The string is the committed text value. |
-| `EditableGetter` | `Func<T, bool>?` | Per-row editability. When supplied, `Setter` only fires for rows where this returns `true`. |
+| `Property` | `Expression<Func<T, object?>>?` | Captures a member expression (e.g. `x => x.Age`). Used for display, sort/filter, and as the target for `change.Apply(row)`. When set, compiles a typed setter so `Apply` writes the correctly-parsed value back to the model. Read-only when the expression is not a simple member access. |
+| `Display` | `Func<T, object?>?` | Display value override. Takes priority over `Property` for rendering. Use when you need formatted output (e.g. `x => x.Age + " yrs"`). `Property` is still used for sort/filter when `Display` is set. |
+| `Editable` | `bool?` | Makes the column editable. When not set, falls back to the grid-level `Editable`. Requires `OnUpdate` on the grid. |
+| `EditableGetter` | `Func<T, bool>?` | Per-row editability guard. Editing is blocked for rows where this returns `false`. |
 
 ### Identity
 
@@ -185,9 +187,43 @@ var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
 
 ## Editing
 
-A column is editable when it has a `Setter`. The grid enters edit mode on F2, double-click, or any printable keystroke. The raw text string is passed to `Setter` on commit (Enter, Tab, click away). The host is responsible for parsing (e.g. `int.Parse`).
+A column is editable when it has a `Setter`. The grid enters edit mode on F2, double-click, or any printable keystroke. The host is responsible for parsing (e.g. `int.Parse`).
+
+Set `Editable="true"` on the grid (all columns editable) or on individual columns (column-level override), and subscribe to `OnUpdate`. The grid enters edit mode on F2, double-click, or any printable keystroke. `OnUpdate` fires once per operation — single-cell commit, paste, or delete — with all affected rows grouped by row. The host applies changes to the model and persists them.
+
+```csharp
+async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+{
+    foreach (var rowArgs in rows)
+    {
+        foreach (var change in rowArgs.Changes)
+            change.Apply(rowArgs.Row);  // writes typed NewValue back via Property setter; no-op without Property
+        await db.SaveAsync(rowArgs.Row);
+    }
+}
+```
 
 Combo-box editing activates when `ComboBoxOptions` is set. The dropdown filters as the user types and can be navigated with Arrow keys.
+
+---
+
+## `NxGridRowSaveArgs<T>` / `NxGridCellChange<T>`
+
+```csharp
+public sealed class NxGridRowSaveArgs<T>
+{
+    public T Row { get; init; }
+    public IReadOnlyList<NxGridCellChange<T>> Changes { get; init; }
+}
+
+public sealed class NxGridCellChange<T>
+{
+    public NxGridColumn<T> Column { get; init; }
+    public object? OldValue { get; init; }   // value from Property / Display before the edit
+    public object? NewValue { get; init; }   // typed value when Property is set; raw string otherwise
+    public void Apply(T row);               // writes NewValue back to the row via the Property setter; no-op when Property is not set
+}
+```
 
 ---
 

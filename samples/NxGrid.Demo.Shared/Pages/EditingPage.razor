@@ -1,34 +1,32 @@
 @page "/editing"
+@using NxGrid.Demo.Shared.Data
 
 <PageTitle>Editing — NxGrid</PageTitle>
 
 <h1>Editing</h1>
 <p class="doc-intro">
-    A column becomes editable when it has a <code>Setter</code>. Enter edit mode by pressing
+    A column becomes editable when <code>Editable="true"</code> is set on it (or on the grid as a
+    default) and the grid has an <code>OnUpdate</code> handler. Enter edit mode by pressing
     <kbd class="doc-kbd">F2</kbd>, double-clicking, or typing any printable character.
     Commit with <kbd class="doc-kbd">Enter</kbd> or <kbd class="doc-kbd">Tab</kbd>;
-    cancel with <kbd class="doc-kbd">Escape</kbd>. The raw string is passed to the setter — parsing is the host's responsibility.
+    cancel with <kbd class="doc-kbd">Escape</kbd>.
 </p>
 
 <div class="doc-section">
     <h2>Text Editing and Combo-Box</h2>
     <p class="doc-note">First, Last, Age, and Department are all editable. Department uses a combo-box dropdown — type to filter, then press <kbd class="doc-kbd">↓</kbd> or click to select.</p>
-    <NxGrid T="Person" Data="@editPeople" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
         <NxGridColumn T="Person" Title="Id"
-                      Getter="@(x => x.Id)" Width="50" MaxWidth="50" />
+                      Property="@(x => x.Id)" Width="50" MaxWidth="50" Editable="false" />
         <NxGridColumn T="Person" Title="First Name"
-                      Getter="@(x => x.FirstName)"
-                      Setter="@((x, v) => x.FirstName = v ?? "")" Width="140" />
+                      Property="@(x => x.FirstName)" Width="140" />
         <NxGridColumn T="Person" Title="Last Name"
-                      Getter="@(x => x.LastName)"
-                      Setter="@((x, v) => x.LastName = v ?? "")" Width="140" />
+                      Property="@(x => x.LastName)" Width="140" />
         <NxGridColumn T="Person" Title="Age"
-                      Getter="@(x => x.Age)"
-                      Setter="@((x, v) => x.Age = int.TryParse(v, out var i) ? i : x.Age)"
+                      Property="@(x => x.Age)"
                       Width="80" Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn T="Person" Title="Department"
-                      Getter="@(x => x.Department)"
-                      Setter="@((x, v) => x.Department = v ?? "")"
+                      Property="@(x => x.Department)"
                       ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing", "Sales"])" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@basicEditCode</pre>
@@ -37,23 +35,23 @@
 <div class="doc-section">
     <h2>EditableGetter — Per-Row Editability</h2>
     <p class="doc-note">Finance rows are locked. Cells still render normally but cannot be edited — pressing <kbd class="doc-kbd">F2</kbd> or typing does nothing for those rows.</p>
-    <NxGrid T="Person" Data="@editPeople" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
         <NxGridColumn T="Person" Title="Id"
-                      Getter="@(x => x.Id)" Width="50" MaxWidth="50" />
+                      Property="@(x => x.Id)" Width="50" MaxWidth="50" />
         <NxGridColumn T="Person" Title="First Name"
-                      Getter="@(x => x.FirstName)"
-                      Setter="@((x, v) => x.FirstName = v ?? "")"
+                      Property="@(x => x.FirstName)"
+                      Editable="true"
                       EditableGetter="@(x => x.Department != "Finance")"
                       Width="140" />
         <NxGridColumn T="Person" Title="Last Name"
-                      Getter="@(x => x.LastName)"
-                      Setter="@((x, v) => x.LastName = v ?? "")"
+                      Property="@(x => x.LastName)"
+                      Editable="true"
                       EditableGetter="@(x => x.Department != "Finance")"
                       Width="140" />
         <NxGridColumn T="Person" Title="Department"
-                      Getter="@(x => x.Department)" Width="140" />
+                      Property="@(x => x.Department)" Width="140" />
         <NxGridColumn T="Person" Title="Editable?"
-                      Getter="@(x => x.Department == "Finance" ? "Locked" : "Yes")"
+                      Display="@(x => x.Department == "Finance" ? "Locked" : "Yes")"
                       Width="90" Alignment="NxGridColumnAlignment.Center" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@editableGetterCode</pre>
@@ -61,16 +59,16 @@
 
 <div class="doc-section">
     <h2>OnCellDoubleClicked — Non-Editable Columns</h2>
-    <p class="doc-note"><code>OnCellDoubleClicked</code> fires on double-click for columns that have no <code>Setter</code>. Use it to open a detail panel or navigate.</p>
+    <p class="doc-note"><code>OnCellDoubleClicked</code> fires on double-click for columns that are not editable. Use it to open a detail panel or navigate.</p>
     <div class="doc-controls">
         <span style="font-size:13px;color:#555;">Last double-clicked: <strong>@doubleClickLog</strong></span>
     </div>
     <NxGrid T="Person" Data="@editPeople" Cursor="@NxGridCursor.Pointer"
             OnCellDoubleClicked="@OnCellDoubleClicked">
-        <NxGridColumn T="Person" Title="Id"         Getter="@(x => x.Id)"         Width="50" MaxWidth="50" />
-        <NxGridColumn T="Person" Title="First Name" Getter="@(x => x.FirstName)"  Width="140" />
-        <NxGridColumn T="Person" Title="Last Name"  Getter="@(x => x.LastName)"   Width="140" />
-        <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" />
+        <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"         Width="50" MaxWidth="50" />
+        <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@doubleClickCode</pre>
 </div>
@@ -81,14 +79,14 @@
         <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
             <tr>
-                <td>Setter</td>
-                <td>Action&lt;T, string?&gt;</td>
-                <td>Makes the column editable. Called with the committed text value on Enter, Tab, or click-away.</td>
+                <td>Editable</td>
+                <td>bool? (column) / bool (grid)</td>
+                <td>Marks the column as editable. When not set on a column, falls back to the grid-level <code>Editable</code>. Requires <code>OnUpdate</code> on the grid to take effect.</td>
             </tr>
             <tr>
                 <td>EditableGetter</td>
                 <td>Func&lt;T, bool&gt;</td>
-                <td>Per-row guard — Setter only fires for rows where this returns true.</td>
+                <td>Per-row guard — editing is blocked for rows where this returns false.</td>
             </tr>
             <tr>
                 <td>ComboBoxOptions</td>
@@ -119,8 +117,16 @@
         return Task.CompletedTask;
     }
 
-    string basicEditCode    = DemoCodeSamples.BasicEdit;
+    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    {
+        foreach (var rowArgs in rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    string basicEditCode      = DemoCodeSamples.BasicEdit;
     string editableGetterCode = DemoCodeSamples.EditableGetter;
-    string doubleClickCode  = DemoCodeSamples.DoubleClick;
-    string transformCode    = DemoCodeSamples.TransformPasted;
+    string doubleClickCode    = DemoCodeSamples.DoubleClick;
+    string transformCode      = DemoCodeSamples.TransformPasted;
 }

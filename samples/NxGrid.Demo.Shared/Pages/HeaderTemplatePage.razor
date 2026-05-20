@@ -21,13 +21,12 @@
     </p>
     <NxGrid T="LineItem" @ref="billableGrid" Data="@lines" Cursor="@NxGridCursor.Cell">
         <NxGridColumn T="LineItem" Title="Description"
-                      Getter="@(x => x.Description)" Width="280" />
+                      Property="@(x => x.Description)" Width="280" />
         <NxGridColumn T="LineItem" Title="Amount"
-                      Getter="@(x => x.Amount.ToString("C"))"
-                      ValueGetter="@(x => x.Amount)"
+                      Property="@(x => x.Amount)" Display="@(x => x.Amount.ToString("C"))"
                       Width="120" Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn T="LineItem" Title="Billable"
-                      Getter="@(x => x.IsBillable ? "✓" : "–")"
+                      Display="@(x => x.IsBillable ? "✓" : "–")"
                       Width="110" Alignment="NxGridColumnAlignment.Center">
             <HeaderTemplate>
                 <input type="checkbox"
@@ -51,7 +50,7 @@
     </p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
         <NxGridColumn T="Person" Title="Name"
-                      Getter="@(x => x.FirstName + " " + x.LastName)" Width="180">
+                      Display="@(x => x.FirstName + " " + x.LastName)" Width="180">
             <HeaderTemplate>
                 @* person icon — materialdesignicons *@
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
@@ -61,7 +60,7 @@
                 <span>Name</span>
             </HeaderTemplate>
         </NxGridColumn>
-        <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" Width="160">
+        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" Width="160">
             <HeaderTemplate>
                 @* briefcase icon *@
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
@@ -71,7 +70,7 @@
                 <span>Department</span>
             </HeaderTemplate>
         </NxGridColumn>
-        <NxGridColumn T="Person" Title="Age" Getter="@(x => x.Age)"
+        <NxGridColumn T="Person" Title="Age" Property="@(x => x.Age)"
                       Width="80" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@iconCode</pre>

@@ -109,7 +109,8 @@
                        OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
                        OnComboButtonClick="@OnComboButtonClick"
                        Cursor="@Cursor"
-                       RenderToken="@renderToken" />
+                       RenderToken="@renderToken"
+                       GridEditable="@Editable" />
     </Virtualize>
 
     @if (openColumn != null)

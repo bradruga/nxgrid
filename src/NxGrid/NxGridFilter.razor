@@ -120,7 +120,7 @@
             .GroupBy(x => new
             {
                 Value = Column.GetNormalizedValue(x),
-                Text = Column.Getter != null ? Column.Getter(x)?.ToString() : ""
+                Text = Column.EffectiveGetter?.Invoke(x)?.ToString() ?? ""
             })
             .Select(x => new FilterItem
             {

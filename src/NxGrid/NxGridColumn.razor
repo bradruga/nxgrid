@@ -1,14 +1,15 @@
-﻿@typeparam T
+@typeparam T
+@using System.Linq.Expressions
 
 @code {
     // Cascading Parameters
     [CascadingParameter] public NxGrid<T>? Parent { get; set; }
-    
+
     // Parameters
     [Parameter] public string? Id { get; set; }
-    [Parameter] public Func<T, object?>? Getter { get; set; }
-    [Parameter] public Func<T, object?>? ValueGetter { get; set; }
-    [Parameter] public Action<T, string?>? Setter { get; set; }
+    [Parameter] public Expression<Func<T, object?>>? Property { get; set; }
+    [Parameter] public Func<T, object?>? Display { get; set; }
+    [Parameter] public bool? Editable { get; set; }
     [Parameter] public Func<T, bool>? EditableGetter { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public int Width { get; set; } = 100;
@@ -27,6 +28,14 @@
     public List<object?> FilterState { get; set; } = [];
     public int? UserWidth { get; set; }
 
+    // Effective getters: explicit parameters take priority, then compiled Property getter
+    public Func<T, object?>? EffectiveGetter => Display ?? _compiledPropertyGetter;
+    public Func<T, object?>? EffectiveValueGetter => _compiledPropertyGetter ?? Display;
+
+    private Func<T, object?>? _compiledPropertyGetter;
+    private Action<T, object?>? _compiledPropertySetter;
+    private Type? _propertyType;
+
     protected override void OnInitialized()
     {
         Parent?.AddColumn(this);
@@ -34,6 +43,7 @@
 
     protected override void OnParametersSet()
     {
+        BuildPropertyAccessors();
         HeaderCellStyle = BuildHeaderCellStyle();
         CellStyle = BuildCellStyle();
     }
@@ -43,7 +53,80 @@
         HeaderCellStyle = BuildHeaderCellStyle();
         CellStyle = BuildCellStyle();
     }
-    
+
+    private void BuildPropertyAccessors()
+    {
+        if (Property == null)
+        {
+            _compiledPropertyGetter = null;
+            _compiledPropertySetter = null;
+            _propertyType = null;
+            return;
+        }
+
+        // Unwrap the boxing Convert node present when value types are assigned to object?
+        var body = Property.Body;
+        if (body is UnaryExpression { NodeType: ExpressionType.Convert } convert)
+            body = convert.Operand;
+
+        if (body is not MemberExpression member)
+        {
+            // Not a simple member access — read-only (getter only, no setter)
+            _compiledPropertyGetter = Property.Compile();
+            _compiledPropertySetter = null;
+            _propertyType = null;
+            return;
+        }
+
+        _propertyType = member.Type;
+        _compiledPropertyGetter = Property.Compile();
+
+        var rowParam = Property.Parameters[0];
+        var valueParam = Expression.Parameter(typeof(object), "value");
+        var assignment = Expression.Assign(member, Expression.Convert(valueParam, _propertyType));
+        _compiledPropertySetter = Expression.Lambda<Action<T, object?>>(
+            assignment, rowParam, valueParam).Compile();
+    }
+
+    // Parses rawValue to the property's CLR type and returns a pre-bound apply action.
+    // Returns (rawValue, null) when Property is not set or parsing fails — Apply is a no-op.
+    public (object? typedValue, Action<T>? apply) ParseAndBuildApply(string? rawValue)
+    {
+        if (_compiledPropertySetter == null || _propertyType == null)
+            return (rawValue, null);
+
+        var underlying = System.Nullable.GetUnderlyingType(_propertyType) ?? _propertyType;
+        var isNullable  = System.Nullable.GetUnderlyingType(_propertyType) != null;
+
+        if (rawValue == null)
+        {
+            if (isNullable || !_propertyType.IsValueType)
+            {
+                var s = _compiledPropertySetter;
+                return (null, row => s(row, null));
+            }
+            return (null, null);
+        }
+
+        object? typed = null;
+        bool    parsed = false;
+
+        if      (underlying == typeof(string))                                               { typed = rawValue; parsed = true; }
+        else if (underlying == typeof(int)      && int.TryParse(rawValue,     out var i))    { typed = i; parsed = true; }
+        else if (underlying == typeof(long)     && long.TryParse(rawValue,    out var l))    { typed = l; parsed = true; }
+        else if (underlying == typeof(double)   && double.TryParse(rawValue,  out var dbl))  { typed = dbl; parsed = true; }
+        else if (underlying == typeof(float)    && float.TryParse(rawValue,   out var flt))  { typed = flt; parsed = true; }
+        else if (underlying == typeof(decimal)  && decimal.TryParse(rawValue, out var dec))  { typed = dec; parsed = true; }
+        else if (underlying == typeof(bool)     && bool.TryParse(rawValue,    out var b))    { typed = b; parsed = true; }
+        else if (underlying == typeof(DateTime) && DateTime.TryParse(rawValue, out var dt))  { typed = dt; parsed = true; }
+
+        if (!parsed) return (rawValue, null);
+
+        var setter  = _compiledPropertySetter;
+        var capture = typed;
+        return (typed, row => setter(row, capture));
+    }
+
     private string BuildWidthStyle()
     {
         if (UserWidth != null)
@@ -64,7 +147,7 @@
         else if (Alignment == NxGridColumnAlignment.Right) style += "text-align:right;";
         return style;
     }
-    
+
     public List<T> FilterData(List<T> data)
     {
         if (FilterState.Count == 0) return data;
@@ -74,17 +157,14 @@
 
     public object? GetNormalizedValue(T item)
     {
-        var getter = ValueGetter ?? Getter;
+        var getter = EffectiveValueGetter;
         return getter == null ? null : NormalizeObject(getter(item));
     }
 
     private static object? NormalizeObject(object? value)
     {
         if (value is string s && string.IsNullOrWhiteSpace(s))
-        {
             return null;
-        }
-
         return value;
     }
 }

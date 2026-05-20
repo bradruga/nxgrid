@@ -24,7 +24,7 @@
             HasColumnMenu="false"
             Cursor="@NxGridCursor.Cell">
         <NxGridColumn T="WideRow" Title="#"
-                      Getter="@(x => x.Id)"
+                      Property="@(x => x.Id)"
                       Width="75" MaxWidth="75"
                       Alignment="NxGridColumnAlignment.Right" />
         @for (int c = 0; c < ColCount - 1; c++)
@@ -32,7 +32,7 @@
             var col = c;
             <NxGridColumn T="WideRow"
                           Title="@($"C{col + 1:D2}")"
-                          Getter="@(x => x.GetValue(col))"
+                          Display="@(x => x.GetValue(col))"
                           Width="80"
                           Alignment="NxGridColumnAlignment.Right" />
         }

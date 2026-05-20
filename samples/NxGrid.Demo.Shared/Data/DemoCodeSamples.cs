@@ -6,9 +6,9 @@ public static class DemoCodeSamples
 @using NxGrid
 
 <NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged">
-    <NxGridColumn T="Person" Title="Name"       Getter="@(x => x.Name)"       Width="200" />
-    <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" />
-    <NxGridColumn T="Person" Title="Age"        Getter="@(x => x.Age)"
+    <NxGridColumn T="Person" Title="Name"       Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
+    <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"
                   Alignment="NxGridColumnAlignment.Right" />
 </NxGrid>
 
@@ -69,34 +69,44 @@ public static class DemoCodeSamples
 """;
 
     public static readonly string BasicEdit = """
-// Text column — host parses the string value
-<NxGridColumn T="Person" Title="Age"
-              Getter="@(x => x.Age)"
-              Setter="@((x, v) => x.Age = int.TryParse(v, out var i) ? i : x.Age)"
-              Alignment="NxGridColumnAlignment.Right" />
+// Grid-level Editable=true makes all columns editable by default.
+// Override per column with Editable="false" (e.g. Id) or Editable="true".
+// Property captures the member expression — used for display, sort/filter, and typed Apply.
+<NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Editable="true">
+    <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"  Editable="false" />
+    <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)"
+                  ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing"])" />
+</NxGrid>
 
-// Combo-box column — function is called fresh each time the cell opens
-<NxGridColumn T="Person" Title="Department"
-              Getter="@(x => x.Department)"
-              Setter="@((x, v) => x.Department = v ?? "")"
-              ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing"])" />
+@code {
+    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    {
+        foreach (var rowArgs in rows)
+        {
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);  // applies the correctly-typed value
+            await db.SaveAsync(rowArgs.Row);
+        }
+    }
+}
 """;
 
     public static readonly string EditableGetter = """
 // EditableGetter is evaluated per-row when edit mode is attempted.
 // If it returns false, F2 / typing / double-click are ignored for that row.
 <NxGridColumn T="Person" Title="First Name"
-              Getter="@(x => x.FirstName)"
-              Setter="@((x, v) => x.FirstName = v ?? "")"
+              Property="@(x => x.FirstName)"
+              Editable="true"
               EditableGetter="@(x => x.Department != "Finance")" />
 """;
 
     public static readonly string DoubleClick = """
-// Fires for columns that have no Setter (read-only columns only)
+// Fires for columns that are not editable (no Editable="true" on column or grid)
 <NxGrid T="Person" Data="@people"
         OnCellDoubleClicked="@OnCellDoubleClicked"
         Cursor="@NxGridCursor.Pointer">
-    <NxGridColumn T="Person" Title="Name" Getter="@(x => x.Name)" />  // no Setter
+    <NxGridColumn T="Person" Title="Name" Property="@(x => x.Name)" />
 </NxGrid>
 
 @code {
@@ -241,9 +251,9 @@ void OnSignalRRowReceived(Person newRow)
 // Set StateKey to a unique string per grid instance.
 // Recommended convention: "{Module}-{Page}-{GridName}"
 <NxGrid T="Person" Data="@people" StateKey="accounting-invoice-lines">
-    <NxGridColumn T="Person" Id="first" Title="First Name" Getter="@(x => x.FirstName)" Width="140" />
-    <NxGridColumn T="Person" Id="last"  Title="Last Name"  Getter="@(x => x.LastName)"  Width="140" />
-    <NxGridColumn T="Person" Id="dept"  Title="Department" Getter="@(x => x.Department)" />
+    <NxGridColumn T="Person" Id="first" Title="First Name" Property="@(x => x.FirstName)" Width="140" />
+    <NxGridColumn T="Person" Id="last"  Title="Last Name"  Property="@(x => x.LastName)"  Width="140" />
+    <NxGridColumn T="Person" Id="dept"  Title="Department" Property="@(x => x.Department)" />
 </NxGrid>
 
 // Sort order, filter selections, and column widths are saved automatically
@@ -265,19 +275,44 @@ void OnSignalRRowReceived(Person newRow)
 }
 """;
 
+    public static readonly string OnUpdate = """
+// OnUpdate fires once per operation — one call even for a paste across many rows.
+// Property captures the member expression for display, sort/filter, and typed Apply().
+<NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate"
+        Cursor="@NxGridCursor.Cell" Editable="true">
+    <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"          Editable="false" />
+    <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)" />
+    <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"       Alignment="NxGridColumnAlignment.Right" />
+    ...
+</NxGrid>
+
+@code {
+    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    {
+        foreach (var rowArgs in rows)
+        {
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);  // type-safe; no-op if Property not set
+
+            await db.UpdatePersonAsync(rowArgs.Row);  // one DB call per row
+        }
+    }
+}
+""";
+
     public static readonly string Alignment = """
-<NxGridColumn T="Person" Title="Name" Getter="@(x => x.Name)"
+<NxGridColumn T="Person" Title="Name" Property="@(x => x.Name)"
               Alignment="NxGridColumnAlignment.Left" />    // default
 
-<NxGridColumn T="Person" Title="Dept" Getter="@(x => x.Dept)"
+<NxGridColumn T="Person" Title="Dept" Property="@(x => x.Dept)"
               Alignment="NxGridColumnAlignment.Center" />
 
-<NxGridColumn T="Person" Title="Age"  Getter="@(x => x.Age)"
+<NxGridColumn T="Person" Title="Age"  Property="@(x => x.Age)"
               Alignment="NxGridColumnAlignment.Right" />
 """;
 
     public static readonly string Template = """
-<NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)">
+<NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)">
     <Template Context="p">
         @* 'p' is the current row object — named by the Context attribute *@
         <span style="background:#dbeafe;color:#1e40af;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;">
@@ -286,18 +321,18 @@ void OnSignalRRowReceived(Person newRow)
     </Template>
 </NxGridColumn>
 
-@* Getter is still required when Template is set — it provides the sort/filter value *@
+@* Property (or Display) is still required when Template is set — it provides the sort/filter value *@
 """;
 
-    public static readonly string ValueGetter = """
+    public static readonly string FormattedDisplay = """
 <NxGridColumn T="Person"
               Title="Age"
-              Getter="@(x => x.Age + " yrs")"   // displayed as "32 yrs"
-              ValueGetter="@(x => x.Age)" />      // sorted / filtered as 32 (int)
+              Property="@(x => x.Age)"            // sorted / filtered as 32 (int)
+              Display="@(x => x.Age + " yrs")" /> // displayed as "32 yrs"
 """;
 
     public static readonly string HeaderTemplateCheckbox = """
-<NxGridColumn T="LineItem" Title="Billable" Getter="@(x => x.IsBillable ? "✓" : "–")">
+<NxGridColumn T="LineItem" Title="Billable" Display="@(x => x.IsBillable ? "✓" : "–")">
     <HeaderTemplate>
         <input type="checkbox"
                checked="@AllBillable"
@@ -325,7 +360,7 @@ void OnSignalRRowReceived(Person newRow)
 """;
 
     public static readonly string HeaderTemplateIcon = """
-<NxGridColumn T="Person" Title="Name" Getter="@(x => x.FirstName + " " + x.LastName)">
+<NxGridColumn T="Person" Title="Name" Display="@(x => x.FirstName + " " + x.LastName)">
     <HeaderTemplate>
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"
              style="vertical-align:-1px;opacity:0.65">
@@ -337,6 +372,6 @@ void OnSignalRRowReceived(Person newRow)
 
 @* Title is still used for the column menu label and aria-label. *@
 @* No HeaderTemplate on the Age column — it uses Title as normal.  *@
-<NxGridColumn T="Person" Title="Age" Getter="@(x => x.Age)" />
+<NxGridColumn T="Person" Title="Age" Property="@(x => x.Age)" />
 """;
 }

@@ -17,13 +17,15 @@
     <NxGrid T="Person" Data="@kbPeople"
             OnKeyPressed="@OnKeyPressed"
             OnSelectionChanged="@OnSelectionChanged"
+            OnUpdate="@HandleUpdate"
             ShowRowNumbers="true"
-            Cursor="@NxGridCursor.Cell">
-        <NxGridColumn T="Person" Title="Id"         Getter="@(x => x.Id)"         Width="50"  MaxWidth="50" />
-        <NxGridColumn T="Person" Title="First Name" Getter="@(x => x.FirstName)"  Width="130" Setter="@((x, v) => x.FirstName = v ?? "")" />
-        <NxGridColumn T="Person" Title="Last Name"  Getter="@(x => x.LastName)"   Width="130" Setter="@((x, v) => x.LastName = v ?? "")" />
-        <NxGridColumn T="Person" Title="Age"        Getter="@(x => x.Age)"        Width="70"  Setter="@((x, v) => x.Age = int.TryParse(v, out var i) ? i : x.Age)" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Title="Department" Getter="@(x => x.Department)" Setter="@((x, v) => x.Department = v ?? "")" ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing"])" />
+            Cursor="@NxGridCursor.Cell"
+            Editable="true">
+        <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"           Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)" Width="130" />
+        <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"  Width="130" />
+        <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"       Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing"])" />
     </NxGrid>
     <div class="doc-output">@selectionLog</div>
 </div>
@@ -67,6 +69,14 @@
     List<Person> kbPeople = SampleData.GetPeopleCopy();
     string keyLog = "none";
     string selectionLog = "Click the grid and use keyboard shortcuts…";
+
+    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    {
+        foreach (var rowArgs in rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
 
     void OnKeyPressed(NxGridKeyPressedArgs args)
     {

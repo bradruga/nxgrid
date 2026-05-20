@@ -47,7 +47,7 @@ public partial class NxGrid<T>
             var cells = new List<string>();
             for (var c = startCol; c <= endCol; c++)
             {
-                var getter = columns[c].Getter;
+                var getter = columns[c].EffectiveGetter;
                 var value = getter != null ? getter(filteredData[r])?.ToString() ?? "" : "";
                 cells.Add(value);
             }

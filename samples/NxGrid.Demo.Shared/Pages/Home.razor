@@ -17,14 +17,13 @@
 <div class="doc-section">
     <h2>Live Example</h2>
     <p class="doc-note">Click any cell to select it. Use the column headers to sort or filter. Double-click or press <kbd class="doc-kbd">F2</kbd> to edit a cell.</p>
-    <NxGrid T="Person" Data="@homePeople" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
-        <NxGridColumn T="Person" Title="Id"    Getter="@(x => x.Id)"         Width="50"  MaxWidth="50" />
-        <NxGridColumn T="Person" Title="First" Getter="@(x => x.FirstName)"  Width="120" Setter="@((x, v) => x.FirstName = v ?? "")" />
-        <NxGridColumn T="Person" Title="Last"  Getter="@(x => x.LastName)"   Width="120" Setter="@((x, v) => x.LastName = v ?? "")" />
-        <NxGridColumn T="Person" Title="Age"   Getter="@(x => x.Age)"        Width="70"  Setter="@((x, v) => x.Age = int.TryParse(v, out var i) ? i : x.Age)" Alignment="NxGridColumnAlignment.Right" />
+    <NxGrid T="Person" Data="@homePeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn T="Person" Title="Id"    Property="@(x => x.Id)"          Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn T="Person" Title="First" Property="@(x => x.FirstName)" Width="120" />
+        <NxGridColumn T="Person" Title="Last"  Property="@(x => x.LastName)"  Width="120" />
+        <NxGridColumn T="Person" Title="Age"   Property="@(x => x.Age)"       Width="70"  Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn T="Person" Title="Department"
-                      Getter="@(x => x.Department)"
-                      Setter="@((x, v) => x.Department = v ?? "")"
+                      Property="@(x => x.Department)"
                       ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing", "Sales"])" />
     </NxGrid>
 </div>
@@ -42,7 +41,7 @@
         </a>
         <a href="/columns" class="feature-card">
             <div class="feature-card-title">Columns</div>
-            <div class="feature-card-desc">Custom templates, alignment, ValueGetter, width constraints, column menu</div>
+            <div class="feature-card-desc">Custom templates, alignment, Property + Display, width constraints, column menu</div>
         </a>
         <a href="/keyboard" class="feature-card">
             <div class="feature-card-title">Keyboard</div>
@@ -70,4 +69,12 @@
 @code {
     List<Person> homePeople = SampleData.GetPeopleCopy();
     string quickStartCode = DemoCodeSamples.QuickStart;
+
+    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    {
+        foreach (var rowArgs in rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
 }

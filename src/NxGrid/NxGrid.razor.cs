@@ -32,6 +32,10 @@ public partial class NxGrid<T>
     [Parameter] public bool HasColumnMenu { get; set; } = true;
     [Parameter] public Func<string, int, int, string>? TransformPastedValue { get; set; }
     [Parameter] public Func<T, NxGridColumn<T>, Task>? OnCellDoubleClicked { get; set; }
+    [Parameter] public Func<IReadOnlyList<NxGridRowSaveArgs<T>>, Task>? OnUpdate { get; set; }
+    [Parameter] public bool Editable { get; set; }
+
+    private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
     [Parameter] public string? StateKey { get; set; }
 

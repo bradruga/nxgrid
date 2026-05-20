@@ -36,7 +36,7 @@ public partial class NxGrid<T>
 
         if (args.Key == KeyDelete)
         {
-            DeleteSelection();
+            await DeleteSelection();
             return;
         }
 
@@ -281,7 +281,7 @@ public partial class NxGrid<T>
 
     private bool IsCellEmpty(int rowIndex, int colIndex)
     {
-        var getter = columns[colIndex].ValueGetter ?? columns[colIndex].Getter;
+        var getter = columns[colIndex].EffectiveValueGetter;
         if (getter == null) return true;
         var value = getter(filteredData[rowIndex]);
         return value == null || string.IsNullOrWhiteSpace(value.ToString());

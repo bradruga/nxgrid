@@ -58,9 +58,10 @@
             else if (col.Template == null)
             {
                 <span class="nx-grid-cell-text">
-                    @if (col.Getter != null) { @(col.Getter(Row)) }
+                    @if (col.EffectiveGetter != null) { @(col.EffectiveGetter(Row)) }
                 </span>
                 @if (col.ComboBoxOptions != null && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
+                     && (col.Editable ?? GridEditable)
                      && (col.EditableGetter == null || col.EditableGetter(Row)))
                 {
                     <button class="nx-grid-combo-button nx-grid-combo-button-idle"
@@ -77,6 +78,7 @@
                     @col.Template(Row)
                 </span>
                 @if (col.ComboBoxOptions != null && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
+                     && (col.Editable ?? GridEditable)
                      && (col.EditableGetter == null || col.EditableGetter(Row)))
                 {
                     <button class="nx-grid-combo-button nx-grid-combo-button-idle"
@@ -115,6 +117,7 @@
     [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
     [Parameter] public NxGridCursor Cursor { get; set; }
     [Parameter] public int RenderToken { get; set; }
+    [Parameter] public bool GridEditable { get; set; }
 
     private string CursorStyle => Cursor switch
     {

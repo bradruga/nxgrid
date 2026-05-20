@@ -71,7 +71,7 @@ public partial class NxGrid<T>
             }
         }
 
-        var getter = column.ValueGetter ?? column.Getter;
+        var getter = column.EffectiveValueGetter;
 
         if (getter == null) return;
 
@@ -93,7 +93,7 @@ public partial class NxGrid<T>
         {
             if (column.SortState == 0) continue;
 
-            var getter = column.ValueGetter ?? column.Getter;
+            var getter = column.EffectiveValueGetter;
             if (getter == null) continue;
 
             if (column.SortState == 1)

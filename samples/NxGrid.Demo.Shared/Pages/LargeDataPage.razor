@@ -20,11 +20,11 @@
             Style="height:400px"
             ShowRowNumbers="true"
             Cursor="@NxGridCursor.Cell">
-        <NxGridColumn T="Person" Title="#"           Getter="@(x => x.Id)"         Width="65"  MaxWidth="65" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Title="First Name"  Getter="@(x => x.FirstName)"  Width="130" />
-        <NxGridColumn T="Person" Title="Last Name"   Getter="@(x => x.LastName)"   Width="130" />
-        <NxGridColumn T="Person" Title="Age"         Getter="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Title="Department"  Getter="@(x => x.Department)" />
+        <NxGridColumn T="Person" Title="#"           Property="@(x => x.Id)"         Width="65"  MaxWidth="65" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="First Name"  Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn T="Person" Title="Last Name"   Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn T="Person" Title="Age"         Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="Department"  Property="@(x => x.Department)" />
     </NxGrid>
 </div>
 

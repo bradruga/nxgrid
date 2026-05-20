@@ -1,0 +1,133 @@
+@page "/batch-update"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Batch Update — NxGrid</PageTitle>
+
+<h1>Batch Update</h1>
+<p class="doc-intro">
+    <code>OnUpdate</code> fires once per operation — single-cell commit, paste, or Delete — and
+    delivers every affected row in a single async callback. The host applies changes and persists
+    them inside the handler.
+</p>
+
+<div class="doc-section">
+    <h2>Live Demo</h2>
+    <p class="doc-note">
+        Edit a cell, paste a block, or select a range and press <kbd class="doc-kbd">Delete</kbd>.
+        Each operation fires <em>one</em> <code>OnUpdate</code> call regardless of how many rows
+        are affected. Watch the log below.
+    </p>
+    <NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"           Width="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"           Width="80"
+                      Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
+    </NxGrid>
+
+    <div style="margin-top:16px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;color:#333;">Save Log</span>
+            @if (isSaving)
+            {
+                <span style="font-size:12px;color:#888;font-style:italic;">saving…</span>
+            }
+            @if (saveLog.Count > 0)
+            {
+                <button @onclick="@(() => saveLog.Clear())"
+                        style="font-size:12px;padding:2px 10px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">
+                    Clear
+                </button>
+            }
+        </div>
+        @if (saveLog.Count == 0)
+        {
+            <div style="font-size:13px;color:#888;font-style:italic;">No saves yet.</div>
+        }
+        else
+        {
+            <div style="font-family:monospace;font-size:12px;line-height:1.8;
+                        background:#f8f8f8;border:1px solid #e0e0e0;border-radius:4px;
+                        padding:10px 14px;max-height:220px;overflow-y:auto;">
+                @foreach (var entry in saveLog)
+                {
+                    <div>@entry</div>
+                }
+            </div>
+        }
+    </div>
+
+    <pre class="doc-code" style="margin-top:24px;">@onUpdateCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Operation Summary</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Operation</th><th>OnUpdate calls</th><th>Rows in list</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Single-cell commit</td>
+                <td>1</td>
+                <td>1, with 1 change</td>
+            </tr>
+            <tr>
+                <td>Paste (N rows × M columns)</td>
+                <td>1</td>
+                <td>N, each with up to M changes</td>
+            </tr>
+            <tr>
+                <td>Delete selection (N rows)</td>
+                <td>1</td>
+                <td>N, one change per editable column</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>NxGridRowSaveArgs&lt;T&gt; / NxGridCellChange&lt;T&gt;</h2>
+    <table class="doc-table">
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Row</td><td>T</td><td>The row object that was changed.</td></tr>
+            <tr><td>Changes</td><td>IReadOnlyList&lt;NxGridCellChange&lt;T&gt;&gt;</td><td>One entry per cell that changed in this row.</td></tr>
+            <tr><td>Column</td><td>NxGridColumn&lt;T&gt;</td><td>The column that changed. Use <code>column.Id</code> or <code>column.Title</code> to identify it.</td></tr>
+            <tr><td>OldValue</td><td>object?</td><td>Value from <code>Property</code> / <code>Display</code> before the edit.</td></tr>
+            <tr><td>NewValue</td><td>object?</td><td>Raw string typed or pasted by the user. Parse it as needed.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<Person> people = SampleData.GetPeopleCopy();
+    List<string> saveLog = [];
+    bool isSaving;
+
+    string onUpdateCode = DemoCodeSamples.OnUpdate;
+
+    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    {
+        foreach (var rowArgs in rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+
+        isSaving = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(300);
+
+        isSaving = false;
+
+        var when = DateTime.Now.ToString("HH:mm:ss");
+        var rowLabel = rows.Count == 1 ? "1 row" : $"{rows.Count} rows";
+        var details = string.Join("  |  ", rows.SelectMany(r =>
+            r.Changes.Select(c =>
+                $"{r.Row.FirstName} {r.Row.LastName}: {c.Column.Title}  {c.OldValue} → {c.NewValue}")));
+        saveLog.Insert(0, $"[{when}]  {rowLabel}  —  {details}");
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

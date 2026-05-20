@@ -17,7 +17,7 @@ public class NxGridRenderTests : BunitContext
         var cut = Render<NxGrid<Row>>(p => p
             .Add(x => x.Data, [new Row("Alice", "Engineering"), new Row("Bob", "Marketing")])
             .AddChildContent<NxGridColumn<Row>>(col => col
-                .Add(x => x.Getter, r => r.Name)
+                .Add(x => x.Display, r => r.Name)
                 .Add(x => x.Title, "Name")));
 
         cut.Find(".nx-grid");
@@ -31,7 +31,7 @@ public class NxGridRenderTests : BunitContext
         var cut = Render<NxGrid<Row>>(p => p
             .Add(x => x.Data, [new Row("Alice", "Engineering")])
             .AddChildContent<NxGridColumn<Row>>(col => col
-                .Add(x => x.Getter, r => r.Name)
+                .Add(x => x.Display, r => r.Name)
                 .Add(x => x.Title, "Full Name")));
 
         var header = cut.Find(".nx-grid-column-title");
@@ -48,11 +48,11 @@ public class NxGridRenderTests : BunitContext
             .Add(x => x.ChildContent, b =>
             {
                 b.OpenComponent<NxGridColumn<Row>>(0);
-                b.AddAttribute(1, "Getter", (Func<Row, object?>)(r => r.Name));
+                b.AddAttribute(1, "Display", (Func<Row, object?>)(r => r.Name));
                 b.AddAttribute(2, "Title", "Name");
                 b.CloseComponent();
                 b.OpenComponent<NxGridColumn<Row>>(3);
-                b.AddAttribute(4, "Getter", (Func<Row, object?>)(r => r.Department));
+                b.AddAttribute(4, "Display", (Func<Row, object?>)(r => r.Department));
                 b.AddAttribute(5, "Title", "Department");
                 b.CloseComponent();
             }));
@@ -75,7 +75,7 @@ public class NxGridRenderTests : BunitContext
                 new Row("Carol", "Finance")
             ])
             .AddChildContent<NxGridColumn<Row>>(col => col
-                .Add(x => x.Getter, r => r.Name)
+                .Add(x => x.Display, r => r.Name)
                 .Add(x => x.Title, "Name")));
 
         Assert.That(cut.FindAll(".nx-grid-row").Count, Is.EqualTo(3));
@@ -111,7 +111,7 @@ public class NxGridRenderTests : BunitContext
             .Add(x => x.Data, [new Row("Alice", "Engineering")])
             .AddChildContent<NxGridColumn<Row>>(col => col
                 .Add(x => x.Title, "Name")
-                .Add(x => x.Getter, r => r.Name)
+                .Add(x => x.Display, r => r.Name)
                 .Add(x => x.HeaderTemplate, (RenderFragment)(builder =>
                 {
                     builder.OpenElement(0, "span");

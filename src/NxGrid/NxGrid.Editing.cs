@@ -11,10 +11,10 @@ public partial class NxGrid<T>
     private void StartEditing(int row, int col, string? initialChar)
     {
         var column = columns[col];
-        if (column.Setter == null) return;
+        if (!IsColumnEditable(column) || OnUpdate == null) return;
         if (column.EditableGetter != null && !column.EditableGetter(filteredData[row])) return;
 
-        var getter = column.Getter ?? column.ValueGetter;
+        var getter = column.EffectiveGetter;
         var currentText = getter != null ? getter(filteredData[row])?.ToString() ?? "" : "";
 
         isEditing = true;
@@ -50,10 +50,21 @@ public partial class NxGrid<T>
     {
         if (!isEditing) return;
 
-        columns[editCol].Setter?.Invoke(filteredData[editRow], editValue);
-
         var row = editRow;
         var col = editCol;
+        var column = columns[col];
+        var rowData = filteredData[row];
+
+        if (OnUpdate != null)
+        {
+            var oldValue = column.EffectiveValueGetter?.Invoke(rowData);
+            var (typedValue, applyAction) = column.ParseAndBuildApply(editValue);
+            await OnUpdate([new NxGridRowSaveArgs<T>
+            {
+                Row = rowData,
+                Changes = [new NxGridCellChange<T> { Column = column, OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction }]
+            }]);
+        }
 
         isComboOpen = false;
         comboHighlightIndex = -1;
@@ -192,7 +203,7 @@ public partial class NxGrid<T>
         await CommitEdit();
     }
 
-    private void DeleteSelection()
+    private async Task DeleteSelection()
     {
         if (selectedRange == null) return;
 
@@ -201,12 +212,27 @@ public partial class NxGrid<T>
         var minCol = Math.Min(selectedRange.StartCol, selectedRange.EndCol);
         var maxCol = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
 
-        for (var r = minRow; r <= maxRow; r++)
-            for (var c = minCol; c <= maxCol; c++)
+        if (OnUpdate != null)
+        {
+            var rowArgs = new List<NxGridRowSaveArgs<T>>();
+            for (var r = minRow; r <= maxRow; r++)
             {
-                if (columns[c].EditableGetter != null && !columns[c].EditableGetter!(filteredData[r])) continue;
-                columns[c].Setter?.Invoke(filteredData[r], GetColumnDefaultString(columns[c]));
+                var changes = new List<NxGridCellChange<T>>();
+                for (var c = minCol; c <= maxCol; c++)
+                {
+                    if (!IsColumnEditable(columns[c])) continue;
+                    if (columns[c].EditableGetter != null && !columns[c].EditableGetter!(filteredData[r])) continue;
+                    var oldValue = columns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
+                    var defaultStr = GetColumnDefaultString(columns[c]);
+                    var (typedDefault, applyDefault) = columns[c].ParseAndBuildApply(defaultStr);
+                    changes.Add(new NxGridCellChange<T> { Column = columns[c], OldValue = oldValue, NewValue = typedDefault, ApplyAction = applyDefault });
+                }
+                if (changes.Count > 0)
+                    rowArgs.Add(new NxGridRowSaveArgs<T> { Row = filteredData[r], Changes = changes });
             }
+            if (rowArgs.Count > 0)
+                await OnUpdate(rowArgs);
+        }
 
         renderToken++;
         StateHasChanged();
@@ -214,7 +240,7 @@ public partial class NxGrid<T>
 
     private string? GetColumnDefaultString(NxGridColumn<T> column)
     {
-        var getter = column.ValueGetter ?? column.Getter;
+        var getter = column.EffectiveValueGetter;
         if (getter == null) return null;
 
         // Sample the first non-null value to learn the underlying type
@@ -252,19 +278,23 @@ public partial class NxGrid<T>
         var selEndRow  = Math.Max(selectedRange.StartRow, selectedRange.EndRow);
         var selEndCol  = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
 
+        // rowIndex → list of changes, preserving row order
+        var rowChanges = new Dictionary<int, List<NxGridCellChange<T>>>();
+
         if (clipRows.Length == 1 && clipCols.Length == 1)
         {
-            // Single copied cell: fill every cell in the selection, adjusting formula refs per target cell
+            // Single copied cell: fill every cell in the selection
             var singleValue = clipCols[0];
             for (var tr = originRow; tr <= selEndRow; tr++)
                 for (var tc = originCol; tc <= selEndCol; tc++)
                 {
                     if (tr >= filteredData.Count || tc >= columns.Count) continue;
+                    if (!IsColumnEditable(columns[tc])) continue;
                     if (columns[tc].EditableGetter != null && !columns[tc].EditableGetter!(filteredData[tr])) continue;
                     var value = TransformPastedValue != null
                         ? TransformPastedValue(singleValue, tr - copyOrigin.row, tc - copyOrigin.col)
                         : singleValue;
-                    columns[tc].Setter?.Invoke(filteredData[tr], value);
+                    AccumulateChange(rowChanges, tr, tc, value);
                 }
         }
         else
@@ -281,22 +311,45 @@ public partial class NxGrid<T>
                     var targetRow = originRow + r;
                     var targetCol = originCol + c;
                     if (targetRow >= filteredData.Count || targetCol >= columns.Count) continue;
+                    if (!IsColumnEditable(columns[targetCol])) continue;
                     if (columns[targetCol].EditableGetter != null && !columns[targetCol].EditableGetter!(filteredData[targetRow])) continue;
                     var value = TransformPastedValue != null
                         ? TransformPastedValue(cells[c], rowDelta, colDelta)
                         : cells[c];
-                    columns[targetCol].Setter?.Invoke(filteredData[targetRow], value);
+                    AccumulateChange(rowChanges, targetRow, targetCol, value);
                 }
             }
+        }
+
+        if (OnUpdate != null)
+        {
+            var rowArgs = rowChanges
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => new NxGridRowSaveArgs<T> { Row = filteredData[kvp.Key], Changes = kvp.Value })
+                .ToList();
+            if (rowArgs.Count > 0)
+                await OnUpdate(rowArgs);
         }
 
         renderToken++;
         StateHasChanged();
     }
 
+    private void AccumulateChange(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int rowIdx, int colIdx, string? newValue)
+    {
+        if (!rowChanges.TryGetValue(rowIdx, out var list))
+        {
+            list = [];
+            rowChanges[rowIdx] = list;
+        }
+        var oldValue = columns[colIdx].EffectiveValueGetter?.Invoke(filteredData[rowIdx]);
+        var (typedValue, applyAction) = columns[colIdx].ParseAndBuildApply(newValue);
+        list.Add(new NxGridCellChange<T> { Column = columns[colIdx], OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction });
+    }
+
     private void OnCellDoubleClick(T row, NxGridColumn<T> column)
     {
-        var notEditable = column.Setter == null ||
+        var notEditable = !IsColumnEditable(column) ||
                           (column.EditableGetter != null && !column.EditableGetter(row));
         if (notEditable)
         {
