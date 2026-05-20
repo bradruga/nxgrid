@@ -1,6 +1,8 @@
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using NUnit.Framework;
+using System.ComponentModel.DataAnnotations;
+using System.Linq.Expressions;
 
 namespace NxGrid.Tests;
 
@@ -8,6 +10,13 @@ namespace NxGrid.Tests;
 public class NxGridRenderTests : BunitContext
 {
     private record Row(string Name, string Department);
+    private record MultiWordRow(string FirstName, string LastName);
+
+    private class AnnotatedRow
+    {
+        [Display(Name = "Full Name")]
+        public string? Name { get; set; }
+    }
 
     [Test]
     public void RendersContainerElement()
@@ -100,6 +109,44 @@ public class NxGridRenderTests : BunitContext
 
         var cell = cut.Find(".custom-cell");
         Assert.That(cell.TextContent.Trim(), Is.EqualTo("[Alice]"));
+    }
+
+    [Test]
+    public void InfersTitleFromPropertyName()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        Expression<Func<MultiWordRow, object?>> prop = r => r.FirstName;
+        var cut = Render<NxGrid<MultiWordRow>>(p => p
+            .Add(x => x.Data, [new MultiWordRow("Alice", "Smith")])
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<MultiWordRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.CloseComponent();
+            }));
+
+        var header = cut.Find(".nx-grid-column-title");
+        Assert.That(header.TextContent.Trim(), Is.EqualTo("First Name"));
+    }
+
+    [Test]
+    public void PrefersDisplayAttributeOverPropertyName()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        Expression<Func<AnnotatedRow, object?>> prop = r => r.Name;
+        var cut = Render<NxGrid<AnnotatedRow>>(p => p
+            .Add(x => x.Data, [new AnnotatedRow { Name = "Alice" }])
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<AnnotatedRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.CloseComponent();
+            }));
+
+        var header = cut.Find(".nx-grid-column-title");
+        Assert.That(header.TextContent.Trim(), Is.EqualTo("Full Name"));
     }
 
     [Test]

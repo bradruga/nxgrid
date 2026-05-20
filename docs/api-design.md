@@ -113,13 +113,13 @@ Task  ClearSavedState()      // remove the localStorage entry for StateKey and r
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `Title` | `string?` | — | Column header text. |
+| `Title` | `string?` | — | Column header text. When omitted, the header falls back to a `[Display(Name = "...")]` attribute on the property, then to the property name split on PascalCase word boundaries (e.g. `FirstName` → `"First Name"`). Explicit `Title` always wins. |
 | `Width` | `int` | `100` | Initial width in pixels. |
 | `MinWidth` | `int?` | — | Minimum width in pixels during user resize. |
 | `MaxWidth` | `int?` | — | Maximum width in pixels during user resize. When null, the column grows to fill space. |
 | `Alignment` | `NxGridColumnAlignment` | `Left` | `Left`, `Center`, or `Right`. |
 | `Template` | `RenderFragment<T>?` | — | Custom cell renderer. The cell container (padding, selection highlight) is still rendered by the grid; the template fills the inner content. |
-| `HeaderTemplate` | `RenderFragment?` | — | Custom markup rendered inside the column header cell instead of `Title`. Sort/filter icons and the menu button still appear. `Title` is still used as the `aria-label`, column menu label, and state-persistence key fallback. Interactive elements inside the template (e.g. a checkbox) should include `@onmousedown:stopPropagation` (prevents column-range selection) and `@onclick:stopPropagation` (prevents opening the column menu). |
+| `HeaderTemplate` | `RenderFragment?` | — | Custom markup rendered inside the column header cell instead of `Title`. Sort/filter icons and the menu button still appear. The resolved title (see `Title` fallback rules above) is still used as the `aria-label` and column menu label; state-persistence uses explicit `Title` only. Interactive elements inside the template (e.g. a checkbox) should include `@onmousedown:stopPropagation` (prevents column-range selection) and `@onclick:stopPropagation` (prevents opening the column menu). |
 
 ### Editing
 

@@ -19,7 +19,7 @@
         {
             <div class="nx-grid-cell"
                  style="@column.HeaderCellStyle"
-                 aria-label="@column.Title"
+                 aria-label="@column.EffectiveTitle"
                  @onmousedown="@(args => OnColumnHeaderMouseDown(args, column))"
                  @onmousedown:preventDefault
                  @onmouseenter="@(args => OnColumnHeaderMouseEnter(args, column))">
@@ -32,7 +32,7 @@
                         }
                         else
                         {
-                            @column.Title
+                            @column.EffectiveTitle
                         }
                     </span>
 

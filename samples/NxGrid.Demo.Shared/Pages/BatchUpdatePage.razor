@@ -1,5 +1,4 @@
 @page "/batch-update"
-@using NxGrid.Demo.Shared.Data
 
 <PageTitle>Batch Update — NxGrid</PageTitle>
 
@@ -18,16 +17,15 @@
         are affected. Watch the log below.
     </p>
     <NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
-        <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"           Width="50" MaxWidth="50" Editable="false" />
-        <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)"  Width="140" />
-        <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"   Width="140" />
-        <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"           Width="80"
-                      Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
+        <NxGridColumn T="Person" Property="@(x => x.Id)"        Width="60" MaxWidth="50" Editable="false" />
+        <NxGridColumn T="Person" Property="@(x => x.FirstName)" Width="140" />
+        <NxGridColumn T="Person" Property="@(x => x.LastName)"  Width="140" />
+        <NxGridColumn T="Person" Property="@(x => x.Age)"       Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn T="Person" Property="@(x => x.Department)" />
     </NxGrid>
 
     <div style="margin-top:16px;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <div class="doc-controls">
             <span style="font-size:13px;font-weight:600;color:#333;">Save Log</span>
             @if (isSaving)
             {
@@ -35,10 +33,7 @@
             }
             @if (saveLog.Count > 0)
             {
-                <button @onclick="@(() => saveLog.Clear())"
-                        style="font-size:12px;padding:2px 10px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">
-                    Clear
-                </button>
+                <button @onclick="@(() => saveLog.Clear())" class="doc-btn doc-btn-secondary">Clear</button>
             }
         </div>
         @if (saveLog.Count == 0)
@@ -47,9 +42,7 @@
         }
         else
         {
-            <div style="font-family:monospace;font-size:12px;line-height:1.8;
-                        background:#f8f8f8;border:1px solid #e0e0e0;border-radius:4px;
-                        padding:10px 14px;max-height:220px;overflow-y:auto;">
+            <div class="doc-log">
                 @foreach (var entry in saveLog)
                 {
                     <div>@entry</div>
@@ -125,7 +118,7 @@
         var rowLabel = rows.Count == 1 ? "1 row" : $"{rows.Count} rows";
         var details = string.Join("  |  ", rows.SelectMany(r =>
             r.Changes.Select(c =>
-                $"{r.Row.FirstName} {r.Row.LastName}: {c.Column.Title}  {c.OldValue} → {c.NewValue}")));
+                $"{r.Row.FirstName} {r.Row.LastName}: {c.Column.EffectiveTitle}  {c.OldValue} → {c.NewValue}")));
         saveLog.Insert(0, $"[{when}]  {rowLabel}  —  {details}");
 
         await InvokeAsync(StateHasChanged);

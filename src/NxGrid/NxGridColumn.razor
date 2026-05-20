@@ -1,5 +1,7 @@
 @typeparam T
 @using System.Linq.Expressions
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
 
 @code {
     // Cascading Parameters
@@ -32,9 +34,14 @@
     public Func<T, object?>? EffectiveGetter => Display ?? _compiledPropertyGetter;
     public Func<T, object?>? EffectiveValueGetter => _compiledPropertyGetter ?? Display;
 
+    // Title resolution: explicit Title > [Display] attribute > PascalCase-split property name
+    public string EffectiveTitle => Title ?? _displayName ?? _inferredName ?? "";
+
     private Func<T, object?>? _compiledPropertyGetter;
     private Action<T, object?>? _compiledPropertySetter;
     private Type? _propertyType;
+    private string? _displayName;
+    private string? _inferredName;
 
     protected override void OnInitialized()
     {
@@ -61,6 +68,8 @@
             _compiledPropertyGetter = null;
             _compiledPropertySetter = null;
             _propertyType = null;
+            _displayName = null;
+            _inferredName = null;
             return;
         }
 
@@ -75,17 +84,34 @@
             _compiledPropertyGetter = Property.Compile();
             _compiledPropertySetter = null;
             _propertyType = null;
+            _displayName = null;
+            _inferredName = null;
             return;
         }
 
         _propertyType = member.Type;
         _compiledPropertyGetter = Property.Compile();
+        _inferredName = SplitPascalCase(member.Member.Name);
+        _displayName = member.Member.GetCustomAttribute<DisplayAttribute>()?.GetName();
 
         var rowParam = Property.Parameters[0];
         var valueParam = Expression.Parameter(typeof(object), "value");
         var assignment = Expression.Assign(member, Expression.Convert(valueParam, _propertyType));
         _compiledPropertySetter = Expression.Lambda<Action<T, object?>>(
             assignment, rowParam, valueParam).Compile();
+    }
+
+    private static string SplitPascalCase(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return name;
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i < name.Length; i++)
+        {
+            if (i > 0 && char.IsUpper(name[i]) && char.IsLower(name[i - 1]))
+                sb.Append(' ');
+            sb.Append(i == 0 ? char.ToUpper(name[i]) : name[i]);
+        }
+        return sb.ToString();
     }
 
     // Parses rawValue to the property's CLR type and returns a pre-bound apply action.
