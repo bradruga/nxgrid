@@ -216,12 +216,22 @@ public static class DemoCodeSamples
 .dark-theme {
     --nx-grid-border:           #3b4261;
     --nx-grid-header-bg:        #1f2335;
+    --nx-grid-header-border:    #3b4261;
     --nx-grid-row-even-bg:      #1a1b26;
     --nx-grid-row-odd-bg:       #24283b;
     --nx-grid-surface:          #1a1b26;
     --nx-grid-selection-bg:     #2d3f76;
+    --nx-grid-selected-border:  #3b4261;
     --nx-grid-accent:           #7aa2f7;
+    --nx-grid-accent-dark:      #5d85f0;
+    --nx-grid-selection-border: #9ece6a;
+    --nx-grid-row-number-fg:    #565f89;
     --nx-grid-icon-fg:          #a9b1d6;
+    --nx-grid-icon-muted-fg:    #565f89;
+    --nx-grid-hover-bg:         #292e42;
+    --nx-grid-item-hover-bg:    #2d3f76;
+    --nx-grid-muted-fg:         #565f89;
+    --nx-grid-shadow:           rgba(0,0,0,0.5);
 }
 
 <!-- In your Razor template -->

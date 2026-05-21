@@ -23,9 +23,10 @@ public partial class NxGrid<T>
         if (!selected) return baseStyle;
 
         var hasBg = TryExtractHexBgColor(baseStyle, out var cellHex);
-        var blended = hasBg ? BlendHexColors(cellHex!, "#C7C7C7") : "#C7C7C7";
-        var styleWithoutBg = hasBg ? RemoveBgColorFromStyle(baseStyle) : baseStyle;
-        return styleWithoutBg + $"background-color:{blended};";
+        if (!hasBg) return baseStyle;  // no custom bg — CSS class handles selection color via var(--nx-grid-selection-bg)
+
+        var blended = BlendHexColors(cellHex!, _selectionColor);
+        return RemoveBgColorFromStyle(baseStyle) + $"background-color:{blended};";
     }
 
     private static bool TryExtractHexBgColor(string style, out string? hex)

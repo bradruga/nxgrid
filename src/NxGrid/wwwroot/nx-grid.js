@@ -146,6 +146,12 @@
         if (el) el.focus();
     }
 
+    getCssVar(varName) {
+        const el = document.getElementById(this.id);
+        if (!el) return '';
+        return getComputedStyle(el).getPropertyValue(varName).trim();
+    }
+
     getComboDropdownPosition() {
         const gridElement = document.getElementById(this.id);
         if (!gridElement) return { top: 0, left: 0, width: 150 };

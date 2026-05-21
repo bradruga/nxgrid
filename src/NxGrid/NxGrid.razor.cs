@@ -46,6 +46,8 @@ public partial class NxGrid<T>
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
     [Parameter] public string? StateKey { get; set; }
 
+    private string _selectionColor = "#C7C7C7";
+
     private int? headerAnchorCol;
     private int? headerAnchorRow;
     private (int row, int col) copyOrigin;
@@ -163,6 +165,16 @@ public partial class NxGrid<T>
             jsInterop = await NxGridJsInterop<T>.Create(this, JsRuntime, id);
             isMac = await jsInterop.IsMacPlatform();
             await RestoreStateAsync();
+        }
+
+        if (jsInterop != null)
+        {
+            var color = await jsInterop.GetCssVar("--nx-grid-selection-bg");
+            if (!string.IsNullOrEmpty(color) && color != _selectionColor)
+            {
+                _selectionColor = color;
+                StateHasChanged();
+            }
         }
 
         if (columns.Count != lastColumnCount)

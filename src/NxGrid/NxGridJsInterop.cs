@@ -68,6 +68,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
         return jsObject.InvokeVoidAsync("focusGrid");
     }
 
+    public ValueTask<string> GetCssVar(string varName)
+        => jsObject.InvokeAsync<string>("getCssVar", varName);
+
     public ValueTask<NxComboDropdownPosition> GetComboDropdownPosition()
     {
         return jsObject.InvokeAsync<NxComboDropdownPosition>("getComboDropdownPosition");
