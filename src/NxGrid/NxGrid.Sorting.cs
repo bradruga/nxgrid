@@ -63,12 +63,10 @@ public partial class NxGrid<T>
     private void SortColumn(NxGridColumn<T> column)
     {
         // Clear all other column sort states
-        foreach (var col in columns)
+        foreach (var col in ActiveColumns)
         {
             if (col != column)
-            {
                 col.SortState = 0;
-            }
         }
 
         var getter = column.EffectiveValueGetter;
@@ -83,13 +81,13 @@ public partial class NxGrid<T>
         var data = Data;
 
         // Apply filters...
-        foreach (var column in columns)
+        foreach (var column in ActiveColumns)
         {
             data = column.FilterData(data);
         }
 
         // Apply sorts
-        foreach (var column in columns)
+        foreach (var column in ActiveColumns)
         {
             if (column.SortState == 0) continue;
 

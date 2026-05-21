@@ -8,6 +8,7 @@ A high-performance, virtualised data grid component for Blazor.
 
 ## Features
 
+- **Zero config** — just pass a `List<T>` and get a fully functional grid; columns are generated from your model automatically
 - Virtualised rendering — handles tens of thousands of rows without paging
 - Client-side sort and filter via the column menu
 - Multi-cell rectangular selection (mouse, keyboard, Shift+Arrow)
@@ -33,9 +34,21 @@ Add the stylesheet to your host — in `App.razor` (Blazor Web) or `index.html` 
 
 ## Quick start
 
+The absolute minimum — no column declarations, no type parameter. Blazor infers `T` from `Data`:
+
 ```razor
 @using NxGrid
 
+<NxGrid Data="@employees" />
+
+@code {
+    List<Employee> employees = [ /* ... */ ];
+}
+```
+
+Declare columns when you want control over titles, widths, alignment, editing, and more:
+
+```razor
 <NxGrid T="Employee" Data="@employees" OnSelectionChanged="@OnSelectionChanged">
     <NxGridColumn Property="@(x => x.Name)"       Width="200" />
     <NxGridColumn Property="@(x => x.Department)"              />

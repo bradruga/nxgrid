@@ -6,6 +6,7 @@ Answers to common implementation questions. For the full parameter reference see
 
 ## Contents
 
+- [How to get started quickly (auto-columns)](#how-to-get-started-quickly-auto-columns)
 - [How to persist column state across page loads](#how-to-persist-column-state-across-page-loads)
 - [How to refresh the grid when data changes](#how-to-refresh-the-grid-when-data-changes)
 - [How inline editing works](#how-inline-editing-works)
@@ -17,6 +18,52 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
 - [How to build and use the package locally](#how-to-build-and-use-the-package-locally)
 - [How to publish the package to NuGet.org](#how-to-publish-the-package-to-nugetorg)
+
+---
+
+## How to get started quickly (auto-columns)
+
+When no `<NxGridColumn>` children are declared, NxGrid generates columns automatically from your model's public properties. This is the fastest way to get something on screen. Blazor infers `T` from `Data`, so no explicit type parameter is needed:
+
+```razor
+@using NxGrid
+
+<NxGrid Data="@products" />
+
+@code {
+    List<Product> products = await db.GetProductsAsync();
+}
+```
+
+That's the entire component. Columns, headers, sort, and filter all work out of the box. Property names are split on PascalCase boundaries (`UnitPrice` → `"Unit Price"`); numeric types get right alignment; `[Display(Name = "...")]` attributes on your model are respected.
+
+### Graduating to declared columns
+
+Auto-columns are a starting point. Switch to explicit `<NxGridColumn>` declarations when you need any of the following:
+
+- Control over width, `MinWidth`, or `MaxWidth`
+- Custom titles that differ from the property name
+- Editing (`Editable`, `ComboBoxItems`, `OnUpdate`)
+- Custom cell templates (`Template`, `CheckBox`)
+- Frozen or hidden columns
+- `Display` for formatted values (e.g. currency, dates)
+
+Once any `<NxGridColumn>` is present, auto-columns are disabled entirely — the grid uses only what you declare.
+
+```razor
+@* Before: zero config — T inferred from Data *@
+<NxGrid Data="@products" />
+
+@* After: full control — T still inferred, explicit columns declared *@
+<NxGrid Data="@products" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.Name)"      Width="200" />
+    <NxGridColumn Property="@(x => x.Category)"  Width="140" />
+    <NxGridColumn Property="@(x => x.UnitPrice)"
+                  Title="Price"
+                  Alignment="NxGridColumnAlignment.Right"
+                  Width="100" />
+</NxGrid>
+```
 
 ---
 

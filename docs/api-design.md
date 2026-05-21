@@ -4,11 +4,25 @@ This document is the authoritative reference for NxGrid's public surface. It dri
 
 ---
 
-## Quick-start (the README example)
+## Quick-start
+
+The absolute minimum — no column declarations, no explicit type parameter. Blazor infers `T` from `Data`:
 
 ```razor
 @using NxGrid
 
+<NxGrid Data="@people" />
+
+@code {
+    List<Person> people = [ /* ... */ ];
+}
+```
+
+When no `<NxGridColumn>` children are present, the grid auto-generates columns from the public readable properties of `T`. Property names are split on PascalCase word boundaries (`FirstName` → `"First Name"`); `[Display(Name = "...")]` attributes are respected. Numeric types (`int`, `long`, `double`, `decimal`, etc.) get right alignment. Auto-columns support sort and filter out of the box.
+
+Add columns when you need titles, widths, alignment, editing, combo-boxes, or templates:
+
+```razor
 <NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged">
     <NxGridColumn Property="@(x => x.Name)"       Width="200" />
     <NxGridColumn Property="@(x => x.Department)"              />
@@ -55,7 +69,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `ChildContent` | `RenderFragment?` | Where `<NxGridColumn>` declarations go. |
+| `ChildContent` | `RenderFragment?` | Where `<NxGridColumn>` declarations go. When omitted, columns are auto-generated from `T`'s public readable properties (see [Auto-columns](#auto-columns)). |
 | `Overlays` | `RenderFragment?` | Rendered in an absolute-positioned, pointer-events-none layer above the grid. Useful for custom highlights. |
 
 ### Tooltips
@@ -339,6 +353,28 @@ public sealed class NxGridContextMenuItemArgs<T>
     public NxGridColumn<T> Column { get; init; }
 }
 ```
+
+---
+
+## Auto-columns
+
+When `ChildContent` is `null` (no `<NxGridColumn>` children), the grid reflects `T`'s public readable properties at startup and generates a column for each one. This is zero-configuration rendering — useful for quick prototyping and debugging.
+
+**Generated column behaviour:**
+
+| Aspect | Rule |
+|---|---|
+| Title | `[Display(Name = "...")]` attribute if present, otherwise the property name split on PascalCase word boundaries (`FirstName` → `"First Name"`) |
+| Width | `150 px` with `flex-grow: 1` (fills available space, same as a declared column with no `MaxWidth`) |
+| Alignment | `Right` for numeric types (`int`, `long`, `short`, `uint`, `ulong`, `ushort`, `byte`, `double`, `float`, `decimal`); `Left` for everything else |
+| Sort / filter | Fully supported — clicking the column header cycles sort, column menu provides filter |
+| Editing | Not enabled (auto-columns have no setter path) |
+
+**No flash.** The discriminator is `ChildContent == null`. If you provide any `<NxGridColumn>` children, the grid uses those from the very first render and never generates auto-columns — there is no intermediate frame where auto-columns appear before real columns load.
+
+**Column order** follows `Type.GetProperties()` — public instance properties in declaration order.
+
+Auto-columns are cached for the lifetime of the component. They are never persisted by `StateKey`.
 
 ---
 

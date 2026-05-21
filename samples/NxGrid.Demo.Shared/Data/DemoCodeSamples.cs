@@ -2,9 +2,17 @@ namespace NxGrid.Demo.Shared.Data;
 
 public static class DemoCodeSamples
 {
-    public static readonly string QuickStart = """
-@using NxGrid
+    public static readonly string AutoColumns = """
+// Zero config — Blazor infers T from Data. No type parameter, no column declarations.
+<NxGrid Data="@people" />
 
+@code {
+    List<Person> people = [ /* ... */ ];
+}
+""";
+
+    public static readonly string QuickStart = """
+// Declare columns for full control over titles, widths, alignment, and editing:
 <NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged">
     <NxGridColumn Property="@(x => x.Name)"       Width="200" />
     <NxGridColumn Property="@(x => x.Department)" />

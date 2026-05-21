@@ -21,6 +21,24 @@ The pipeline re-runs (`ApplyFilterAndSort`) when:
 
 ---
 
+## Auto-columns
+
+When the grid has no `ChildContent` (no `<NxGridColumn>` children declared), it generates columns automatically by reflecting `T`'s public readable instance properties. The generated columns are cached in a private `_autoColumns` list for the lifetime of the component and are never re-generated.
+
+**`ActiveColumns`** is an internal property that the data pipeline (`ApplyFilterAndSort`, `ComputeFrozenOffsets`) uses instead of the raw `columns` list:
+
+- `ChildContent != null` OR `columns.Count > 0` → returns `columns` (the real registered columns)
+- Otherwise → returns `_autoColumns` (the reflection-generated list)
+
+**No flash guarantee.** The discriminator is evaluated before the first render. Because `ChildContent` is non-null for any grid that has column children, `ActiveColumns` returns `columns` immediately — auto-columns are never generated and never shown, even for the one frame before `NxGridColumn.OnInitialized` fires and the real columns register.
+
+**Limitations of auto-columns:**
+- Read-only: `Display` is set via `PropertyInfo.GetValue`, so there is no compiled setter path. Editing is not supported.
+- Not persisted: `SaveStateAsync` and `RestoreStateAsync` always operate on `columns` (the declared list). Auto-columns are not included in `StateKey` persistence.
+- Not customisable at runtime: width, alignment, title, and visibility are fixed at generation time. To change any of these, declare explicit `<NxGridColumn>` children.
+
+---
+
 ## Sorting
 
 **Sort states:** `0` = unsorted, `1` = ascending, `2` = descending. Only one column can be sorted at a time — activating sort on any column clears all others to `0`.
@@ -279,11 +297,10 @@ The header and data rows share the same `rowStyle`, which sets a `min-width` equ
 When a cell is selected, the selection highlight is applied by blending rather than overriding:
 
 1. The combined style string is scanned for a `background-color` property with a hex value (`#RGB` or `#RRGGBB`; alpha is not supported).
-2. If found, that hex color is blended 50/50 (per channel) with the selection color `#C7C7C7`, and the original `background-color` declaration is removed.
-3. The blended color is written back as `background-color`.
-4. If no hex `background-color` is present, `background-color: #C7C7C7` is appended directly.
+2. If found, that hex color is blended 50/50 (per channel) with the current value of `--nx-grid-selection-bg` (read via `getComputedStyle` after each render), and the original `background-color` declaration is replaced with the blended result.
+3. If no hex `background-color` is present, no inline `background-color` is written — the CSS class `.nx-grid-cell-selected` applies `background-color: var(--nx-grid-selection-bg)` directly. This means the selection color fully respects the active theme, including dark-mode overrides.
 
-This means a custom cell background will visually mix with the selection highlight rather than being hidden by it.
+This means a custom cell background will visually mix with the selection highlight rather than being hidden by it, and the blend colour automatically tracks the active theme.
 
 ---
 

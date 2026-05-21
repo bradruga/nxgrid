@@ -10,14 +10,21 @@
 </p>
 
 <div class="doc-section">
-    <h2>Quick Start</h2>
-    <pre class="doc-code">@quickStartCode</pre>
+    <h2>Zero Config</h2>
+    <p class="doc-note">
+        No column declarations needed. Pass a <code>List&lt;T&gt;</code> and the grid generates columns
+        from your model's public properties — names split on PascalCase boundaries, numeric types
+        right-aligned, <code>[Display]</code> attributes respected.
+    </p>
+    <pre class="doc-code">@autoColumnsCode</pre>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" ShowRowNumbers="true" Style="margin-top:12px" />
 </div>
 
 <div class="doc-section">
-    <h2>Live Example</h2>
-    <p class="doc-note">Click any cell to select it. Use the column headers to sort or filter. Double-click or press <kbd class="doc-kbd">F2</kbd> to edit a cell.</p>
-    <NxGrid T="Person" Data="@homePeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+    <h2>With Declared Columns</h2>
+    <p class="doc-note">Add <code>&lt;NxGridColumn&gt;</code> children for full control — titles, widths, editing, combo-boxes, templates, and more. Click any cell to select it. Use the column headers to sort or filter. Double-click or press <kbd class="doc-kbd">F2</kbd> to edit a cell.</p>
+    <pre class="doc-code">@quickStartCode</pre>
+    <NxGrid T="Person" Data="@homePeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true" Style="margin-top:12px">
         <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Title="First" Property="@(x => x.FirstName)" Width="120" />
         <NxGridColumn Title="Last"  Property="@(x => x.LastName)"  Width="120" />
@@ -67,6 +74,7 @@
 
 @code {
     List<Person> homePeople = SampleData.GetPeopleCopy();
+    string autoColumnsCode = DemoCodeSamples.AutoColumns;
     string quickStartCode = DemoCodeSamples.QuickStart;
 
     async Task HandleUpdate(NxGridUpdateArgs<Person> args)
