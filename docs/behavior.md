@@ -108,6 +108,7 @@ If there is no active selection when a navigation key is pressed, a selection is
 | Ctrl/⌘ + Home | Jump to (0, 0) |
 | Ctrl/⌘ + End | Jump to last cell |
 | Shift + Home/End/Ctrl+Home/End | Extend selection to that target |
+| Ctrl/⌘ + A | Select all cells (all rows and columns) |
 | Page Up / Page Down | Move by the visible page height in rows; column unchanged |
 | Tab | Move right; wraps to column 0 of the next row at the last column; wraps from last row back to first row |
 | Shift+Tab | Move left; wraps to last column of the previous row at column 0; wraps from first row back to last row |
@@ -136,7 +137,15 @@ Any key not matched by the grid (and not a printable character that would start 
 
 ## Editing
 
-A column is editable when `Editable` is set (either at the column level or via the grid-level `Editable` parameter) and the grid has an `OnUpdate` handler. `EditableGetter` can further restrict editability per row — cells where it returns `false` are read-only even if the column is otherwise editable.
+A column is editable when `Editable` is set (either at the column level or via the grid-level `Editable` parameter), the grid has an `OnUpdate` handler, and `Property` points to a member with a setter. Columns whose `Property` is get-only are always read-only regardless of `Editable`.
+
+**Editability evaluation order for a direct edit attempt (F2, typing, double-click):**
+
+1. Column `Editable` (or grid-level `Editable`) must be `true` and `OnUpdate` must be registered.
+2. `CellEditableGetter(row, column)` — if supplied and returns `false`, the edit is blocked and `OnEditBlocked` fires.
+3. `OnEditing` — fires if all prior checks passed. If `args.Cancel` is set to `true`, the edit is cancelled silently.
+
+For bulk operations (paste, delete, Ctrl+Enter), `CellEditableGetter` is evaluated but `OnEditing` and `OnEditBlocked` are not — blocked cells are silently skipped.
 
 ### Entering edit mode
 
@@ -156,7 +165,7 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 | Tab | Move right (wraps like the Tab navigation key) |
 | Click another cell | No navigation; selection moves to the clicked cell |
 
-On commit, `OnUpdate` is called with a list of `NxGridRowSaveArgs<T>`. Each entry contains the row and its `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
+On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with a `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
 
 ### Cancelling an edit
 
@@ -205,7 +214,7 @@ Combo box editing applies to columns that have `ComboBoxOptions` set. The behavi
 The Delete key clears all cells in the current selection. For each cell:
 
 1. If the column is not editable, the cell is skipped.
-2. If `EditableGetter` returns `false` for that row, the cell is skipped.
+2. If `CellEditableGetter` returns `false` for that cell, the cell is skipped.
 3. The default value is determined by sampling the first non-null value in `filteredData` for that column (using `Property ?? Display`) to learn the underlying type:
    - Numeric types (`int`, `long`, `short`, `decimal`, `double`, `float`): default is `"0"`, or `null` if `Nullable = true`.
    - `string`: default is `""` (empty string).
@@ -221,7 +230,7 @@ Copies the current selection as tab-separated values (TSV), one row per line. Ce
 
 ### Paste (Ctrl/⌘+V)
 
-Paste reads plain text from the clipboard and parses it as TSV (rows split on `\n`, cells split on `\t`). Paste skips cells that are not editable or where `EditableGetter` returns `false`.
+Paste reads plain text from the clipboard and parses it as TSV (rows split on `\n`, cells split on `\t`). Paste skips cells that are not editable or where `CellEditableGetter` returns `false`.
 
 **Single-cell paste** (clipboard contains exactly one row and one column):
 
@@ -239,7 +248,7 @@ Dragging the resize grip at the right edge of any column header initiates a JS-d
 
 **Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns are resized to the same new width simultaneously.
 
-After resize, `OnColumnResized` fires once per resized column with `(columnIndex, newWidthPx)`.
+After resize, `OnColumnResized` fires once per resized column with `args.ColumnIndex` and `args.NewWidth`.
 
 **`UserWidth`** is set on the column object after a user drag. Once set, it takes precedence over `Width`/`MinWidth`/`MaxWidth`, and all three CSS width properties are pinned to the same value (no flex growth).
 
@@ -278,6 +287,45 @@ This means a custom cell background will visually mix with the selection highlig
 
 ---
 
+## Column visibility
+
+### How hidden columns work
+
+The grid maintains two separate column lists internally:
+
+- `columns` — all registered `NxGridColumn<T>` instances, including hidden ones.
+- `visibleColumns` — the subset where `IsHidden == false`. All rendering, selection, editing, and keyboard navigation operate on `visibleColumns` exclusively.
+
+This is directly analogous to the `Data` / `filteredData` split for rows.
+
+### Effective hidden state
+
+`IsHidden` resolves as `UserHidden ?? Hidden`:
+
+- `Hidden="true"` at design time → hidden by default, subject to user override (unless `Hideable="false"`).
+- `Hidden="false"` (default) → visible by default; user can hide via column menu (unless `Hideable="false"`).
+- `Hidden="true" Hideable="false"` → permanently hidden. No column menu entry; the "Manage columns…" panel omits this column.
+
+### User interaction
+
+**Hiding:** the ▾ column menu shows **Hide column** for any column where `Hideable == true`. Hiding clears the active selection (indices would shift).
+
+**Showing:** the column menu shows **Manage columns…** when at least one column in the grid is hideable. Clicking it opens a floating panel listing all hideable columns with checkboxes. Unchecked = hidden. The panel is dismissed by clicking outside it.
+
+### Programmatic control
+
+`SetColumnHidden(string columnId, bool hidden)` hides or shows a column by its `Id ?? Title`. It takes effect immediately (no page reload), clears the selection when hiding, and persists the new state to `localStorage` when `StateKey` is set.
+
+### Relationship to sort and filter
+
+A hidden column still participates in sort and filter if it has a `Property` or `Display`. Rows can be sorted by a value in a column the user cannot see. This is the primary use case for `Hidden="true" Hideable="false"`.
+
+### State persistence
+
+When `StateKey` is set, `UserHidden` is included in the saved payload alongside `UserWidth` and `UserFrozen`. On restore, each column's saved `hidden` value is applied before the first render. The declared `Hidden` default is always applied first; saved state can only override it.
+
+---
+
 ## State persistence
 
 When `StateKey` is non-null, the grid serialises its current column configuration to `localStorage` after any user action that changes column state: sort, filter, column width (post-resize). Deserialisation runs once in `OnAfterRenderAsync(firstRender=true)`, after the JS module has loaded.
@@ -287,15 +335,15 @@ When `StateKey` is non-null, the grid serialises its current column configuratio
 ```json
 {
   "columns": [
-    { "id": "desc", "width": 200 },
-    { "id": "qty", "width": null }
+    { "id": "desc", "width": 200, "frozen": null, "hidden": null },
+    { "id": "qty",  "width": null, "frozen": true, "hidden": false }
   ],
   "sort": { "columnId": "desc", "direction": 1 },
   "filters": { "dept": ["Engineering", "Sales"] }
 }
 ```
 
-`width` is only non-null when the user has explicitly dragged the resize grip. Columns that have never been resized have `"width": null` and use their declared `Width` parameter on restore.
+`width` is only non-null when the user has explicitly dragged the resize grip. `frozen` and `hidden` are only non-null when the user has toggled the column's frozen or hidden state. Columns that have never been toggled have `null` for those fields and use their declared parameter values on restore.
 
 **Column identity:** each column is identified by `Id` if set, falling back to `Title`. Columns with neither are excluded from state persistence.
 
@@ -311,7 +359,24 @@ When `StateKey` is non-null, the grid serialises its current column configuratio
 
 ## Context menu
 
-Right-clicking any cell opens a context menu at the cursor position. The only option is **Copy**, which is equivalent to Ctrl+C.
+Right-clicking any cell opens a context menu at the cursor position. The built-in **Copy** item is always first and always present.
+
+**Custom items** are added via `OnContextMenuShowing`. The handler is called synchronously before the menu opens — append `NxGridContextMenuItem` entries to `args.Items` to add items after Copy, in the order appended.
+
+```
+Copy           ← always present, always first
+─────────────  ← separator (if Separator=true on the next item)
+View details   ← custom items, in order appended
+Copy full name
+```
+
+**Selection during right-click:** if there is no active selection, the right-clicked cell is selected before the menu opens. If there is already a selection, it is preserved unchanged. `args.Row` and `args.Column` always refer to the cell that was right-clicked, regardless of the selection state.
+
+**`OnContextMenuItemClicked`** fires when the user selects a custom item. It does not fire for the built-in Copy item. The menu closes before the callback fires.
+
+**Disabled items** (`Disabled = true`) are rendered grayed out and cannot be clicked. They appear in the menu but do nothing when selected.
+
+**Separators** (`Separator = true` on an item) render a `<hr>` divider above that item.
 
 The menu is positioned with `position:fixed` at the mouse coordinates. It closes when it loses focus (via a JS callback).
 

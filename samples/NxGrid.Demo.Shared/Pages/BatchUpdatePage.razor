@@ -17,11 +17,11 @@
         are affected. Watch the log below.
     </p>
     <NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
-        <NxGridColumn T="Person" Property="@(x => x.Id)"        Width="60" MaxWidth="50" Editable="false" />
-        <NxGridColumn T="Person" Property="@(x => x.FirstName)" Width="140" />
-        <NxGridColumn T="Person" Property="@(x => x.LastName)"  Width="140" />
-        <NxGridColumn T="Person" Property="@(x => x.Age)"       Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Property="@(x => x.Department)" />
+        <NxGridColumn Property="@(x => x.Id)"        Width="60" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"       Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
     </NxGrid>
 
     <div style="margin-top:16px;">
@@ -81,7 +81,7 @@
 </div>
 
 <div class="doc-section">
-    <h2>NxGridRowSaveArgs&lt;T&gt; / NxGridCellChange&lt;T&gt;</h2>
+    <h2>NxGridUpdateArgs&lt;T&gt; / NxGridRowChange&lt;T&gt; / NxGridCellChange&lt;T&gt;</h2>
     <table class="doc-table">
         <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
@@ -101,9 +101,9 @@
 
     string onUpdateCode = DemoCodeSamples.OnUpdate;
 
-    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
     {
-        foreach (var rowArgs in rows)
+        foreach (var rowArgs in args.Rows)
             foreach (var change in rowArgs.Changes)
                 change.Apply(rowArgs.Row);
 
@@ -115,8 +115,8 @@
         isSaving = false;
 
         var when = DateTime.Now.ToString("HH:mm:ss");
-        var rowLabel = rows.Count == 1 ? "1 row" : $"{rows.Count} rows";
-        var details = string.Join("  |  ", rows.SelectMany(r =>
+        var rowLabel = args.Rows.Count == 1 ? "1 row" : $"{args.Rows.Count} rows";
+        var details = string.Join("  |  ", args.Rows.SelectMany(r =>
             r.Changes.Select(c =>
                 $"{r.Row.FirstName} {r.Row.LastName}: {c.Column.EffectiveTitle}  {c.OldValue} → {c.NewValue}")));
         saveLog.Insert(0, $"[{when}]  {rowLabel}  —  {details}");

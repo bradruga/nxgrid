@@ -13,6 +13,8 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to apply custom cell styling](#how-to-apply-custom-cell-styling)
 - [How to use custom cell templates](#how-to-use-custom-cell-templates)
 - [How to select and scroll programmatically](#how-to-select-and-scroll-programmatically)
+- [How to hide and show columns](#how-to-hide-and-show-columns)
+- [How to add custom context menu items](#how-to-add-custom-context-menu-items)
 - [How to build and use the package locally](#how-to-build-and-use-the-package-locally)
 - [How to publish the package to NuGet.org](#how-to-publish-the-package-to-nugetorg)
 
@@ -24,9 +26,9 @@ Set `StateKey` to a string that is unique to this grid instance. Recommended con
 
 ```razor
 <NxGrid T="InvoiceLineDto" Data="@lines" StateKey="accounting-invoice-lines">
-    <NxGridColumn T="InvoiceLineDto" Id="desc"   Title="Description" Property="@(x => x.Description)" />
-    <NxGridColumn T="InvoiceLineDto" Id="qty"    Title="Qty"         Property="@(x => x.Quantity)"    Width="80" />
-    <NxGridColumn T="InvoiceLineDto" Id="amount" Title="Amount"      Property="@(x => x.Amount)"      Width="120" />
+    <NxGridColumn Id="desc"   Property="@(x => x.Description)" />
+    <NxGridColumn Id="qty"    Title="Qty" Property="@(x => x.Quantity)" Width="80" />
+    <NxGridColumn Id="amount" Property="@(x => x.Amount)"      Width="120" />
 </NxGrid>
 ```
 
@@ -119,15 +121,15 @@ When a user commits an edit (Enter, Tab, or clicking away), the grid calls the `
 
 ```razor
 <NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate">
-    <NxGridColumn T="Person" Title="Name"   Property="@(x => x.Name)" />
-    <NxGridColumn T="Person" Title="Age"    Property="@(x => x.Age)" />
-    <NxGridColumn T="Person" Title="Salary" Property="@(x => x.Salary)" />
+    <NxGridColumn Property="@(x => x.Name)" />
+    <NxGridColumn Property="@(x => x.Age)" />
+    <NxGridColumn Property="@(x => x.Salary)" />
 </NxGrid>
 
 @code {
-    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
     {
-        foreach (var rowArgs in rows)
+        foreach (var rowArgs in args.Rows)
         {
             foreach (var change in rowArgs.Changes)
                 change.Apply(rowArgs.Row);  // writes typed NewValue back via Property setter
@@ -141,15 +143,48 @@ Parsing is automatic for all common CLR types (`int`, `long`, `decimal`, `double
 
 **Update dependent UI inside `OnUpdate`.** If you have totals, charts, or detail panels that depend on the same data, recalculate them inside `HandleUpdate` after applying changes.
 
-### Restricting which rows are editable
+### Restricting which cells are editable
 
-Use `EditableGetter` to make editing conditional per row. `OnUpdate` will not fire for rows where it returns `false`.
+Use `CellEditableGetter` on the grid to make editing conditional per cell. The function receives the row and the column, so you can guard an entire row, a specific column, or any combination. `OnUpdate` will not fire for cells where it returns `false`.
 
 ```razor
-<NxGridColumn T="Person"
-    Title="Salary"
-    Property="@(x => x.Salary)"
-    EditableGetter="@(p => p.IsActive)" />
+<NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate"
+        CellEditableGetter="@((row, col) => row.IsActive)"
+        OnEditBlocked="@OnBlocked">
+    <NxGridColumn Property="@(x => x.Name)" />
+    <NxGridColumn Property="@(x => x.Salary)" />
+</NxGrid>
+
+@code {
+    void OnBlocked(NxGridEditBlockedArgs<Person> args)
+    {
+        // notify the user that this row/cell cannot be edited
+    }
+}
+```
+
+To guard a specific column only, inspect the column in the delegate:
+
+```csharp
+bool CellEditable(Person row, NxGridColumn<Person> col) =>
+    col.EffectiveTitle == "Salary" ? row.IsActive : true;
+```
+
+### Intercepting edit mode before it opens
+
+Use `OnEditing` to perform async validation or show a confirmation dialog before the editor opens. Set `args.Cancel = true` to prevent the editor from opening.
+
+```razor
+<NxGrid T="ContractLineDto" Data="@lines" Editable="true" OnUpdate="@HandleUpdate"
+        OnEditing="@ConfirmEdit">
+```
+
+```csharp
+async Task ConfirmEdit(NxGridEditingArgs<ContractLineDto> args)
+{
+    if (args.Row.IsLocked)
+        args.Cancel = !(await dialogs.ConfirmAsync("This row is locked. Edit anyway?"));
+}
 ```
 
 ### Handling null / empty input
@@ -162,9 +197,7 @@ For columns with `ComboBoxOptions`, the committed value is always one of the str
 
 ```razor
 <NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate">
-    <NxGridColumn T="Person"
-        Title="Department"
-        Property="@(x => x.Department)"
+    <NxGridColumn Property="@(x => x.Department)"
         ComboBoxOptions="@(() => departments)" />
 </NxGrid>
 ```
@@ -277,7 +310,7 @@ return "background-color:orange;";
 Use the `Template` parameter on `NxGridColumn` to render arbitrary markup inside a cell. The grid still renders the cell container (padding, selection highlight, alignment); the template fills the inner content.
 
 ```razor
-<NxGridColumn T="Person" Title="Status" Property="@(x => x.Status)">
+<NxGridColumn Property="@(x => x.Status)">
     <Template Context="person">
         <span class="badge badge-@person.Status.ToLower()">@person.Status</span>
     </Template>
@@ -291,9 +324,7 @@ Use the `Template` parameter on `NxGridColumn` to render arbitrary markup inside
 A column with a `Template` can also be editable (`Editable="true"` on the column or the grid). The template is shown in view mode; the normal text input (or combo box) replaces it when the cell enters edit mode. The two are mutually independent.
 
 ```razor
-<NxGridColumn T="Person"
-    Title="Department"
-    Property="@(x => x.Department)"
+<NxGridColumn Property="@(x => x.Department)"
     ComboBoxOptions="@(() => departments)">
     <Template Context="person">
         <span class="dept-chip">@person.Department</span>
@@ -306,8 +337,7 @@ A column with a `Template` can also be editable (`Editable="true"` on the column
 Sort and filter operate on `Property ?? Display`, not on what the template renders. If your template formats a value differently from its raw form, set `Property` to supply the typed sort/filter key and `Display` to supply the formatted display value (used for clipboard copy).
 
 ```razor
-<NxGridColumn T="Person"
-    Title="Hired"
+<NxGridColumn Title="Hired"
     Property="@(x => x.HiredDate)"
     Display="@(p => (object?)p.HiredDate.ToString("MMM d, yyyy"))">
     <Template Context="person">
@@ -341,6 +371,136 @@ await grid.ScrollToEnd();
 ```
 
 This is safe to call immediately after adding a row — it waits internally for JS interop to be ready if the grid was just rendered.
+
+---
+
+## How to hide and show columns
+
+### Start a column hidden (user can show it)
+
+Set `Hidden="true"` on the column. It will be hidden on first load but appear in the "Manage columns…" panel so the user can show it.
+
+```razor
+<NxGrid T="Person" Data="@people" HasColumnMenu="true">
+    <NxGridColumn Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Department)"              />
+    <NxGridColumn Property="@(x => x.InternalId)" Hidden="true" />
+</NxGrid>
+```
+
+The column menu on any column will show **Manage columns…** because at least one column is hideable. The user can toggle `InternalId` back on.
+
+### Permanently hidden (sort/filter only, not renderable)
+
+Set `Hidden="true" Hideable="false"` to hide a column that the user cannot show. This is useful when you want a field to participate in sort or filter without ever appearing in the grid.
+
+```razor
+<NxGrid T="Person" Data="@people" HasColumnMenu="true">
+    <NxGridColumn Property="@(x => x.Name)"           Width="200" />
+    <NxGridColumn Property="@(x => x.Department)"                  />
+    @* InternalCategory drives filtering but is never rendered *@
+    <NxGridColumn Property="@(x => x.InternalCategory)" Hidden="true" Hideable="false" />
+</NxGrid>
+```
+
+`InternalCategory` appears in no menus and no chooser panel. The user is unaware it exists.
+
+### Hide a column programmatically
+
+Call `SetColumnHidden(columnId, hidden)` on the grid reference. The change takes effect immediately and is persisted when `StateKey` is set.
+
+```razor
+<button @onclick="@(() => grid.SetColumnHidden("dept", !deptHidden))">
+    @(deptHidden ? "Show" : "Hide") Department
+</button>
+
+<NxGrid T="Person" @ref="grid" Data="@people" HasColumnMenu="true">
+    <NxGridColumn Id="dept" Property="@(x => x.Department)" />
+    ...
+</NxGrid>
+
+@code {
+    NxGrid<Person>? grid;
+    bool deptHidden;
+
+    void ToggleDept()
+    {
+        deptHidden = !deptHidden;
+        grid!.SetColumnHidden("dept", deptHidden);
+    }
+}
+```
+
+`SetColumnHidden` matches the column by `Id` first, then falls back to `Title`. Always set `Id` on columns you plan to control programmatically so the identity stays stable across `Title` changes.
+
+---
+
+## How to add custom context menu items
+
+Right-clicking any cell always shows the built-in **Copy** item. Wire up `OnContextMenuShowing` to append additional items, and `OnContextMenuItemClicked` to handle them.
+
+```razor
+<NxGrid T="ProjectDto" Data="@projects"
+        OnContextMenuShowing="@BuildMenu"
+        OnContextMenuItemClicked="@HandleMenuClick">
+    <NxGridColumn Property="@(x => x.Name)" />
+    <NxGridColumn Property="@(x => x.Status)" />
+</NxGrid>
+```
+
+```csharp
+void BuildMenu(NxGridContextMenuArgs<ProjectDto> args)
+{
+    args.Items.Add(new NxGridContextMenuItem { Id = "open", Label = "Open project" });
+    args.Items.Add(new NxGridContextMenuItem { Id = "copy-number", Label = "Copy project number", Separator = true });
+}
+
+async Task HandleMenuClick(NxGridContextMenuItemArgs<ProjectDto> args)
+{
+    if (args.Item.Id == "open")
+        nav.NavigateTo($"/projects/{args.Row.ProjectId}");
+    else if (args.Item.Id == "copy-number")
+        await clipboard.WriteTextAsync(args.Row.ProjectNumber);
+}
+```
+
+`OnContextMenuShowing` is called synchronously, so it should use already-loaded data. `args.Row` and `args.Column` tell you exactly what was right-clicked.
+
+### Conditional and disabled items
+
+Use `args.Row` to add items only for certain rows, or set `Disabled = true` to show an item grayed out when the action is unavailable:
+
+```csharp
+void BuildMenu(NxGridContextMenuArgs<ProjectDto> args)
+{
+    // Item only present for draft projects
+    if (args.Row.Status == "Draft")
+        args.Items.Add(new NxGridContextMenuItem { Id = "submit", Label = "Submit for approval" });
+
+    // Always present, but only clickable when the project is open
+    args.Items.Add(new NxGridContextMenuItem
+    {
+        Id       = "close",
+        Label    = "Close project",
+        Separator = true,
+        Disabled = args.Row.Status == "Closed"
+    });
+}
+```
+
+### Separator
+
+Set `Separator = true` on an item to render a `<hr>` divider above it. Use separators to group related items visually.
+
+### What `OnContextMenuItemClicked` receives
+
+The callback is an `EventCallback<NxGridContextMenuItemArgs<T>>`. The args carry:
+
+- `args.Item` — the `NxGridContextMenuItem` that was clicked, including its `Id`, `Label`, `Disabled`, and `Separator` properties.
+- `args.Row` — the row object that was right-clicked.
+- `args.Column` — the `NxGridColumn<T>` that was right-clicked.
+
+The built-in Copy item does not fire `OnContextMenuItemClicked` — only custom items do.
 
 ---
 
@@ -393,12 +553,19 @@ Or edit the `.csproj` directly:
 
 ### 4. Iterating on changes
 
-Each time you change NxGrid source, rebuild and repack (step 1). Because NuGet caches packages by version, bump `VersionPrefix` in `src/NxGrid/NxGrid.csproj` for each iteration — or clear the local cache for this package:
+Each time you change NxGrid source, rebuild and repack (step 1). NuGet copies local packages into the global packages cache (`~/.nuget/packages/`), so the local folder is not re-read on subsequent restores. Clear the cached entry after each repack:
 
-```bash
-dotnet nuget locals http-cache --clear
-# then: dotnet add package NxGrid --version <new-version>
+```powershell
+Remove-Item "$env:USERPROFILE\.nuget\packages\nxgrid" -Recurse -Force
 ```
+
+Or combine pack and cache-clear into one command:
+
+```powershell
+dotnet pack src/NxGrid/NxGrid.csproj -c Release --no-build -o build/nupkg; Remove-Item "$env:USERPROFILE\.nuget\packages\nxgrid" -Recurse -Force
+```
+
+Then run `dotnet restore` in the consuming project and it will pick up the new `.nupkg` from your local source. There is no need to bump the version number for local iteration.
 
 ---
 

@@ -29,11 +29,11 @@
             HeaderClickSelects="@headerClickSelects"
             Cursor="@cursor"
             OnColumnResized="@OnColumnResized">
-        <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
-        <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)"  Width="130" />
-        <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"   Width="130" />
-        <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
+        <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
     </NxGrid>
     <div class="doc-output">@resizeLog</div>
 </div>
@@ -48,11 +48,11 @@
     </p>
     <NxGrid T="Person" Data="@layoutPeople" HasColumnMenu="false">
         <ChildContent>
-            <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
-            <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)"  Width="130" />
-            <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"   Width="130" />
-            <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
-            <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
+            <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+            <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+            <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+            <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+            <NxGridColumn Property="@(x => x.Department)" />
         </ChildContent>
         <Overlays>
             @for (var i = 0; i < layoutPeople.Count; i++)
@@ -81,7 +81,7 @@
             <tr><td>RowHeight</td><td>28</td><td>Row height in pixels — also controls the header height</td></tr>
             <tr><td>Class / Style</td><td>—</td><td>Extra CSS class or inline style applied to the outermost grid element</td></tr>
             <tr><td>Overlays</td><td>—</td><td>RenderFragment rendered in a pointer-events-none absolute layer above the grid</td></tr>
-            <tr><td>OnColumnResized</td><td>—</td><td>Action&lt;int, int&gt; — fires with (columnIndex, newWidthPx) when a resize grip is dragged</td></tr>
+            <tr><td>OnColumnResized</td><td>—</td><td>EventCallback&lt;NxGridColumnResizedArgs&gt; — fires with ColumnIndex and NewWidth when a resize grip is dragged</td></tr>
         </tbody>
     </table>
 </div>
@@ -95,9 +95,9 @@
     NxGridCursor cursor = NxGridCursor.Cell;
     string resizeLog = "Drag a column resize grip to see OnColumnResized fire…";
 
-    void OnColumnResized(int columnIndex, int newWidthPx)
+    void OnColumnResized(NxGridColumnResizedArgs args)
     {
-        resizeLog = $"OnColumnResized: column {columnIndex} → {newWidthPx}px";
+        resizeLog = $"OnColumnResized: column {args.ColumnIndex} → {args.NewWidth}px";
     }
 
     string overlaysCode = DemoCodeSamples.Overlays;

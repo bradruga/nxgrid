@@ -1,4 +1,5 @@
 ﻿@typeparam T
+@attribute [CascadingTypeParameter("T")]
 
 @inject IJSRuntime JsRuntime
 
@@ -15,14 +16,15 @@
             @if (ShowRowNumbers) { <span>#</span> }
         </div>
 
-        @foreach (var column in columns)
+        @foreach (var column in visibleColumns)
         {
             <div class="nx-grid-cell @(column.IsLastFrozen ? "nx-grid-cell-frozen-last" : "")"
                  style="@column.HeaderCellStyle"
                  aria-label="@column.EffectiveTitle"
                  @onmousedown="@(args => OnColumnHeaderMouseDown(args, column))"
                  @onmousedown:preventDefault
-                 @onmouseenter="@(args => OnColumnHeaderMouseEnter(args, column))">
+                 @onmouseenter="@(args => OnColumnHeaderMouseEnter(args, column))"
+                 @onmouseleave="@(() => HideHeaderTooltip())">
                 <div class="nx-grid-column-title-wrap">
                     <span class="nx-grid-column-title"
                               @onclick="@(async () => { if (HasColumnMenu) await OnColumnClick(column); })">
@@ -89,7 +91,7 @@
                        @key="context"
                        Row="@filteredData[context]"
                        RowIndex="@context"
-                       Columns="@columns"
+                       Columns="@visibleColumns"
                        RowStyle="@rowStyle"
                        SelectedRange="@selectedRange"
                        ShowRowNumbers="@ShowRowNumbers"
@@ -101,6 +103,7 @@
                        OnMouseDown="@OnCellMouseDown"
                        OnMouseEnter="@OnCellMouseEnter"
                        OnMouseUp="@OnCellMouseUp"
+                       OnMouseLeave="@OnCellMouseLeaveForTooltip"
                        OnContextMenu="@OnCellContextMenu"
                        OnDoubleClick="@OnCellDoubleClick"
                        OnEditInput="@OnEditInputChange"
@@ -108,9 +111,11 @@
                        OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
                        OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
                        OnComboButtonClick="@OnComboButtonClick"
+                       OnCheckboxToggle="@OnCheckboxToggleCell"
                        Cursor="@Cursor"
                        RenderToken="@renderToken"
-                       GridEditable="@Editable" />
+                       GridEditable="@Editable"
+                       CellEditableGetter="@CellEditableGetter" />
     </Virtualize>
 
     @if (openColumn != null)
@@ -144,32 +149,57 @@
                 Clear Sort
             </button>
 
-            @if (openColumn.Freezable)
+            @if (openColumn.Freezable || openColumn.Hideable || columns.Any(c => c.Hideable))
             {
                 <div class="nx-grid-menu-divider"></div>
-                <button class="nx-grid-menu-item" @onclick="@OnFreezeToggleClick">
-                    <span class="nx-grid-menu-item-icon">
-                        @if (openColumn.IsFrozen)
-                        {
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 576 512">
-                                <path fill="currentColor" d="M352 144c0-44.2 35.8-80 80-80s80 35.8 80 80v48c0 17.7 14.3 32 32 32s32-14.3 32-32V144C576 64.5 511.5 0 432 0S288 64.5 288 144v48H64c-35.3 0-64 28.7-64 64V448c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V256c0-35.3-28.7-64-64-64H352V144z"/>
+                @if (openColumn.Freezable)
+                {
+                    <button class="nx-grid-menu-item" @onclick="@OnFreezeToggleClick">
+                        <span class="nx-grid-menu-item-icon">
+                            @if (openColumn.IsFrozen)
+                            {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 576 512">
+                                    <path fill="currentColor" d="M352 144c0-44.2 35.8-80 80-80s80 35.8 80 80v48c0 17.7 14.3 32 32 32s32-14.3 32-32V144C576 64.5 511.5 0 432 0S288 64.5 288 144v48H64c-35.3 0-64 28.7-64 64V448c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V256c0-35.3-28.7-64-64-64H352V144z"/>
+                                </svg>
+                            }
+                            else
+                            {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 448 512">
+                                    <path fill="currentColor" d="M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64h16z"/>
+                                </svg>
+                            }
+                        </span>
+                        @(openColumn.IsFrozen ? "Unfreeze column" : "Freeze column")
+                    </button>
+                }
+                @if (openColumn.Hideable)
+                {
+                    <button class="nx-grid-menu-item" @onclick="@OnHideColumnClick">
+                        <span class="nx-grid-menu-item-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.88 9.88a3 3 0 1 0 4.243 4.243M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68m-6.72-1.07a3 3 0 0 1-4.194-4.194M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20"/>
                             </svg>
-                        }
-                        else
-                        {
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 448 512">
-                                <path fill="currentColor" d="M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64h16z"/>
+                        </span>
+                        Hide column
+                    </button>
+                }
+                @if (columns.Any(c => c.Hideable))
+                {
+                    <button class="nx-grid-menu-item" @onclick="@OnManageColumnsClick">
+                        <span class="nx-grid-menu-item-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
                             </svg>
-                        }
-                    </span>
-                    @(openColumn.IsFrozen ? "Unfreeze column" : "Freeze column")
-                </button>
+                        </span>
+                        Manage columns...
+                    </button>
+                }
             }
 
             <div class="nx-grid-menu-divider"></div>
             <NxGridFilter T="@T"
                               Data="@Data"
-                              Columns="@columns"
+                              Columns="@visibleColumns"
                               Column="@openColumn"
                               OnFilter="@OnFilterOk"
                               OnCancel="@OnFilterCancel"/>
@@ -183,12 +213,26 @@
                     @onclick="@OnContextMenuCopyClick">
                 Copy
             </button>
+            @foreach (var menuItem in contextMenuItems)
+            {
+                var capturedItem = menuItem;
+                @if (capturedItem.Separator)
+                {
+                    <div class="nx-grid-menu-divider"></div>
+                }
+                <button class="nx-grid-context-item @(capturedItem.Disabled ? "nx-grid-context-item-disabled" : "")"
+                        disabled="@capturedItem.Disabled"
+                        @onclick="@(() => OnCustomContextMenuItemClick(capturedItem))">
+                    @capturedItem.Label
+                </button>
+            }
         </div>
     }
 
-    @if (isEditing && editCol >= 0 && editCol < columns.Count
-         && columns[editCol].ComboBoxOptions != null && isComboOpen)
+    @if (isEditing && editCol >= 0 && editCol < visibleColumns.Count
+         && visibleColumns[editCol].IsComboColumn && isComboOpen)
     {
+        var comboCol = visibleColumns[editCol];
         <div class="nx-grid-combo-dropdown"
              style="position:fixed;top:@(comboDropdownTop)px;left:@(comboDropdownLeft)px;width:@(comboDropdownWidth)px;z-index:1001;">
             @if (comboFilteredOptions.Count == 0)
@@ -200,10 +244,18 @@
                 @for (var i = 0; i < comboFilteredOptions.Count; i++)
                 {
                     var optIdx = i;
+                    var item = comboFilteredOptions[i];
                     <div class="nx-grid-combo-item @(i == comboHighlightIndex ? "nx-grid-combo-item-active" : "")"
                          @onmousedown="@(() => OnComboItemMouseDown(optIdx))"
                          @onmousedown:preventDefault>
-                        @comboFilteredOptions[i]
+                        @if (comboCol.ComboBoxItemTemplate != null)
+                        {
+                            @comboCol.ComboBoxItemTemplate(item)
+                        }
+                        else
+                        {
+                            @item.Display
+                        }
                     </div>
                 }
             }
@@ -212,8 +264,51 @@
 
     @if (Overlays != null)
     {
-        <div style="position:absolute; top:0; left:0; pointer-events:none;">
+        <div style="position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; pointer-events:none;">
             @Overlays
+        </div>
+    }
+
+    @if (showColumnChooser)
+    {
+        <div style="position:fixed;inset:0;z-index:999;" @onclick="CloseColumnChooser"></div>
+        <div class="nx-grid-chooser-panel" style="top:@(chooserTop)px;left:@(chooserLeft)px;" @onclick:stopPropagation>
+            <div class="nx-grid-chooser-title">Columns</div>
+            @foreach (var col in columns.Where(c => c.Hideable))
+            {
+                var capturedCol = col;
+                <label class="nx-grid-chooser-item">
+                    <input type="checkbox"
+                           checked="@(!capturedCol.IsHidden)"
+                           @onchange="@(e => OnChooserToggle(capturedCol, (bool)(e.Value ?? false)))" />
+                    @capturedCol.EffectiveTitle
+                </label>
+            }
+        </div>
+    }
+
+    @if (_tooltipVisible && _tooltipColumn != null)
+    {
+        <div class="nx-grid-tooltip" style="position:fixed;top:@(_tooltipTop)px;left:@(_tooltipLeft)px;z-index:1002;pointer-events:none;">
+            @if (_tooltipIsHeader)
+            {
+                @if (_tooltipColumn.HeaderTooltipTemplate != null)
+                {
+                    @_tooltipColumn.HeaderTooltipTemplate
+                }
+                else
+                {
+                    @_tooltipColumn.HeaderTooltip
+                }
+            }
+            else if (TooltipTemplate != null && _tooltipRow != null)
+            {
+                @TooltipTemplate(new NxGridTooltipContext<T> { Row = _tooltipRow, Column = _tooltipColumn, Data = _tooltipData })
+            }
+            else
+            {
+                @_tooltipData?.ToString()
+            }
         </div>
     }
 </div>

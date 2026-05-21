@@ -17,6 +17,7 @@ public partial class NxGrid<T>
     private const string KeyPageDown   = "PageDown";
     private const string KeyTab        = "Tab";
     private const string KeyEnter      = "Enter";
+    private const string KeySelectAll  = "a";
 
     private async Task OnGridKeyDown(KeyboardEventArgs args)
     {
@@ -31,6 +32,17 @@ public partial class NxGrid<T>
         if (ModifierPressed(args) && string.Equals(args.Key, KeyPaste, StringComparison.OrdinalIgnoreCase))
         {
             await PasteFromClipboard();
+            return;
+        }
+
+        if (ModifierPressed(args) && string.Equals(args.Key, KeySelectAll, StringComparison.OrdinalIgnoreCase))
+        {
+            if (filteredData.Count > 0 && visibleColumns.Count > 0)
+            {
+                selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 };
+                StateHasChanged();
+                await RaiseSelectionChanged();
+            }
             return;
         }
 
@@ -73,14 +85,25 @@ public partial class NxGrid<T>
         // F2 → edit showing existing value
         if (args.Key == KeyF2 && selectedRange != null)
         {
-            StartEditing(selectedRange.StartRow, selectedRange.StartCol, initialChar: null);
+            await StartEditing(selectedRange.StartRow, selectedRange.StartCol, initialChar: null);
             return;
+        }
+
+        // Space on a checkbox column → toggle (must come before IsPrintableKey, which also matches " ")
+        if (args.Key == " " && selectedRange != null && !args.CtrlKey && !args.AltKey && !args.MetaKey)
+        {
+            var checkboxCol = visibleColumns[selectedRange.StartCol];
+            if (checkboxCol.IsCheckboxColumn)
+            {
+                await OnCheckboxToggleCell(selectedRange.StartRow, selectedRange.StartCol);
+                return;
+            }
         }
 
         // Printable character → start editing with that character pre-filled
         if (IsPrintableKey(args) && selectedRange != null)
         {
-            StartEditing(selectedRange.StartRow, selectedRange.StartCol, initialChar: args.Key);
+            await StartEditing(selectedRange.StartRow, selectedRange.StartCol, initialChar: args.Key);
             return;
         }
 
@@ -107,7 +130,7 @@ public partial class NxGrid<T>
 
     private async Task HandleArrowKey(KeyboardEventArgs args)
     {
-        if (filteredData.Count == 0 || columns.Count == 0) return;
+        if (filteredData.Count == 0 || visibleColumns.Count == 0) return;
 
         if (selectedRange == null)
         {
@@ -129,7 +152,7 @@ public partial class NxGrid<T>
         }
 
         newEndRow = Math.Clamp(newEndRow, 0, filteredData.Count - 1);
-        newEndCol = Math.Clamp(newEndCol, 0, columns.Count - 1);
+        newEndCol = Math.Clamp(newEndCol, 0, visibleColumns.Count - 1);
 
         selectedRange.EndRow = newEndRow;
         selectedRange.EndCol = newEndCol;
@@ -147,7 +170,7 @@ public partial class NxGrid<T>
 
     private async Task HandleHomeEnd(KeyboardEventArgs args)
     {
-        if (filteredData.Count == 0 || columns.Count == 0) return;
+        if (filteredData.Count == 0 || visibleColumns.Count == 0) return;
 
         if (selectedRange == null)
         {
@@ -167,7 +190,7 @@ public partial class NxGrid<T>
                 if (args.CtrlKey) newEndRow = 0;
                 break;
             case KeyEnd:
-                newEndCol = columns.Count - 1;
+                newEndCol = visibleColumns.Count - 1;
                 if (args.CtrlKey) newEndRow = filteredData.Count - 1;
                 break;
         }
@@ -188,7 +211,7 @@ public partial class NxGrid<T>
 
     private async Task HandlePageUpDown(KeyboardEventArgs args)
     {
-        if (filteredData.Count == 0 || columns.Count == 0) return;
+        if (filteredData.Count == 0 || visibleColumns.Count == 0) return;
 
         if (selectedRange == null)
         {
@@ -221,7 +244,7 @@ public partial class NxGrid<T>
 
     private async Task HandleTabKey(KeyboardEventArgs args)
     {
-        if (filteredData.Count == 0 || columns.Count == 0) return;
+        if (filteredData.Count == 0 || visibleColumns.Count == 0) return;
 
         if (selectedRange == null)
         {
@@ -237,12 +260,12 @@ public partial class NxGrid<T>
         if (!args.ShiftKey)
         {
             col++;
-            if (col >= columns.Count) { col = 0; row++; if (row >= filteredData.Count) row = 0; }
+            if (col >= visibleColumns.Count) { col = 0; row++; if (row >= filteredData.Count) row = 0; }
         }
         else
         {
             col--;
-            if (col < 0) { col = columns.Count - 1; row--; if (row < 0) row = filteredData.Count - 1; }
+            if (col < 0) { col = visibleColumns.Count - 1; row--; if (row < 0) row = filteredData.Count - 1; }
         }
 
         selectedRange.StartRow = row; selectedRange.StartCol = col;
@@ -255,7 +278,7 @@ public partial class NxGrid<T>
 
     private async Task HandleEnterKey(KeyboardEventArgs args)
     {
-        if (filteredData.Count == 0 || columns.Count == 0) return;
+        if (filteredData.Count == 0 || visibleColumns.Count == 0) return;
 
         if (selectedRange == null)
         {
@@ -281,7 +304,7 @@ public partial class NxGrid<T>
 
     private bool IsCellEmpty(int rowIndex, int colIndex)
     {
-        var getter = columns[colIndex].EffectiveValueGetter;
+        var getter = visibleColumns[colIndex].EffectiveValueGetter;
         if (getter == null) return true;
         var value = getter(filteredData[rowIndex]);
         return value == null || string.IsNullOrWhiteSpace(value.ToString());
@@ -316,7 +339,7 @@ public partial class NxGrid<T>
         {
             // On data: walk to end of contiguous block
             var last = startCol;
-            for (var col = startCol + direction; col >= 0 && col < columns.Count; col += direction)
+            for (var col = startCol + direction; col >= 0 && col < visibleColumns.Count; col += direction)
             {
                 if (IsCellEmpty(row, col)) break;
                 last = col;
@@ -326,11 +349,11 @@ public partial class NxGrid<T>
         }
 
         // On empty (or at trailing edge): skip to next cell with data
-        for (var col = startCol + direction; col >= 0 && col < columns.Count; col += direction)
+        for (var col = startCol + direction; col >= 0 && col < visibleColumns.Count; col += direction)
         {
             if (!IsCellEmpty(row, col)) return col;
         }
-        return direction > 0 ? columns.Count - 1 : 0;
+        return direction > 0 ? visibleColumns.Count - 1 : 0;
     }
 
     private async Task ScrollCellIntoView(int rowIndex, int colIndex)

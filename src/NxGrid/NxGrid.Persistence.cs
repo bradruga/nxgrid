@@ -7,6 +7,7 @@ internal class PersistedColumnState
     public string Id { get; set; } = "";
     public int? Width { get; set; }
     public bool? Frozen { get; set; }
+    public bool? Hidden { get; set; }
 }
 
 internal class PersistedSortState
@@ -49,7 +50,7 @@ public partial class NxGrid<T>
         {
             var id = GetColumnId(column);
             if (id == null) continue;
-            state.Columns.Add(new PersistedColumnState { Id = id, Width = column.UserWidth, Frozen = column.UserFrozen });
+            state.Columns.Add(new PersistedColumnState { Id = id, Width = column.UserWidth, Frozen = column.UserFrozen, Hidden = column.UserHidden });
         }
 
         var sortCol = columns.FirstOrDefault(c => c.SortState != 0);
@@ -89,6 +90,7 @@ public partial class NxGrid<T>
             if (column == null) continue;
             if (savedCol.Width != null) column.UserWidth = savedCol.Width;
             if (savedCol.Frozen != null) column.UserFrozen = savedCol.Frozen;
+            if (savedCol.Hidden != null) column.UserHidden = savedCol.Hidden;
         }
         ComputeFrozenOffsets();
 
@@ -131,6 +133,7 @@ public partial class NxGrid<T>
         {
             column.UserWidth = null;
             column.UserFrozen = null;
+            column.UserHidden = null;
             column.SortState = 0;
             column.FilterState = [];
         }

@@ -15,45 +15,55 @@
     <h2>Text Editing and Combo-Box</h2>
     <p class="doc-note">First, Last, Age, and Department are all editable. Department uses a combo-box dropdown — type to filter, then press <kbd class="doc-kbd">↓</kbd> or click to select.</p>
     <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
-        <NxGridColumn T="Person" Title="Id"
-                      Property="@(x => x.Id)" Width="50" MaxWidth="50" Editable="false" />
-        <NxGridColumn T="Person" Title="First Name"
-                      Property="@(x => x.FirstName)" Width="140" />
-        <NxGridColumn T="Person" Title="Last Name"
-                      Property="@(x => x.LastName)" Width="140" />
-        <NxGridColumn T="Person" Title="Age"
-                      Property="@(x => x.Age)"
+        <NxGridColumn Property="@(x => x.Id)" Width="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"
                       Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Title="Department"
-                      Property="@(x => x.Department)"
-                      ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing", "Sales"])" />
+        <NxGridColumn Property="@(x => x.Department)"
+                      ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@basicEditCode</pre>
 </div>
 
 <div class="doc-section">
-    <h2>EditableGetter — Per-Row Editability</h2>
-    <p class="doc-note">Finance rows are locked. Cells still render normally but cannot be edited — pressing <kbd class="doc-kbd">F2</kbd> or typing does nothing for those rows.</p>
-    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
-        <NxGridColumn T="Person" Title="Id"
-                      Property="@(x => x.Id)" Width="50" MaxWidth="50" />
-        <NxGridColumn T="Person" Title="First Name"
-                      Property="@(x => x.FirstName)"
-                      Editable="true"
-                      EditableGetter="@(x => x.Department != "Finance")"
-                      Width="140" />
-        <NxGridColumn T="Person" Title="Last Name"
-                      Property="@(x => x.LastName)"
-                      Editable="true"
-                      EditableGetter="@(x => x.Department != "Finance")"
-                      Width="140" />
-        <NxGridColumn T="Person" Title="Department"
-                      Property="@(x => x.Department)" Width="140" />
-        <NxGridColumn T="Person" Title="Editable?"
+    <h2>Ctrl+Enter — Fill Selection</h2>
+    <p class="doc-note">
+        Select a range of cells, start editing (type a character, <kbd class="doc-kbd">F2</kbd>, or double-click),
+        then press <kbd class="doc-kbd">Ctrl+Enter</kbd> to write the current value to every editable
+        cell in the selection. Non-editable columns and cells blocked by <code>CellEditableGetter</code> are skipped.
+        A single <code>OnUpdate</code> is fired with all affected rows — just like a paste.
+    </p>
+    <p class="doc-note" style="margin-top:4px">Try: select several rows in the Department column (Shift+Click or Shift+Arrow), type a department name, then press <kbd class="doc-kbd">Ctrl+Enter</kbd>.</p>
+    <NxGrid T="Person" Data="@fillPeople" OnUpdate="@HandleFillUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)" Width="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)" Width="140" />
+        <NxGridColumn Property="@(x => x.Department)"
+                      ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@ctrlEnterFillCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>CellEditableGetter — Per-Cell Editability</h2>
+    <p class="doc-note">Finance rows are locked. Cells still render normally but cannot be edited — pressing <kbd class="doc-kbd">F2</kbd> or typing fires <code>OnEditBlocked</code> and shows a message below.</p>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;">Edit blocked: <strong>@cellEditBlockedLog</strong></span>
+    </div>
+    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true"
+            Editable="true"
+            CellEditableGetter="@((row, col) => row.Department != "Finance")"
+            OnEditBlocked="@OnEditBlocked">
+        <NxGridColumn Property="@(x => x.Id)" Width="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Title="Editable?"
                       Display="@(x => x.Department == "Finance" ? "Locked" : "Yes")"
                       Width="90" Alignment="NxGridColumnAlignment.Center" />
     </NxGrid>
-    <pre class="doc-code" style="margin-top:12px">@editableGetterCode</pre>
+    <pre class="doc-code" style="margin-top:12px">@cellEditableGetterCode</pre>
 </div>
 
 <div class="doc-section">
@@ -64,10 +74,10 @@
     </div>
     <NxGrid T="Person" Data="@editPeople" Cursor="@NxGridCursor.Pointer"
             OnCellDoubleClicked="@OnCellDoubleClicked">
-        <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"         Width="50" MaxWidth="50" />
-        <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)"  Width="140" />
-        <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"   Width="140" />
-        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
+        <NxGridColumn Property="@(x => x.Id)"         Width="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@doubleClickCode</pre>
 </div>
@@ -83,14 +93,24 @@
                 <td>Marks the column as editable. When not set on a column, falls back to the grid-level <code>Editable</code>. Requires <code>OnUpdate</code> on the grid to take effect.</td>
             </tr>
             <tr>
-                <td>EditableGetter</td>
-                <td>Func&lt;T, bool&gt;</td>
-                <td>Per-row guard — editing is blocked for rows where this returns false.</td>
+                <td>CellEditableGetter</td>
+                <td>Func&lt;T, NxGridColumn&lt;T&gt;, bool&gt;</td>
+                <td>Grid-level per-cell guard — editing is blocked when this returns false. Fires <code>OnEditBlocked</code> on direct edit attempts; bulk operations (paste, delete, Ctrl+Enter) silently skip blocked cells.</td>
             </tr>
             <tr>
-                <td>ComboBoxOptions</td>
-                <td>Func&lt;IEnumerable&lt;string?&gt;&gt;</td>
-                <td>Turns the inline editor into a dropdown. Called fresh on each open, so the list can be dynamic.</td>
+                <td>OnEditing</td>
+                <td>EventCallback&lt;NxGridEditingArgs&lt;T&gt;&gt;</td>
+                <td>Fires just before a cell enters edit mode (after all editability checks pass). Set <code>args.Cancel = true</code> to prevent the editor from opening.</td>
+            </tr>
+            <tr>
+                <td>OnEditBlocked</td>
+                <td>EventCallback&lt;NxGridEditBlockedArgs&lt;T&gt;&gt;</td>
+                <td>Fires when a user directly tries to edit a cell blocked by <code>CellEditableGetter</code>. Provides the row and column that were blocked.</td>
+            </tr>
+            <tr>
+                <td>ComboBoxItems</td>
+                <td>Func&lt;IEnumerable&lt;NxGridComboItem&gt;&gt;</td>
+                <td>Turns the inline editor into a dropdown. Called fresh on each open. Use <code>NxGridComboItem.From(source, value, display)</code> to project any typed collection.</td>
             </tr>
             <tr>
                 <td>Nullable</td>
@@ -108,24 +128,39 @@
 
 @code {
     List<Person> editPeople = SampleData.GetPeopleCopy();
+    List<Person> fillPeople = SampleData.GetPeopleCopy();
     string doubleClickLog = "none";
+    string cellEditBlockedLog = "none";
 
-    Task OnCellDoubleClicked(Person row, NxGridColumn<Person> col)
+    void OnCellDoubleClicked(NxGridCellDoubleClickedArgs<Person> args)
     {
-        doubleClickLog = $"{row.FirstName} {row.LastName} — {col.Title}";
-        return Task.CompletedTask;
+        doubleClickLog = $"{args.Row.FirstName} {args.Row.LastName} — {args.Column.EffectiveTitle}";
     }
 
-    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    void OnEditBlocked(NxGridEditBlockedArgs<Person> args)
     {
-        foreach (var rowArgs in rows)
+        cellEditBlockedLog = $"{args.Row.FirstName} {args.Row.LastName} — {args.Column.EffectiveTitle}";
+    }
+
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
             foreach (var change in rowArgs.Changes)
                 change.Apply(rowArgs.Row);
         await Task.CompletedTask;
     }
 
-    string basicEditCode      = DemoCodeSamples.BasicEdit;
-    string editableGetterCode = DemoCodeSamples.EditableGetter;
-    string doubleClickCode    = DemoCodeSamples.DoubleClick;
-    string transformCode      = DemoCodeSamples.TransformPasted;
+    async Task HandleFillUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    string basicEditCode            = DemoCodeSamples.BasicEdit;
+    string ctrlEnterFillCode        = DemoCodeSamples.CtrlEnterFill;
+    string cellEditableGetterCode   = DemoCodeSamples.CellEditableGetter;
+    string doubleClickCode          = DemoCodeSamples.DoubleClick;
+    string transformCode            = DemoCodeSamples.TransformPasted;
 }

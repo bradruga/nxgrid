@@ -13,9 +13,9 @@
     <h2>Alignment</h2>
     <p class="doc-note">Use <code>Alignment</code> to control text alignment within cells. Numeric columns typically use Right alignment.</p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
-        <NxGridColumn T="Person" Title="Name (Left)"    Property="@(x => x.FirstName)"  Width="180" Alignment="NxGridColumnAlignment.Left" />
-        <NxGridColumn T="Person" Title="Dept (Center)"  Property="@(x => x.Department)" Width="160" Alignment="NxGridColumnAlignment.Center" />
-        <NxGridColumn T="Person" Title="Age (Right)"    Property="@(x => x.Age)"        Width="130" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Name (Left)"    Property="@(x => x.FirstName)"  Width="180" Alignment="NxGridColumnAlignment.Left" />
+        <NxGridColumn Title="Dept (Center)"  Property="@(x => x.Department)" Width="160" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Title="Age (Right)"    Property="@(x => x.Age)"        Width="130" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@alignmentCode</pre>
 </div>
@@ -28,13 +28,13 @@
         The <code>Context</code> attribute names the row object variable.
     </p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell" RowHeight="32">
-        <NxGridColumn T="Person" Title="Name"       Display="@(x => x.FirstName + " " + x.LastName)" Width="180" />
-        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" Width="180">
+        <NxGridColumn Title="Name"       Display="@(x => x.FirstName + " " + x.LastName)" Width="180" />
+        <NxGridColumn Property="@(x => x.Department)" Width="180">
             <Template Context="p">
                 <span style="@GetDeptBadgeStyle(p)">@p.Department</span>
             </Template>
         </NxGridColumn>
-        <NxGridColumn T="Person" Title="Age" Property="@(x => x.Age)" Width="160" Alignment="NxGridColumnAlignment.Right">
+        <NxGridColumn Property="@(x => x.Age)" Width="160" Alignment="NxGridColumnAlignment.Right">
             <Template Context="p">
                 <div style="width:100%;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
                     <div style="height:6px;background:#0078d4;border-radius:3px;width:@Math.Clamp(p.Age * 2, 4, 120)px;flex-shrink:0;"></div>
@@ -54,11 +54,11 @@
         display value is a formatted string.
     </p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
-        <NxGridColumn T="Person" Title="Name"            Display="@(x => x.FirstName + " " + x.LastName)" Width="180" />
-        <NxGridColumn T="Person" Title="Age — try sorting!"
+        <NxGridColumn Title="Name"            Display="@(x => x.FirstName + " " + x.LastName)" Width="180" />
+        <NxGridColumn Title="Age — try sorting!"
                       Property="@(x => x.Age)" Display="@(x => x.Age + " yrs")"
                       Width="240" />
-        <NxGridColumn T="Person" Title="Department"      Property="@(x => x.Department)" />
+        <NxGridColumn Property="@(x => x.Department)" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@valueGetterCode</pre>
 </div>
@@ -67,9 +67,9 @@
     <h2>Width, MinWidth, MaxWidth</h2>
     <p class="doc-note">Drag any column resize grip to see the constraints in action. The Id column is fixed at 50px; the Name column can grow freely.</p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
-        <NxGridColumn T="Person" Title="Id (fixed 50px)" Property="@(x => x.Id)"         Width="50"  MinWidth="50"  MaxWidth="50" />
-        <NxGridColumn T="Person" Title="First (80–200)"  Property="@(x => x.FirstName)"  Width="120" MinWidth="80"  MaxWidth="200" />
-        <NxGridColumn T="Person" Title="Department (grows freely)" Property="@(x => x.Department)" Width="160" />
+        <NxGridColumn Title="Id (fixed 50px)" Property="@(x => x.Id)"         Width="50"  MinWidth="50"  MaxWidth="50" />
+        <NxGridColumn Title="First (80–200)"  Property="@(x => x.FirstName)"  Width="120" MinWidth="80"  MaxWidth="200" />
+        <NxGridColumn Title="Department (grows freely)" Property="@(x => x.Department)" Width="160" />
     </NxGrid>
     <table class="doc-table" style="margin-top:12px">
         <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>

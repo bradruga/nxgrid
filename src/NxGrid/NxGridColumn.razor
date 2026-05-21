@@ -2,6 +2,7 @@
 @using System.Linq.Expressions
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
+@implements IDisposable
 
 @code {
     // Cascading Parameters
@@ -12,7 +13,6 @@
     [Parameter] public Expression<Func<T, object?>>? Property { get; set; }
     [Parameter] public Func<T, object?>? Display { get; set; }
     [Parameter] public bool? Editable { get; set; }
-    [Parameter] public Func<T, bool>? EditableGetter { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public int Width { get; set; } = 100;
     [Parameter] public int? MinWidth { get; set; }
@@ -21,9 +21,24 @@
     [Parameter] public bool Nullable { get; set; }
     [Parameter] public RenderFragment<T>? Template { get; set; }
     [Parameter] public RenderFragment? HeaderTemplate { get; set; }
-    [Parameter] public Func<IEnumerable<string?>>? ComboBoxOptions { get; set; }
+    /// <summary>
+    /// Turns the column into a combo-box editor. The function is called fresh on each open.
+    /// Use <see cref="NxGridComboItem.From{TItem}"/> to project any typed collection without
+    /// constructing <see cref="NxGridComboItem"/> objects manually:
+    /// <code>ComboBoxItems="@(() => NxGridComboItem.From(accounts, a => a.Id, a => a.Name))"</code>
+    /// </summary>
+    [Parameter] public Func<IEnumerable<NxGridComboItem>>? ComboBoxItems { get; set; }
+    /// <summary>
+    /// Custom markup for each dropdown item. When set, replaces the plain Display string in the list.
+    /// </summary>
+    [Parameter] public RenderFragment<NxGridComboItem>? ComboBoxItemTemplate { get; set; }
+    [Parameter] public bool CheckBox { get; set; }
     [Parameter] public bool Frozen { get; set; }
     [Parameter] public bool Freezable { get; set; } = true;
+    [Parameter] public bool Hidden { get; set; }
+    [Parameter] public bool Hideable { get; set; } = true;
+    [Parameter] public string? HeaderTooltip { get; set; }
+    [Parameter] public RenderFragment? HeaderTooltipTemplate { get; set; }
 
     // Public Properties
     public string HeaderCellStyle { get; private set; } = "";
@@ -33,9 +48,14 @@
     public int? UserWidth { get; set; }
     public bool? UserFrozen { get; set; }
     public bool IsFrozen => UserFrozen ?? Frozen;
+    public bool? UserHidden { get; set; }
+    public bool IsHidden => UserHidden ?? Hidden;
     public int? StickyLeft { get; set; }
     public int? StickyRight { get; set; }
     public bool IsLastFrozen { get; set; }
+
+    public bool IsComboColumn => ComboBoxItems != null;
+    public bool IsCheckboxColumn => CheckBox;
 
     // Effective getters: explicit parameters take priority, then compiled Property getter
     public Func<T, object?>? EffectiveGetter => Display ?? _compiledPropertyGetter;
@@ -101,11 +121,19 @@
         _inferredName = SplitPascalCase(member.Member.Name);
         _displayName = member.Member.GetCustomAttribute<DisplayAttribute>()?.GetName();
 
-        var rowParam = Property.Parameters[0];
-        var valueParam = Expression.Parameter(typeof(object), "value");
-        var assignment = Expression.Assign(member, Expression.Convert(valueParam, _propertyType));
-        _compiledPropertySetter = Expression.Lambda<Action<T, object?>>(
-            assignment, rowParam, valueParam).Compile();
+        var canWrite = member.Member is PropertyInfo pi ? pi.CanWrite : member.Member is FieldInfo;
+        if (canWrite)
+        {
+            var rowParam = Property.Parameters[0];
+            var valueParam = Expression.Parameter(typeof(object), "value");
+            var assignment = Expression.Assign(member, Expression.Convert(valueParam, _propertyType));
+            _compiledPropertySetter = Expression.Lambda<Action<T, object?>>(
+                assignment, rowParam, valueParam).Compile();
+        }
+        else
+        {
+            _compiledPropertySetter = null;
+        }
     }
 
     private static string SplitPascalCase(string name)
@@ -185,7 +213,8 @@
     private string BuildCellStyle()
     {
         var style = BuildWidthStyle();
-        if (Alignment == NxGridColumnAlignment.Center) style += "text-align:center;";
+        if (CheckBox) style += "justify-content:center;";
+        else if (Alignment == NxGridColumnAlignment.Center) style += "text-align:center;";
         else if (Alignment == NxGridColumnAlignment.Right) style += "text-align:right;";
         if (StickyLeft is int left)
         {
@@ -193,6 +222,13 @@
             style += $"position:sticky;left:{left}px;{right}z-index:1;background-color:inherit;";
         }
         return style;
+    }
+
+    public string? ResolveComboDisplay(T row)
+    {
+        if (ComboBoxItems == null) return null;
+        var rawValue = EffectiveValueGetter?.Invoke(row)?.ToString();
+        return ComboBoxItems().FirstOrDefault(i => i.Value == rawValue)?.Display ?? rawValue;
     }
 
     public List<T> FilterData(List<T> data)
@@ -213,5 +249,10 @@
         if (value is string s && string.IsNullOrWhiteSpace(s))
             return null;
         return value;
+    }
+
+    public void Dispose()
+    {
+        Parent?.RemoveColumn(this);
     }
 }

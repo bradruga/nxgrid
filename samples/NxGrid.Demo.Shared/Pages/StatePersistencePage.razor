@@ -26,11 +26,11 @@
             Style="height:400px"
             Cursor="@NxGridCursor.Cell"
             ShowRowNumbers="true">
-        <NxGridColumn T="Person" Id="id"    Title="Id"          Property="@(x => x.Id)"         Width="55"  MaxWidth="55" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Id="first" Title="First Name"  Property="@(x => x.FirstName)"  Width="140" />
-        <NxGridColumn T="Person" Id="last"  Title="Last Name"   Property="@(x => x.LastName)"   Width="140" />
-        <NxGridColumn T="Person" Id="age"   Title="Age"         Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Id="dept"  Title="Department"  Property="@(x => x.Department)" />
+        <NxGridColumn Id="id"    Property="@(x => x.Id)"         Width="55"  MaxWidth="55" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Id="first" Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Id="last"  Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Id="age"   Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Id="dept"  Property="@(x => x.Department)" />
     </NxGrid>
 
     @if (savedJson != null)

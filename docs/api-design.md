@@ -10,9 +10,9 @@ This document is the authoritative reference for NxGrid's public surface. It dri
 @using NxGrid
 
 <NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged">
-    <NxGridColumn T="Person" Title="Name"       Property="@(x => x.Name)"       Width="200" />
-    <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)"              />
-    <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"        Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Department)"              />
+    <NxGridColumn Property="@(x => x.Age)"        Alignment="NxGridColumnAlignment.Right" />
 </NxGrid>
 
 @code {
@@ -56,7 +56,14 @@ If writing that felt painful, the API is wrong. It doesn't.
 | Parameter | Type | Notes |
 |---|---|---|
 | `ChildContent` | `RenderFragment?` | Where `<NxGridColumn>` declarations go. |
-| `Overlays` | `RenderFragment?` | Rendered in an absolute-positioned, pointer-events-none layer above the grid. Useful for custom tooltips or highlights. |
+| `Overlays` | `RenderFragment?` | Rendered in an absolute-positioned, pointer-events-none layer above the grid. Useful for custom highlights. |
+
+### Tooltips
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `CellTooltip` | `Func<T, NxGridColumn<T>, Task<object?>>?` | Called after a 500 ms hover delay on body cells. Return any value (string, model, etc.) to show a tooltip, or `null` to suppress. |
+| `TooltipTemplate` | `RenderFragment<NxGridTooltipContext<T>>?` | Custom markup for body-cell tooltips. When set, `CellTooltip` still runs to load data and its result is available as `ctx.Data`. Return `null` from `CellTooltip` to suppress even when a template is set. |
 
 ### Events
 
@@ -64,8 +71,10 @@ If writing that felt painful, the API is wrong. It doesn't.
 |---|---|---|
 | `OnSelectionChanged` | `EventCallback<NxGridSelectionArgs<T>>` | Fires on every selection change (mouse, keyboard, programmatic). |
 | `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. |
-| `OnColumnResized` | `Action<int, int>?` | `(columnIndex, newWidthPx)` — fires when the user drags a resize grip. |
-| `OnCellDoubleClicked` | `Func<T, NxGridColumn<T>, Task>?` | Fires on double-click for columns that are not editable. |
+| `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip. `args.ColumnIndex` and `args.NewWidth` (px). |
+| `OnCellDoubleClicked` | `EventCallback<NxGridCellDoubleClickedArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |
+| `OnContextMenuShowing` | `Action<NxGridContextMenuArgs<T>>?` | Called synchronously just before the context menu opens. The handler receives the right-clicked `Row` and `Column`, and a mutable `Items` list. Append `NxGridContextMenuItem` entries to add custom items after the built-in Copy item. |
+| `OnContextMenuItemClicked` | `EventCallback<NxGridContextMenuItemArgs<T>>` | Fires when the user selects a custom context menu item. Receives the clicked `Item` plus the `Row` and `Column` that were right-clicked. |
 
 ### Styling
 
@@ -78,30 +87,35 @@ If writing that felt painful, the API is wrong. It doesn't.
 | Parameter | Type | Notes |
 |---|---|---|
 | `Editable` | `bool` | `false` | Default editability for all columns. Individual columns can override with their own `Editable` parameter. Has no effect without `OnUpdate`. |
+| `CellEditableGetter` | `Func<T, NxGridColumn<T>, bool>?` | Grid-level per-cell editability guard. When supplied, cells where this returns `false` cannot enter edit mode regardless of column-level `Editable`. Evaluated after column editability. Direct edit attempts (F2, typing, double-click) on a blocked cell fire `OnEditBlocked`; bulk operations (paste, delete, Ctrl+Enter) silently skip blocked cells. |
+| `OnEditing` | `EventCallback<NxGridEditingArgs<T>>` | Fires just before a cell enters edit mode (after all editability checks pass). Set `args.Cancel = true` to prevent the editor from opening. |
+| `OnEditBlocked` | `EventCallback<NxGridEditBlockedArgs<T>>` | Fires when a user directly tries to edit a cell blocked by `CellEditableGetter`. Receives `args.Row` and `args.Column`. Does **not** fire for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells. |
 | `TransformPastedValue` | `Func<string, int, int, string>?` | `(rawValue, rowDelta, colDelta)` — lets the host rewrite pasted text before it is committed (e.g. formula adjustment). |
-| `OnUpdate` | `Func<IReadOnlyList<NxGridRowSaveArgs<T>>, Task>?` | Fires after any edit — single-cell commit, paste, or delete. Receives one `NxGridRowSaveArgs<T>` per affected row, each with the full list of cell changes. The host is responsible for applying changes to the model and persisting them. Required for editing to be enabled. |
+| `OnUpdate` | `EventCallback<NxGridUpdateArgs<T>>` | Fires after any edit — single-cell commit, paste, or delete. `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with the full list of cell changes. The host is responsible for applying changes to the model and persisting them. Required for editing to be enabled. |
 
 ### Public methods
 
 ```csharp
-void  ForceRerender()        // force a re-render after external data mutation
-Task  ScrollToEnd()          // scroll to the last row
-Task  SelectRow(T row)       // programmatically select a row and scroll it into view
-Task  ClearSavedState()      // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
+void  ForceRerender()                              // force a re-render after external data mutation
+Task  ScrollToEnd()                                // scroll to the last row
+Task  SelectRow(T row)                             // programmatically select a row and scroll it into view
+Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
+void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title
 ```
 
 ---
 
 ## `NxGridColumn<T>` parameters
 
+Columns self-register with their parent grid on initialization and deregister on disposal. This means columns inside `@if` blocks or `@foreach` loops are fully supported — adding or removing a column at runtime takes effect immediately without any explicit grid refresh.
+
 ### Data binding
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `Property` | `Expression<Func<T, object?>>?` | Captures a member expression (e.g. `x => x.Age`). Used for display, sort/filter, and as the target for `change.Apply(row)`. When set, compiles a typed setter so `Apply` writes the correctly-parsed value back to the model. Read-only when the expression is not a simple member access. |
+| `Property` | `Expression<Func<T, object?>>?` | Captures a member expression (e.g. `x => x.Age`). Used for display, sort/filter, and as the target for `change.Apply(row)`. When the member has a setter, `Apply` writes the correctly-parsed value back to the model. Get-only properties and read-only computed expressions are fully supported for display, sort, and filter — they are simply not editable (the column behaves as read-only regardless of the `Editable` setting). |
 | `Display` | `Func<T, object?>?` | Display value override. Takes priority over `Property` for rendering. Use when you need formatted output (e.g. `x => x.Age + " yrs"`). `Property` is still used for sort/filter when `Display` is set. |
 | `Editable` | `bool?` | Makes the column editable. When not set, falls back to the grid-level `Editable`. Requires `OnUpdate` on the grid. |
-| `EditableGetter` | `Func<T, bool>?` | Per-row editability guard. Editing is blocked for rows where this returns `false`. |
 
 ### Identity
 
@@ -120,15 +134,21 @@ Task  ClearSavedState()      // remove the localStorage entry for StateKey and r
 | `Alignment` | `NxGridColumnAlignment` | `Left` | `Left`, `Center`, or `Right`. |
 | `Frozen` | `bool` | `false` | Pins the column to the left of the scroll area using `position: sticky`. Multiple frozen columns stack left-to-right in declaration order; all frozen columns appear before unfrozen ones regardless of original declaration order. Freezing a column at runtime (via the column menu) clears the active selection. |
 | `Freezable` | `bool` | `true` | When `true`, the column menu shows a "Freeze column / Unfreeze column" toggle. Set to `false` to prevent the user from changing the frozen state. The user-toggled state is included in `StateKey` persistence. |
-| `Template` | `RenderFragment<T>?` | — | Custom cell renderer. The cell container (padding, selection highlight) is still rendered by the grid; the template fills the inner content. |
+| `Hidden` | `bool` | `false` | Excludes the column from rendering. A hidden column still participates in sort and filter if it has a `Property` or `Display`, but it is never rendered and cannot be selected. Useful for including a field in sort/filter without showing it in the grid. |
+| `Hideable` | `bool` | `true` | When `true`, the column menu shows a "Hide column" entry. A "Manage columns…" entry also appears (when at least one column is hideable) to let the user show hidden columns. Set to `false` to prevent the user from hiding a column. The user-toggled state is included in `StateKey` persistence. |
+| `Template` | `RenderFragment<T>?` | — | Custom cell renderer. The cell container (padding, selection highlight) is still rendered by the grid; the template fills the inner content. When both `Template` and `CheckBox` are set, `Template` takes priority. |
+| `CheckBox` | `bool` | `false` | Renders every body cell as a checkbox. `Property` must resolve to `bool` or `bool?`. When the column is not editable, the checkbox is disabled (read-only visual). When editable, clicking the checkbox or pressing Space on the focused cell toggles the value immediately and fires `OnUpdate` — no F2 or double-click required. All editability guards (`CellEditableGetter`, `OnEditing`) apply; a blocked cell renders with reduced opacity and fires `OnEditBlocked` on click. Delete has no effect on `bool` columns; for `bool?` it clears to `null`. |
 | `HeaderTemplate` | `RenderFragment?` | — | Custom markup rendered inside the column header cell instead of `Title`. Sort/filter icons and the menu button still appear. The resolved title (see `Title` fallback rules above) is still used as the `aria-label` and column menu label; state-persistence uses explicit `Title` only. Interactive elements inside the template (e.g. a checkbox) should include `@onmousedown:stopPropagation` (prevents column-range selection) and `@onclick:stopPropagation` (prevents opening the column menu). |
+| `HeaderTooltip` | `string?` | — | Static tooltip text shown immediately when hovering the column header. |
+| `HeaderTooltipTemplate` | `RenderFragment?` | — | Custom tooltip markup for the column header. Takes priority over `HeaderTooltip`. |
 
 ### Editing
 
 | Parameter | Type | Notes |
 |---|---|---|
 | `Nullable` | `bool` | When `true`, Delete clears the cell to `null` rather than `0`/`""`. |
-| `ComboBoxOptions` | `Func<IEnumerable<string?>>?` | Turns the inline editor into a combo box. The function is called fresh on each open, so the list can be dynamic. |
+| `ComboBoxItems` | `Func<IEnumerable<NxGridComboItem>>?` | Turns the inline editor into a combo box. The function is called fresh on each open. The selected item's `Value` is committed via `Property`; `Display` is shown in the dropdown and in the non-editing cell. Use `NxGridComboItem.From(source, value, display)` to project any typed collection into combo items. |
+| `ComboBoxItemTemplate` | `RenderFragment<NxGridComboItem>?` | Custom markup for each dropdown item. When set, replaces the plain `Display` string in the dropdown list. |
 
 ---
 
@@ -178,9 +198,11 @@ var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
 | Page Up / Down | Move by page height |
 | Tab / Shift+Tab | Move right/left, wrapping rows |
 | Enter / Shift+Enter | Move down/up |
+| Ctrl/⌘+Enter | While editing: apply the current value to every editable cell in the selection |
 | F2 | Edit cell in-place (shows existing value) |
 | Printable char | Start editing, replacing value |
 | Escape | Cancel edit |
+| Ctrl/⌘+A | Select all cells |
 | Ctrl/⌘+C | Copy selection as TSV |
 | Ctrl/⌘+V | Paste TSV at selection origin |
 | Delete | Clear selected cells |
@@ -194,9 +216,9 @@ A column is editable when `Editable` is set (column-level or via the grid-level 
 Set `Editable="true"` on the grid (all columns editable) or on individual columns (column-level override), and subscribe to `OnUpdate`. The grid enters edit mode on F2, double-click, or any printable keystroke. `OnUpdate` fires once per operation — single-cell commit, paste, or delete — with all affected rows grouped by row. The host applies changes to the model and persists them.
 
 ```csharp
-async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+async Task HandleUpdate(NxGridUpdateArgs<Person> args)
 {
-    foreach (var rowArgs in rows)
+    foreach (var rowArgs in args.Rows)
     {
         foreach (var change in rowArgs.Changes)
             change.Apply(rowArgs.Row);  // writes typed NewValue back via Property setter; no-op without Property
@@ -205,14 +227,21 @@ async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
 }
 ```
 
-Combo-box editing activates when `ComboBoxOptions` is set. The dropdown filters as the user types and can be navigated with Arrow keys.
+**Fill selection with Ctrl+Enter.** While editing a cell, press Ctrl+Enter to write the current value to every editable cell in the selection — across all rows and columns in the range. Non-editable columns and cells blocked by `CellEditableGetter` are silently skipped. A single `OnUpdate` call is fired with all affected rows, identical to paste behavior.
+
+Combo-box editing activates when `ComboBoxItems` is set. The dropdown filters as the user types (against `Display`) and can be navigated with Arrow keys. The non-editing cell shows the `Display` of the item whose `Value` matches the stored property value; if no match is found the raw stored value is shown as a fallback.
 
 ---
 
-## `NxGridRowSaveArgs<T>` / `NxGridCellChange<T>`
+## `NxGridUpdateArgs<T>` / `NxGridRowChange<T>` / `NxGridCellChange<T>`
 
 ```csharp
-public sealed class NxGridRowSaveArgs<T>
+public sealed class NxGridUpdateArgs<T>
+{
+    public IReadOnlyList<NxGridRowChange<T>> Rows { get; init; }
+}
+
+public sealed class NxGridRowChange<T>
 {
     public T Row { get; init; }
     public IReadOnlyList<NxGridCellChange<T>> Changes { get; init; }
@@ -223,7 +252,91 @@ public sealed class NxGridCellChange<T>
     public NxGridColumn<T> Column { get; init; }
     public object? OldValue { get; init; }   // value from Property / Display before the edit
     public object? NewValue { get; init; }   // typed value when Property is set; raw string otherwise
-    public void Apply(T row);               // writes NewValue back to the row via the Property setter; no-op when Property is not set
+    public void Apply(T row);               // writes NewValue back to the row via the Property setter; no-op when Property is not set or is get-only
+}
+```
+
+---
+
+## `NxGridComboItem`
+
+```csharp
+public sealed class NxGridComboItem
+{
+    public string? Value   { get; init; }   // written to Property on selection
+    public string? Display { get; init; }   // shown in the dropdown and in the non-editing cell
+
+    // Project any typed collection into combo items — Value and Display stay as strings internally
+    public static IEnumerable<NxGridComboItem> From<TItem>(
+        IEnumerable<TItem> source,
+        Func<TItem, string?> value,
+        Func<TItem, string?> display);
+}
+```
+
+---
+
+## `NxGridTooltipContext<T>`
+
+```csharp
+public sealed class NxGridTooltipContext<T>
+{
+    public T Row { get; init; }
+    public NxGridColumn<T> Column { get; init; }
+    public object? Data { get; init; }   // whatever CellTooltip returned
+}
+```
+
+---
+
+## Event args types
+
+```csharp
+public sealed class NxGridEditingArgs<T>
+{
+    public T Row { get; init; }
+    public NxGridColumn<T> Column { get; init; }
+    public bool Cancel { get; set; }  // set to true to prevent the editor from opening
+}
+
+public sealed class NxGridEditBlockedArgs<T>
+{
+    public T Row { get; init; }
+    public NxGridColumn<T> Column { get; init; }
+}
+
+public sealed class NxGridCellDoubleClickedArgs<T>
+{
+    public T Row { get; init; }
+    public NxGridColumn<T> Column { get; init; }
+}
+
+public sealed class NxGridColumnResizedArgs
+{
+    public int ColumnIndex { get; init; }
+    public int NewWidth { get; init; }
+}
+
+public sealed class NxGridContextMenuArgs<T>
+{
+    public T Row { get; init; }
+    public NxGridColumn<T> Column { get; init; }
+    public List<NxGridContextMenuItem> Items { get; init; }  // append custom items here
+}
+
+public sealed class NxGridContextMenuItem
+{
+    public string Id { get; init; }       // returned in OnContextMenuItemClicked
+    public string Label { get; init; }    // text shown in the menu
+    public bool Disabled { get; init; }   // renders the item grayed out and non-clickable
+    public bool Separator { get; init; }  // renders a divider line above this item
+}
+
+public sealed class NxGridContextMenuItemArgs<T>
+{
+    public NxGridContextMenuItem Item { get; init; }
+    public T Row { get; init; }
+    public NxGridColumn<T> Column { get; init; }
 }
 ```
 
@@ -270,3 +383,10 @@ Things that cannot be changed through CSS variables (require a CSS override targ
 - **Column reordering** — drag-to-reorder columns not yet implemented.
 - **Row grouping / aggregates** — not planned for v1.
 - **`@bind-SelectedItems`** — convenience two-way binding shorthand for the common single-row selection case. Currently requires `OnSelectionChanged` handler.
+
+### `NxGridColumn<T>` public properties (runtime state)
+
+| Property | Type | Notes |
+|---|---|---|
+| `UserHidden` | `bool?` | Set by the user at runtime via the column menu. `null` means the user has not overridden the declared `Hidden` value. Read `IsHidden` to get the effective visibility state. |
+| `IsHidden` | `bool` | `UserHidden ?? Hidden` — the effective hidden state. Hidden columns are excluded from all rendering, selection, and index-based operations. |

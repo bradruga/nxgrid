@@ -10,10 +10,12 @@ public partial class NxGrid<T>
     {
         const int gutterWidth = 32;
 
+        visibleColumns = columns.Where(c => !c.IsHidden).ToList();
+
         // Left-to-right pass: left offsets accumulate from the gutter outward.
         var leftAccum = gutterWidth;
         NxGridColumn<T>? lastFrozen = null;
-        foreach (var col in columns)
+        foreach (var col in visibleColumns)
         {
             col.IsLastFrozen = false;
             if (col.IsFrozen)
@@ -30,7 +32,7 @@ public partial class NxGrid<T>
 
         // Right-to-left pass: right offsets accumulate from the right edge inward.
         var rightAccum = 0;
-        foreach (var col in Enumerable.Reverse(columns))
+        foreach (var col in Enumerable.Reverse(visibleColumns))
         {
             if (col.IsFrozen)
             {

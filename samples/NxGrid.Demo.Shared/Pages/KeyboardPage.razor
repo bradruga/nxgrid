@@ -21,11 +21,11 @@
             ShowRowNumbers="true"
             Cursor="@NxGridCursor.Cell"
             Editable="true">
-        <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"        Width="50"  MaxWidth="50" Editable="false" />
-        <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)" Width="130" />
-        <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"  Width="130" />
-        <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"       Width="70"  Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" ComboBoxOptions="@(() => ["Engineering", "Finance", "HR", "Marketing"])" />
+        <NxGridColumn Property="@(x => x.Id)"        Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"       Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
     </NxGrid>
     <div class="doc-output">@selectionLog</div>
 </div>
@@ -55,9 +55,11 @@
             <tr><td><kbd class="doc-kbd">Page Up</kbd> / <kbd class="doc-kbd">Page Down</kbd></td><td>Move by one page height</td></tr>
             <tr><td><kbd class="doc-kbd">Tab</kbd> / <kbd class="doc-kbd">Shift+Tab</kbd></td><td>Move right / left, wrapping to the next/previous row</td></tr>
             <tr><td><kbd class="doc-kbd">Enter</kbd> / <kbd class="doc-kbd">Shift+Enter</kbd></td><td>Move down / up one row</td></tr>
+            <tr><td><kbd class="doc-kbd">Ctrl+Enter</kbd> / <kbd class="doc-kbd">⌘+Enter</kbd></td><td>While editing: apply the current value to every editable cell in the selection</td></tr>
             <tr><td><kbd class="doc-kbd">F2</kbd></td><td>Open edit mode (shows the existing value)</td></tr>
             <tr><td>Printable character</td><td>Open edit mode, replacing the current value</td></tr>
             <tr><td><kbd class="doc-kbd">Escape</kbd></td><td>Cancel the current edit and restore the original value</td></tr>
+            <tr><td><kbd class="doc-kbd">Ctrl+A</kbd> / <kbd class="doc-kbd">⌘+A</kbd></td><td>Select all cells</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+C</kbd> / <kbd class="doc-kbd">⌘+C</kbd></td><td>Copy the selection as TSV to the clipboard</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+V</kbd> / <kbd class="doc-kbd">⌘+V</kbd></td><td>Paste TSV from the clipboard at the selection origin</td></tr>
             <tr><td><kbd class="doc-kbd">Delete</kbd></td><td>Clear selected cells (sets to "" or null if <code>Nullable=true</code>)</td></tr>
@@ -70,9 +72,9 @@
     string keyLog = "none";
     string selectionLog = "Click the grid and use keyboard shortcuts…";
 
-    async Task HandleUpdate(IReadOnlyList<NxGridRowSaveArgs<Person>> rows)
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
     {
-        foreach (var rowArgs in rows)
+        foreach (var rowArgs in args.Rows)
             foreach (var change in rowArgs.Changes)
                 change.Apply(rowArgs.Row);
         await Task.CompletedTask;

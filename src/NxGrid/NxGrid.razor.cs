@@ -27,13 +27,20 @@ public partial class NxGrid<T>
     [Parameter] public Func<T, NxGridColumn<T>, string?>? CellStyle { get; set; }
     [Parameter] public bool ShowRowNumbers { get; set; }
     [Parameter] public bool RowBanding { get; set; } = true;
-    [Parameter] public Action<int, int>? OnColumnResized { get; set; }
+    [Parameter] public EventCallback<NxGridColumnResizedArgs> OnColumnResized { get; set; }
     [Parameter] public bool HeaderClickSelects { get; set; }
     [Parameter] public bool HasColumnMenu { get; set; } = true;
     [Parameter] public Func<string, int, int, string>? TransformPastedValue { get; set; }
-    [Parameter] public Func<T, NxGridColumn<T>, Task>? OnCellDoubleClicked { get; set; }
-    [Parameter] public Func<IReadOnlyList<NxGridRowSaveArgs<T>>, Task>? OnUpdate { get; set; }
+    [Parameter] public EventCallback<NxGridCellDoubleClickedArgs<T>> OnCellDoubleClicked { get; set; }
+    [Parameter] public EventCallback<NxGridUpdateArgs<T>> OnUpdate { get; set; }
     [Parameter] public bool Editable { get; set; }
+    [Parameter] public Func<T, NxGridColumn<T>, bool>? CellEditableGetter { get; set; }
+    [Parameter] public EventCallback<NxGridEditingArgs<T>> OnEditing { get; set; }
+    [Parameter] public EventCallback<NxGridEditBlockedArgs<T>> OnEditBlocked { get; set; }
+    [Parameter] public Func<T, NxGridColumn<T>, Task<object?>>? CellTooltip { get; set; }
+    [Parameter] public RenderFragment<NxGridTooltipContext<T>>? TooltipTemplate { get; set; }
+    [Parameter] public Action<NxGridContextMenuArgs<T>>? OnContextMenuShowing { get; set; }
+    [Parameter] public EventCallback<NxGridContextMenuItemArgs<T>> OnContextMenuItemClicked { get; set; }
 
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
@@ -48,8 +55,13 @@ public partial class NxGrid<T>
     private List<T> filteredData = [];
     private List<int> rowIndices = [];
     private List<NxGridColumn<T>> columns = [];
+    private List<NxGridColumn<T>> visibleColumns = [];
     private int lastColumnCount;
     private string rowStyle = "";
+
+    private bool showColumnChooser;
+    private double chooserTop;
+    private double chooserLeft;
 
     private string id = Guid.NewGuid().ToString();
 
@@ -70,7 +82,8 @@ public partial class NxGrid<T>
     private bool isComboOpen;
     private bool comboNeedsPositioning;
     private int comboHighlightIndex = -1;
-    private List<string?> comboFilteredOptions = [];
+    private List<NxGridComboItem> comboAllItems = [];
+    private List<NxGridComboItem> comboFilteredOptions = [];
     private double comboDropdownTop;
     private double comboDropdownLeft;
     private double comboDropdownWidth;
@@ -96,7 +109,7 @@ public partial class NxGrid<T>
     {
         var rowIndex = filteredData.IndexOf(row);
         if (rowIndex < 0) return;
-        selectedRange = new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = columns.Count - 1 };
+        selectedRange = new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 };
         StateHasChanged();
         await RaiseSelectionChanged();
         await ScrollCellIntoView(rowIndex, 0);
@@ -112,6 +125,9 @@ public partial class NxGrid<T>
     private bool showContextMenu;
     private double contextMenuX;
     private double contextMenuY;
+    private T? contextMenuRow;
+    private NxGridColumn<T>? contextMenuColumn;
+    private List<NxGridContextMenuItem> contextMenuItems = [];
 
     protected override void OnParametersSet()
     {
@@ -132,6 +148,12 @@ public partial class NxGrid<T>
             columns.Add(column);
             ComputeFrozenOffsets();
         }
+    }
+
+    public void RemoveColumn(NxGridColumn<T> column)
+    {
+        if (columns.Remove(column))
+            ComputeFrozenOffsets();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -161,7 +183,7 @@ public partial class NxGrid<T>
         {
             menuNeedsPositioning = false;
             openingMenu = false;
-            var menuIndex = openColumn != null ? columns.IndexOf(openColumn) : -1;
+            var menuIndex = openColumn != null ? visibleColumns.IndexOf(openColumn) : -1;
             if (menuIndex >= 0)
             {
                 var pos = await jsInterop.PositionColumnMenu(menuIndex);
@@ -174,35 +196,38 @@ public partial class NxGrid<T>
 
     private string BuildRowStyle()
     {
-        var totalWidth = 32 + columns.Sum(c => c.MinWidth ?? c.Width);
+        var totalWidth = 32 + visibleColumns.Sum(c => c.MinWidth ?? c.Width);
         return $"height:{RowHeight}px;min-width:{totalWidth}px";
     }
 
-    private Task OnComboButtonClick(int row, int col)
+    private async Task OnComboButtonClick(int row, int col)
     {
         if (!isEditing || editRow != row || editCol != col)
-            StartEditing(row, col, initialChar: null);
+            await StartEditing(row, col, initialChar: null);
 
         isComboOpen = !isComboOpen;
 
         if (isComboOpen)
         {
             comboHighlightIndex = -1;
+            LoadAllComboItems();
             RefreshComboFilteredOptions(showAll: true);
             comboNeedsPositioning = true;
         }
 
         StateHasChanged();
-        return Task.CompletedTask;
+    }
+
+    private void LoadAllComboItems()
+    {
+        comboAllItems = visibleColumns[editCol].ComboBoxItems?.Invoke().ToList() ?? [];
     }
 
     private void RefreshComboFilteredOptions(bool showAll = false)
     {
-        var column = columns[editCol];
-        var all = column.ComboBoxOptions?.Invoke() ?? [];
         comboFilteredOptions = showAll || string.IsNullOrEmpty(editValue)
-            ? all.ToList()
-            : all.Where(o => o != null && o.Contains(editValue, StringComparison.OrdinalIgnoreCase)).ToList();
+            ? comboAllItems.ToList()
+            : comboAllItems.Where(i => i.Display != null && i.Display.Contains(editValue, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     private async Task PositionComboDropdown()

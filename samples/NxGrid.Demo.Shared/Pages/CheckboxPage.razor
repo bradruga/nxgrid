@@ -1,0 +1,148 @@
+@page "/checkbox"
+
+<PageTitle>Checkbox Columns — NxGrid</PageTitle>
+
+<h1>Checkbox Columns</h1>
+<p class="doc-intro">
+    Set <code>CheckBox="true"</code> on a column whose <code>Property</code> resolves to <code>bool</code>
+    or <code>bool?</code>. Clicking the checkbox — or pressing <kbd class="doc-kbd">Space</kbd> when the
+    cell is focused — toggles the value immediately and fires <code>OnUpdate</code>.
+    No <kbd class="doc-kbd">F2</kbd> or double-click required.
+</p>
+
+<div class="doc-section">
+    <h2>Editable Checkboxes</h2>
+    <p class="doc-note">
+        Complete, Urgent, and Billable are editable checkbox columns. Description is a normal
+        editable text column. Click any checkbox or navigate to it with arrow keys and press
+        <kbd class="doc-kbd">Space</kbd> to toggle.
+    </p>
+    <NxGrid T="WorkItem" Data="@editItems" OnUpdate="@HandleUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50"                        Editable="false" />
+        <NxGridColumn Property="@(x => x.Description)" Width="240" />
+        <NxGridColumn Property="@(x => x.IsComplete)"  Title="Complete" Width="90"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Property="@(x => x.IsUrgent)"    Title="Urgent"   Width="80"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Property="@(x => x.IsBillable)"  Title="Billable" Width="85"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Read-Only Checkboxes</h2>
+    <p class="doc-note">
+        Without <code>OnUpdate</code> (or with <code>Editable="false"</code>), checkboxes render
+        as disabled — they accurately reflect the data but cannot be interacted with.
+    </p>
+    <NxGrid T="WorkItem" Data="@readOnlyItems" ShowRowNumbers="true">
+        <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.Description)" Width="240" />
+        <NxGridColumn Property="@(x => x.IsComplete)"  Title="Complete" Width="90"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Property="@(x => x.IsUrgent)"    Title="Urgent"   Width="80"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Property="@(x => x.IsBillable)"  Title="Billable" Width="85"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@readOnlyCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>CellEditableGetter — Blocked Cells</h2>
+    <p class="doc-note">
+        Completed items are locked — Urgent and Billable render with reduced opacity and fire
+        <code>OnEditBlocked</code> when clicked. The Complete and Description columns remain
+        editable on all rows.
+    </p>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;">Edit blocked: <strong>@blockedLog</strong></span>
+    </div>
+    <NxGrid T="WorkItem" Data="@blockedItems" OnUpdate="@HandleBlockedUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true"
+            CellEditableGetter="@CanEdit"
+            OnEditBlocked="@OnEditBlocked">
+        <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50"                        Editable="false" />
+        <NxGridColumn Property="@(x => x.Description)" Width="240" />
+        <NxGridColumn Property="@(x => x.IsComplete)"  Title="Complete" Width="90"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Property="@(x => x.IsUrgent)"    Title="Urgent"   Width="80"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Property="@(x => x.IsBillable)"  Title="Billable" Width="85"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@blockedCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Parameters</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>CheckBox</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>
+                    Renders every body cell as a checkbox. <code>Property</code> must resolve to
+                    <code>bool</code> or <code>bool?</code>. When the column is not editable the
+                    checkbox is disabled. When editable, clicking or pressing
+                    <kbd class="doc-kbd">Space</kbd> toggles the value immediately and fires
+                    <code>OnUpdate</code>. All standard editability guards apply
+                    (<code>CellEditableGetter</code>, <code>OnEditing</code>,
+                    <code>OnEditBlocked</code>). When <code>Template</code> is also set,
+                    <code>Template</code> takes priority.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    class WorkItem
+    {
+        public int    Id          { get; set; }
+        public string Description { get; set; } = "";
+        public bool   IsComplete  { get; set; }
+        public bool   IsUrgent    { get; set; }
+        public bool   IsBillable  { get; set; }
+    }
+
+    static List<WorkItem> MakeItems() =>
+    [
+        new() { Id = 1, Description = "Design database schema",          IsComplete = true,  IsUrgent = false, IsBillable = true  },
+        new() { Id = 2, Description = "Write unit tests",                IsComplete = false, IsUrgent = true,  IsBillable = true  },
+        new() { Id = 3, Description = "Deploy to staging",               IsComplete = false, IsUrgent = true,  IsBillable = false },
+        new() { Id = 4, Description = "Update API documentation",        IsComplete = true,  IsUrgent = false, IsBillable = false },
+        new() { Id = 5, Description = "Review pull requests",            IsComplete = false, IsUrgent = false, IsBillable = true  },
+        new() { Id = 6, Description = "Fix login page layout bug",       IsComplete = true,  IsUrgent = true,  IsBillable = true  },
+        new() { Id = 7, Description = "Onboard new team member",         IsComplete = false, IsUrgent = false, IsBillable = false },
+        new() { Id = 8, Description = "Migrate legacy import scripts",   IsComplete = false, IsUrgent = true,  IsBillable = true  },
+    ];
+
+    List<WorkItem> editItems     = MakeItems();
+    List<WorkItem> readOnlyItems = MakeItems();
+    List<WorkItem> blockedItems  = MakeItems();
+    string blockedLog = "none";
+
+    bool CanEdit(WorkItem row, NxGridColumn<WorkItem> col) =>
+        !row.IsComplete || col.EffectiveTitle is "Complete" or "Description";
+
+    void OnEditBlocked(NxGridEditBlockedArgs<WorkItem> args)
+    {
+        blockedLog = $"\"{args.Row.Description}\" — {args.Column.EffectiveTitle} (row is complete)";
+    }
+
+    async Task HandleUpdate(NxGridUpdateArgs<WorkItem> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    async Task HandleBlockedUpdate(NxGridUpdateArgs<WorkItem> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    string basicCode    = DemoCodeSamples.CheckboxBasic;
+    string readOnlyCode = DemoCodeSamples.CheckboxReadOnly;
+    string blockedCode  = DemoCodeSamples.CheckboxBlocked;
+}

@@ -1,0 +1,147 @@
+@page "/context-menu"
+
+<PageTitle>Context Menu — NxGrid</PageTitle>
+
+<h1>Context Menu</h1>
+<p class="doc-intro">
+    Right-clicking any cell opens a context menu. The built-in <strong>Copy</strong> item is always first.
+    Use <code>OnContextMenuShowing</code> to append custom items, and <code>OnContextMenuItemClicked</code>
+    to handle them. The handler receives the right-clicked row and column along with the item that was selected.
+</p>
+
+<div class="doc-section">
+    <h2>Custom items</h2>
+    <p class="doc-note">
+        Right-click any cell. Two custom items — <em>View details</em> and <em>Copy full name</em> — appear
+        after Copy. <em>Copy full name</em> has a separator above it.
+    </p>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;">Last action: <strong>@basicLog</strong></span>
+    </div>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()"
+            OnContextMenuShowing="@BuildBasicMenu"
+            OnContextMenuItemClicked="@HandleBasicClick">
+        <NxGridColumn Property="@(x => x.Id)"         Width="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Dynamic items and disabled state</h2>
+    <p class="doc-note">
+        Items are tailored to the right-clicked row. Finance rows get an <em>Approve budget</em> item.
+        <em>Archive</em> is always present but disabled for Engineering rows.
+    </p>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;">Last action: <strong>@dynamicLog</strong></span>
+    </div>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()"
+            OnContextMenuShowing="@BuildDynamicMenu"
+            OnContextMenuItemClicked="@HandleDynamicClick">
+        <NxGridColumn Property="@(x => x.Id)"         Width="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" Width="160" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@dynamicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Parameters</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>OnContextMenuShowing</td>
+                <td>Action&lt;NxGridContextMenuArgs&lt;T&gt;&gt;?</td>
+                <td>Called synchronously just before the context menu opens. Append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code> to add custom items after the built-in Copy.</td>
+            </tr>
+            <tr>
+                <td>OnContextMenuItemClicked</td>
+                <td>EventCallback&lt;NxGridContextMenuItemArgs&lt;T&gt;&gt;</td>
+                <td>Fires when the user selects a custom item. Receives the clicked <code>Item</code> plus the <code>Row</code> and <code>Column</code> that were right-clicked.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 style="margin-top:20px">NxGridContextMenuItem properties</h3>
+    <table class="doc-table">
+        <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Id</td>
+                <td>string</td>
+                <td>Identifies which item was clicked. Returned in <code>OnContextMenuItemClicked</code> as <code>args.Item.Id</code>.</td>
+            </tr>
+            <tr>
+                <td>Label</td>
+                <td>string</td>
+                <td>Text displayed in the menu.</td>
+            </tr>
+            <tr>
+                <td>Separator</td>
+                <td>bool</td>
+                <td>When <code>true</code>, renders a divider line above this item.</td>
+            </tr>
+            <tr>
+                <td>Disabled</td>
+                <td>bool</td>
+                <td>When <code>true</code>, renders the item grayed out and non-clickable. Clicking it does nothing.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    string basicLog   = "none";
+    string dynamicLog = "none";
+
+    void BuildBasicMenu(NxGridContextMenuArgs<Person> args)
+    {
+        args.Items.Add(new NxGridContextMenuItem { Id = "view",      Label = "View details" });
+        args.Items.Add(new NxGridContextMenuItem { Id = "copy-name", Label = "Copy full name", Separator = true });
+    }
+
+    void HandleBasicClick(NxGridContextMenuItemArgs<Person> args)
+    {
+        basicLog = args.Item.Id switch
+        {
+            "view"      => $"View details — {args.Row.FirstName} {args.Row.LastName}",
+            "copy-name" => $"Copied \"{args.Row.FirstName} {args.Row.LastName}\"",
+            _           => args.Item.Id
+        };
+    }
+
+    void BuildDynamicMenu(NxGridContextMenuArgs<Person> args)
+    {
+        if (args.Row.Department == "Finance")
+        {
+            args.Items.Add(new NxGridContextMenuItem { Id = "approve", Label = "Approve budget" });
+        }
+
+        args.Items.Add(new NxGridContextMenuItem
+        {
+            Id        = "archive",
+            Label     = "Archive",
+            Separator = true,
+            Disabled  = args.Row.Department == "Engineering"
+        });
+    }
+
+    void HandleDynamicClick(NxGridContextMenuItemArgs<Person> args)
+    {
+        dynamicLog = args.Item.Id switch
+        {
+            "approve" => $"Approved budget for {args.Row.FirstName} {args.Row.LastName}",
+            "archive" => $"Archived {args.Row.FirstName} {args.Row.LastName}",
+            _         => args.Item.Id
+        };
+    }
+
+    string basicCode   = DemoCodeSamples.ContextMenuBasic;
+    string dynamicCode = DemoCodeSamples.ContextMenuDynamic;
+}

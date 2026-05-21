@@ -10,11 +10,12 @@ public partial class NxGrid<T>
 
     private async Task OnCellMouseDown(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
+        DismissTooltip();
         // Cancel if column menu is open
         if (openColumn != null) return;
 
         var rowIndex = filteredData.IndexOf(row);
-        var colIndex = columns.IndexOf(column);
+        var colIndex = visibleColumns.IndexOf(column);
 
         if (args.Button == MouseButtonRight)
         {
@@ -62,10 +63,15 @@ public partial class NxGrid<T>
     {
         leftMouseDown = (args.Buttons & MouseButtonsLeft) == MouseButtonsLeft;
 
+        if (!leftMouseDown)
+            StartCellTooltipTimer(args, row, column);
+        else
+            DismissTooltip();
+
         if (selectedRange != null && leftMouseDown)
         {
             var rowIndex = filteredData.IndexOf(row);
-            var colIndex = columns.IndexOf(column);
+            var colIndex = visibleColumns.IndexOf(column);
 
             selectedRange.EndRow = rowIndex;
             selectedRange.EndCol = colIndex;
@@ -95,7 +101,7 @@ public partial class NxGrid<T>
             var endCol = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
             for (var i = startCol; i <= endCol; i++)
             {
-                selectionRange.Columns.Add(columns[i]);
+                selectionRange.Columns.Add(visibleColumns[i]);
             }
 
             selectionRange.StartRow = startRow;
@@ -117,7 +123,7 @@ public partial class NxGrid<T>
 
     private void OnColumnButtonClick(NxGridColumn<T> column)
     {
-        var index = columns.IndexOf(column);
+        var index = visibleColumns.IndexOf(column);
         if (index == -1) return;
 
         menuNeedsPositioning = true;
@@ -133,7 +139,7 @@ public partial class NxGrid<T>
         if (!HeaderClickSelects || isResizing) return;
         if (args.Button != MouseButtonLeft) return;
 
-        var colIndex = columns.IndexOf(column);
+        var colIndex = visibleColumns.IndexOf(column);
         if (colIndex < 0) return;
 
         int startCol, endCol;
@@ -155,11 +161,12 @@ public partial class NxGrid<T>
 
     private async Task OnColumnHeaderMouseEnter(MouseEventArgs args, NxGridColumn<T> column)
     {
+        ShowHeaderTooltip(args, column);
         if (!HeaderClickSelects) return;
         if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) return;
         if (!headerAnchorCol.HasValue) return;
 
-        var colIndex = columns.IndexOf(column);
+        var colIndex = visibleColumns.IndexOf(column);
         if (colIndex < 0) return;
 
         selectedRange = new NxGridRange
@@ -188,7 +195,7 @@ public partial class NxGrid<T>
             headerAnchorRow = rowIndex;
         }
 
-        selectedRange = new NxGridRange { StartRow = startRow, StartCol = 0, EndRow = endRow, EndCol = columns.Count - 1 };
+        selectedRange = new NxGridRange { StartRow = startRow, StartCol = 0, EndRow = endRow, EndCol = visibleColumns.Count - 1 };
         StateHasChanged();
         await RaiseSelectionChanged();
     }
@@ -203,7 +210,7 @@ public partial class NxGrid<T>
             StartRow = Math.Min(headerAnchorRow.Value, rowIndex),
             StartCol = 0,
             EndRow   = Math.Max(headerAnchorRow.Value, rowIndex),
-            EndCol   = columns.Count - 1
+            EndCol   = visibleColumns.Count - 1
         };
         StateHasChanged();
         await RaiseSelectionChanged();
@@ -213,7 +220,7 @@ public partial class NxGrid<T>
     {
         if (!HeaderClickSelects) return;
         if (args.Button != MouseButtonLeft) return;
-        selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = columns.Count - 1 };
+        selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 };
         StateHasChanged();
         await RaiseSelectionChanged();
     }
@@ -238,7 +245,7 @@ public partial class NxGrid<T>
         if (args.Button != MouseButtonLeft) return; // Only respond to left mouse button
 
         isResizing = true;
-        var columnIndex = columns.IndexOf(column);
+        var columnIndex = visibleColumns.IndexOf(column);
         var newSize = await jsInterop!.ResizeColumn(columnIndex);
         isResizing = false;
 
@@ -248,8 +255,9 @@ public partial class NxGrid<T>
             var columnsToResize = GetEntireColumnSelection(columnIndex);
             foreach (var idx in columnsToResize)
             {
-                columns[idx].UserWidth = width;
-                OnColumnResized?.Invoke(idx, width);
+                visibleColumns[idx].UserWidth = width;
+                if (OnColumnResized.HasDelegate)
+                    await OnColumnResized.InvokeAsync(new NxGridColumnResizedArgs { ColumnIndex = idx, NewWidth = width });
             }
             ComputeFrozenOffsets();
             renderToken++;

@@ -1,0 +1,202 @@
+@page "/tooltips"
+
+<PageTitle>Tooltips — NxGrid</PageTitle>
+
+<h1>Tooltips</h1>
+<p class="doc-intro">
+    Tooltips appear after a 500 ms hover delay on both body cells and column headers.
+    <code>CellTooltip</code> is an async callback — it can return a plain string for simple cases
+    or any model for rich templates. No data is loaded until the user actually hovers.
+</p>
+
+<div class="doc-section">
+    <h2>String tooltip</h2>
+    <p class="doc-note">
+        Hover the First Name or Department cells. <code>CellTooltip</code> returns a plain
+        string — no template needed. Return <code>null</code> for cells where no tooltip applies.
+    </p>
+    <NxGrid T="Person" Data="@people" CellTooltip="@GetStringTooltip" Cursor="NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.Id)" Width="55" MaxWidth="55" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)" Width="130" />
+        <NxGridColumn Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" Width="70" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@stringCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Header tooltips</h2>
+    <p class="doc-note">
+        Hover the column headers. <code>HeaderTooltip</code> accepts a static string.
+        <code>HeaderTooltipTemplate</code> accepts arbitrary markup — useful for longer
+        descriptions or formatted hints.
+    </p>
+    <NxGrid T="Person" Data="@people" Cursor="NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.Id)" Width="55" MaxWidth="55"
+                      HeaderTooltip="Unique identifier assigned at onboarding" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="130"
+                      HeaderTooltip="Legal first name as recorded in HR" />
+        <NxGridColumn Property="@(x => x.LastName)" Width="130"
+                      HeaderTooltip="Legal last name as recorded in HR" />
+        <NxGridColumn Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" Width="70"
+                      HeaderTooltip="Age in years as of last birthday" />
+        <NxGridColumn Property="@(x => x.Department)">
+            <HeaderTooltipTemplate>
+                <div>
+                    <strong>Department</strong>
+                    <div style="margin-top:4px;font-weight:normal">
+                        Use the ▾ menu button to filter by department.
+                    </div>
+                </div>
+            </HeaderTooltipTemplate>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@headerCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Rich template with async-loaded data</h2>
+    <p class="doc-note">
+        Hover any highlighted cell to see simulated edit history. <code>CellTooltip</code>
+        loads the data on demand — nothing is fetched until hover. The returned model is passed to
+        <code>TooltipTemplate</code> as <code>ctx.Data</code>. Cells with no history return
+        <code>null</code> and show no tooltip.
+    </p>
+    <NxGrid T="Person" Data="@editPeople"
+            CellTooltip="@LoadHistory"
+            TooltipTemplate="@HistoryTooltip"
+            CellStyle="@HistoryCellStyle"
+            Cursor="NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)" Width="130" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <p class="doc-note" style="margin-top:8px">
+        Cells with a subtle highlight have history. Others return <code>null</code> and show nothing.
+    </p>
+    <pre class="doc-code" style="margin-top:12px">@richCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>API reference</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Parameter</th><th>On</th><th>Type</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>CellTooltip</code></td>
+                <td>Grid</td>
+                <td><code>Func&lt;T, NxGridColumn&lt;T&gt;, Task&lt;object?&gt;&gt;?</code></td>
+                <td>
+                    Called after a 600 ms hover delay. Return any value to show the tooltip, or
+                    <code>null</code> to suppress. When <code>TooltipTemplate</code> is not set,
+                    the value is rendered via <code>.ToString()</code>.
+                </td>
+            </tr>
+            <tr>
+                <td><code>TooltipTemplate</code></td>
+                <td>Grid</td>
+                <td><code>RenderFragment&lt;NxGridTooltipContext&lt;T&gt;&gt;?</code></td>
+                <td>
+                    Custom tooltip markup. <code>ctx.Row</code> is the hovered row,
+                    <code>ctx.Column</code> is the column, and <code>ctx.Data</code> is
+                    whatever <code>CellTooltip</code> returned.
+                </td>
+            </tr>
+            <tr>
+                <td><code>HeaderTooltip</code></td>
+                <td>Column</td>
+                <td><code>string?</code></td>
+                <td>Static text shown immediately when hovering the column header.</td>
+            </tr>
+            <tr>
+                <td><code>HeaderTooltipTemplate</code></td>
+                <td>Column</td>
+                <td><code>RenderFragment?</code></td>
+                <td>
+                    Custom markup for the column header tooltip. Takes priority over
+                    <code>HeaderTooltip</code> when both are set.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<Person> people = SampleData.GetPeopleCopy();
+    List<Person> editPeople = SampleData.GetPeopleCopy();
+
+    // ── String tooltip ────────────────────────────────────────────────────────
+
+    async Task<object?> GetStringTooltip(Person row, NxGridColumn<Person> col)
+    {
+        return col.EffectiveTitle switch
+        {
+            "First Name" => $"Employee #{row.Id}",
+            "Department" => _deptDescriptions.TryGetValue(row.Department, out var d) ? d : null,
+            _ => null
+        };
+    }
+
+    static readonly Dictionary<string, string> _deptDescriptions = new()
+    {
+        ["Engineering"] = "Builds and maintains product software",
+        ["Finance"]     = "Manages budgets, reporting, and forecasting",
+        ["HR"]          = "Handles hiring, benefits, and employee relations",
+        ["Marketing"]   = "Drives brand awareness and lead generation",
+        ["Sales"]       = "Manages client relationships and revenue",
+        ["Legal"]       = "Handles contracts, compliance, and risk",
+    };
+
+    // ── Rich tooltip with history ─────────────────────────────────────────────
+
+    record HistoryEntry(string User, string Date, string OldValue, string NewValue);
+
+    static readonly Dictionary<(int, string), List<HistoryEntry>> _history = new()
+    {
+        [(1, "First Name")]  = [new("admin",  "2024-01-15", "Alicia",      "Alice")],
+        [(2, "Department")]  = [new("hruser", "2024-03-08", "Engineering", "Marketing"),
+                                new("admin",  "2024-01-02", "Sales",       "Engineering")],
+        [(3, "Last Name")]   = [new("admin",  "2024-02-20", "William",     "Williams")],
+        [(4, "Department")]  = [new("hruser", "2023-12-01", "Marketing",   "Finance")],
+        [(5, "First Name")]  = [new("admin",  "2024-04-11", "Eva",         "Eve")],
+    };
+
+    async Task<object?> LoadHistory(Person row, NxGridColumn<Person> col)
+    {
+        await Task.Delay(150); // simulate a service call
+        var key = (row.Id, col.EffectiveTitle);
+        return _history.TryGetValue(key, out var entries) ? entries : null;
+    }
+
+    RenderFragment<NxGridTooltipContext<Person>> HistoryTooltip => ctx =>
+    @<div style="min-width:200px">
+        <div style="font-weight:600;margin-bottom:5px;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;opacity:0.6">
+            Edit history — @ctx.Column.EffectiveTitle
+        </div>
+        @foreach (var e in (List<HistoryEntry>)ctx.Data!)
+        {
+            <div style="font-size:12px;margin-bottom:4px;display:flex;gap:6px;align-items:baseline">
+                <span style="opacity:0.55;flex-shrink:0">@e.Date</span>
+                <span style="opacity:0.55;flex-shrink:0">@e.User</span>
+                <span style="text-decoration:line-through;opacity:0.45">@e.OldValue</span>
+                <span>→</span>
+                <span style="color:var(--nx-grid-accent)">@e.NewValue</span>
+            </div>
+        }
+    </div>;
+
+    string? HistoryCellStyle(Person row, NxGridColumn<Person> col)
+    {
+        var key = (row.Id, col.EffectiveTitle);
+        return _history.ContainsKey(key) ? "background-color:rgba(0,120,212,0.07);" : null;
+    }
+
+    // ── Code samples ──────────────────────────────────────────────────────────
+
+    string stringCode = DemoCodeSamples.TooltipString;
+    string headerCode = DemoCodeSamples.TooltipHeader;
+    string richCode   = DemoCodeSamples.TooltipRich;
+}

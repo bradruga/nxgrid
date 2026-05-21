@@ -8,7 +8,7 @@ public partial class NxGrid<T>
     private void OnCellContextMenu(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
         var rowIndex = filteredData.IndexOf(row);
-        var colIndex = columns.IndexOf(column);
+        var colIndex = visibleColumns.IndexOf(column);
         if (selectedRange == null)
         {
             selectedRange = new NxGridRange
@@ -18,10 +18,39 @@ public partial class NxGrid<T>
             };
         }
 
-        contextMenuX = args.ClientX;
-        contextMenuY = args.ClientY;
+        contextMenuRow    = row;
+        contextMenuColumn = column;
+        contextMenuX      = args.ClientX;
+        contextMenuY      = args.ClientY;
+
+        contextMenuItems = [];
+        if (OnContextMenuShowing != null)
+        {
+            var menuArgs = new NxGridContextMenuArgs<T>
+            {
+                Row    = row,
+                Column = column,
+                Items  = contextMenuItems
+            };
+            OnContextMenuShowing(menuArgs);
+        }
+
         showContextMenu = true;
         StateHasChanged();
+    }
+
+    private async Task OnCustomContextMenuItemClick(NxGridContextMenuItem item)
+    {
+        showContextMenu = false;
+        if (contextMenuRow != null && contextMenuColumn != null)
+        {
+            await OnContextMenuItemClicked.InvokeAsync(new NxGridContextMenuItemArgs<T>
+            {
+                Item   = item,
+                Row    = contextMenuRow,
+                Column = contextMenuColumn
+            });
+        }
     }
 
     private async Task OnContextMenuCopyClick()
@@ -47,7 +76,7 @@ public partial class NxGrid<T>
             var cells = new List<string>();
             for (var c = startCol; c <= endCol; c++)
             {
-                var getter = columns[c].EffectiveGetter;
+                var getter = visibleColumns[c].EffectiveGetter;
                 var value = getter != null ? getter(filteredData[r])?.ToString() ?? "" : "";
                 cells.Add(value);
             }

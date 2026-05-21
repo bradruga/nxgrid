@@ -20,11 +20,11 @@
     </div>
     <div class="@(darkMode ? "demo-dark-theme" : "")">
         <NxGrid T="Person" Data="@SampleData.People.ToList()" ShowRowNumbers="true" Cursor="@NxGridCursor.Cell">
-            <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
-            <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)"  Width="130" />
-            <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"   Width="130" />
-            <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
-            <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
+            <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+            <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+            <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+            <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+            <NxGridColumn Property="@(x => x.Department)" />
         </NxGrid>
     </div>
     <pre class="doc-code" style="margin-top:12px">@darkThemeCode</pre>
@@ -38,11 +38,11 @@
         mixes correctly with a custom background color.
     </p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" CellStyle="@GetCellStyle" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
-        <NxGridColumn T="Person" Title="Id"         Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
-        <NxGridColumn T="Person" Title="First Name" Property="@(x => x.FirstName)"  Width="130" />
-        <NxGridColumn T="Person" Title="Last Name"  Property="@(x => x.LastName)"   Width="130" />
-        <NxGridColumn T="Person" Title="Age"        Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" />
+        <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@cellStyleCode</pre>
 </div>

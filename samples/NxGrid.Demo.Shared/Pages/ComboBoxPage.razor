@@ -1,0 +1,189 @@
+@page "/combo-box"
+
+<PageTitle>Combo Box — NxGrid</PageTitle>
+
+<h1>Combo Box</h1>
+<p class="doc-intro">
+    Set <code>ComboBoxItems</code> on a column to turn its inline editor into a dropdown.
+    The function is called fresh on each open so the list can be dynamic.
+    Use <code>NxGridComboItem.From</code> to project any typed collection — the selected
+    item's <code>Value</code> is committed to the property; <code>Display</code> is shown
+    in both the dropdown and the non-editing cell.
+</p>
+
+<div class="doc-section">
+    <h2>String List</h2>
+    <p class="doc-note">
+        When value and display are the same, use the <code>NxGridComboItem.From(IEnumerable&lt;string?&gt;)</code>
+        overload. Type to filter, press <kbd class="doc-kbd">↓</kbd> or click the chevron to open the full list.
+    </p>
+    <NxGrid T="Person" Data="@stringPeople" OnUpdate="@HandleStringUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)"        Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.Department)"
+                      ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@stringListCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Separate Value and Display</h2>
+    <p class="doc-note">
+        The task code (e.g. <code>DEV</code>) is stored in the property; the full name
+        (<code>Development</code>) is shown in the cell and the dropdown.
+        The "Stored value" column shows exactly what is written to the model on selection.
+    </p>
+    <NxGrid T="TaskRow" Data="@taskRows" OnUpdate="@HandleTaskUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)"       Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Employee)" Width="140" Editable="false" />
+        <NxGridColumn Property="@(x => x.TaskCode)" Title="Task" Width="180"
+                      ComboBoxItems="@(() => NxGridComboItem.From(TaskOptions, t => t.Code, t => t.Name))" />
+        <NxGridColumn Property="@(x => x.Hours)"    Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Stored value" Display="@(x => x.TaskCode)"
+                      Width="110" Alignment="NxGridColumnAlignment.Center" Editable="false" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@objectProjectionCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Custom Item Template</h2>
+    <p class="doc-note">
+        <code>ComboBoxItemTemplate</code> replaces the plain <code>Display</code> string in
+        each dropdown row. The <code>Value</code> committed on selection is unchanged.
+    </p>
+    <NxGrid T="TaskRow" Data="@templateRows" OnUpdate="@HandleTemplateUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)"       Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Employee)" Width="140" Editable="false" />
+        <NxGridColumn Property="@(x => x.TaskCode)" Title="Task" Width="220"
+                      ComboBoxItems="@(() => NxGridComboItem.From(TaskOptions, t => t.Code, t => t.Name))">
+            <ComboBoxItemTemplate Context="item">
+                <span class="demo-combo-code">@item.Value</span>
+                <span class="demo-combo-name">@item.Display</span>
+            </ComboBoxItemTemplate>
+        </NxGridColumn>
+        <NxGridColumn Property="@(x => x.Hours)" Width="80" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@itemTemplateCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Parameters</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>ComboBoxItems</td>
+                <td>Func&lt;IEnumerable&lt;NxGridComboItem&gt;&gt;?</td>
+                <td>
+                    Turns the column into a combo-box editor. Called fresh on each open.
+                    Use <code>NxGridComboItem.From(source, value, display)</code> to project any typed collection,
+                    or <code>NxGridComboItem.From(stringList)</code> when value and display are the same.
+                    The selected item's <code>Value</code> is committed via <code>Property</code>;
+                    <code>Display</code> is shown in the dropdown and the non-editing cell.
+                </td>
+            </tr>
+            <tr>
+                <td>ComboBoxItemTemplate</td>
+                <td>RenderFragment&lt;NxGridComboItem&gt;?</td>
+                <td>Custom markup for each dropdown item. Replaces the plain <code>Display</code> string. The committed value is unchanged.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .demo-combo-code {
+        display: inline-block;
+        font-family: monospace;
+        font-size: 11px;
+        font-weight: 600;
+        background: #e0e7ff;
+        color: #3730a3;
+        border-radius: 3px;
+        padding: 1px 5px;
+        margin-right: 8px;
+        min-width: 36px;
+        text-align: center;
+    }
+
+    .demo-combo-name {
+        font-size: 13px;
+    }
+</style>
+
+@code {
+    record TaskOption(string Code, string Name);
+
+    static readonly TaskOption[] TaskOptions =
+    [
+        new("DEV", "Development"),
+        new("QA",  "Quality Assurance"),
+        new("MGT", "Project Management"),
+        new("DOC", "Documentation"),
+        new("MTG", "Meetings"),
+    ];
+
+    class TaskRow
+    {
+        public int    Id       { get; set; }
+        public string Employee { get; set; } = "";
+        public string TaskCode { get; set; } = "";
+        public int    Hours    { get; set; }
+    }
+
+    List<Person>  stringPeople  = SampleData.GetPeopleCopy();
+
+    List<TaskRow> taskRows =
+    [
+        new() { Id = 1, Employee = "Alice Johnson",  TaskCode = "DEV", Hours = 6 },
+        new() { Id = 2, Employee = "Bob Smith",      TaskCode = "QA",  Hours = 4 },
+        new() { Id = 3, Employee = "Carol Williams", TaskCode = "MGT", Hours = 3 },
+        new() { Id = 4, Employee = "David Brown",    TaskCode = "DEV", Hours = 8 },
+        new() { Id = 5, Employee = "Eve Davis",      TaskCode = "DOC", Hours = 2 },
+        new() { Id = 6, Employee = "Frank Miller",   TaskCode = "MTG", Hours = 1 },
+        new() { Id = 7, Employee = "Grace Wilson",   TaskCode = "QA",  Hours = 5 },
+        new() { Id = 8, Employee = "Henry Moore",    TaskCode = "DEV", Hours = 7 },
+    ];
+
+    List<TaskRow> templateRows =
+    [
+        new() { Id = 1, Employee = "Alice Johnson",  TaskCode = "DEV", Hours = 6 },
+        new() { Id = 2, Employee = "Bob Smith",      TaskCode = "QA",  Hours = 4 },
+        new() { Id = 3, Employee = "Carol Williams", TaskCode = "MGT", Hours = 3 },
+        new() { Id = 4, Employee = "David Brown",    TaskCode = "DEV", Hours = 8 },
+        new() { Id = 5, Employee = "Eve Davis",      TaskCode = "DOC", Hours = 2 },
+        new() { Id = 6, Employee = "Frank Miller",   TaskCode = "MTG", Hours = 1 },
+    ];
+
+    async Task HandleStringUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    async Task HandleTaskUpdate(NxGridUpdateArgs<TaskRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    async Task HandleTemplateUpdate(NxGridUpdateArgs<TaskRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    string stringListCode        = DemoCodeSamples.ComboBoxStringList;
+    string objectProjectionCode  = DemoCodeSamples.ComboBoxObjectProjection;
+    string itemTemplateCode      = DemoCodeSamples.ComboBoxItemTemplateCode;
+}

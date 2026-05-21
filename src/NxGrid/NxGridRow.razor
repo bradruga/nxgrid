@@ -18,13 +18,14 @@
              style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
              @onmousedown="@(args => HandleMouseDown(args, col))"
              @onmouseenter="@(args => HandleMouseEnter(args, col))"
+             @onmouseleave="@(() => OnMouseLeave?.Invoke(Row, col))"
              @onmouseup="@(() => OnMouseUp?.Invoke(Row, col))"
              @oncontextmenu="@(args => OnContextMenu?.Invoke(args, Row, col))"
              @oncontextmenu:preventDefault
-             @ondblclick="@(() => OnDoubleClick?.Invoke(Row, col))">
+             @ondblclick="@(() => OnDoubleClick?.Invoke(Row, col) ?? Task.CompletedTask)">
             @if (IsEditing && EditRow == RowIndex && EditCol == colIdx)
             {
-                @if (col.ComboBoxOptions != null)
+                @if (col.IsComboColumn)
                 {
                     <div class="nx-grid-combo-wrapper">
                         <input class="nx-grid-combo-input"
@@ -55,14 +56,14 @@
                            @onmouseup:stopPropagation />
                 }
             }
-            else if (col.Template == null)
+            else if (col.Template != null)
             {
                 <span class="nx-grid-cell-text">
-                    @if (col.EffectiveGetter != null) { @(col.EffectiveGetter(Row)) }
+                    @col.Template(Row)
                 </span>
-                @if (col.ComboBoxOptions != null && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
+                @if (col.IsComboColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
                      && (col.Editable ?? GridEditable)
-                     && (col.EditableGetter == null || col.EditableGetter(Row)))
+                     && (CellEditableGetter == null || CellEditableGetter(Row, col)))
                 {
                     <button class="nx-grid-combo-button nx-grid-combo-button-idle"
                             @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
@@ -72,14 +73,38 @@
                             </button>
                 }
             }
+            else if (col.IsCheckboxColumn)
+            {
+                var boolValue = col.EffectiveGetter?.Invoke(Row) is true;
+                var colEditable = col.Editable ?? GridEditable;
+                var isBlocked = CellEditableGetter != null && !CellEditableGetter(Row, col);
+                var wrapCls = "nx-grid-checkbox-wrap"
+                    + (boolValue    ? " nx-grid-checkbox-checked"  : "")
+                    + (!colEditable ? " nx-grid-checkbox-disabled"
+                      : isBlocked  ? " nx-grid-checkbox-blocked"   : "");
+                <span class="@wrapCls"
+                      @onclick="@(() => HandleCheckboxClick(colIdx))"
+                      @ondblclick:stopPropagation>
+                    @if (boolValue)
+                    {
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    }
+                </span>
+            }
             else
             {
                 <span class="nx-grid-cell-text">
-                    @col.Template(Row)
+                    @if (col.ComboBoxItems != null)
+                    {
+                        @col.ResolveComboDisplay(Row)
+                    }
+                    else if (col.EffectiveGetter != null) { @(col.EffectiveGetter(Row)) }
                 </span>
-                @if (col.ComboBoxOptions != null && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
+                @if (col.IsComboColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
                      && (col.Editable ?? GridEditable)
-                     && (col.EditableGetter == null || col.EditableGetter(Row)))
+                     && (CellEditableGetter == null || CellEditableGetter(Row, col)))
                 {
                     <button class="nx-grid-combo-button nx-grid-combo-button-idle"
                             @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
@@ -108,13 +133,16 @@
     [Parameter] public Func<MouseEventArgs, T, NxGridColumn<T>, Task>? OnMouseDown { get; set; }
     [Parameter] public Func<MouseEventArgs, T, NxGridColumn<T>, Task>? OnMouseEnter { get; set; }
     [Parameter] public Action<T, NxGridColumn<T>>? OnMouseUp { get; set; }
+    [Parameter] public Action<T, NxGridColumn<T>>? OnMouseLeave { get; set; }
     [Parameter] public Action<MouseEventArgs, T, NxGridColumn<T>>? OnContextMenu { get; set; }
-    [Parameter] public Action<T, NxGridColumn<T>>? OnDoubleClick { get; set; }
+    [Parameter] public Func<T, NxGridColumn<T>, Task>? OnDoubleClick { get; set; }
+    [Parameter] public Func<T, NxGridColumn<T>, bool>? CellEditableGetter { get; set; }
     [Parameter] public Action<ChangeEventArgs>? OnEditInput { get; set; }
     [Parameter] public Func<KeyboardEventArgs, Task>? OnEditKeyDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseEnter { get; set; }
     [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
+    [Parameter] public Func<int, int, Task>? OnCheckboxToggle { get; set; }
     [Parameter] public NxGridCursor Cursor { get; set; }
     [Parameter] public int RenderToken { get; set; }
     [Parameter] public bool GridEditable { get; set; }
@@ -139,6 +167,7 @@
     private int prevEditCol = -1;
     private string prevEditValue = "";
     private int prevRenderToken = -1;
+    private bool prevShowRowNumbers;
 
     // Track which edit session we've already focused so we focus exactly once per cell entry
     private (int Row, int Col) focusedSession = (-1, -1);
@@ -152,26 +181,31 @@
     private Task HandleEditKeyDown(KeyboardEventArgs args) =>
         OnEditKeyDown?.Invoke(args) ?? Task.CompletedTask;
 
+    private Task HandleCheckboxClick(int colIdx) =>
+        OnCheckboxToggle?.Invoke(RowIndex, colIdx) ?? Task.CompletedTask;
+
     protected override bool ShouldRender()
     {
-        var rowChanged    = !EqualityComparer<T>.Default.Equals(prevRow, Row);
-        var selChanged    = SelectionChangedForRow();
-        var editChanged   = EditChangedForRow();
-        var tokenChanged  = RenderToken != prevRenderToken;
-        var cursorChanged = Cursor != prevCursor;
+        var rowChanged            = !EqualityComparer<T>.Default.Equals(prevRow, Row);
+        var selChanged            = SelectionChangedForRow();
+        var editChanged           = EditChangedForRow();
+        var tokenChanged          = RenderToken != prevRenderToken;
+        var cursorChanged         = Cursor != prevCursor;
+        var showRowNumbersChanged = ShowRowNumbers != prevShowRowNumbers;
 
-        if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged)
+        if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged && !showRowNumbersChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
-        prevRow           = Row;
-        prevRangeSnapshot = GetRangeSnapshot();
-        prevIsEditing     = IsEditing;
-        prevEditRow       = EditRow;
-        prevEditCol       = EditCol;
-        prevEditValue     = EditValue;
-        prevRenderToken   = RenderToken;
-        prevCursor        = Cursor;
+        prevRow            = Row;
+        prevRangeSnapshot  = GetRangeSnapshot();
+        prevIsEditing      = IsEditing;
+        prevEditRow        = EditRow;
+        prevEditCol        = EditCol;
+        prevEditValue      = EditValue;
+        prevRenderToken    = RenderToken;
+        prevCursor         = Cursor;
+        prevShowRowNumbers = ShowRowNumbers;
 
         return true;
     }

@@ -20,12 +20,10 @@
         column menu).
     </p>
     <NxGrid T="LineItem" @ref="billableGrid" Data="@lines" Cursor="@NxGridCursor.Cell">
-        <NxGridColumn T="LineItem" Title="Description"
-                      Property="@(x => x.Description)" Width="280" />
-        <NxGridColumn T="LineItem" Title="Amount"
-                      Property="@(x => x.Amount)" Display="@(x => x.Amount.ToString("C"))"
+        <NxGridColumn Property="@(x => x.Description)" Width="280" />
+        <NxGridColumn Property="@(x => x.Amount)" Display="@(x => x.Amount.ToString("C"))"
                       Width="120" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn T="LineItem" Title="Billable"
+        <NxGridColumn Title="Billable"
                       Display="@(x => x.IsBillable ? "✓" : "–")"
                       Width="110" Alignment="NxGridColumnAlignment.Center">
             <HeaderTemplate>
@@ -49,7 +47,7 @@
         styled spans, badge counts, or multi-line text.
     </p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
-        <NxGridColumn T="Person" Title="Name"
+        <NxGridColumn Title="Name"
                       Display="@(x => x.FirstName + " " + x.LastName)" Width="180">
             <HeaderTemplate>
                 @* person icon — materialdesignicons *@
@@ -60,7 +58,7 @@
                 <span>Name</span>
             </HeaderTemplate>
         </NxGridColumn>
-        <NxGridColumn T="Person" Title="Department" Property="@(x => x.Department)" Width="160">
+        <NxGridColumn Property="@(x => x.Department)" Width="160">
             <HeaderTemplate>
                 @* briefcase icon *@
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
@@ -70,7 +68,7 @@
                 <span>Department</span>
             </HeaderTemplate>
         </NxGridColumn>
-        <NxGridColumn T="Person" Title="Age" Property="@(x => x.Age)"
+        <NxGridColumn Property="@(x => x.Age)"
                       Width="80" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@iconCode</pre>

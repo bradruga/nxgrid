@@ -14,6 +14,8 @@ A high-performance, virtualised data grid component for Blazor.
 - Inline editing with optional combo-box dropdowns
 - Copy / paste as TSV (Excel-compatible)
 - Column resize by drag
+- Frozen (sticky) columns via `Frozen` parameter or the column menu
+- Hidden/hideable columns — hide columns at design time or let users hide/show via the column menu
 - Full keyboard navigation (Arrow, Tab, Enter, Page Up/Down, Ctrl+Arrow, Home/End)
 - Themeable via CSS custom properties — no CSS framework required
 
@@ -35,10 +37,9 @@ Add the stylesheet to your host — in `App.razor` (Blazor Web) or `index.html` 
 @using NxGrid
 
 <NxGrid T="Employee" Data="@employees" OnSelectionChanged="@OnSelectionChanged">
-    <NxGridColumn T="Employee" Title="Name"       Getter="@(x => x.Name)"       Width="200" />
-    <NxGridColumn T="Employee" Title="Department" Getter="@(x => x.Department)"              />
-    <NxGridColumn T="Employee" Title="Age"        Getter="@(x => x.Age)"
-                               Alignment="NxGridColumnAlignment.Right" Width="80" />
+    <NxGridColumn Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Department)"              />
+    <NxGridColumn Property="@(x => x.Age)"        Alignment="NxGridColumnAlignment.Right" Width="80" />
 </NxGrid>
 
 <p>Selected: @selectedNames</p>
@@ -57,22 +58,43 @@ Add the stylesheet to your host — in `App.razor` (Blazor Web) or `index.html` 
 
 ## Editable columns
 
-Set `Setter` to make a column editable. The user types in the cell and commits with Enter or Tab.
+Set `Editable="true"` and handle `OnUpdate` to make columns editable. The user types in the cell and commits with Enter or Tab; `OnUpdate` fires once per operation with all affected rows and their changes.
 
 ```razor
-<NxGrid T="Employee" Data="@employees">
-    <NxGridColumn T="Employee" Title="Name"
-                               Getter="@(x => x.Name)"
-                               Setter="@((x, v) => x.Name = v ?? "")" />
-    <NxGridColumn T="Employee" Title="Department"
-                               Getter="@(x => x.Department)"
-                               Setter="@((x, v) => x.Department = v ?? "")"
-                               ComboBoxOptions="@(() => departments)" />
+<NxGrid T="Employee" Data="@employees" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.Name)" />
+    <NxGridColumn Property="@(x => x.Department)"
+                  ComboBoxOptions="@(() => departments)" />
 </NxGrid>
 
 @code {
     List<Employee> employees = [ /* ... */ ];
     List<string> departments = ["Engineering", "Marketing", "Finance", "HR"];
+
+    async Task HandleUpdate(NxGridUpdateArgs<Employee> args)
+    {
+        foreach (var rowArgs in args.Rows)
+        {
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);  // writes typed value back via Property setter
+            await db.SaveAsync(rowArgs.Row);
+        }
+    }
+}
+```
+
+Use `CellEditableGetter` to lock rows or cells at runtime (e.g. an approved record that cannot be changed). Pair with `OnEditBlocked` to notify the user, and `OnEditing` to confirm before opening the editor:
+
+```razor
+<NxGrid T="TimePunch" Data="@punches" Editable="true" OnUpdate="@HandleUpdate"
+        CellEditableGetter="@((row, col) => !row.IsApproved)"
+        OnEditBlocked="@OnBlocked">
+    ...
+</NxGrid>
+
+@code {
+    void OnBlocked(NxGridEditBlockedArgs<TimePunch> args) =>
+        toast.Show($"{args.Row.EmployeeName} is approved and cannot be edited.");
 }
 ```
 
@@ -81,7 +103,7 @@ Set `Setter` to make a column editable. The user types in the cell and commits w
 Use `Template` for full control over a cell's content. The grid still handles padding, selection highlight, and sizing.
 
 ```razor
-<NxGridColumn T="Employee" Title="Status" Width="120">
+<NxGridColumn Title="Status" Width="120">
     <Template Context="emp">
         <span class="badge @(emp.IsActive ? "badge-green" : "badge-grey")">
             @(emp.IsActive ? "Active" : "Inactive")

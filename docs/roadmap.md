@@ -66,14 +66,6 @@ Small, self-contained improvements with no breaking API changes.
 
 ---
 
-### Custom context menu items
-
-**What:** An `ContextMenuItems` parameter — a `RenderFragment` or list of `(label, action)` pairs — that adds items below the built-in Copy entry.
-
-**Why:** The right-click menu is currently hardcoded to a single Copy option. Common extensions include Paste, Delete Row, Insert Row, and application-specific actions.
-
----
-
 ## v2
 
 Significant new capabilities. Some may require breaking API changes or substantial architecture work.

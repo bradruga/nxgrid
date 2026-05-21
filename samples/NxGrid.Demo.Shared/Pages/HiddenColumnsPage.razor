@@ -1,0 +1,97 @@
+@page "/hidden-columns"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Hidden Columns — NxGrid</PageTitle>
+
+<h1>Hidden Columns</h1>
+<p class="doc-intro">
+    Set <code>Hidden="true"</code> on any column to hide it by default. Users can show
+    hidden columns through the <strong>Manage columns…</strong> entry in the ▾ column menu.
+    Set <code>Hideable="false"</code> to exclude a column from user control entirely.
+</p>
+
+<div class="doc-section">
+    <h2>Try it</h2>
+    <p class="doc-note">
+        <strong>Age</strong> and <strong>ID</strong> are hidden by default. Open the ▾ menu on any
+        column and choose <strong>Manage columns…</strong> to show or hide them. You can also hide
+        any visible column using the <strong>Hide column</strong> menu item.
+    </p>
+    <NxGrid T="Person" Data="@rows" Style="height:320px" ShowRowNumbers="true"
+            HasColumnMenu="true" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Display="@(x => x.FirstName + " " + x.LastName)" Title="Name" Width="180" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"    Width="80"  Alignment="NxGridColumnAlignment.Right" Hidden="true" />
+        <NxGridColumn Property="@(x => x.Id)"     Title="ID"  Width="60"  Alignment="NxGridColumnAlignment.Right" Hidden="true" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Preventing user changes</h2>
+    <p class="doc-note">
+        Set <code>Hideable="false"</code> to remove the freeze toggle from the column menu and
+        the chooser panel. The column stays under developer control only. A common pattern is
+        <code>Hidden="true" Hideable="false"</code> to include a field in sort and filter without
+        ever rendering it.
+    </p>
+    <pre class="doc-code">@filterOnlyCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Programmatic control</h2>
+    <p class="doc-note">
+        Call <code>SetColumnHidden(columnId, hidden)</code> to hide or show a column from code.
+        The toggle below uses a <code>@@ref</code> to the grid.
+    </p>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="nx-grid-btn nx-grid-btn-secondary" @onclick="ToggleDept">
+            @(deptHidden ? "Show Department" : "Hide Department")
+        </button>
+        <button class="nx-grid-btn nx-grid-btn-secondary" @onclick="ToggleAge">
+            @(ageHidden ? "Show Age" : "Hide Age")
+        </button>
+    </div>
+    <NxGrid T="Person" @ref="programmaticGrid" Data="@rows" Style="height:320px"
+            ShowRowNumbers="true" HasColumnMenu="true" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Display="@(x => x.FirstName + " " + x.LastName)" Title="Name" Width="180" />
+        <NxGridColumn Id="dept" Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Id="age"  Property="@(x => x.Age)" Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Id)" Title="ID" Width="60" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@programmaticCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>State persistence</h2>
+    <p class="doc-note">
+        When <code>StateKey</code> is set on the grid, user-toggled hidden state is included in
+        the saved payload alongside column widths and sort order. Columns declared with
+        <code>Hidden="true"</code> at design time are always hidden on first load; saved state
+        can only override columns the user has explicitly toggled.
+    </p>
+</div>
+
+@code {
+    List<Person> rows = SampleData.GeneratePeople(30);
+
+    NxGrid<Person>? programmaticGrid;
+    bool deptHidden;
+    bool ageHidden;
+
+    void ToggleDept()
+    {
+        deptHidden = !deptHidden;
+        programmaticGrid!.SetColumnHidden("dept", deptHidden);
+    }
+
+    void ToggleAge()
+    {
+        ageHidden = !ageHidden;
+        programmaticGrid!.SetColumnHidden("age", ageHidden);
+    }
+
+    string basicCode       = DemoCodeSamples.HiddenBasic;
+    string filterOnlyCode  = DemoCodeSamples.HiddenFilterOnly;
+    string programmaticCode = DemoCodeSamples.HiddenProgrammatic;
+}
