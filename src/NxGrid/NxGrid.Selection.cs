@@ -61,7 +61,10 @@ public partial class NxGrid<T>
 
     private async Task OnCellMouseEnter(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
-        leftMouseDown = (args.Buttons & MouseButtonsLeft) == MouseButtonsLeft;
+        // Only clear here — never set true. Only OnCellMouseDown starts a drag; an overlay
+        // click that reveals a cell underneath must not trigger a spurious drag selection.
+        if ((args.Buttons & MouseButtonsLeft) == 0)
+            leftMouseDown = false;
 
         if (!leftMouseDown)
             StartCellTooltipTimer(args, row, column);
