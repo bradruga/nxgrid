@@ -1,0 +1,544 @@
+@page "/spreadsheet"
+
+<PageTitle>Spreadsheet — NxGrid</PageTitle>
+
+<h1>Spreadsheet</h1>
+<p class="doc-intro">
+    NxGrid can serve as the rendering layer for a full spreadsheet UI.
+    Formula evaluation (<code>=A1+B2</code>, <code>=SUM(B2:B13)</code>), per-cell styling,
+    a formula bar, and keyboard shortcuts (<kbd class="doc-kbd">Ctrl+B/I/U</kbd>) are all
+    driven by the same parameters you use elsewhere:
+    <code>CellStyle</code>, <code>OnSelectionChanged</code>, <code>OnKeyPressed</code>,
+    <code>TransformPastedValue</code>, and <code>ForceRerender()</code>.
+</p>
+
+<div class="doc-section" style="padding:0; overflow:hidden;">
+
+    @* ── Toolbar ── *@
+    <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--nx-grid-border,#ddd); background:#fafafa; flex-wrap:wrap;">
+
+        @* Bold / Italic / Underline / Strikethrough *@
+        <div style="display:flex;">
+            <button class="ss-btn @(AnchorCell?.Bold==true?"ss-btn-active":"")"      style="width:30px; font-weight:700;"          @onclick="OnBoldClick"          title="Bold (Ctrl+B)">B</button>
+            <button class="ss-btn @(AnchorCell?.Italic==true?"ss-btn-active":"")"    style="width:30px; font-style:italic;"        @onclick="OnItalicClick"        title="Italic (Ctrl+I)">I</button>
+            <button class="ss-btn @(AnchorCell?.Underline==true?"ss-btn-active":"")" style="width:30px; text-decoration:underline;" @onclick="OnUnderlineClick"     title="Underline (Ctrl+U)">U</button>
+            <button class="ss-btn @(AnchorCell?.Strike==true?"ss-btn-active":"")"    style="width:30px; text-decoration:line-through;" @onclick="OnStrikeClick"    title="Strikethrough">S</button>
+        </div>
+
+        <div style="width:1px; height:22px; background:#ccc;"></div>
+
+        @* Fill color *@
+        <div style="display:flex; align-items:center; gap:4px;">
+            <span style="font-size:12px; color:#666;">Fill</span>
+            <input type="color" value="@selectedFill" @onchange="OnFillInput"
+                   style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
+            <button class="ss-btn" @onclick="ApplyFill"       title="Apply fill color">✓</button>
+            <button class="ss-btn" @onclick="ClearFill"       title="Clear fill">✕</button>
+        </div>
+
+        <div style="width:1px; height:22px; background:#ccc;"></div>
+
+        @* Text color *@
+        <div style="display:flex; align-items:center; gap:4px;">
+            <span style="font-size:12px; color:#666;">Text</span>
+            <input type="color" value="@selectedTextColor" @onchange="OnTextColorInput"
+                   style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
+            <button class="ss-btn" @onclick="ApplyTextColor"  title="Apply text color">✓</button>
+            <button class="ss-btn" @onclick="ClearTextColor"  title="Clear text color">✕</button>
+        </div>
+
+        <div style="width:1px; height:22px; background:#ccc;"></div>
+
+        @* Alignment *@
+        <div style="display:flex;">
+            <button class="ss-btn @(AnchorCell?.Align=="left"?"ss-btn-active":"")"   @onclick="@(() => OnAlignClick("left"))"   title="Align left">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M2 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/></svg>
+            </button>
+            <button class="ss-btn @(AnchorCell?.Align=="center"?"ss-btn-active":"")" @onclick="@(() => OnAlignClick("center"))" title="Align center">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/></svg>
+            </button>
+            <button class="ss-btn @(AnchorCell?.Align=="right"?"ss-btn-active":"")"  @onclick="@(() => OnAlignClick("right"))"  title="Align right">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M6 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-4-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-4-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/></svg>
+            </button>
+        </div>
+
+        <div style="width:1px; height:22px; background:#ccc;"></div>
+
+        @* Decimal places *@
+        <div style="display:flex;">
+            <button class="ss-btn" @onclick="OnRemoveDecimalClick" title="Decrease decimal places">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="14" viewBox="0 0 28 14"><text x="0" y="11" font-size="10" font-family="monospace" fill="currentColor">.0</text><polyline points="21,2 17,7 21,12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="ss-btn" @onclick="OnAddDecimalClick" title="Increase decimal places">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="14" viewBox="0 0 28 14"><text x="0" y="11" font-size="10" font-family="monospace" fill="currentColor">.00</text><polyline points="22,2 26,7 22,12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+
+        <div style="margin-left:auto; font-size:12px; color:#888;">
+            Ctrl+B/I/U · paste adjusts formulas · SUM/MAX supported
+        </div>
+    </div>
+
+    @* ── Formula bar ── *@
+    <div style="display:flex; align-items:center; height:28px; padding:0 8px; border-bottom:1px solid var(--nx-grid-border,#ddd); background:#fff; gap:8px;">
+        <span style="font-family:monospace; font-size:12px; color:#888; border:1px solid #ddd; border-radius:3px; padding:1px 6px; min-width:48px; text-align:center; display:inline-block;">
+            @(anchorRef.Length > 0 ? anchorRef : " ")
+        </span>
+        <span style="font-size:12px; color:#aaa; font-style:italic;">fx</span>
+        <input style="flex:1; border:none; outline:none; font-family:monospace; font-size:13px;"
+               value="@formulaBarValue"
+               @oninput="OnFormulaBarInput"
+               @onkeydown="OnFormulaBarKeyDown" />
+    </div>
+
+    @* ── Grid ── *@
+    <div style="height:520px;">
+        <NxGrid T="SsRow"
+                @ref="grid"
+                Data="@rows"
+                Style="height:100%"
+                ShowRowNumbers="true"
+                HeaderClickSelects="true"
+                RowHeight="24"
+                RowBanding="false"
+                HasColumnMenu="false"
+                Editable="true"
+                Cursor="@NxGridCursor.Cell"
+                OnUpdate="@HandleUpdate"
+                CellStyle="@GetCellStyle"
+                OnSelectionChanged="@OnSelectionChanged"
+                OnKeyPressed="@OnKeyPressed"
+                TransformPastedValue="@AdjustFormulaCellRefs">
+            <ChildContent>
+                @for (var i = 0; i < ColCount; i++)
+                {
+                    var ci = i;
+                    var letter = ((char)('A' + ci)).ToString();
+                    <NxGridColumn T="SsRow"
+                                  Title="@letter"
+                                  Property="@(x => x.EditValue)"
+                                  Display="@(x => FormatDisplay(sheet[x.RowIndex, ci]))"
+                                  Width="@ColWidth(ci)"
+                                  MaxWidth="@ColWidth(ci)" />
+                }
+            </ChildContent>
+        </NxGrid>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>How it works</h2>
+    <p class="doc-note">
+        The grid's <code>Data</code> is a list of thin row-index wrappers (<code>SsRow</code>).
+        Each column's <code>Display</code> lambda reads from a 2-D <code>Cell[,]</code> array, so
+        the grid never owns the cell values — the worksheet model does.
+        <code>ForceRerender()</code> is called after any change to refresh computed formula results.
+    </p>
+    <pre class="doc-code">@codeSnippet</pre>
+</div>
+
+<style>
+    .ss-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 26px;
+        min-width: 26px;
+        padding: 0 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 13px;
+        color: #333;
+        margin-right: -1px;
+    }
+    .ss-btn:hover { background: #f0f0f0; }
+    .ss-btn-active { background: #dce8f8; border-color: #90b4e0; color: #1a4a80; }
+</style>
+
+@code {
+    // ── Instance state ────────────────────────────────────────────────────────
+    // Types, constants, statics, and the code snippet are in SpreadsheetPage.razor.cs
+    // to keep Rider's Blazor analyzer happy (it struggles with those in @code).
+
+    Cell[,] sheet = new Cell[RowCount, ColCount];
+    List<SsRow> rows = [];
+
+    NxGrid<SsRow>? grid;
+
+    // formula bar / selection
+    List<NxGridSelectionRange<SsRow>> selectedRanges = [];
+    string formulaBarValue      = "";
+    string formulaBarBaseValue  = "";
+    string anchorRef            = "";
+
+    string selectedFill      = "#fff2cc";
+    string selectedTextColor = "#000000";
+
+    Cell? AnchorCell => selectedRanges.Count > 0
+        ? sheet[selectedRanges[0].StartRow, selectedRanges[0].StartCol]
+        : null;
+
+    // ── Initialise ───────────────────────────────────────────────────────────
+
+    protected override void OnInitialized()
+    {
+        for (var r = 0; r < RowCount; r++)
+            for (var c = 0; c < ColCount; c++)
+                sheet[r, c] = new Cell();
+
+        rows = Enumerable.Range(0, RowCount).Select(i => new SsRow { RowIndex = i }).ToList();
+
+        LoadSampleData();
+        Calculate();
+    }
+
+    void LoadSampleData()
+    {
+        // ── Headers ──────────────────────────────────────────────────────────
+        void H(int r, int c, string v)
+        {
+            var cell = sheet[r, c];
+            cell.Value = v;
+            cell.Bold  = true;
+            cell.Fill  = "#d9e1f2";
+            cell.Align = "center";
+        }
+
+        H(0, 0, "Month");
+        H(0, 1, "Revenue");
+        H(0, 2, "COGS");
+        H(0, 3, "Gross Profit");
+        H(0, 4, "OpEx");
+        H(0, 5, "Net Income");
+        H(0, 6, "Margin %");
+        H(0, 7, "YTD Revenue");
+        H(0, 8, "Target");
+        H(0, 9, "vs Target");
+
+        // ── Monthly data ─────────────────────────────────────────────────────
+        string[] months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        int[] revenue   = [82000, 75000, 91000, 88000, 103000, 115000,
+                           97000, 108000, 121000, 134000, 118000, 142000];
+        int[] cogs      = [41000, 38000, 44000, 43000, 50000,  55000,
+                           47000, 52000,  58000,  63000,  56000,  67000];
+        int[] opex      = [18000, 17500, 19000, 18500, 21000,  23000,
+                           20000, 22000,  24000,  26000,  23500,  28000];
+        int[] target    = [80000, 80000, 90000, 90000, 100000, 110000,
+                           95000, 105000, 115000, 125000, 115000, 135000];
+
+        for (var i = 0; i < 12; i++)
+        {
+            var r = i + 1;
+
+            sheet[r, 0].Value = months[i];
+            sheet[r, 0].Align = "center";
+
+            sheet[r, 1].Value = revenue[i].ToString();
+            sheet[r, 2].Value = cogs[i].ToString();
+            sheet[r, 3].Value = $"=B{r + 1}-C{r + 1}";           // Gross Profit
+            sheet[r, 4].Value = opex[i].ToString();
+            sheet[r, 5].Value = $"=D{r + 1}-E{r + 1}";           // Net Income
+            sheet[r, 6].Value = $"=F{r + 1}/B{r + 1}";           // Margin (decimal)
+            sheet[r, 7].Value = i == 0
+                ? $"=B{r + 1}"
+                : $"=H{r}+B{r + 1}";                              // YTD running sum
+            sheet[r, 8].Value = target[i].ToString();
+            sheet[r, 9].Value = $"=B{r + 1}-I{r + 1}";           // vs Target
+        }
+
+        // ── Totals row ───────────────────────────────────────────────────────
+        var tot = 13;
+        sheet[tot, 0].Value = "Total";
+        sheet[tot, 0].Bold  = true;
+        sheet[tot, 1].Value = "=SUM(B2:B13)";
+        sheet[tot, 2].Value = "=SUM(C2:C13)";
+        sheet[tot, 3].Value = "=SUM(D2:D13)";
+        sheet[tot, 4].Value = "=SUM(E2:E13)";
+        sheet[tot, 5].Value = "=SUM(F2:F13)";
+        sheet[tot, 6].Value = "=F14/B14";
+        sheet[tot, 8].Value = "=SUM(I2:I13)";
+        sheet[tot, 9].Value = "=SUM(J2:J13)";
+
+        for (var c = 0; c < ColCount; c++)
+        {
+            sheet[tot, c].Bold = true;
+            sheet[tot, c].Fill = "#e2efda";
+        }
+
+        // Margin column: italic note
+        sheet[0, 6].Italic = true;
+    }
+
+    // ── Formula engine ───────────────────────────────────────────────────────
+
+    void Calculate()
+    {
+        var done = new bool[RowCount, ColCount];
+
+        for (var r = 0; r < RowCount; r++)
+            for (var c = 0; c < ColCount; c++)
+            {
+                var cell = sheet[r, c];
+                if (!cell.Value.StartsWith("=") || cell.Value.StartsWith("'="))
+                {
+                    cell.Display = cell.Value.StartsWith("'=") ? cell.Value[1..] : cell.Value;
+                    done[r, c] = true;
+                }
+            }
+
+        bool progress;
+        do
+        {
+            progress = false;
+            for (var r = 0; r < RowCount; r++)
+                for (var c = 0; c < ColCount; c++)
+                {
+                    if (done[r, c]) continue;
+                    var refs = GetRefs(sheet[r, c].Value[1..]);
+                    if (refs.All(rf => rf.r < 0 || rf.c < 0 ||
+                                       rf.r >= RowCount || rf.c >= ColCount ||
+                                       done[rf.r, rf.c]))
+                    {
+                        sheet[r, c].Display = EvalFormula(sheet[r, c].Value[1..]);
+                        done[r, c] = true;
+                        progress = true;
+                    }
+                }
+        } while (progress);
+
+        for (var r = 0; r < RowCount; r++)
+            for (var c = 0; c < ColCount; c++)
+                if (!done[r, c])
+                    sheet[r, c].Display = "#err";
+    }
+
+    IEnumerable<(int r, int c)> GetRefs(string expr) =>
+        CellRef.Matches(expr).Select(m => (
+            int.Parse(m.Groups[4].Value) - 1,
+            char.ToUpper(m.Groups[2].Value[0]) - 'A'));
+
+    string EvalFormula(string expr)
+    {
+        expr = expr.Replace(" ", "");
+        expr = ExpandFunctions(expr);
+        expr = ResolveCellRefs(expr).Replace(",", "");
+        try
+        {
+            var pos = 0;
+            return ParseCmp(expr, ref pos).ToString();
+        }
+        catch { return expr.Trim(); }
+    }
+
+    string ExpandFunctions(string expr)
+    {
+        expr = SumFunc.Replace(expr, m =>
+        {
+            var vals = ResolveArgList(m.Groups[1].Value).ToList();
+            return vals.Count == 0 ? "0" : vals.Sum().ToString();
+        });
+        expr = MaxFunc.Replace(expr, m =>
+        {
+            var vals = ResolveArgList(m.Groups[1].Value).ToList();
+            return vals.Count == 0 ? "0" : vals.Max().ToString();
+        });
+        return expr;
+    }
+
+    IEnumerable<decimal> ResolveArgList(string arg)
+    {
+        var m = RangeRef.Match(arg.Trim());
+        if (m.Success) return ResolveRange(m);
+        return arg.Split(',').SelectMany(a =>
+        {
+            var resolved = ResolveCellRefs(a.Trim()).Replace(",", "");
+            var pos = 0;
+            try { return (IEnumerable<decimal>)[ParseAddSub(resolved, ref pos)]; }
+            catch { return []; }
+        });
+    }
+
+    IEnumerable<decimal> ResolveRange(System.Text.RegularExpressions.Match m)
+    {
+        var c1 = char.ToUpper(m.Groups[2].Value[0]) - 'A';
+        var r1 = int.Parse(m.Groups[4].Value) - 1;
+        var c2 = char.ToUpper(m.Groups[6].Value[0]) - 'A';
+        var r2 = int.Parse(m.Groups[8].Value) - 1;
+        for (var r = Math.Min(r1, r2); r <= Math.Max(r1, r2); r++)
+            for (var c = Math.Min(c1, c2); c <= Math.Max(c1, c2); c++)
+                if (r >= 0 && r < RowCount && c >= 0 && c < ColCount &&
+                    decimal.TryParse(sheet[r, c].Display, out var v))
+                    yield return v;
+    }
+
+    string ResolveCellRefs(string expr) =>
+        CellRef.Replace(expr, m =>
+        {
+            var c = char.ToUpper(m.Groups[2].Value[0]) - 'A';
+            var r = int.Parse(m.Groups[4].Value) - 1;
+            if (r >= 0 && r < RowCount && c >= 0 && c < ColCount)
+                return sheet[r, c].Display;
+            return m.Value;
+        });
+
+    // ── Cell display ─────────────────────────────────────────────────────────
+
+    string? GetCellStyle(SsRow row, NxGridColumn<SsRow> col)
+    {
+        var ci   = col.Title![0] - 'A';
+        var cell = sheet[row.RowIndex, ci];
+        var s    = "";
+
+        if (cell.Bold)      s += "font-weight:bold;";
+        if (cell.Italic)    s += "font-style:italic;";
+        if (cell.Underline) s += "text-decoration:underline;";
+        if (cell.Strike)    s += "text-decoration:line-through;";
+        if (cell.Color != null) s += $"color:{cell.Color};";
+        if (cell.Fill  != null) s += $"background:{cell.Fill};";
+
+        if (cell.Align != null)
+            s += $"text-align:{cell.Align};";
+        else if (IsNumeric(cell.Display))
+            s += "text-align:right;";
+
+        // Highlight negative net income
+        if (col.Title == "F" && decimal.TryParse(cell.Display, out var fv) && fv < 0)
+            s += "color:#c00;";
+
+        // Highlight vs-target positive in green, negative in red
+        if (col.Title == "J" && decimal.TryParse(cell.Display, out var jv))
+            s += jv >= 0 ? "color:#2a7a2a;" : "color:#c00;";
+
+        return s.Length > 0 ? s : null;
+    }
+
+    // ── Grid events ──────────────────────────────────────────────────────────
+
+    void HandleUpdate(NxGridUpdateArgs<SsRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+        {
+            foreach (var change in rowArgs.Changes)
+            {
+                var ci  = change.Column.Title![0] - 'A';
+                var val = change.NewValue?.ToString() ?? "";
+                sheet[rowArgs.Row.RowIndex, ci].Value = val;
+            }
+        }
+        Calculate();
+        grid?.ForceRerender();
+    }
+
+    void OnSelectionChanged(NxGridSelectionArgs<SsRow> args)
+    {
+        selectedRanges = args.Ranges;
+        if (args.Ranges.Count > 0)
+        {
+            var r = args.Ranges[0];
+            anchorRef      = $"{(char)('A' + r.StartCol)}{r.StartRow + 1}";
+            formulaBarValue = sheet[r.StartRow, r.StartCol].Value;
+            formulaBarBaseValue = formulaBarValue;
+        }
+        else
+        {
+            anchorRef = "";
+            formulaBarValue = "";
+            formulaBarBaseValue = "";
+        }
+    }
+
+    void OnFillInput(Microsoft.AspNetCore.Components.ChangeEventArgs e)      => selectedFill      = e.Value?.ToString() ?? "#fff2cc";
+    void OnTextColorInput(Microsoft.AspNetCore.Components.ChangeEventArgs e) => selectedTextColor = e.Value?.ToString() ?? "#000000";
+    void OnFormulaBarInput(Microsoft.AspNetCore.Components.ChangeEventArgs e) => formulaBarValue  = e.Value?.ToString() ?? "";
+
+    void OnFormulaBarKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && selectedRanges.Count > 0)
+        {
+            var r0 = selectedRanges[0];
+            sheet[r0.StartRow, r0.StartCol].Value = formulaBarValue;
+            formulaBarBaseValue = formulaBarValue;
+            Calculate();
+            grid?.ForceRerender();
+        }
+        else if (e.Key == "Escape")
+        {
+            formulaBarValue = formulaBarBaseValue;
+        }
+    }
+
+    void OnKeyPressed(NxGridKeyPressedArgs args)
+    {
+        if (!args.ModifierPressed) return;
+        switch (args.KeyboardEvent.Key)
+        {
+            case "b": OnBoldClick();      break;
+            case "i": OnItalicClick();    break;
+            case "u": OnUnderlineClick(); break;
+        }
+    }
+
+    // ── Formatting actions ───────────────────────────────────────────────────
+
+    void ForEachSelected(Action<Cell> action)
+    {
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                    action(sheet[r, c]);
+        grid?.ForceRerender();
+    }
+
+    void OnBoldClick() =>
+        Toggle(c => c.Bold, (c, v) => c.Bold = v);
+
+    void OnItalicClick() =>
+        Toggle(c => c.Italic, (c, v) => c.Italic = v);
+
+    void OnUnderlineClick() =>
+        Toggle(c => c.Underline, (c, v) => c.Underline = v);
+
+    void OnStrikeClick() =>
+        Toggle(c => c.Strike, (c, v) => c.Strike = v);
+
+    void Toggle(Func<Cell, bool> get, Action<Cell, bool> set)
+    {
+        if (AnchorCell == null) return;
+        var next = !get(AnchorCell);
+        ForEachSelected(c => set(c, next));
+    }
+
+    void ApplyFill()       => ForEachSelected(c => c.Fill  = selectedFill);
+    void ClearFill()       => ForEachSelected(c => c.Fill  = null);
+    void ApplyTextColor()  => ForEachSelected(c => c.Color = selectedTextColor);
+    void ClearTextColor()  => ForEachSelected(c => c.Color = null);
+
+    void OnAlignClick(string align)
+    {
+        if (AnchorCell == null) return;
+        var next = AnchorCell.Align == align ? null : align;
+        ForEachSelected(c => c.Align = next);
+    }
+
+    // ── Decimal places ───────────────────────────────────────────────────────
+
+    int GetAnchorDecimalPlaces() => AnchorCell?.DecimalPlaces ?? 2;
+
+    void OnAddDecimalClick() => ApplyDecimalPlaces(GetAnchorDecimalPlaces() + 1);
+
+    void OnRemoveDecimalClick() => ApplyDecimalPlaces(Math.Max(0, GetAnchorDecimalPlaces() - 1));
+
+    void ApplyDecimalPlaces(int decimalPlaces)
+    {
+        if (selectedRanges.Count == 0) return;
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                    sheet[r, c].DecimalPlaces = decimalPlaces;
+        grid?.ForceRerender();
+    }
+
+}
