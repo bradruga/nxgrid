@@ -150,6 +150,46 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
+    public void ComboBoxColumnDisplayTakesPrecedenceOverComboItemLabel()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", "Engineering")])
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => "Dept: " + r.Department)
+                .Add(x => x.Title, "Department")
+                .Add(x => x.ComboBoxItems, () => NxGridComboItem.From(["Engineering", "Finance", "HR"]))));
+
+        var cell = cut.Find(".nx-grid-cell-text");
+        Assert.That(cell.TextContent.Trim(), Is.EqualTo("Dept: Engineering"));
+    }
+
+    [Test]
+    public void ComboBoxColumnWithoutDisplayShowsComboItemLabel()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        Expression<Func<Row, object?>> prop = r => r.Department;
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", "ENG")])
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<Row>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "Title", "Department");
+                b.AddAttribute(3, "ComboBoxItems", (Func<IEnumerable<NxGridComboItem>>)(() =>
+                    NxGridComboItem.From(
+                        new[] { ("ENG", "Engineering"), ("FIN", "Finance") },
+                        t => t.Item1, t => t.Item2)));
+                b.CloseComponent();
+            }));
+
+        var cell = cut.Find(".nx-grid-cell-text");
+        Assert.That(cell.TextContent.Trim(), Is.EqualTo("Engineering"));
+    }
+
+    [Test]
     public void RendersCustomHeaderTemplate()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

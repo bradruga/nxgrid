@@ -96,11 +96,14 @@
             else
             {
                 <span class="nx-grid-cell-text">
-                    @if (col.ComboBoxItems != null)
+                    @if (col.ComboBoxItems != null && col.Display == null)
                     {
                         @col.ResolveComboDisplay(Row)
                     }
-                    else if (col.EffectiveGetter != null) { @(col.EffectiveGetter(Row)) }
+                    else if (col.EffectiveGetter != null)
+                    {
+                        @(col.EffectiveGetter(Row))
+                    }
                 </span>
                 @if (col.IsComboColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
                      && (col.Editable ?? GridEditable)
