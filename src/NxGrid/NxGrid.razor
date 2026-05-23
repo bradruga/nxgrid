@@ -68,7 +68,7 @@
 
                 @if (HasColumnMenu)
                 {
-                    <button class="nx-grid-menu-button"
+                    <button type="button" class="nx-grid-menu-button"
                             @onclick="@(() => OnColumnButtonClick(column))"
                             @onmousedown:stopPropagation>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -121,7 +121,7 @@
     @if (openColumn != null)
     {
         <div class="nx-grid-column-menu" style="top:@(menuTop)px;left:@(menuLeft)px;@(menuNeedsPositioning ? "visibility:hidden;" : "")">
-            <button class="nx-grid-menu-item"
+            <button type="button" class="nx-grid-menu-item"
                     @onclick="@OnSortAscendingClick">
                 <span class="nx-grid-menu-item-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
@@ -130,7 +130,7 @@
                 </span>
                 Sort Ascending
             </button>
-            <button class="nx-grid-menu-item"
+            <button type="button" class="nx-grid-menu-item"
                     @onclick="@OnSortDescendingClick">
                 <span class="nx-grid-menu-item-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
@@ -139,7 +139,7 @@
                 </span>
                 Sort Descending
             </button>
-            <button class="nx-grid-menu-item"
+            <button type="button" class="nx-grid-menu-item"
                     @onclick="@OnClearSortClick">
                 <span class="nx-grid-menu-item-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@
                 <div class="nx-grid-menu-divider"></div>
                 @if (openColumn.Freezable)
                 {
-                    <button class="nx-grid-menu-item" @onclick="@OnFreezeToggleClick">
+                    <button type="button" class="nx-grid-menu-item" @onclick="@OnFreezeToggleClick">
                         <span class="nx-grid-menu-item-icon">
                             @if (openColumn.IsFrozen)
                             {
@@ -174,7 +174,7 @@
                 }
                 @if (openColumn.Hideable)
                 {
-                    <button class="nx-grid-menu-item" @onclick="@OnHideColumnClick">
+                    <button type="button" class="nx-grid-menu-item" @onclick="@OnHideColumnClick">
                         <span class="nx-grid-menu-item-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
                                 <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.88 9.88a3 3 0 1 0 4.243 4.243M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68m-6.72-1.07a3 3 0 0 1-4.194-4.194M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20"/>
@@ -185,7 +185,7 @@
                 }
                 @if (columns.Any(c => c.Hideable))
                 {
-                    <button class="nx-grid-menu-item" @onclick="@OnManageColumnsClick">
+                    <button type="button" class="nx-grid-menu-item" @onclick="@OnManageColumnsClick">
                         <span class="nx-grid-menu-item-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
                                 <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
@@ -209,7 +209,7 @@
     @if (showContextMenu)
     {
         <div class="nx-grid-context-menu" style="position:fixed;left:@(contextMenuX)px;top:@(contextMenuY)px;z-index:1000;">
-            <button class="nx-grid-context-item"
+            <button type="button" class="nx-grid-context-item"
                     @onclick="@OnContextMenuCopyClick">
                 Copy
             </button>
@@ -220,7 +220,7 @@
                 {
                     <div class="nx-grid-menu-divider"></div>
                 }
-                <button class="nx-grid-context-item @(capturedItem.Disabled ? "nx-grid-context-item-disabled" : "")"
+                <button type="button" class="nx-grid-context-item @(capturedItem.Disabled ? "nx-grid-context-item-disabled" : "")"
                         disabled="@capturedItem.Disabled"
                         @onclick="@(() => OnCustomContextMenuItemClick(capturedItem))">
                     @capturedItem.Label

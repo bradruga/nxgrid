@@ -36,7 +36,7 @@
                                @onkeydown:stopPropagation
                                @onmousedown:stopPropagation
                                @onmouseup:stopPropagation />
-                        <button class="nx-grid-combo-button"
+                        <button type="button" class="nx-grid-combo-button"
                                 @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
                                 @onmousedown:stopPropagation
                                 @onmousedown:preventDefault>
@@ -65,7 +65,7 @@
                      && (col.Editable ?? GridEditable)
                      && (CellEditableGetter == null || CellEditableGetter(Row, col)))
                 {
-                    <button class="nx-grid-combo-button nx-grid-combo-button-idle"
+                    <button type="button" class="nx-grid-combo-button nx-grid-combo-button-idle"
                             @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
                             @onmousedown:stopPropagation
                             @onmousedown:preventDefault>
@@ -109,7 +109,7 @@
                      && (col.Editable ?? GridEditable)
                      && (CellEditableGetter == null || CellEditableGetter(Row, col)))
                 {
-                    <button class="nx-grid-combo-button nx-grid-combo-button-idle"
+                    <button type="button" class="nx-grid-combo-button nx-grid-combo-button-idle"
                             @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
                             @onmousedown:stopPropagation
                             @onmousedown:preventDefault>
