@@ -119,7 +119,6 @@ public partial class NxGrid<T>
 
 
     private NxGridColumn<T>? openColumn;
-    private bool openingMenu;
     private bool menuNeedsPositioning;
     private double menuTop;
     private double menuLeft;
@@ -194,7 +193,6 @@ public partial class NxGrid<T>
         if (menuNeedsPositioning && jsInterop != null)
         {
             menuNeedsPositioning = false;
-            openingMenu = false;
             var menuIndex = openColumn != null ? visibleColumns.IndexOf(openColumn) : -1;
             if (menuIndex >= 0)
             {

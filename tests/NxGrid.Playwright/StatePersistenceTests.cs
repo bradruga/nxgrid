@@ -4,11 +4,18 @@ using NUnit.Framework;
 
 namespace NxGrid.Playwright;
 
-[TestFixture]
+[TestFixtureSource(nameof(AppUrls))]
 public class StatePersistenceTests : PageTest
 {
-    private static readonly string BaseUrl =
-        Environment.GetEnvironmentVariable("NXGRID_BASE_URL") ?? "http://localhost:5254";
+    private readonly string _baseUrl;
+
+    public StatePersistenceTests(string baseUrl) => _baseUrl = baseUrl;
+
+    private static readonly string[] AppUrls =
+    {
+        "http://localhost:5254",   // Blazor Server
+        "http://localhost:5233",   // Blazor WASM
+    };
 
     private const string PersistencePage = "/state-persistence";
     private const string StorageKey = "demo-state-persistence";
@@ -26,7 +33,7 @@ public class StatePersistenceTests : PageTest
 
     private async Task GoToPersistencePage()
     {
-        await Page.GotoAsync(BaseUrl + PersistencePage);
+        await Page.GotoAsync(_baseUrl + PersistencePage);
         await Expect(Page.Locator(".nx-grid-header-row")).ToBeVisibleAsync();
     }
 
@@ -182,12 +189,14 @@ public class StatePersistenceTests : PageTest
     [Test]
     public async Task NoStateKey_DoesNotWriteToLocalStorage()
     {
-        // The home page grid has no StateKey — interacting with it should write nothing
-        await Page.GotoAsync(BaseUrl);
-        await Expect(Page.Locator(".nx-grid-header-row")).ToBeVisibleAsync();
+        // The home page grid has no StateKey — interacting with it should write nothing.
+        // The home page has two grids; use the first one.
+        await Page.GotoAsync(_baseUrl);
+        var firstHeader = Page.Locator(".nx-grid-header-row").First;
+        await Expect(firstHeader).ToBeVisibleAsync();
 
         // Sort on the home page grid by clicking Age header (index 3)
-        await Page.Locator(".nx-grid-header-row .nx-grid-column-title").Nth(3).ClickAsync();
+        await firstHeader.Locator(".nx-grid-column-title").Nth(3).ClickAsync();
 
         // No localStorage entry should exist for the persistence demo key
         var storedValue = await Page.EvaluateAsync<string?>($"localStorage.getItem('{StorageKey}')");

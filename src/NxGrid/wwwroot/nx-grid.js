@@ -33,7 +33,12 @@
 
             const menuElement = gridElement.querySelector('.nx-grid-column-menu');
             if (menuElement && !menuElement.contains(event.target)) {
-                this.dotNetObjectReference.invokeMethodAsync('OnColumnMenuLostFocus');
+                // Header-row clicks are handled by OnColumnButtonClick — don't also
+                // dismiss the menu here, or in WASM the menu closes before it appears.
+                const headerRow = gridElement.querySelector('.nx-grid-header-row');
+                if (!headerRow || !headerRow.contains(event.target)) {
+                    this.dotNetObjectReference.invokeMethodAsync('OnColumnMenuLostFocus');
+                }
             }
 
             const contextMenu = gridElement.querySelector('.nx-grid-context-menu');

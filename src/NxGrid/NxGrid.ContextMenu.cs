@@ -92,7 +92,7 @@ public partial class NxGrid<T>
     [JSInvokable]
     public void OnColumnMenuLostFocus()
     {
-        if (openColumn == null || openingMenu) return;
+        if (openColumn == null) return;
         openColumn = null;
         StateHasChanged();
     }

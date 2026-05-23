@@ -3,20 +3,29 @@ using NUnit.Framework;
 
 namespace NxGrid.Playwright;
 
-[TestFixture]
+[TestFixtureSource(nameof(AppUrls))]
 public class GridRenderTests : PageTest
 {
-    private static readonly string BaseUrl =
-        Environment.GetEnvironmentVariable("NXGRID_BASE_URL") ?? "http://localhost:5254";
+    private readonly string _baseUrl;
+
+    public GridRenderTests(string baseUrl) => _baseUrl = baseUrl;
+
+    private static readonly string[] AppUrls =
+    {
+        "http://localhost:5254",   // Blazor Server
+        "http://localhost:5233",   // Blazor WASM
+    };
 
     [Test]
     public async Task HomePage_GridRendersWithExpectedColumns()
     {
-        await Page.GotoAsync(BaseUrl);
+        await Page.GotoAsync(_baseUrl);
 
-        await Expect(Page.Locator(".nx-grid-header-row")).ToBeVisibleAsync();
+        // The home page has two grids; target the declared-columns grid (second one).
+        var declaredHeader = Page.Locator(".nx-grid-header-row").Nth(1);
+        await Expect(declaredHeader).ToBeVisibleAsync();
 
-        var columnTitles = Page.Locator(".nx-grid-column-title");
+        var columnTitles = declaredHeader.Locator(".nx-grid-column-title");
         await Expect(columnTitles).ToHaveCountAsync(5);
         await Expect(columnTitles.Nth(0)).ToHaveTextAsync("Id");
         await Expect(columnTitles.Nth(1)).ToHaveTextAsync("First");

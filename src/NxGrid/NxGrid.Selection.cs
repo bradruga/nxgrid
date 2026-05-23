@@ -128,7 +128,6 @@ public partial class NxGrid<T>
 
         menuNeedsPositioning = true;
         openColumn = column;
-        openingMenu = true;
         StateHasChanged();
     }
 
