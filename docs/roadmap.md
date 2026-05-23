@@ -96,7 +96,7 @@ Significant new capabilities. Some may require breaking API changes or substanti
 
 **Why:** Many columns need richer editors: date pickers, number steppers with increment/decrement buttons, star ratings, color swatches. The current text input forces all editing through a string round-trip.
 
-**Design:** The grid manages focus, Escape handling, and the overlay layer. The custom editor is responsible for calling commit or cancel. ComboBoxOptions would be reimplementable as a built-in EditorTemplate.
+**Design:** The grid manages focus, Escape handling, and the overlay layer. The custom editor is responsible for calling commit or cancel. `ComboBoxItems` would be reimplementable as a built-in EditorTemplate.
 
 ---
 

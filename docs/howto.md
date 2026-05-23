@@ -240,12 +240,12 @@ When `Nullable = true` on a column and the user deletes the cell, `NewValue` is 
 
 ### Combo-box columns
 
-For columns with `ComboBoxOptions`, the committed value is always one of the strings returned by the options function (or whatever the user typed if they did not select from the list).
+For columns with `ComboBoxItems`, the committed value is always one of the values returned by the items function (or whatever the user typed if they did not select from the list).
 
 ```razor
 <NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate">
     <NxGridColumn Property="@(x => x.Department)"
-        ComboBoxOptions="@(() => departments)" />
+        ComboBoxItems="@(() => NxGridComboItem.From(departments))" />
 </NxGrid>
 ```
 
@@ -372,7 +372,7 @@ A column with a `Template` can also be editable (`Editable="true"` on the column
 
 ```razor
 <NxGridColumn Property="@(x => x.Department)"
-    ComboBoxOptions="@(() => departments)">
+    ComboBoxItems="@(() => NxGridComboItem.From(departments))">
     <Template Context="person">
         <span class="dept-chip">@person.Department</span>
     </Template>

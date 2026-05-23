@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Date range filtering supporting multiple formats (YYYY, MM-DD, MM-DD-YY, MM-DD-YYYY)
 - Column resizing by drag on the resize grip in the header
 - Custom cell templates via `RenderFragment`
-- Per-row editability control via `CanEdit` callback
+- Per-row editability control via `CellEditableGetter` callback
 - Row numbering gutter (opt-in via `ShowRowNumbers`)
 - Row banding / alternating row colors (enabled by default, opt-out via `RowBanding`)
 - CSS custom property theming for all colors and borders

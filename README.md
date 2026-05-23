@@ -77,7 +77,7 @@ Set `Editable="true"` and handle `OnUpdate` to make columns editable. The user t
 <NxGrid T="Employee" Data="@employees" Editable="true" OnUpdate="@HandleUpdate">
     <NxGridColumn Property="@(x => x.Name)" />
     <NxGridColumn Property="@(x => x.Department)"
-                  ComboBoxOptions="@(() => departments)" />
+                  ComboBoxItems="@(() => NxGridComboItem.From(departments))" />
 </NxGrid>
 
 @code {

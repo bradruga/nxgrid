@@ -197,7 +197,7 @@ If a cell is clicked while another cell is being edited, the edit is committed f
 
 ## Combo box
 
-Combo box editing applies to columns that have `ComboBoxOptions` set. The behavior differs from plain text editing:
+Combo box editing applies to columns that have `ComboBoxItems` set. The behavior differs from plain text editing:
 
 **Opening the dropdown:**
 
@@ -211,7 +211,7 @@ Combo box editing applies to columns that have `ComboBoxOptions` set. The behavi
 
 **Filtering:** options are filtered case-insensitively by the current `editValue`. When the combo button is used to open the dropdown, all options are shown regardless of the current edit value. "No matches" is displayed when the filter returns an empty list.
 
-`ComboBoxOptions` is called fresh on each open, so the list can be dynamic.
+`ComboBoxItems` is called fresh on each open, so the list can be dynamic.
 
 **Keyboard while dropdown is open:**
 
