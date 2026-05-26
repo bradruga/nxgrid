@@ -211,4 +211,119 @@ public class NxGridRenderTests : BunitContext
         Assert.That(header.TextContent.Trim(), Is.EqualTo("Custom Header"));
         Assert.That(cut.Find(".nx-grid-column-title").TextContent.Trim(), Is.Not.EqualTo("Name"));
     }
+
+    // ── MathExpression ────────────────────────────────────────────────────────
+
+    private record NumericRow(int Qty, decimal Price);
+
+    [Test]
+    public void MathExpression_EvaluatesIntExpression()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Expression<Func<NumericRow, object?>> prop = r => r.Qty;
+        var cut = Render<NxGrid<NumericRow>>(p => p
+            .Add(x => x.Data, [new NumericRow(10, 5m)])
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<NumericRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "MathExpression", true);
+                b.CloseComponent();
+            }));
+
+        var col = cut.FindComponent<NxGridColumn<NumericRow>>().Instance;
+        var (typedValue, _) = col.ParseAndBuildApply("4*6");
+        Assert.That(typedValue, Is.EqualTo(24));
+    }
+
+    [Test]
+    public void MathExpression_EvaluatesDecimalExpression()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Expression<Func<NumericRow, object?>> prop = r => r.Price;
+        var cut = Render<NxGrid<NumericRow>>(p => p
+            .Add(x => x.Data, [new NumericRow(10, 5m)])
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<NumericRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "MathExpression", true);
+                b.CloseComponent();
+            }));
+
+        var col = cut.FindComponent<NxGridColumn<NumericRow>>().Instance;
+        var (typedValue, _) = col.ParseAndBuildApply("100-15.5");
+        Assert.That(typedValue, Is.EqualTo(84.5m));
+    }
+
+    [Test]
+    public void MathExpression_PassesRawStringOnInvalidExpression()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Expression<Func<NumericRow, object?>> prop = r => r.Qty;
+        var cut = Render<NxGrid<NumericRow>>(p => p
+            .Add(x => x.Data, [new NumericRow(10, 5m)])
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<NumericRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "MathExpression", true);
+                b.CloseComponent();
+            }));
+
+        var col = cut.FindComponent<NxGridColumn<NumericRow>>().Instance;
+        var (typedValue, _) = col.ParseAndBuildApply("abc");
+        Assert.That(typedValue, Is.EqualTo("abc"));
+    }
+
+    [Test]
+    public void MathExpression_PlainNumberPassesThroughUnchanged()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Expression<Func<NumericRow, object?>> prop = r => r.Qty;
+        var cut = Render<NxGrid<NumericRow>>(p => p
+            .Add(x => x.Data, [new NumericRow(10, 5m)])
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<NumericRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "MathExpression", true);
+                b.CloseComponent();
+            }));
+
+        var col = cut.FindComponent<NxGridColumn<NumericRow>>().Instance;
+        var (typedValue, _) = col.ParseAndBuildApply("42");
+        Assert.That(typedValue, Is.EqualTo(42));
+    }
+
+    // ── EnableSelectionMath ───────────────────────────────────────────────────
+
+    [Test]
+    public void EnableSelectionMath_StatusBarAbsentWithNoSelection()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<NxGrid<NumericRow>>(p => p
+            .Add(x => x.Data, [new NumericRow(10, 5m)])
+            .Add(x => x.EnableSelectionMath, true)
+            .AddChildContent<NxGridColumn<NumericRow>>(col => col
+                .Add(x => x.Display, r => r.Qty)));
+
+        Assert.That(cut.FindAll(".nx-grid-status-bar").Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task EnableSelectionMath_StatusBarRenderedAfterSelection()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var row = new NumericRow(10, 5m);
+        var cut = Render<NxGrid<NumericRow>>(p => p
+            .Add(x => x.Data, [row])
+            .Add(x => x.EnableSelectionMath, true)
+            .AddChildContent<NxGridColumn<NumericRow>>(col => col
+                .Add(x => x.Display, r => r.Qty)));
+
+        await cut.InvokeAsync(() => cut.Instance.SelectRow(row));
+
+        cut.Find(".nx-grid-status-bar");
+    }
 }

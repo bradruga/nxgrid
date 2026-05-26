@@ -66,6 +66,16 @@ public static class SampleData
         "Paul Thompson", "Quinn Garcia", "Rose Martinez", "Sam Robinson", "Tara Clark"
     ];
 
+    public static List<BudgetLine> GetBudgetLines() =>
+    [
+        new BudgetLine { Description = "Office Chairs",    Qty = 12, UnitCost = 249.99m },
+        new BudgetLine { Description = "Standing Desks",   Qty = 8,  UnitCost = 595.00m },
+        new BudgetLine { Description = "Monitor Stands",   Qty = 20, UnitCost = 59.95m  },
+        new BudgetLine { Description = "Cable Management", Qty = 50, UnitCost = 12.50m  },
+        new BudgetLine { Description = "Whiteboards",      Qty = 4,  UnitCost = 179.00m },
+        new BudgetLine { Description = "Desk Lamps",       Qty = 30, UnitCost = 34.99m  },
+    ];
+
     public static List<SalesRow> GenerateSalesRows(int count)
     {
         var rng = new Random(7);

@@ -739,6 +739,47 @@ private async Task OnPrintClick()
 }
 """;
 
+    public static readonly string MathExpression = """
+// MathExpression="true" evaluates arithmetic before passing to OnUpdate.
+// Applies to typed commits and paste. Falls back to the raw string on failure.
+<NxGrid T="BudgetLine" Data="@lines" OnUpdate="@HandleUpdate"
+        Editable="true" Cursor="@NxGridCursor.Cell">
+    <NxGridColumn Property="@(x => x.Description)" Width="220" />
+    <NxGridColumn Property="@(x => x.Qty)"      Width="100" MathExpression="true"
+                  Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.UnitCost)" Width="120" MathExpression="true"
+                  Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Title="Extended"
+                  Display="@(x => (x.Qty * x.UnitCost).ToString("N2"))"
+                  Width="120" Alignment="NxGridColumnAlignment.Right"
+                  Editable="false" />
+</NxGrid>
+
+@code {
+    // Typing "4*6" in Qty  → OnUpdate receives NewValue = 24 (int)
+    // Typing "1000/4" in Unit Cost → NewValue = 250m (decimal)
+    async Task HandleUpdate(NxGridUpdateArgs<BudgetLine> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+}
+""";
+
+    public static readonly string SelectionMath = """
+// EnableSelectionMath adds a Sum / Avg / Count bar below the grid body.
+// Non-numeric cells in the selection are excluded from Sum and Avg
+// but still count toward Count.
+<NxGrid T="SalesRow" Data="@rows" EnableSelectionMath="true" Style="height:320px">
+    <NxGridColumn Display="@(x => x.Name)"       Title="Name"       Width="160" Frozen="true" />
+    <NxGridColumn Display="@(x => x.Department)" Title="Department" Width="130" Frozen="true" />
+    <NxGridColumn Property="@(x => x.Jan)" Width="80" Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.Feb)" Width="80" Alignment="NxGridColumnAlignment.Right" />
+    @* ...remaining months... *@
+</NxGrid>
+""";
+
     public static readonly string HeaderTemplateIcon = """
 <NxGridColumn Title="Name" Display="@(x => x.FirstName + " " + x.LastName)">
     <HeaderTemplate>

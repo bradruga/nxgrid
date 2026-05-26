@@ -1,0 +1,109 @@
+@page "/math-expression"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Math Expressions — NxGrid</PageTitle>
+
+<h1>Math Expressions</h1>
+<p class="doc-intro">
+    Set <code>MathExpression="true"</code> on any editable column to let users type arithmetic
+    expressions directly into cells. On commit, the expression is evaluated and the numeric
+    result is passed to <code>OnUpdate</code> — identical to typing the number directly.
+    Works for keyboard entry and paste. Falls back to the raw string if the expression is invalid.
+</p>
+
+<div class="doc-section">
+    <h2>Budget Lines</h2>
+    <p class="doc-note">
+        <strong>Qty</strong> and <strong>Unit Cost</strong> have <code>MathExpression="true"</code>.
+        Try typing <code>4*6</code>, <code>(200+50)/3</code>, or <code>1000/4</code> in either column
+        and pressing <kbd class="doc-kbd">Enter</kbd>. The <strong>Extended</strong> column
+        recalculates immediately.
+    </p>
+    <NxGrid T="BudgetLine" Data="@lines" OnUpdate="@HandleUpdate"
+            Editable="true" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+        <NxGridColumn Property="@(x => x.Description)" Width="220" />
+        <NxGridColumn Property="@(x => x.Qty)"      Title="Qty"       Width="100"
+                      MathExpression="true" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.UnitCost)" Title="Unit Cost" Width="120"
+                      MathExpression="true" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Extended"
+                      Display="@(x => (x.Qty * x.UnitCost).ToString("N2"))"
+                      Width="120" Alignment="NxGridColumnAlignment.Right"
+                      Editable="false" />
+    </NxGrid>
+    @if (updateLog.Count > 0)
+    {
+        <div class="doc-output">
+            @foreach (var entry in updateLog)
+            {
+                <div>@entry</div>
+            }
+        </div>
+    }
+    <pre class="doc-code" style="margin-top:12px">@mathExprCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Supported Expressions</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Input</th><th>Committed value</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>4*6</code></td><td>24</td><td>Multiplication</td></tr>
+            <tr><td><code>100-15.5</code></td><td>84.5</td><td>Subtraction with decimal</td></tr>
+            <tr><td><code>(200+50)/3</code></td><td>83.333…</td><td>Parentheses for grouping</td></tr>
+            <tr><td><code>-5</code></td><td>-5</td><td>Unary negation</td></tr>
+            <tr><td><code>abc</code></td><td>abc (unchanged)</td><td>Invalid expression — raw string passed through</td></tr>
+            <tr><td><code>10/0</code></td><td>10/0 (unchanged)</td><td>Division by zero — raw string passed through</td></tr>
+        </tbody>
+    </table>
+    <p class="doc-note" style="margin-top:8px">
+        Functions (<code>sqrt</code>, <code>round</code>, etc.) are not supported.
+        Whitespace between tokens is ignored — <code>4 * 6</code> is valid.
+    </p>
+</div>
+
+<div class="doc-section">
+    <h2>Column Parameter</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>MathExpression</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>
+                    When <code>true</code>, the committed string is evaluated as an arithmetic
+                    expression before being passed to <code>OnUpdate</code>. Supports
+                    <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>,
+                    parentheses, and decimal literals. If evaluation fails or the result is
+                    not finite, the raw input is passed unchanged.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<BudgetLine> lines = SampleData.GetBudgetLines();
+    List<string> updateLog = [];
+
+    async Task HandleUpdate(NxGridUpdateArgs<BudgetLine> args)
+    {
+        foreach (var rowArgs in args.Rows)
+        {
+            foreach (var change in rowArgs.Changes)
+            {
+                var oldDisplay = change.OldValue is decimal od ? od.ToString("N2") : change.OldValue?.ToString() ?? "—";
+                var newDisplay = change.NewValue is decimal nd ? nd.ToString("N2") : change.NewValue?.ToString() ?? "—";
+                updateLog.Insert(0, $"{rowArgs.Row.Description} — {change.Column.EffectiveTitle}: {oldDisplay} → {newDisplay}");
+                change.Apply(rowArgs.Row);
+            }
+        }
+        if (updateLog.Count > 6) updateLog = updateLog.Take(6).ToList();
+        await Task.CompletedTask;
+    }
+
+    string mathExprCode = DemoCodeSamples.MathExpression;
+}

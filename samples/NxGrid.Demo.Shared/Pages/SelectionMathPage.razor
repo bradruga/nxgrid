@@ -1,0 +1,88 @@
+@page "/selection-math"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Selection Math — NxGrid</PageTitle>
+
+<h1>Selection Math</h1>
+<p class="doc-intro">
+    Set <code>EnableSelectionMath="true"</code> on the grid to show a status bar below the grid
+    body. The bar displays <strong>Sum</strong>, <strong>Avg</strong>, and <strong>Count</strong>
+    for the current selection and updates live as the selection changes. Non-numeric cells are
+    excluded from Sum and Avg but included in Count.
+</p>
+
+<div class="doc-section">
+    <h2>Monthly Sales</h2>
+    <p class="doc-note">
+        Select any range of cells. Try selecting a single month column to see its total,
+        or a multi-column range to sum across months. Select across the
+        <strong>Name</strong> or <strong>Department</strong> columns too — those cells
+        are text so they are excluded from Sum and Avg, but they add to Count.
+    </p>
+    <NxGrid T="SalesRow" Data="@sales" EnableSelectionMath="true"
+            Style="height:320px" ShowRowNumbers="true">
+        <NxGridColumn Display="@(x => x.Name)"       Title="Name"       Width="155" Frozen="true" />
+        <NxGridColumn Display="@(x => x.Department)" Title="Department" Width="120" Frozen="true" />
+        <NxGridColumn Property="@(x => x.Jan)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Feb)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Mar)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Apr)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.May)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Jun)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Jul)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Aug)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Sep)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Oct)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Nov)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Dec)" Width="72" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Total" Display="@(x => x.Total.ToString("N0"))"
+                      Width="90" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@selectionMathCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Status Bar Values</h2>
+    <table class="doc-table">
+        <thead><tr><th>Value</th><th>Definition</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><strong>Sum</strong></td>
+                <td>Sum of all numeric cell values in the selection. Hidden when the selection contains no numeric cells.</td>
+            </tr>
+            <tr>
+                <td><strong>Avg</strong></td>
+                <td>Sum ÷ count of numeric cells. Hidden when the selection contains no numeric cells.</td>
+            </tr>
+            <tr>
+                <td><strong>Count</strong></td>
+                <td>Total number of cells in the selection, including non-numeric cells.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Grid Parameter</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>EnableSelectionMath</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>
+                    When <code>true</code>, a status bar is rendered below the grid body showing
+                    <strong>Sum</strong>, <strong>Avg</strong>, and <strong>Count</strong> for the
+                    current selection. The bar updates on every selection change.
+                    Sum and Avg are only shown when at least one numeric cell is selected.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<SalesRow> sales = SampleData.GenerateSalesRows(20);
+    string selectionMathCode = DemoCodeSamples.SelectionMath;
+}

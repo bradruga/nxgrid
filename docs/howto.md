@@ -15,6 +15,8 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to use custom cell templates](#how-to-use-custom-cell-templates)
 - [How to select and scroll programmatically](#how-to-select-and-scroll-programmatically)
 - [How to hide and show columns](#how-to-hide-and-show-columns)
+- [How to allow arithmetic expressions in editable cells](#how-to-allow-arithmetic-expressions-in-editable-cells)
+- [How to show Sum, Avg, and Count for the selected range](#how-to-show-sum-avg-and-count-for-the-selected-range)
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
 - [How to build and use the package locally](#how-to-build-and-use-the-package-locally)
 - [How to publish the package to NuGet.org](#how-to-publish-the-package-to-nugetorg)
@@ -479,6 +481,68 @@ Call `SetColumnHidden(columnId, hidden)` on the grid reference. The change takes
 ```
 
 `SetColumnHidden` matches the column by `Id` first, then falls back to `Title`. Always set `Id` on columns you plan to control programmatically so the identity stays stable across `Title` changes.
+
+---
+
+## How to allow arithmetic expressions in editable cells
+
+Set `MathExpression="true"` on any editable column. When the user commits a value, the grid evaluates it as an arithmetic expression and passes the numeric result — already parsed to the column's CLR type — to `OnUpdate`. If the expression is invalid, the raw string is passed through unchanged.
+
+```razor
+<NxGrid T="RequisitionLineDto" Data="@lines" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.Description)" Width="220" />
+    <NxGridColumn Property="@(x => x.Quantity)"
+                  MathExpression="true"
+                  Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.UnitPrice)"
+                  MathExpression="true"
+                  Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+
+@code {
+    async Task HandleUpdate(NxGridUpdateArgs<RequisitionLineDto> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+}
+```
+
+The user can type `4*6` in Quantity and the cell commits `24` (as `int`). Typing `100-15.5` in Unit Price commits `84.5m` (as `decimal`). Typing `abc` passes `"abc"` unchanged.
+
+**Supported operators:** `+`, `-`, `*`, `/`, parentheses, unary negation. No functions. Whitespace is ignored.
+
+**Paste:** expressions pasted into a `MathExpression` column are also evaluated (after `TransformPastedValue` runs).
+
+---
+
+## How to show Sum, Avg, and Count for the selected range
+
+Set `EnableSelectionMath="true"` on the grid. A status bar appears below the grid body and updates as the user selects cells.
+
+```razor
+<NxGrid T="JournalLineDto" Data="@lines" EnableSelectionMath="true">
+    <NxGridColumn Property="@(x => x.Account)"     Width="160" />
+    <NxGridColumn Property="@(x => x.Description)" Width="200" />
+    <NxGridColumn Property="@(x => x.Debit)"
+                  Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.Credit)"
+                  Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+```
+
+Selecting a range of Debit cells shows their sum and average. Selecting across the Account column (text) adds to Count but not Sum or Avg — non-numeric cells are excluded from those two values.
+
+**Status bar values:**
+
+| Label | Definition |
+|---|---|
+| **Sum** | Sum of numeric cell values in the selection. Hidden when no numeric cells are selected. |
+| **Avg** | Sum ÷ count of numeric cells. Hidden when no numeric cells are selected. |
+| **Count** | Total cells in the selection, including non-numeric ones. |
+
+The status bar is hidden when there is no active selection.
 
 ---
 

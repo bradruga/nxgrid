@@ -183,7 +183,7 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 | Tab | Move right (wraps like the Tab navigation key) |
 | Click another cell | No navigation; selection moves to the clicked cell |
 
-On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with a `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
+On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. When `MathExpression = true` on the column, the raw input string is evaluated as an arithmetic expression before type-parsing runs (see [Math expression evaluation](#math-expression-evaluation)). `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with a `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
 
 ### Cancelling an edit
 
@@ -192,6 +192,46 @@ Escape cancels the edit. `OnUpdate` is never called. The data is unchanged becau
 ### Edit mode and mouse clicks
 
 If a cell is clicked while another cell is being edited, the edit is committed first (moving selection to the clicked cell), not cancelled.
+
+---
+
+## Math expression evaluation
+
+When `MathExpression = true` on an editable column, the commit sequence has an extra step before type-parsing:
+
+1. The raw `editValue` string (what the user typed) is passed to an arithmetic evaluator (`DataTable.Compute`).
+2. If evaluation produces a finite number, that number is converted to a string using the current thread culture (the same culture used by the downstream type parsers) and replaces the raw input.
+3. Type-parsing then runs on the (possibly replaced) string exactly as normal: `int.TryParse`, `decimal.TryParse`, etc. If parsing fails for the evaluated result (e.g. `"4.5"` into an `int` column), the result string is passed to `OnUpdate` as a raw string — the same fallback as any un-parseable typed value.
+4. If evaluation fails for any reason (syntax error, division by zero, `Infinity`, or `NaN`), the raw input string is used unchanged. No error is surfaced; the behavior is identical to a column without `MathExpression`.
+
+**Operator support:** `+`, `-`, `*`, `/`, parentheses for grouping, unary negation (e.g. `-5`). Whitespace between tokens is ignored. No functions (`sqrt`, `round`, etc.).
+
+**Evaluation scope:** math evaluation runs inside `ParseAndBuildApply` on `NxGridColumn<T>`, so it applies to all paths that call that method:
+
+- Single-cell typed commit (Enter, Tab, click away)
+- Ctrl+Enter fill (applying one value to many cells)
+- Paste via `Ctrl/⌘+V` — after `TransformPastedValue` runs (i.e. `TransformPastedValue` receives the raw pasted text; math evaluation runs on its output)
+
+Plain numbers pass through transparently: `"24"` evaluates to `"24"` and is then parsed as `int` `24`.
+
+---
+
+## Selection math status bar
+
+When `EnableSelectionMath = true`, a `<div class="nx-grid-status-bar">` is rendered inside the grid container, `position: sticky; bottom: 0`, so it stays at the bottom of the visible area without vertical scrolling.
+
+The bar is hidden when `selectedRange` is `null` (no selection). When a selection exists, `ComputeSelectionMath()` iterates every cell in the range using `visibleColumns` and `filteredData`:
+
+- **Count** — total cells in the selection rectangle (`rowCount × colCount`). Includes non-numeric cells.
+- **NumericCount** — cells where `EffectiveValueGetter` returns a value that `Convert.ToDouble` can convert to a finite number.
+- **Sum** — sum of those numeric cell values.
+- **Avg** — `Sum / NumericCount`. Only shown when `NumericCount > 0`.
+
+Sum and Avg are hidden when the selection contains no numeric cells (e.g. a selection consisting entirely of string columns). Count is always shown.
+
+Sum and Avg are formatted with `"N2"` (two decimal places, current culture). Count is an integer.
+
+The computation runs during each Blazor render triggered by `StateHasChanged`. Because `StateHasChanged` is already called on every selection change (mouse, keyboard, or programmatic), no additional observer wiring is required.
 
 ---
 

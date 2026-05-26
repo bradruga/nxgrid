@@ -32,6 +32,7 @@
     /// Custom markup for each dropdown item. When set, replaces the plain Display string in the list.
     /// </summary>
     [Parameter] public RenderFragment<NxGridComboItem>? ComboBoxItemTemplate { get; set; }
+    [Parameter] public bool MathExpression { get; set; }
     [Parameter] public bool CheckBox { get; set; }
     [Parameter] public bool Frozen { get; set; }
     [Parameter] public bool Freezable { get; set; } = true;
@@ -136,6 +137,22 @@
         }
     }
 
+    private static string? TryEvaluateMath(string expression)
+    {
+        try
+        {
+            var result = new System.Data.DataTable().Compute(expression.Trim(), null);
+            if (result is DBNull || result == null) return null;
+            var d = Convert.ToDouble(result);
+            if (!double.IsFinite(d)) return null;
+            return d.ToString(System.Globalization.CultureInfo.CurrentCulture);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static string SplitPascalCase(string name)
     {
         if (string.IsNullOrEmpty(name)) return name;
@@ -168,6 +185,9 @@
             }
             return (null, null);
         }
+
+        if (MathExpression)
+            rawValue = TryEvaluateMath(rawValue) ?? rawValue;
 
         object? typed = null;
         bool    parsed = false;

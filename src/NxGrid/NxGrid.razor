@@ -118,6 +118,19 @@
                        CellEditableGetter="@CellEditableGetter" />
     </Virtualize>
 
+    @if (EnableSelectionMath && selectedRange != null)
+    {
+        var math = ComputeSelectionMath();
+        <div class="nx-grid-status-bar">
+            @if (math.NumericCount > 0)
+            {
+                <span class="nx-grid-status-item"><span class="nx-grid-status-label">Sum:</span> @math.Sum.ToString("N2")</span>
+                <span class="nx-grid-status-item"><span class="nx-grid-status-label">Avg:</span> @math.Avg.ToString("N2")</span>
+            }
+            <span class="nx-grid-status-item"><span class="nx-grid-status-label">Count:</span> @math.Count</span>
+        </div>
+    }
+
     @if (openColumn != null)
     {
         <div class="nx-grid-column-menu" style="top:@(menuTop)px;left:@(menuLeft)px;@(menuNeedsPositioning ? "visibility:hidden;" : "")">

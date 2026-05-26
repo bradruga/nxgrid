@@ -518,6 +518,33 @@
   cursor: not-allowed;
 }
 
+.nx-grid-status-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 3px 8px;
+  background-color: var(--nx-grid-header-bg);
+  border-top: 1px solid var(--nx-grid-border);
+  font-size: 12px;
+  color: var(--nx-grid-icon-muted-fg);
+  z-index: 2;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.nx-grid-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nx-grid-status-label {
+  font-weight: 600;
+}
+
 .nx-grid-cell-frozen-last {
   box-shadow: 2px 0 4px var(--nx-grid-shadow);
 }

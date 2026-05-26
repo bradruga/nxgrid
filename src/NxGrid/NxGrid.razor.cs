@@ -46,6 +46,7 @@ public partial class NxGrid<T>
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
     [Parameter] public string? StateKey { get; set; }
     [Parameter] public bool AutoSizeColumns { get; set; } = true;
+    [Parameter] public bool EnableSelectionMath { get; set; }
 
     private string _selectionColor = "#C7C7C7";
 

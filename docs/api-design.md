@@ -65,6 +65,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `Cursor` | `NxGridCursor` | `Default` | CSS cursor applied to body cells only (not column or row headers). `Default` → `default`, `Cell` → `cell`, `Pointer` → `pointer`. |
 | `StateKey` | `string?` | — | When set, the grid saves column widths (including manual-mode lock state), sort state, and filter state to `localStorage` under this key after every user change, and restores it on first render. Each grid instance on a page should use a unique key. |
 | `AutoSizeColumns` | `bool` | `true` | When `true` (default), columns without a `MaxWidth` use `flex-grow: 1` to fill available space. Set to `false` to start the grid in manual mode immediately — all columns render at their declared `Width` with no flex growth, as if the user had already resized. |
+| `EnableSelectionMath` | `bool` | `false` | When `true`, a status bar is rendered below the grid body (sticky, does not scroll vertically) showing **Sum**, **Avg**, and **Count** for the current selection. Non-numeric cells in the selection are excluded from Sum and Avg but included in Count. Sum and Avg are hidden when the selection contains no numeric cells. The bar disappears when there is no active selection. |
 
 ### Content
 
@@ -170,6 +171,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | Parameter | Type | Notes |
 |---|---|---|
 | `Nullable` | `bool` | When `true`, Delete clears the cell to `null` rather than `0`/`""`. |
+| `MathExpression` | `bool` | When `true` and the column is editable, the raw input string is evaluated as an arithmetic expression before being passed to `OnUpdate`. Supports `+`, `-`, `*`, `/`, parentheses, unary negation, and decimal literals. Whitespace is ignored. If evaluation fails (syntax error, division by zero, non-finite result), the raw string is passed unchanged — identical behavior to a column without `MathExpression`. Applies to typed commits, Ctrl+Enter fill, and paste (after `TransformPastedValue` runs). |
 | `ComboBoxItems` | `Func<IEnumerable<NxGridComboItem>>?` | Turns the inline editor into a combo box. The function is called fresh on each open. The selected item's `Value` is committed via `Property`; `Display` is shown in the dropdown and in the non-editing cell. Use `NxGridComboItem.From(source, value, display)` to project any typed collection into combo items. |
 | `ComboBoxItemTemplate` | `RenderFragment<NxGridComboItem>?` | Custom markup for each dropdown item. When set, replaces the plain `Display` string in the dropdown list. |
 
