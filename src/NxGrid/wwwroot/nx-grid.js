@@ -272,3 +272,30 @@ export function localStorageSet(key, value) {
 export function localStorageRemove(key) {
     try { localStorage.removeItem(key); } catch { }
 }
+export function triggerPrint(printAreaId) {
+    const printArea = document.getElementById(printAreaId);
+    if (!printArea) return;
+
+    // Move to body so no ancestor positioning offsets the print area
+    const parent = printArea.parentNode;
+    const nextSibling = printArea.nextSibling;
+    document.body.appendChild(printArea);
+
+    const styleEl = document.createElement('style');
+    styleEl.textContent = [
+        '@media print {',
+        `  body > *:not(#${CSS.escape(printAreaId)}) { display: none !important; }`,
+        `  #${CSS.escape(printAreaId)} { position: static !important; visibility: visible !important; }`,
+        `  #${CSS.escape(printAreaId)} * { visibility: visible !important; }`,
+        '}'
+    ].join('\n');
+    document.head.appendChild(styleEl);
+
+    window.addEventListener('afterprint', () => {
+        styleEl.remove();
+        if (nextSibling) parent.insertBefore(printArea, nextSibling);
+        else parent.appendChild(printArea);
+    }, { once: true });
+
+    window.print();
+}

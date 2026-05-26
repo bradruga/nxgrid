@@ -90,6 +90,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public ValueTask LocalStorageRemove(string key)
         => module.InvokeVoidAsync("localStorageRemove", key);
 
+    public ValueTask TriggerPrint(string printAreaId)
+        => module.InvokeVoidAsync("triggerPrint", printAreaId);
+
     public async ValueTask DisposeAsync()
     {
         try { await jsObject.InvokeVoidAsync("dispose"); } catch { }

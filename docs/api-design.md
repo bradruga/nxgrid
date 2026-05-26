@@ -116,7 +116,15 @@ Task  ScrollToEnd()                                // scroll to the last row
 Task  SelectRow(T row)                             // programmatically select a row and scroll it into view
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title
+Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
 ```
+
+`PrintAsync` opens a modal dialog showing the current filtered/sorted data as a plain table with a live preview. The dialog offers two options:
+
+- **Print everything** — all filtered/sorted rows, all visible columns.
+- **Print selection** — the rows and columns intersected by the current selection (disabled when no selection exists).
+
+Clicking **Print** triggers the browser print dialog. The output is isolated from the host app's CSS: only the title, date, and table are printed.
 
 ---
 

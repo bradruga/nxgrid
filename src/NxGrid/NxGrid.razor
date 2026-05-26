@@ -311,5 +311,90 @@
             }
         </div>
     }
+
+    @if (printDialogOpen)
+    {
+        <div class="nx-print-dialog-backdrop" @onclick="ClosePrintDialog">
+            <div class="nx-print-dialog" @onclick:stopPropagation>
+                <div class="nx-print-dialog-header">
+                    <span class="nx-print-dialog-title">Print</span>
+                    <button type="button" class="nx-print-dialog-close" @onclick="ClosePrintDialog">✕</button>
+                </div>
+                <div class="nx-print-dialog-body">
+                    <div class="nx-print-dialog-options">
+                        <label class="nx-print-option">
+                            <input type="radio" name="@($"nx-print-scope-{id}")"
+                                   checked="@printAll"
+                                   @onchange="@(() => printAll = true)" />
+                            <span>Print everything — @filteredData.Count @(filteredData.Count == 1 ? "row" : "rows"), @visibleColumns.Count @(visibleColumns.Count == 1 ? "column" : "columns")</span>
+                        </label>
+                        <label class="nx-print-option @(selectedRange == null ? "nx-print-option-disabled" : "")">
+                            <input type="radio" name="@($"nx-print-scope-{id}")"
+                                   disabled="@(selectedRange == null)"
+                                   checked="@(!printAll)"
+                                   @onchange="@(() => printAll = false)" />
+                            <span>Print selection — @PrintSelectionRowCount @(PrintSelectionRowCount == 1 ? "row" : "rows"), @PrintSelectionColCount @(PrintSelectionColCount == 1 ? "column" : "columns")</span>
+                        </label>
+                    </div>
+                    <div class="nx-print-preview-wrap">
+                        <table class="nx-print-table">
+                            <thead>
+                                <tr>
+                                    @foreach (var col in GetPrintColumns())
+                                    {
+                                        <th>@col.EffectiveTitle</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in GetPrintRows())
+                                {
+                                    <tr>
+                                        @foreach (var col in GetPrintColumns())
+                                        {
+                                            <td style="@(CellStyle?.Invoke(row, col))">@PrintCellValue(col, row)</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="nx-print-dialog-footer">
+                    <button type="button" class="nx-print-btn-print" @onclick="ExecutePrint">Print</button>
+                    <button type="button" class="nx-print-btn-cancel" @onclick="ClosePrintDialog">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="@($"{id}-print")" class="nx-print-area" aria-hidden="true">
+            @if (!string.IsNullOrWhiteSpace(_printTitle))
+            {
+                <h1 class="nx-print-title">@_printTitle</h1>
+            }
+            <p class="nx-print-date">@DateTime.Now.ToShortDateString()</p>
+            <table class="nx-print-table">
+                <thead>
+                    <tr>
+                        @foreach (var col in GetPrintColumns())
+                        {
+                            <th>@col.EffectiveTitle</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in GetPrintRows())
+                    {
+                        <tr>
+                            @foreach (var col in GetPrintColumns())
+                            {
+                                <td style="@(CellStyle?.Invoke(row, col))">@PrintCellValue(col, row)</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 

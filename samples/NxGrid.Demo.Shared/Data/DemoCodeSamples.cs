@@ -712,6 +712,33 @@ void HandleMenuClick(NxGridContextMenuItemArgs<Person> args)
 }
 """;
 
+    public static readonly string PrintBasic = """
+// Add @ref to the grid and call PrintAsync from a button.
+// The title argument is optional — omit it to print with no heading.
+<button @onclick="@(() => grid!.PrintAsync("Employee Directory"))">Print</button>
+
+<NxGrid T="Person" @ref="grid" Data="@people">
+    <NxGridColumn Property="@(x => x.FirstName)" />
+    <NxGridColumn Property="@(x => x.LastName)"  />
+    <NxGridColumn Property="@(x => x.Department)" />
+    <NxGridColumn Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+
+@code {
+    NxGrid<Person>? grid;
+    List<Person> people = [ /* ... */ ];
+}
+""";
+
+    public static readonly string PrintDynamicTitle = """
+// PrintAsync is awaitable — use it from any async event handler.
+// The title can reference page state or be computed at call time.
+private async Task OnPrintClick()
+{
+    await grid!.PrintAsync($"Employee Report — {DateTime.Today:MMMM d, yyyy}");
+}
+""";
+
     public static readonly string HeaderTemplateIcon = """
 <NxGridColumn Title="Name" Display="@(x => x.FirstName + " " + x.LastName)">
     <HeaderTemplate>

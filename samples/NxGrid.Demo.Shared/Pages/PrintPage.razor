@@ -1,0 +1,82 @@
+@page "/print"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Print — NxGrid</PageTitle>
+
+<h1>Print</h1>
+<p class="doc-intro">
+    <code>PrintAsync(string? title = null)</code> opens a modal dialog with a live preview of the
+    current filtered and sorted data. Users can choose <strong>Print everything</strong> (all
+    visible rows and columns) or <strong>Print selection</strong> (only the intersected rows and
+    columns of the active cell range).
+</p>
+
+<div class="doc-section">
+    <h2>Try it</h2>
+    <p class="doc-note">
+        Use the ▾ column menu to sort or filter the data, then click <strong>Print</strong>.
+        The preview reflects the active view. Select a range of cells first to unlock the
+        <strong>Print selection</strong> option.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn" @onclick="@(() => grid!.PrintAsync("Employee Directory"))">
+            Print
+        </button>
+    </div>
+    <NxGrid T="Person" @ref="grid" Data="@people" Style="height:380px"
+            ShowRowNumbers="true" Cursor="@NxGridCursor.Cell"
+            CellStyle="@GetCellStyle">
+        <NxGridColumn Property="@(x => x.Id)"
+                       Title="ID" Width="55" MaxWidth="55"
+                       Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Display="@(x => $"{x.FirstName} {x.LastName}")"
+                       Title="Name" Width="160" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)" Width="70"
+                       Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>Basic usage</h2>
+    <pre class="doc-code">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Dynamic title</h2>
+    <p class="doc-note">
+        <code>PrintAsync</code> is awaitable — call it from any async handler, and pass a
+        dynamically-computed title.
+    </p>
+    <pre class="doc-code">@dynamicTitleCode</pre>
+</div>
+
+@code {
+    List<Person> people = SampleData.GeneratePeople(40);
+    NxGrid<Person>? grid;
+
+    string? GetCellStyle(Person row, NxGridColumn<Person> col) => col.EffectiveTitle switch
+    {
+        "Department" => row.Department switch
+        {
+            "Engineering" => "background:#dbeafe;color:#1e40af",
+            "Finance"     => "background:#dcfce7;color:#166534",
+            "HR"          => "background:#fef9c3;color:#854d0e",
+            "Marketing"   => "background:#fce7f3;color:#9d174d",
+            "Sales"       => "background:#ffedd5;color:#9a3412",
+            "Legal"       => "background:#ede9fe;color:#5b21b6",
+            _             => null
+        },
+        "Age" => row.Age switch
+        {
+            >= 55 => "color:#dc2626;font-weight:600",
+            >= 45 => "color:#d97706",
+            <= 28 => "color:#16a34a",
+            _     => null
+        },
+        _ => null
+    };
+
+    string basicCode = DemoCodeSamples.PrintBasic;
+    string dynamicTitleCode = DemoCodeSamples.PrintDynamicTitle;
+}
