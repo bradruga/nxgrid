@@ -269,7 +269,7 @@
                                       Title="@letter"
                                       Property="@(x => x.EditValue)"
                                       Display="@(x => FormatDisplay(sheet[x.RowIndex, ci]))"
-                                      Width="@ColWidth(ci)"
+                                      MinWidth="@ColWidth(ci)"
                                       MaxWidth="@ColWidth(ci)">
                             <Template Context="ssRow">
                                 @{

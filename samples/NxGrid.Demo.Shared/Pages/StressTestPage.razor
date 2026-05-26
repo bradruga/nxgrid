@@ -25,7 +25,7 @@
             Cursor="@NxGridCursor.Cell">
         <NxGridColumn Title="#"
                       Property="@(x => x.Id)"
-                      Width="75" MaxWidth="75"
+                      MinWidth="75" MaxWidth="75"
                       Alignment="NxGridColumnAlignment.Right" />
         @for (int c = 0; c < ColCount - 1; c++)
         {

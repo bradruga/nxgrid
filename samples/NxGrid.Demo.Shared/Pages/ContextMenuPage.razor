@@ -21,7 +21,7 @@
     <NxGrid T="Person" Data="@SampleData.People.ToList()"
             OnContextMenuShowing="@BuildBasicMenu"
             OnContextMenuItemClicked="@HandleBasicClick">
-        <NxGridColumn Property="@(x => x.Id)"         Width="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.Id)"         MinWidth="50" MaxWidth="50" />
         <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
         <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
         <NxGridColumn Property="@(x => x.Department)" />
@@ -41,7 +41,7 @@
     <NxGrid T="Person" Data="@SampleData.People.ToList()"
             OnContextMenuShowing="@BuildDynamicMenu"
             OnContextMenuItemClicked="@HandleDynamicClick">
-        <NxGridColumn Property="@(x => x.Id)"         Width="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.Id)"         MinWidth="50" MaxWidth="50" />
         <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
         <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
         <NxGridColumn Property="@(x => x.Department)" Width="160" />

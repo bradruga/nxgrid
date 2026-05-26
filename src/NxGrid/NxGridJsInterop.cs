@@ -48,9 +48,14 @@ public class NxGridJsInterop<T> : IAsyncDisposable
         return jsObject.InvokeAsync<NxMenuPosition>("positionColumnMenu", columnIndex);
     }
 
-    public ValueTask<double> ResizeColumn(int columnIndex)
+    public ValueTask<double[]> ResizeColumn(int columnIndex, double startMouseX, int? minWidth, int? maxWidth)
     {
-        return jsObject.InvokeAsync<double>("resizeColumn", columnIndex);
+        return jsObject.InvokeAsync<double[]>("resizeColumn", columnIndex, startMouseX, minWidth, maxWidth);
+    }
+
+    public ValueTask CleanupResizeStyle()
+    {
+        return jsObject.InvokeVoidAsync("cleanupResizeStyle");
     }
 
     public ValueTask<int> GetPageRowCount(int rowHeight)

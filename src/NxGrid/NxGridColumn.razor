@@ -190,12 +190,12 @@
 
     private string BuildWidthStyle()
     {
-        if (UserWidth != null)
-            return $"width:{UserWidth}px;min-width:{UserWidth}px;max-width:{UserWidth}px;";
-
-        var style = $"width:{Width}px;";
-        style += MinWidth != null ? $"min-width:{MinWidth}px;" : $"min-width:{Width}px;";
-        style += MaxWidth != null ? $"max-width:{MaxWidth}px;" : "flex-grow:1;";
+        var w = UserWidth ?? Width;
+        var style = $"width:{w}px;";
+        if (MinWidth != null) style += $"min-width:{MinWidth}px;";
+        if (MaxWidth != null) style += $"max-width:{MaxWidth}px;";
+        else if (UserWidth == null && !(Parent?.IsManualMode ?? false))
+            style += $"flex-grow:{Width};";
         return style;
     }
 

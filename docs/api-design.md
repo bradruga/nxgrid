@@ -63,7 +63,8 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `HasColumnMenu` | `bool` | `true` | Shows the ▾ button in each column header for sort/filter. |
 | `HeaderClickSelects` | `bool` | `false` | When true, clicking a column header selects the full column; clicking the row-number gutter selects the full row. |
 | `Cursor` | `NxGridCursor` | `Default` | CSS cursor applied to body cells only (not column or row headers). `Default` → `default`, `Cell` → `cell`, `Pointer` → `pointer`. |
-| `StateKey` | `string?` | — | When set, the grid saves column widths, sort state, and filter state to `localStorage` under this key after every user change, and restores it on first render. Each grid instance on a page should use a unique key. |
+| `StateKey` | `string?` | — | When set, the grid saves column widths (including manual-mode lock state), sort state, and filter state to `localStorage` under this key after every user change, and restores it on first render. Each grid instance on a page should use a unique key. |
+| `AutoSizeColumns` | `bool` | `true` | When `true` (default), columns without a `MaxWidth` use `flex-grow: 1` to fill available space. Set to `false` to start the grid in manual mode immediately — all columns render at their declared `Width` with no flex growth, as if the user had already resized. |
 
 ### Content
 
@@ -142,9 +143,9 @@ Columns self-register with their parent grid on initialization and deregister on
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
 | `Title` | `string?` | — | Column header text. When omitted, the header falls back to a `[Display(Name = "...")]` attribute on the property, then to the property name split on PascalCase word boundaries (e.g. `FirstName` → `"First Name"`). Explicit `Title` always wins. |
-| `Width` | `int` | `100` | Initial width in pixels. |
-| `MinWidth` | `int?` | — | Minimum width in pixels during user resize. |
-| `MaxWidth` | `int?` | — | Maximum width in pixels during user resize. When null, the column grows to fill space. |
+| `Width` | `int` | `100` | Preferred width in pixels. Used as the initial `width` CSS value. Not a minimum — without `MinWidth`, the column can be dragged narrower than `Width`. |
+| `MinWidth` | `int?` | — | Hard floor in pixels. Enforced both in auto mode (CSS `min-width`) and during user drag. Active even after `UserWidth` is set. |
+| `MaxWidth` | `int?` | — | Hard ceiling in pixels. Enforced both in auto mode (CSS `max-width`) and during user drag. When `null`, the column uses `flex-grow: {Width}` in auto mode so extra space is distributed proportionally to declared column widths. Active even after `UserWidth` is set. |
 | `Alignment` | `NxGridColumnAlignment` | `Left` | `Left`, `Center`, or `Right`. |
 | `Frozen` | `bool` | `false` | Pins the column to the left of the scroll area using `position: sticky`. Multiple frozen columns stack left-to-right in declaration order; all frozen columns appear before unfrozen ones regardless of original declaration order. Freezing a column at runtime (via the column menu) clears the active selection. |
 | `Freezable` | `bool` | `true` | When `true`, the column menu shows a "Freeze column / Unfreeze column" toggle. Set to `false` to prevent the user from changing the frozen state. The user-toggled state is included in `StateKey` persistence. |
@@ -365,7 +366,7 @@ When `ChildContent` is `null` (no `<NxGridColumn>` children), the grid reflects 
 | Aspect | Rule |
 |---|---|
 | Title | `[Display(Name = "...")]` attribute if present, otherwise the property name split on PascalCase word boundaries (`FirstName` → `"First Name"`) |
-| Width | `150 px` with `flex-grow: 1` (fills available space, same as a declared column with no `MaxWidth`) |
+| Width | `150 px` with `flex-grow: 150` in auto mode (extra space distributed proportionally to `Width`); locked to `150 px` once manual mode is active |
 | Alignment | `Right` for numeric types (`int`, `long`, `short`, `uint`, `ulong`, `ushort`, `byte`, `double`, `float`, `decimal`); `Left` for everything else |
 | Sort / filter | Fully supported — clicking the column header cycles sort, column menu provides filter |
 | Editing | Not enabled (auto-columns have no setter path) |

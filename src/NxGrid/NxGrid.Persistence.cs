@@ -88,10 +88,20 @@ public partial class NxGrid<T>
         {
             var column = FindColumn(savedCol.Id);
             if (column == null) continue;
-            if (savedCol.Width != null) column.UserWidth = savedCol.Width;
+            if (savedCol.Width != null)
+            {
+                var w = savedCol.Width.Value;
+                if (column.MinWidth.HasValue) w = Math.Max(w, column.MinWidth.Value);
+                if (column.MaxWidth.HasValue) w = Math.Min(w, column.MaxWidth.Value);
+                column.UserWidth = w;
+            }
             if (savedCol.Frozen != null) column.UserFrozen = savedCol.Frozen;
             if (savedCol.Hidden != null) column.UserHidden = savedCol.Hidden;
         }
+
+        if (columns.Any(c => c.UserWidth.HasValue))
+            _manualMode = true;
+
         ComputeFrozenOffsets();
 
         if (state.Sort != null)
@@ -129,6 +139,7 @@ public partial class NxGrid<T>
         if (jsInterop != null)
             await jsInterop.LocalStorageRemove(StateKey);
 
+        _manualMode = !AutoSizeColumns;
         foreach (var column in columns)
         {
             column.UserWidth = null;

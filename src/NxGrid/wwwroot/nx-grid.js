@@ -185,56 +185,52 @@
         }
     }
 
-    async resizeColumn(columnIndex){
+    async resizeColumn(columnIndex, startMouseX, minWidth, maxWidth){
         const gridElement = document.getElementById(this.id);
-        if (!gridElement) {
-            console.error("Grid element not found:", this.id);
-            return;
-        }
+        if (!gridElement) return [];
 
         const headerRow = gridElement.querySelector('.nx-grid-header-row');
-        if (!headerRow) {
-            console.error("Header row not found");
-            return;
-        }
+        if (!headerRow) return [];
 
         const headerCells = headerRow.querySelectorAll('.nx-grid-cell');
-        if (columnIndex < 0 || columnIndex >= headerCells.length) {
-            console.error("Invalid column index");
-            return;
-        }
+        if (columnIndex < 0 || columnIndex >= headerCells.length) return [];
 
-        const targetCell = headerCells[columnIndex];
-        const headerRowRect = headerRow.getBoundingClientRect();
-        const cellRect = targetCell.getBoundingClientRect();
+        // Snapshot every column's rendered pixel width before the drag starts
+        const initialWidths = Array.from(headerCells).map(c => c.getBoundingClientRect().width);
+        let currentWidth = initialWidths[columnIndex];
 
-        // Add a div to the table that overlays perfectly on grip
-        let overlay = document.createElement('div');
-        overlay.style.position = 'absolute';
-        overlay.style.left = (cellRect.right - headerRowRect.left - 6) + 'px';
-        overlay.style.width = '6px';
-        overlay.style.height = cellRect.height + 'px';
-        overlay.style.zIndex = '1000';
-        overlay.style.cursor = 'col-resize';
-        overlay.style.borderRight = '3px solid var(--bs-primary)';
-        headerRow.appendChild(overlay);
+        // Inject a style element that freezes ALL columns and live-updates the target
+        const styleEl = document.createElement('style');
+        document.head.appendChild(styleEl);
 
-        let overlayRect = overlay.getBoundingClientRect();
-        let originalLeft = overlayRect.left;
-        let originalWidth = cellRect.width;
+        const safeId = CSS.escape(this.id);
+        const colRule = (nth, w) =>
+            `#${safeId} .nx-grid-header-row .nx-grid-cell:nth-child(${nth}),` +
+            `#${safeId} .nx-grid-row .nx-grid-cell:nth-child(${nth}){` +
+            `width:${w}px!important;min-width:${w}px!important;max-width:${w}px!important;flex-grow:0!important}`;
 
-        // Make overlay move with the mouse
-        let mouseMoveHandler = (event) => {
-            overlay.style.left = (event.clientX - headerRowRect.left - overlayRect.width / 2) + 'px';
+        const updateStyles = (resizeWidth) => {
+            // +2: row-start gutter is first child, column cells start at nth-child(2)
+            styleEl.textContent = initialWidths
+                .map((w, i) => colRule(i + 2, i === columnIndex ? resizeWidth : w))
+                .join('');
+        };
+        updateStyles(currentWidth);
 
-            // Notify Blazor of resize
-            //objRef.invokeMethodAsync('OnColumnResizing', index, newWidth);
+        const effectiveMin = minWidth ?? 20;
+        const effectiveMax = maxWidth ?? Infinity;
+        const mouseMoveHandler = (event) => {
+            const delta = event.clientX - startMouseX;
+            currentWidth = Math.min(effectiveMax, Math.max(effectiveMin, initialWidths[columnIndex] + delta));
+            updateStyles(currentWidth);
         };
         document.addEventListener('mousemove', mouseMoveHandler);
 
-        // Wait for mouse up
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
         await new Promise((resolve) => {
-            let mouseUpHandler = () => {
+            const mouseUpHandler = () => {
                 document.removeEventListener('mousemove', mouseMoveHandler);
                 document.removeEventListener('mouseup', mouseUpHandler);
                 resolve();
@@ -242,15 +238,21 @@
             document.addEventListener('mouseup', mouseUpHandler);
         });
 
-        // Calculate new width
-        let finalOverlayRect = overlay.getBoundingClientRect();
-        let newWidth = originalWidth + (finalOverlayRect.left - originalLeft);
+        // Keep styleEl alive — Blazor hasn't re-rendered yet. C# will call
+        // cleanupResizeStyle() from OnAfterRenderAsync once the new widths are in the DOM.
+        this._resizeStyleEl = styleEl;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
 
-        // Clean up
-        headerRow.removeChild(overlay);
+        // Return all widths: initial for untouched columns, final for the resized one
+        return initialWidths.map((w, i) => i === columnIndex ? currentWidth : w);
+    }
 
-        // Return new width
-        return newWidth;
+    cleanupResizeStyle() {
+        if (this._resizeStyleEl) {
+            this._resizeStyleEl.remove();
+            this._resizeStyleEl = null;
+        }
     }
 }
 

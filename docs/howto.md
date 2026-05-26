@@ -69,7 +69,7 @@ Once any `<NxGridColumn>` is present, auto-columns are disabled entirely — the
 
 ## How to persist column state across page loads
 
-Set `StateKey` to a string that is unique to this grid instance. Recommended convention: `"{Module}-{Page}-{GridName}"`. The grid saves sort, filter, and column widths to `localStorage` automatically after every user change, and restores them on the next visit.
+Set `StateKey` to a string that is unique to this grid instance. Recommended convention: `"{Module}-{Page}-{GridName}"`. The grid saves sort, filter, and column widths (including manual-mode lock state) to `localStorage` automatically after every user change, and restores them on the next visit.
 
 ```razor
 <NxGrid T="InvoiceLineDto" Data="@lines" StateKey="accounting-invoice-lines">

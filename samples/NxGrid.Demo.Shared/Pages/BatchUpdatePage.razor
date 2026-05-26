@@ -17,7 +17,7 @@
         are affected. Watch the log below.
     </p>
     <NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
-        <NxGridColumn Property="@(x => x.Id)"        Width="60" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Id)"        MinWidth="50" MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
         <NxGridColumn Property="@(x => x.LastName)"  Width="140" />
         <NxGridColumn Property="@(x => x.Age)"       Width="80" Alignment="NxGridColumnAlignment.Right" />

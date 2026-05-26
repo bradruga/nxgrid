@@ -262,31 +262,42 @@ The paste origin is the top-left corner of the current selection. The clipboard 
 
 ## Column resize
 
-Dragging the resize grip at the right edge of any column header initiates a JS-driven drag interaction that returns the new width in pixels.
+Dragging the resize grip at the right edge of any column header initiates a JS-driven drag. All column cells update live during the drag via a scoped `<style>` element injected into `document.head`; the style is removed only after Blazor commits the post-drag render, so there is no flash on release.
 
-**Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns are resized to the same new width simultaneously.
+**Locking all columns on first resize.** The first time any column is resized, the grid switches permanently into *manual mode* for that page visit (and for future visits if `StateKey` is set). At that point every visible column's current rendered pixel width is captured and saved as `UserWidth`, not just the column being dragged. This prevents `flex-grow` columns from redistributing their widths unexpectedly after the drag.
 
-After resize, `OnColumnResized` fires once per resized column with `args.ColumnIndex` and `args.NewWidth`.
+**Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns are resized to the same new width simultaneously. All other visible columns are still locked at their pre-drag widths.
 
-**`UserWidth`** is set on the column object after a user drag. Once set, it takes precedence over `Width`/`MinWidth`/`MaxWidth`, and all three CSS width properties are pinned to the same value (no flex growth).
+After resize, `OnColumnResized` fires once per *explicitly* resized column (the dragged column, plus any co-selected columns) with `args.ColumnIndex` and `args.NewWidth`. It does not fire for columns that were merely locked.
+
+**`UserWidth`** is set on a column object after a user drag (or when all columns are locked on first resize). Once set, `width` is pinned to `UserWidth`. `MinWidth` and `MaxWidth` remain active as hard floors and ceilings even after a user resize.
 
 ---
 
 ## Column width and layout
 
-Before a user resize, column widths are determined by:
+### Auto mode (before any user resize)
+
+Column widths are determined by the declared parameters. Cells have `flex-shrink: 0` so they never compress below their declared `width`.
 
 | Condition | CSS applied |
 |---|---|
 | Always | `width: {Width}px` |
 | `MinWidth` set | `min-width: {MinWidth}px` |
-| `MinWidth` not set | `min-width: {Width}px` |
 | `MaxWidth` set | `max-width: {MaxWidth}px` |
-| `MaxWidth` not set | `flex-grow: 1` (column fills available space) |
+| `MaxWidth` not set | `flex-grow: {Width}` (extra space distributed proportionally to declared widths) |
 
-After a user resize, `UserWidth` overrides all of the above: `width`, `min-width`, and `max-width` are all fixed to `UserWidth`.
+`MinWidth` and `MaxWidth` are always active, including during drag. The drag is clamped to `[MinWidth, 20]` as a floor and `MaxWidth` as a ceiling. `Width` is a preferred/initial size, not a minimum — without `MinWidth` set, a column can be dragged narrower than `Width`.
 
-The header and data rows share the same `rowStyle`, which sets a `min-width` equal to the sum of all columns' `MinWidth ?? Width` plus 32 px for the row-number gutter. This prevents the grid from collapsing below a usable minimum when the container is narrow.
+### Manual mode (after first user resize)
+
+Once any column is resized, every visible column has `UserWidth` set to its pre-drag rendered pixel width. In manual mode, `width` is pinned to `UserWidth` and `flex-grow` is removed. `MinWidth` and `MaxWidth` continue to apply as hard constraints via their own CSS properties — they are never disabled by manual mode.
+
+Manual mode persists across page loads when `StateKey` is set. Calling `ClearSavedState()` resets all `UserWidth` values and returns to auto mode (unless `AutoSizeColumns="false"` is set on the grid, in which case manual mode is always active).
+
+`UserWidth` values are sanitized against the current `MinWidth`/`MaxWidth` when restored from `localStorage`, so adding or tightening constraints after the user has resized will be respected immediately on the next page load.
+
+The header and data rows share the same `rowStyle`, which sets a `min-width` equal to the sum of all columns' `UserWidth ?? max(Width, MinWidth ?? 0)` plus 32 px for the row-number gutter. This prevents the grid from collapsing below a usable minimum when the container is narrow.
 
 ---
 

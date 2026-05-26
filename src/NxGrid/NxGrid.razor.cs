@@ -45,6 +45,7 @@ public partial class NxGrid<T>
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
     [Parameter] public string? StateKey { get; set; }
+    [Parameter] public bool AutoSizeColumns { get; set; } = true;
 
     private string _selectionColor = "#C7C7C7";
 
@@ -90,7 +91,11 @@ public partial class NxGrid<T>
     private double comboDropdownLeft;
     private double comboDropdownWidth;
 
+    private bool _manualMode;
+    internal bool IsManualMode => _manualMode;
+
     private int renderToken;
+    private bool _pendingResizeCleanup;
 
     public void ForceRerender()
     {
@@ -132,6 +137,8 @@ public partial class NxGrid<T>
 
     protected override void OnParametersSet()
     {
+        if (!AutoSizeColumns)
+            _manualMode = true;
         ComputeFrozenOffsets();
 
         if (Data.Count != loadedDataCount || !ReferenceEquals(Data, loadedData))
@@ -183,6 +190,12 @@ public partial class NxGrid<T>
             StateHasChanged();
         }
 
+        if (_pendingResizeCleanup && jsInterop != null)
+        {
+            _pendingResizeCleanup = false;
+            await jsInterop.CleanupResizeStyle();
+        }
+
         if (comboNeedsPositioning && jsInterop != null)
         {
             comboNeedsPositioning = false;
@@ -206,7 +219,7 @@ public partial class NxGrid<T>
 
     private string BuildRowStyle()
     {
-        var totalWidth = 32 + visibleColumns.Sum(c => c.MinWidth ?? c.Width);
+        var totalWidth = 32 + visibleColumns.Sum(c => c.UserWidth ?? Math.Min(Math.Max(c.Width, c.MinWidth ?? 0), c.MaxWidth ?? int.MaxValue));
         return $"height:{RowHeight}px;min-width:{totalWidth}px";
     }
 

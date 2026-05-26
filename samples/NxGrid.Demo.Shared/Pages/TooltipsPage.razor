@@ -16,7 +16,7 @@
         string — no template needed. Return <code>null</code> for cells where no tooltip applies.
     </p>
     <NxGrid T="Person" Data="@people" CellTooltip="@GetStringTooltip" Cursor="NxGridCursor.Cell">
-        <NxGridColumn Property="@(x => x.Id)" Width="55" MaxWidth="55" />
+        <NxGridColumn Property="@(x => x.Id)" MinWidth="55" MaxWidth="55" />
         <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
         <NxGridColumn Property="@(x => x.LastName)" Width="130" />
         <NxGridColumn Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" Width="70" />
@@ -33,7 +33,7 @@
         descriptions or formatted hints.
     </p>
     <NxGrid T="Person" Data="@people" Cursor="NxGridCursor.Cell">
-        <NxGridColumn Property="@(x => x.Id)" Width="55" MaxWidth="55"
+        <NxGridColumn Property="@(x => x.Id)" MinWidth="55" MaxWidth="55"
                       HeaderTooltip="Unique identifier assigned at onboarding" />
         <NxGridColumn Property="@(x => x.FirstName)" Width="130"
                       HeaderTooltip="Legal first name as recorded in HR" />

@@ -248,19 +248,37 @@ public partial class NxGrid<T>
 
         isResizing = true;
         var columnIndex = visibleColumns.IndexOf(column);
-        var newSize = await jsInterop!.ResizeColumn(columnIndex);
+        var allWidths = await jsInterop!.ResizeColumn(columnIndex, args.ClientX, column.MinWidth, column.MaxWidth);
         isResizing = false;
 
-        if (newSize > 0)
+        if (allWidths is { Length: > 0 })
         {
-            var width = (int)newSize;
-            var columnsToResize = GetEntireColumnSelection(columnIndex);
+            var newWidth = (int)allWidths[columnIndex];
+            if (newWidth <= 0) return;
+
+            // Apply the new width to the dragged column (and any multi-selected columns),
+            // clamping each to its own MinWidth/MaxWidth constraints
+            var columnsToResize = GetEntireColumnSelection(columnIndex).ToHashSet();
             foreach (var idx in columnsToResize)
             {
-                visibleColumns[idx].UserWidth = width;
+                var col = visibleColumns[idx];
+                var w = newWidth;
+                if (col.MinWidth.HasValue) w = Math.Max(w, col.MinWidth.Value);
+                if (col.MaxWidth.HasValue) w = Math.Min(w, col.MaxWidth.Value);
+                col.UserWidth = w;
                 if (OnColumnResized.HasDelegate)
-                    await OnColumnResized.InvokeAsync(new NxGridColumnResizedArgs { ColumnIndex = idx, NewWidth = width });
+                    await OnColumnResized.InvokeAsync(new NxGridColumnResizedArgs { ColumnIndex = idx, NewWidth = w });
             }
+
+            // Freeze all other visible columns at their pre-drag rendered widths
+            for (var i = 0; i < visibleColumns.Count && i < allWidths.Length; i++)
+            {
+                if (!columnsToResize.Contains(i))
+                    visibleColumns[i].UserWidth = (int)allWidths[i];
+            }
+
+            _manualMode = true;
+            _pendingResizeCleanup = true;
             ComputeFrozenOffsets();
             renderToken++;
             StateHasChanged();

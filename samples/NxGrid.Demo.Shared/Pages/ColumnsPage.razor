@@ -67,7 +67,7 @@
     <h2>Width, MinWidth, MaxWidth</h2>
     <p class="doc-note">Drag any column resize grip to see the constraints in action. The Id column is fixed at 50px; the Name column can grow freely.</p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
-        <NxGridColumn Title="Id (fixed 50px)" Property="@(x => x.Id)"         Width="50"  MinWidth="50"  MaxWidth="50" />
+        <NxGridColumn Title="Id (fixed 50px)" Property="@(x => x.Id)"         MinWidth="50" MaxWidth="50" />
         <NxGridColumn Title="First (80–200)"  Property="@(x => x.FirstName)"  Width="120" MinWidth="80"  MaxWidth="200" />
         <NxGridColumn Title="Department (grows freely)" Property="@(x => x.Department)" Width="160" />
     </NxGrid>
