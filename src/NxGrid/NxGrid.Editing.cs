@@ -359,7 +359,6 @@ public partial class NxGrid<T>
                 {
                     if (tr >= filteredData.Count || tc >= visibleColumns.Count) continue;
                     if (!IsColumnEditable(visibleColumns[tc])) continue;
-                    if (CellEditableGetter != null && !CellEditableGetter(filteredData[tr], visibleColumns[tc])) continue;
                     var value = TransformPastedValue != null
                         ? TransformPastedValue(singleValue, tr - copyOrigin.row, tc - copyOrigin.col)
                         : singleValue;
@@ -381,7 +380,6 @@ public partial class NxGrid<T>
                     var targetCol = originCol + c;
                     if (targetRow >= filteredData.Count || targetCol >= visibleColumns.Count) continue;
                     if (!IsColumnEditable(visibleColumns[targetCol])) continue;
-                    if (CellEditableGetter != null && !CellEditableGetter(filteredData[targetRow], visibleColumns[targetCol])) continue;
                     var value = TransformPastedValue != null
                         ? TransformPastedValue(cells[c], rowDelta, colDelta)
                         : cells[c];

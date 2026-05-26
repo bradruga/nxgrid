@@ -1,4 +1,7 @@
 @page "/spreadsheet"
+@using System.Text.Json
+@inject IJSRuntime JS
+@implements IDisposable
 
 <PageTitle>Spreadsheet — NxGrid</PageTitle>
 
@@ -6,58 +9,161 @@
 <p class="doc-intro">
     NxGrid can serve as the rendering layer for a full spreadsheet UI.
     Formula evaluation (<code>=A1+B2</code>, <code>=SUM(B2:B13)</code>), per-cell styling,
-    a formula bar, and keyboard shortcuts (<kbd class="doc-kbd">Ctrl+B/I/U</kbd>) are all
-    driven by the same parameters you use elsewhere:
-    <code>CellStyle</code>, <code>OnSelectionChanged</code>, <code>OnKeyPressed</code>,
-    <code>TransformPastedValue</code>, and <code>ForceRerender()</code>.
+    a formula bar, checkbox cells, draggable charts, conditional formatting, and
+    local-storage persistence are all driven by the same parameters:
+    <code>CellStyle</code>, <code>CellEditableGetter</code>, <code>Template</code>,
+    <code>Overlays</code>, <code>OnKeyPressed</code>, and <code>ForceRerender()</code>.
 </p>
 
 <div class="doc-section" style="padding:0; overflow:hidden;">
 
     @* ── Toolbar ── *@
-    <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--nx-grid-border,#ddd); background:#fafafa; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:6px; padding:5px 10px; border-bottom:1px solid var(--nx-grid-border,#ddd); background:#fafafa; flex-wrap:wrap;">
 
         @* Bold / Italic / Underline / Strikethrough *@
         <div style="display:flex;">
-            <button class="ss-btn @(AnchorCell?.Bold==true?"ss-btn-active":"")"      style="width:30px; font-weight:700;"          @onclick="OnBoldClick"          title="Bold (Ctrl+B)">B</button>
-            <button class="ss-btn @(AnchorCell?.Italic==true?"ss-btn-active":"")"    style="width:30px; font-style:italic;"        @onclick="OnItalicClick"        title="Italic (Ctrl+I)">I</button>
-            <button class="ss-btn @(AnchorCell?.Underline==true?"ss-btn-active":"")" style="width:30px; text-decoration:underline;" @onclick="OnUnderlineClick"     title="Underline (Ctrl+U)">U</button>
-            <button class="ss-btn @(AnchorCell?.Strike==true?"ss-btn-active":"")"    style="width:30px; text-decoration:line-through;" @onclick="OnStrikeClick"    title="Strikethrough">S</button>
+            <button type="button" class="ss-btn @(AnchorCell?.Bold==true?"ss-btn-active":"")"      style="width:30px; font-weight:700;"              @onclick="OnBoldClick"          title="Bold (Ctrl+B)">B</button>
+            <button type="button" class="ss-btn @(AnchorCell?.Italic==true?"ss-btn-active":"")"    style="width:30px; font-style:italic;"            @onclick="OnItalicClick"        title="Italic (Ctrl+I)">I</button>
+            <button type="button" class="ss-btn @(AnchorCell?.Underline==true?"ss-btn-active":"")" style="width:30px; text-decoration:underline;"    @onclick="OnUnderlineClick"     title="Underline (Ctrl+U)">U</button>
+            <button type="button" class="ss-btn @(AnchorCell?.Strike==true?"ss-btn-active":"")"    style="width:30px; text-decoration:line-through;" @onclick="OnStrikeClick"       title="Strikethrough">S</button>
         </div>
 
         <div style="width:1px; height:22px; background:#ccc;"></div>
 
-        @* Fill color *@
-        <div style="display:flex; align-items:center; gap:4px;">
-            <span style="font-size:12px; color:#666;">Fill</span>
-            <input type="color" value="@selectedFill" @onchange="OnFillInput"
-                   style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
-            <button class="ss-btn" @onclick="ApplyFill"       title="Apply fill color">✓</button>
-            <button class="ss-btn" @onclick="ClearFill"       title="Clear fill">✕</button>
+        @* Checkbox toggle *@
+        <button type="button" class="ss-btn @(AnchorCell?.IsCheckBox==true?"ss-btn-active":"")" title="Toggle checkbox cell"
+                @onclick="OnToggleCheckBoxClick">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
+                <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+            </svg>
+        </button>
+
+        <div style="width:1px; height:22px; background:#ccc;"></div>
+
+        @* Fill color (split button) *@
+        <div style="position:relative; display:flex;">
+            <button type="button" class="ss-btn ss-split-l" title="Apply fill color"
+                    style="flex-direction:column; gap:1px; padding:2px 5px;"
+                    @onclick="ApplyFill">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15c-.59.59-.59 1.54 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l5.5-5.5c.59-.58.59-1.53 0-2.12zM5.21 10L10 5.21 14.79 10H5.21zM19 11.5s-2 2.17-2 3.5c0 1.1.9 2 2 2s2-.9 2-2c0-1.33-2-3.5-2-3.5z"/>
+                </svg>
+                <span style="display:block; width:20px; height:3px; background:@FillBarBg; border:1px solid rgba(0,0,0,.2); border-radius:1px;"></span>
+            </button>
+            <button type="button" class="ss-btn ss-split-r" title="Choose fill color"
+                    @onclick="ToggleFillPicker">
+                <svg width="7" height="5" viewBox="0 0 7 5"><path d="M0 0l3.5 5L7 0z" fill="currentColor"/></svg>
+            </button>
+            @if (showFillPicker)
+            {
+                <div style="position:fixed; inset:0; z-index:99;" @onclick="@(() => showFillPicker = false)"></div>
+                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:white; border:1px solid #ccc; border-radius:4px; box-shadow:0 4px 16px rgba(0,0,0,.15); padding:8px; width:220px;">
+                    <button type="button" class="ss-no-color-btn"
+                            @onclick="@(() => ApplyFillColor(null))">
+                        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid #bbb;border-radius:2px;overflow:hidden;flex-shrink:0;">
+                            <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1" y1="13" x2="13" y2="1" stroke="#c00" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        </span>
+                        No Fill
+                    </button>
+                    <div style="font-size:10px; color:#999; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Theme Colors</div>
+                    <div style="display:grid; grid-template-columns:repeat(10,18px); gap:2px; margin-bottom:8px;">
+                        @foreach (var row in OfficeThemeColors)
+                        {
+                            @foreach (var clr in row)
+                            {
+                                var c = clr;
+                                <button type="button" title="@c"
+                                        style="width:18px;height:18px;background:@c;border:1px solid rgba(0,0,0,.15);border-radius:2px;cursor:pointer;padding:0;"
+                                        @onclick="@(() => ApplyFillColor(c))" @onmousedown:preventDefault></button>
+                            }
+                        }
+                    </div>
+                    <div style="font-size:10px; color:#999; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Standard Colors</div>
+                    <div style="display:flex; gap:2px; margin-bottom:8px;">
+                        @foreach (var clr in OfficeStandardColors)
+                        {
+                            var c = clr;
+                            <button type="button" title="@c"
+                                    style="width:18px;height:18px;background:@c;border:1px solid rgba(0,0,0,.15);border-radius:2px;cursor:pointer;padding:0;"
+                                    @onclick="@(() => ApplyFillColor(c))" @onmousedown:preventDefault></button>
+                        }
+                    </div>
+                    <div style="border-top:1px solid #eee; padding-top:6px; display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:11px; color:#666; flex-shrink:0;">Custom:</span>
+                        <input type="color" value="@selectedFill" @onchange="OnFillInput"
+                               style="width:26px; height:22px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
+                    </div>
+                </div>
+            }
         </div>
 
         <div style="width:1px; height:22px; background:#ccc;"></div>
 
-        @* Text color *@
-        <div style="display:flex; align-items:center; gap:4px;">
-            <span style="font-size:12px; color:#666;">Text</span>
-            <input type="color" value="@selectedTextColor" @onchange="OnTextColorInput"
-                   style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
-            <button class="ss-btn" @onclick="ApplyTextColor"  title="Apply text color">✓</button>
-            <button class="ss-btn" @onclick="ClearTextColor"  title="Clear text color">✕</button>
+        @* Text color (split button) *@
+        <div style="position:relative; display:flex;">
+            <button type="button" class="ss-btn ss-split-l" title="Apply text color"
+                    style="flex-direction:column; gap:1px; padding:2px 5px;"
+                    @onclick="ApplyTextColor">
+                <span style="font-size:13px; font-weight:700; line-height:1; font-family:serif;">A</span>
+                <span style="display:block; width:20px; height:3px; background:@TextColorBarBg; border:1px solid rgba(0,0,0,.2); border-radius:1px;"></span>
+            </button>
+            <button type="button" class="ss-btn ss-split-r" title="Choose text color"
+                    @onclick="ToggleTextColorPicker">
+                <svg width="7" height="5" viewBox="0 0 7 5"><path d="M0 0l3.5 5L7 0z" fill="currentColor"/></svg>
+            </button>
+            @if (showTextColorPicker)
+            {
+                <div style="position:fixed; inset:0; z-index:99;" @onclick="@(() => showTextColorPicker = false)"></div>
+                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:white; border:1px solid #ccc; border-radius:4px; box-shadow:0 4px 16px rgba(0,0,0,.15); padding:8px; width:220px;">
+                    <button type="button" class="ss-no-color-btn"
+                            @onclick="@(() => ApplyTextColorValue(null))">
+                        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid #bbb;border-radius:2px;background:#000;flex-shrink:0;"></span>
+                        Automatic
+                    </button>
+                    <div style="font-size:10px; color:#999; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Theme Colors</div>
+                    <div style="display:grid; grid-template-columns:repeat(10,18px); gap:2px; margin-bottom:8px;">
+                        @foreach (var row in OfficeThemeColors)
+                        {
+                            @foreach (var clr in row)
+                            {
+                                var c = clr;
+                                <button type="button" title="@c"
+                                        style="width:18px;height:18px;background:@c;border:1px solid rgba(0,0,0,.15);border-radius:2px;cursor:pointer;padding:0;"
+                                        @onclick="@(() => ApplyTextColorValue(c))" @onmousedown:preventDefault></button>
+                            }
+                        }
+                    </div>
+                    <div style="font-size:10px; color:#999; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Standard Colors</div>
+                    <div style="display:flex; gap:2px; margin-bottom:8px;">
+                        @foreach (var clr in OfficeStandardColors)
+                        {
+                            var c = clr;
+                            <button type="button" title="@c"
+                                    style="width:18px;height:18px;background:@c;border:1px solid rgba(0,0,0,.15);border-radius:2px;cursor:pointer;padding:0;"
+                                    @onclick="@(() => ApplyTextColorValue(c))" @onmousedown:preventDefault></button>
+                        }
+                    </div>
+                    <div style="border-top:1px solid #eee; padding-top:6px; display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:11px; color:#666; flex-shrink:0;">Custom:</span>
+                        <input type="color" value="@selectedTextColor" @onchange="OnTextColorInput"
+                               style="width:26px; height:22px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
+                    </div>
+                </div>
+            }
         </div>
 
         <div style="width:1px; height:22px; background:#ccc;"></div>
 
         @* Alignment *@
         <div style="display:flex;">
-            <button class="ss-btn @(AnchorCell?.Align=="left"?"ss-btn-active":"")"   @onclick="@(() => OnAlignClick("left"))"   title="Align left">
+            <button type="button" class="ss-btn @(AnchorCell?.Align=="left"?"ss-btn-active":"")"   @onclick="@(() => OnAlignClick("left"))"   title="Align left">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M2 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/></svg>
             </button>
-            <button class="ss-btn @(AnchorCell?.Align=="center"?"ss-btn-active":"")" @onclick="@(() => OnAlignClick("center"))" title="Align center">
+            <button type="button" class="ss-btn @(AnchorCell?.Align=="center"?"ss-btn-active":"")" @onclick="@(() => OnAlignClick("center"))" title="Align center">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/></svg>
             </button>
-            <button class="ss-btn @(AnchorCell?.Align=="right"?"ss-btn-active":"")"  @onclick="@(() => OnAlignClick("right"))"  title="Align right">
+            <button type="button" class="ss-btn @(AnchorCell?.Align=="right"?"ss-btn-active":"")"  @onclick="@(() => OnAlignClick("right"))"  title="Align right">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M6 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-4-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-4-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/></svg>
             </button>
         </div>
@@ -66,23 +172,64 @@
 
         @* Decimal places *@
         <div style="display:flex;">
-            <button class="ss-btn" @onclick="OnRemoveDecimalClick" title="Decrease decimal places">
+            <button type="button" class="ss-btn" @onclick="OnRemoveDecimalClick" title="Decrease decimal places">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="14" viewBox="0 0 28 14"><text x="0" y="11" font-size="10" font-family="monospace" fill="currentColor">.0</text><polyline points="21,2 17,7 21,12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <button class="ss-btn" @onclick="OnAddDecimalClick" title="Increase decimal places">
+            <button type="button" class="ss-btn" @onclick="OnAddDecimalClick" title="Increase decimal places">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="14" viewBox="0 0 28 14"><text x="0" y="11" font-size="10" font-family="monospace" fill="currentColor">.00</text><polyline points="22,2 26,7 22,12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
         </div>
 
+        <div style="width:1px; height:22px; background:#ccc;"></div>
+
+        @* Charts toggle *@
+        <button type="button" class="ss-btn @(showChartPanel ? "ss-btn-active" : "")"
+                @onclick="@(() => { showChartPanel = !showChartPanel; if (showChartPanel) showCondFmtPanel = false; })"
+                title="Charts">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M0 0h1v15h15v1H0zm14.5 6h-2a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.5-.5m-4-4h-2a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5m-4 3h-2a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5"/>
+            </svg>
+            Charts
+        </button>
+
+        @* Conditional formatting toggle *@
+        <button type="button" class="ss-btn @(showCondFmtPanel ? "ss-btn-active" : "")"
+                @onclick="@(() => { showCondFmtPanel = !showCondFmtPanel; if (showCondFmtPanel) showChartPanel = false; })"
+                title="Conditional formatting">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+            </svg>
+            Cond. Fmt.
+        </button>
+
+        <div style="width:1px; height:22px; background:#ccc;"></div>
+
+        @* Reset *@
+        <button type="button" class="ss-btn" @onclick="ResetData" title="Reset to sample data and clear saved state">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z"/>
+                <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466"/>
+            </svg>
+            Reset
+        </button>
+
         <div style="margin-left:auto; font-size:12px; color:#888;">
-            Ctrl+B/I/U · paste adjusts formulas · SUM/MAX supported
+            @if (isSaving)
+            {
+                <span>Saving…</span>
+            }
+            else
+            {
+                <span>Ctrl+B/I/U · paste adjusts formulas · SUM/MAX supported</span>
+            }
         </div>
     </div>
 
     @* ── Formula bar ── *@
     <div style="display:flex; align-items:center; height:28px; padding:0 8px; border-bottom:1px solid var(--nx-grid-border,#ddd); background:#fff; gap:8px;">
         <span style="font-family:monospace; font-size:12px; color:#888; border:1px solid #ddd; border-radius:3px; padding:1px 6px; min-width:48px; text-align:center; display:inline-block;">
-            @(anchorRef.Length > 0 ? anchorRef : " ")
+            @(anchorRef.Length > 0 ? anchorRef : " ")
         </span>
         <span style="font-size:12px; color:#aaa; font-style:italic;">fx</span>
         <input style="flex:1; border:none; outline:none; font-family:monospace; font-size:13px;"
@@ -91,38 +238,251 @@
                @onkeydown="OnFormulaBarKeyDown" />
     </div>
 
-    @* ── Grid ── *@
-    <div style="height:520px;">
-        <NxGrid T="SsRow"
-                @ref="grid"
-                Data="@rows"
-                Style="height:100%"
-                ShowRowNumbers="true"
-                HeaderClickSelects="true"
-                RowHeight="24"
-                RowBanding="false"
-                HasColumnMenu="false"
-                Editable="true"
-                Cursor="@NxGridCursor.Cell"
-                OnUpdate="@HandleUpdate"
-                CellStyle="@GetCellStyle"
-                OnSelectionChanged="@OnSelectionChanged"
-                OnKeyPressed="@OnKeyPressed"
-                TransformPastedValue="@AdjustFormulaCellRefs">
-            <ChildContent>
-                @for (var i = 0; i < ColCount; i++)
+    @* ── Content area: grid + side panels ── *@
+    <div style="display:flex; height:520px;">
+
+        @* Grid *@
+        <div style="flex:1; min-width:0; overflow:hidden;">
+            <NxGrid T="SsRow"
+                    @ref="grid"
+                    Data="@rows"
+                    Style="height:100%"
+                    ShowRowNumbers="true"
+                    HeaderClickSelects="true"
+                    RowHeight="24"
+                    RowBanding="false"
+                    HasColumnMenu="false"
+                    Editable="true"
+                    Cursor="@NxGridCursor.Cell"
+                    OnUpdate="@HandleUpdate"
+                    CellStyle="@GetCellStyle"
+                    CellEditableGetter="@((row, col) => !sheet[row.RowIndex, col.Title![0] - 'A'].IsCheckBox)"
+                    OnSelectionChanged="@OnSelectionChanged"
+                    OnKeyPressed="@OnKeyPressed"
+                    TransformPastedValue="@AdjustFormulaCellRefs">
+                <ChildContent>
+                    @for (var i = 0; i < ColCount; i++)
+                    {
+                        var ci     = i;
+                        var letter = ((char)('A' + ci)).ToString();
+                        <NxGridColumn T="SsRow"
+                                      Title="@letter"
+                                      Property="@(x => x.EditValue)"
+                                      Display="@(x => FormatDisplay(sheet[x.RowIndex, ci]))"
+                                      Width="@ColWidth(ci)"
+                                      MaxWidth="@ColWidth(ci)">
+                            <Template Context="ssRow">
+                                @{
+                                    var tcell = sheet[ssRow.RowIndex, ci];
+                                }
+                                @if (tcell.IsCheckBox)
+                                {
+                                    <input type="checkbox"
+                                           style="cursor:pointer; margin:0;"
+                                           checked="@(tcell.Value == "true")"
+                                           @onchange="@(e => OnCheckBoxCellChanged(ssRow.RowIndex, ci, (bool)(e.Value ?? false)))"
+                                           @ondblclick:stopPropagation />
+                                }
+                                else
+                                {
+                                    @FormatDisplay(tcell)
+                                }
+                            </Template>
+                        </NxGridColumn>
+                    }
+                </ChildContent>
+                <Overlays>
+                    @foreach (var chart in charts)
+                    {
+                        var c = chart;
+                        <SpreadsheetChart Chart="@c"
+                                          CellDisplayGetter="@((r, col) => sheet[r, col].Display)"
+                                          RowCount="@RowCount"
+                                          ColCount="@ColCount"
+                                          DataVersion="@chartDataVersion"
+                                          OnDelete="@(() => DeleteChart(c))"
+                                          OnChanged="@TriggerSave" />
+                    }
+                </Overlays>
+            </NxGrid>
+        </div>
+
+        @* ── Chart panel ── *@
+        @if (showChartPanel)
+        {
+            <div style="width:300px; border-left:1px solid var(--nx-grid-border,#ddd); background:#fafafa; display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;">
+                <div style="padding:8px; border-bottom:1px solid #ddd;">
+                    <button type="button" class="ss-btn" style="width:100%;" @onclick="AddChart">+ Add Chart</button>
+                </div>
+
+                @if (charts.Count > 0)
                 {
-                    var ci = i;
-                    var letter = ((char)('A' + ci)).ToString();
-                    <NxGridColumn T="SsRow"
-                                  Title="@letter"
-                                  Property="@(x => x.EditValue)"
-                                  Display="@(x => FormatDisplay(sheet[x.RowIndex, ci]))"
-                                  Width="@ColWidth(ci)"
-                                  MaxWidth="@ColWidth(ci)" />
+                    <div style="padding:6px 8px; border-bottom:1px solid #ddd; display:flex; gap:4px;">
+                        <select style="flex:1; font-size:12px; padding:2px 4px; border:1px solid #ccc; border-radius:3px;"
+                                value="@selectedChart?.Id.ToString()"
+                                @onchange="OnChartSelectorChanged">
+                            @foreach (var c in charts)
+                            {
+                                <option value="@c.Id.ToString()">@c.Title</option>
+                            }
+                        </select>
+                        <button type="button" class="ss-btn" style="color:#c00;" @onclick="@(() => DeleteChart(selectedChart!))">Del</button>
+                    </div>
+
+                    @if (selectedChart != null)
+                    {
+                        <div style="padding:8px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
+
+                            <div>
+                                <label style="display:block; color:#666; margin-bottom:2px;">Title</label>
+                                <input style="width:100%; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-size:12px;"
+                                       value="@selectedChart.Title"
+                                       @onchange="@(e => { selectedChart.Title = e.Value?.ToString() ?? ""; TriggerSave(); StateHasChanged(); })" />
+                            </div>
+
+                            <div>
+                                <label style="display:block; color:#666; margin-bottom:2px;">Data Range <span style="color:#aaa;">(e.g. B1:D13)</span></label>
+                                <div style="display:flex; gap:4px;">
+                                    <input style="flex:1; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-family:monospace; font-size:12px;"
+                                           value="@selectedChart.DataRange"
+                                           @onchange="@(e => { selectedChart.DataRange = e.Value?.ToString() ?? ""; chartDataVersion++; TriggerSave(); StateHasChanged(); })" />
+                                    <button type="button" class="ss-btn" @onclick="@(() => UseSelectionFor(false))" title="Use current selection">Sel</button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="display:block; color:#666; margin-bottom:2px;">X Labels Range <span style="color:#aaa;">(optional)</span></label>
+                                <div style="display:flex; gap:4px;">
+                                    <input style="flex:1; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-family:monospace; font-size:12px;"
+                                           value="@selectedChart.XRange"
+                                           @onchange="@(e => { selectedChart.XRange = e.Value?.ToString() ?? ""; chartDataVersion++; TriggerSave(); StateHasChanged(); })" />
+                                    <button type="button" class="ss-btn" @onclick="@(() => UseSelectionFor(true))" title="Use current selection">Sel</button>
+                                </div>
+                            </div>
+
+                            <div style="display:flex; gap:12px;">
+                                <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+                                    <input type="checkbox"
+                                           checked="@selectedChart.HasHeaderRow"
+                                           @onchange="@(e => { selectedChart.HasHeaderRow = (bool)(e.Value ?? false); chartDataVersion++; TriggerSave(); StateHasChanged(); })" />
+                                    Header row
+                                </label>
+                                @if (string.IsNullOrWhiteSpace(selectedChart.XRange))
+                                {
+                                    <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+                                        <input type="checkbox"
+                                               checked="@selectedChart.HasHeaderColumn"
+                                               @onchange="@(e => { selectedChart.HasHeaderColumn = (bool)(e.Value ?? false); chartDataVersion++; TriggerSave(); StateHasChanged(); })" />
+                                        Header col
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
                 }
-            </ChildContent>
-        </NxGrid>
+            </div>
+        }
+
+        @* ── Conditional formatting panel ── *@
+        @if (showCondFmtPanel)
+        {
+            <div style="width:300px; border-left:1px solid var(--nx-grid-border,#ddd); background:#fafafa; display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;">
+                <div style="padding:8px; border-bottom:1px solid #ddd; display:flex; align-items:center; gap:6px;">
+                    <span style="flex:1; font-size:12px; font-weight:600; color:#333;">Conditional Formatting</span>
+                    <button type="button" class="ss-btn" @onclick="AddCondFmtRule">+ Rule</button>
+                </div>
+
+                @if (condFmtRules.Count == 0)
+                {
+                    <div style="padding:12px; font-size:12px; color:#888; text-align:center;">No rules yet. Click + Rule.</div>
+                }
+                else
+                {
+                    @foreach (var rule in condFmtRules)
+                    {
+                        var r = rule;
+                        var isSelected = selectedCondFmtRule == r;
+                        <div style="padding:6px 8px; border-bottom:1px solid #eee; cursor:pointer; @(isSelected ? "background:#e8f0fe;" : "")"
+                             @onclick="@(() => selectedCondFmtRule = r)">
+                            <div style="font-family:monospace; font-size:11px; color:#555;">
+                                @(string.IsNullOrWhiteSpace(r.ApplyToRange) ? "(no range)" : r.ApplyToRange)
+                            </div>
+                            <div style="font-size:11px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                @(string.IsNullOrWhiteSpace(r.Formula) ? "(no formula)" : r.Formula)
+                            </div>
+                            <div style="display:flex; gap:3px; margin-top:2px;">
+                                @if (r.BackgroundColor != null)
+                                {
+                                    <span style="display:inline-block; width:12px; height:12px; background:@r.BackgroundColor; border:1px solid #ccc; border-radius:2px;"></span>
+                                }
+                                @if (r.TextColor != null)
+                                {
+                                    <span style="display:inline-block; width:12px; height:12px; background:@r.TextColor; border:1px solid #ccc; border-radius:2px;"></span>
+                                }
+                                @if (r.Bold) { <span style="font-size:10px; font-weight:700;">B</span> }
+                                @if (r.Italic) { <span style="font-size:10px; font-style:italic;">I</span> }
+                            </div>
+                        </div>
+                    }
+                }
+
+                @if (selectedCondFmtRule != null)
+                {
+                    var editRule = selectedCondFmtRule;
+                    <div style="padding:8px; display:flex; flex-direction:column; gap:8px; font-size:12px; border-top:1px solid #ddd; background:#fff;">
+
+                        <div>
+                            <label style="display:block; color:#666; margin-bottom:2px;">Apply to Range</label>
+                            <input style="width:100%; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-family:monospace; font-size:12px;"
+                                   placeholder="e.g. A1:Z100"
+                                   value="@editRule.ApplyToRange"
+                                   @onchange="@(e => { editRule.ApplyToRange = e.Value?.ToString() ?? ""; OnCondFmtChanged(); })" />
+                        </div>
+
+                        <div>
+                            <label style="display:block; color:#666; margin-bottom:2px;">Format cells if formula is true</label>
+                            <input style="width:100%; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-family:monospace; font-size:12px;"
+                                   placeholder="e.g. =A1>100"
+                                   value="@editRule.Formula"
+                                   @onchange="@(e => { editRule.Formula = e.Value?.ToString() ?? ""; OnCondFmtChanged(); })" />
+                        </div>
+
+                        <div style="display:flex; gap:12px;">
+                            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+                                <input type="checkbox" checked="@editRule.Bold"
+                                       @onchange="@(e => { editRule.Bold = (bool)(e.Value ?? false); OnCondFmtChanged(); })" />
+                                <strong>Bold</strong>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+                                <input type="checkbox" checked="@editRule.Italic"
+                                       @onchange="@(e => { editRule.Italic = (bool)(e.Value ?? false); OnCondFmtChanged(); })" />
+                                <em>Italic</em>
+                            </label>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <label style="color:#666; width:64px;">Background</label>
+                            <input type="color" value="@(editRule.BackgroundColor ?? "#ffffff")"
+                                   style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;"
+                                   @onchange="@(e => { editRule.BackgroundColor = e.Value?.ToString(); OnCondFmtChanged(); })" />
+                            <button type="button" class="ss-btn" @onclick="@(() => { editRule.BackgroundColor = null; OnCondFmtChanged(); })">✕</button>
+                            <span style="color:#aaa; font-family:monospace;">@(editRule.BackgroundColor ?? "none")</span>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <label style="color:#666; width:64px;">Text color</label>
+                            <input type="color" value="@(editRule.TextColor ?? "#000000")"
+                                   style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;"
+                                   @onchange="@(e => { editRule.TextColor = e.Value?.ToString(); OnCondFmtChanged(); })" />
+                            <button type="button" class="ss-btn" @onclick="@(() => { editRule.TextColor = null; OnCondFmtChanged(); })">✕</button>
+                            <span style="color:#aaa; font-family:monospace;">@(editRule.TextColor ?? "none")</span>
+                        </div>
+
+                        <button type="button" class="ss-btn" style="color:#c00; border-color:#e99;" @onclick="@(() => DeleteCondFmtRule(editRule))">Delete Rule</button>
+                    </div>
+                }
+            </div>
+        }
     </div>
 </div>
 
@@ -131,8 +491,10 @@
     <p class="doc-note">
         The grid's <code>Data</code> is a list of thin row-index wrappers (<code>SsRow</code>).
         Each column's <code>Display</code> lambda reads from a 2-D <code>Cell[,]</code> array, so
-        the grid never owns the cell values — the worksheet model does.
-        <code>ForceRerender()</code> is called after any change to refresh computed formula results.
+        the grid never owns the cell values. <code>Template</code> renders checkboxes for
+        <code>IsCheckBox</code> cells. Chart overlays live in the <code>Overlays</code> slot.
+        Conditional formatting rules are evaluated after <code>Calculate()</code>.
+        All state is persisted automatically to <code>localStorage</code>.
     </p>
     <pre class="doc-code">@codeSnippet</pre>
 </div>
@@ -152,19 +514,27 @@
         font-size: 13px;
         color: #333;
         margin-right: -1px;
+        gap: 3px;
     }
     .ss-btn:hover { background: #f0f0f0; }
     .ss-btn-active { background: #dce8f8; border-color: #90b4e0; color: #1a4a80; }
+    .ss-split-l { border-radius: 3px 0 0 3px; }
+    .ss-split-r { border-radius: 0 3px 3px 0; padding: 0 5px; min-width: 14px; }
+    .ss-no-color-btn {
+        display: flex; align-items: center; gap: 6px;
+        width: 100%; padding: 4px 6px; margin-bottom: 6px;
+        font-size: 11px; color: #333; text-align: left;
+        border: 1px solid transparent; border-radius: 3px;
+        background: none; cursor: pointer;
+    }
+    .ss-no-color-btn:hover { background: #f0f0f0; }
 </style>
 
 @code {
     // ── Instance state ────────────────────────────────────────────────────────
-    // Types, constants, statics, and the code snippet are in SpreadsheetPage.razor.cs
-    // to keep Rider's Blazor analyzer happy (it struggles with those in @code).
 
     Cell[,] sheet = new Cell[RowCount, ColCount];
     List<SsRow> rows = [];
-
     NxGrid<SsRow>? grid;
 
     // formula bar / selection
@@ -173,14 +543,37 @@
     string formulaBarBaseValue  = "";
     string anchorRef            = "";
 
-    string selectedFill      = "#fff2cc";
-    string selectedTextColor = "#000000";
+    string? selectedFill      = "#FFFF00";
+    string? selectedTextColor = "#000000";
+    bool    showFillPicker;
+    bool    showTextColorPicker;
+
+    string FillBarBg      => selectedFill      ?? "linear-gradient(135deg,#fff 40%,#c00 40%,#c00 60%,#fff 60%)";
+    string TextColorBarBg => selectedTextColor ?? "#000000";
 
     Cell? AnchorCell => selectedRanges.Count > 0
         ? sheet[selectedRanges[0].StartRow, selectedRanges[0].StartCol]
         : null;
 
-    // ── Initialise ───────────────────────────────────────────────────────────
+    // charts
+    List<SpreadsheetChartDef> charts = [];
+    SpreadsheetChartDef? selectedChart;
+    bool showChartPanel = false;
+    int chartDataVersion = 0;
+
+    // conditional formatting
+    List<ConditionalFormattingRule> condFmtRules = [];
+    ConditionalFormattingRule? selectedCondFmtRule;
+    bool showCondFmtPanel = false;
+    ConditionalCellStyle?[,] conditionalStyles = new ConditionalCellStyle?[RowCount, ColCount];
+
+    // persistence
+    IJSObjectReference? jsModule;
+    System.Threading.Timer? saveTimer;
+    bool isSaving;
+    const string StorageKey = "nxgrid-spreadsheet-demo";
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     protected override void OnInitialized()
     {
@@ -194,9 +587,22 @@
         Calculate();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/NxGrid/nx-grid.js");
+        await LoadFromStorage();
+    }
+
+    public void Dispose()
+    {
+        saveTimer?.Dispose();
+    }
+
+    // ── Sample data ───────────────────────────────────────────────────────────
+
     void LoadSampleData()
     {
-        // ── Headers ──────────────────────────────────────────────────────────
         void H(int r, int c, string v)
         {
             var cell = sheet[r, c];
@@ -216,8 +622,8 @@
         H(0, 7, "YTD Revenue");
         H(0, 8, "Target");
         H(0, 9, "vs Target");
+        H(0, 10, "On Track");
 
-        // ── Monthly data ─────────────────────────────────────────────────────
         string[] months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         int[] revenue   = [82000, 75000, 91000, 88000, 103000, 115000,
@@ -232,24 +638,24 @@
         for (var i = 0; i < 12; i++)
         {
             var r = i + 1;
-
             sheet[r, 0].Value = months[i];
             sheet[r, 0].Align = "center";
-
             sheet[r, 1].Value = revenue[i].ToString();
             sheet[r, 2].Value = cogs[i].ToString();
-            sheet[r, 3].Value = $"=B{r + 1}-C{r + 1}";           // Gross Profit
+            sheet[r, 3].Value = $"=B{r + 1}-C{r + 1}";
             sheet[r, 4].Value = opex[i].ToString();
-            sheet[r, 5].Value = $"=D{r + 1}-E{r + 1}";           // Net Income
-            sheet[r, 6].Value = $"=F{r + 1}/B{r + 1}";           // Margin (decimal)
-            sheet[r, 7].Value = i == 0
-                ? $"=B{r + 1}"
-                : $"=H{r}+B{r + 1}";                              // YTD running sum
+            sheet[r, 5].Value = $"=D{r + 1}-E{r + 1}";
+            sheet[r, 6].Value = $"=F{r + 1}/B{r + 1}";
+            sheet[r, 7].Value = i == 0 ? $"=B{r + 1}" : $"=H{r}+B{r + 1}";
             sheet[r, 8].Value = target[i].ToString();
-            sheet[r, 9].Value = $"=B{r + 1}-I{r + 1}";           // vs Target
+            sheet[r, 9].Value = $"=B{r + 1}-I{r + 1}";
+
+            // Column K: checkbox showing whether on track (>= target)
+            sheet[r, 10].IsCheckBox = true;
+            sheet[r, 10].Value = revenue[i] >= target[i] ? "true" : "false";
+            sheet[r, 10].Align = "center";
         }
 
-        // ── Totals row ───────────────────────────────────────────────────────
         var tot = 13;
         sheet[tot, 0].Value = "Total";
         sheet[tot, 0].Bold  = true;
@@ -259,20 +665,58 @@
         sheet[tot, 4].Value = "=SUM(E2:E13)";
         sheet[tot, 5].Value = "=SUM(F2:F13)";
         sheet[tot, 6].Value = "=F14/B14";
-        sheet[tot, 8].Value = "=SUM(I2:I13)";
-        sheet[tot, 9].Value = "=SUM(J2:J13)";
+        sheet[tot, 8].Value  = "=SUM(I2:I13)";
+        sheet[tot, 9].Value  = "=SUM(J2:J13)";
+        sheet[tot, 10].Value = "=COUNTIF(K2:K13,TRUE)&\" / \"&COUNTA(K2:K13)";
 
-        for (var c = 0; c < ColCount; c++)
+        for (var c = 0; c <= 10; c++)
         {
             sheet[tot, c].Bold = true;
             sheet[tot, c].Fill = "#e2efda";
         }
 
-        // Margin column: italic note
         sheet[0, 6].Italic = true;
+
+        // Default conditional formatting rules
+        condFmtRules =
+        [
+            new ConditionalFormattingRule
+            {
+                ApplyToRange = "F2:F13",
+                Formula      = "=F2<0",
+                TextColor    = "#cc0000"
+            },
+            new ConditionalFormattingRule
+            {
+                ApplyToRange = "J2:J13",
+                Formula      = "=J2>=0",
+                TextColor    = "#2a7a2a"
+            },
+            new ConditionalFormattingRule
+            {
+                ApplyToRange = "J2:J13",
+                Formula      = "=J2<0",
+                TextColor    = "#cc0000"
+            }
+        ];
+
+        // Default chart
+        charts =
+        [
+            new SpreadsheetChartDef
+            {
+                Title         = "Revenue vs Target",
+                DataRange     = "B1:B13",
+                XRange        = "A2:A13",
+                HasHeaderRow  = true,
+                HasHeaderColumn = false,
+                X = 1032, Y = 48, Width = 420, Height = 270
+            }
+        ];
+        selectedChart = charts[0];
     }
 
-    // ── Formula engine ───────────────────────────────────────────────────────
+    // ── Formula engine ────────────────────────────────────────────────────────
 
     void Calculate()
     {
@@ -313,6 +757,8 @@
             for (var c = 0; c < ColCount; c++)
                 if (!done[r, c])
                     sheet[r, c].Display = "#err";
+
+        ApplyConditionalFormatting();
     }
 
     IEnumerable<(int r, int c)> GetRefs(string expr) =>
@@ -322,15 +768,30 @@
 
     string EvalFormula(string expr)
     {
-        expr = expr.Replace(" ", "");
+        expr = StripSpacesOutsideQuotes(expr);
         expr = ExpandFunctions(expr);
+        if (expr.Contains('&')) return EvalStringConcat(expr);
         expr = ResolveCellRefs(expr).Replace(",", "");
-        try
-        {
-            var pos = 0;
-            return ParseCmp(expr, ref pos).ToString();
-        }
+        try { var pos = 0; return ParseCmp(expr, ref pos).ToString(); }
         catch { return expr.Trim(); }
+    }
+
+    string EvalStringConcat(string expr)
+    {
+        var result = "";
+        foreach (var part in SplitByAmpersand(expr))
+        {
+            var p = part.Trim();
+            if (p.Length >= 2 && p[0] == '"' && p[^1] == '"')
+                result += p[1..^1];
+            else
+            {
+                var resolved = ResolveCellRefs(p).Replace(",", "");
+                try { var pos = 0; result += ParseCmp(resolved, ref pos); }
+                catch { result += resolved; }
+            }
+        }
+        return result;
     }
 
     string ExpandFunctions(string expr)
@@ -344,6 +805,48 @@
         {
             var vals = ResolveArgList(m.Groups[1].Value).ToList();
             return vals.Count == 0 ? "0" : vals.Max().ToString();
+        });
+        expr = CountIfFunc.Replace(expr, m =>
+        {
+            var rm = RangeRef.Match(m.Groups[1].Value.Trim());
+            if (!rm.Success) return "0";
+            var c1 = char.ToUpper(rm.Groups[2].Value[0]) - 'A';
+            var r1 = int.Parse(rm.Groups[4].Value) - 1;
+            var c2 = char.ToUpper(rm.Groups[6].Value[0]) - 'A';
+            var r2 = int.Parse(rm.Groups[8].Value) - 1;
+            var criteria = m.Groups[2].Value.Trim();
+            var count = 0;
+            for (var r = Math.Min(r1, r2); r <= Math.Max(r1, r2); r++)
+                for (var c = Math.Min(c1, c2); c <= Math.Max(c1, c2); c++)
+                {
+                    if (r < 0 || r >= RowCount || c < 0 || c >= ColCount) continue;
+                    var cellVal = sheet[r, c].Value;
+                    var cellDisp = sheet[r, c].Display;
+                    bool match;
+                    if      (string.Equals(criteria, "TRUE",  StringComparison.OrdinalIgnoreCase)) match = cellVal == "true";
+                    else if (string.Equals(criteria, "FALSE", StringComparison.OrdinalIgnoreCase)) match = cellVal == "false";
+                    else if (criteria.Length >= 2 && criteria[0] == '"' && criteria[^1] == '"')
+                        match = string.Equals(cellDisp, criteria[1..^1], StringComparison.OrdinalIgnoreCase);
+                    else match = decimal.TryParse(criteria, out var crit) &&
+                                 decimal.TryParse(cellDisp.Replace(",", ""), out var cv) && cv == crit;
+                    if (match) count++;
+                }
+            return count.ToString();
+        });
+        expr = CountAFunc.Replace(expr, m =>
+        {
+            var rm = RangeRef.Match(m.Groups[1].Value.Trim());
+            if (!rm.Success) return "0";
+            var c1 = char.ToUpper(rm.Groups[2].Value[0]) - 'A';
+            var r1 = int.Parse(rm.Groups[4].Value) - 1;
+            var c2 = char.ToUpper(rm.Groups[6].Value[0]) - 'A';
+            var r2 = int.Parse(rm.Groups[8].Value) - 1;
+            var count = 0;
+            for (var r = Math.Min(r1, r2); r <= Math.Max(r1, r2); r++)
+                for (var c = Math.Min(c1, c2); c <= Math.Max(c1, c2); c++)
+                    if (r >= 0 && r < RowCount && c >= 0 && c < ColCount && sheet[r, c].Value.Length > 0)
+                        count++;
+            return count.ToString();
         });
         return expr;
     }
@@ -384,33 +887,84 @@
             return m.Value;
         });
 
-    // ── Cell display ─────────────────────────────────────────────────────────
+    // ── Conditional formatting ────────────────────────────────────────────────
+
+    void ApplyConditionalFormatting()
+    {
+        conditionalStyles = new ConditionalCellStyle?[RowCount, ColCount];
+        if (condFmtRules.Count == 0) return;
+
+        for (var r = 0; r < RowCount; r++)
+            for (var c = 0; c < ColCount; c++)
+            {
+                bool bold = false, italic = false;
+                string? bg = null, text = null;
+                bool any = false;
+
+                foreach (var rule in condFmtRules)
+                {
+                    if (!EvaluateCondRule(rule, r, c)) continue;
+                    any = true;
+                    if (rule.Bold) bold = true;
+                    if (rule.Italic) italic = true;
+                    if (rule.BackgroundColor != null) bg = rule.BackgroundColor;
+                    if (rule.TextColor != null) text = rule.TextColor;
+                }
+
+                if (any)
+                    conditionalStyles[r, c] = new ConditionalCellStyle(bold, italic, bg, text);
+            }
+    }
+
+    bool EvaluateCondRule(ConditionalFormattingRule rule, int cellRow, int cellCol)
+    {
+        if (string.IsNullOrWhiteSpace(rule.ApplyToRange) || string.IsNullOrWhiteSpace(rule.Formula)) return false;
+        var m = RangeRef.Match(rule.ApplyToRange.Trim().Replace(" ", ""));
+        if (!m.Success) return false;
+
+        var c1 = char.ToUpper(m.Groups[2].Value[0]) - 'A';
+        var r1 = int.Parse(m.Groups[4].Value) - 1;
+        var c2 = char.ToUpper(m.Groups[6].Value[0]) - 'A';
+        var r2 = int.Parse(m.Groups[8].Value) - 1;
+
+        if (cellRow < Math.Min(r1, r2) || cellRow > Math.Max(r1, r2)) return false;
+        if (cellCol < Math.Min(c1, c2) || cellCol > Math.Max(c1, c2)) return false;
+
+        var formula = rule.Formula.Trim();
+        if (!formula.StartsWith("=")) return false;
+
+        var adjusted = AdjustFormulaCellRefs(formula, cellRow - Math.Min(r1, r2), cellCol - Math.Min(c1, c2));
+        var result   = EvalFormula(adjusted[1..]);
+        return decimal.TryParse(result, out var v) && v != 0;
+    }
+
+    // ── Cell display / style ─────────────────────────────────────────────────
 
     string? GetCellStyle(SsRow row, NxGridColumn<SsRow> col)
     {
         var ci   = col.Title![0] - 'A';
         var cell = sheet[row.RowIndex, ci];
+        var cf   = conditionalStyles[row.RowIndex, ci];
         var s    = "";
 
-        if (cell.Bold)      s += "font-weight:bold;";
-        if (cell.Italic)    s += "font-style:italic;";
+        var bold   = cell.Bold   || (cf?.Bold   ?? false);
+        var italic = cell.Italic || (cf?.Italic ?? false);
+
+        if (bold)         s += "font-weight:bold;";
+        if (italic)       s += "font-style:italic;";
         if (cell.Underline) s += "text-decoration:underline;";
         if (cell.Strike)    s += "text-decoration:line-through;";
-        if (cell.Color != null) s += $"color:{cell.Color};";
-        if (cell.Fill  != null) s += $"background:{cell.Fill};";
+
+        var textColor = cf?.TextColor       ?? cell.Color;
+        var bgColor   = cf?.BackgroundColor ?? cell.Fill;
+
+        if (textColor != null) s += $"color:{textColor};";
+        if (bgColor   != null) s += $"background:{bgColor};";
 
         if (cell.Align != null)
             s += $"text-align:{cell.Align};";
         else if (IsNumeric(cell.Display))
             s += "text-align:right;";
-
-        // Highlight negative net income
-        if (col.Title == "F" && decimal.TryParse(cell.Display, out var fv) && fv < 0)
-            s += "color:#c00;";
-
-        // Highlight vs-target positive in green, negative in red
-        if (col.Title == "J" && decimal.TryParse(cell.Display, out var jv))
-            s += jv >= 0 ? "color:#2a7a2a;" : "color:#c00;";
 
         return s.Length > 0 ? s : null;
     }
@@ -420,16 +974,17 @@
     void HandleUpdate(NxGridUpdateArgs<SsRow> args)
     {
         foreach (var rowArgs in args.Rows)
-        {
             foreach (var change in rowArgs.Changes)
             {
                 var ci  = change.Column.Title![0] - 'A';
                 var val = change.NewValue?.ToString() ?? "";
                 sheet[rowArgs.Row.RowIndex, ci].Value = val;
             }
-        }
+
         Calculate();
+        chartDataVersion++;
         grid?.ForceRerender();
+        TriggerSave();
     }
 
     void OnSelectionChanged(NxGridSelectionArgs<SsRow> args)
@@ -438,9 +993,9 @@
         if (args.Ranges.Count > 0)
         {
             var r = args.Ranges[0];
-            anchorRef      = $"{(char)('A' + r.StartCol)}{r.StartRow + 1}";
-            formulaBarValue = sheet[r.StartRow, r.StartCol].Value;
-            formulaBarBaseValue = formulaBarValue;
+            anchorRef           = $"{(char)('A' + r.StartCol)}{r.StartRow + 1}";
+            formulaBarValue      = sheet[r.StartRow, r.StartCol].Value;
+            formulaBarBaseValue  = formulaBarValue;
         }
         else
         {
@@ -450,9 +1005,9 @@
         }
     }
 
-    void OnFillInput(Microsoft.AspNetCore.Components.ChangeEventArgs e)      => selectedFill      = e.Value?.ToString() ?? "#fff2cc";
-    void OnTextColorInput(Microsoft.AspNetCore.Components.ChangeEventArgs e) => selectedTextColor = e.Value?.ToString() ?? "#000000";
-    void OnFormulaBarInput(Microsoft.AspNetCore.Components.ChangeEventArgs e) => formulaBarValue  = e.Value?.ToString() ?? "";
+    void OnFillInput(Microsoft.AspNetCore.Components.ChangeEventArgs e)      { selectedFill      = e.Value?.ToString() ?? "#fff2cc"; ApplyFill(); }
+    void OnTextColorInput(Microsoft.AspNetCore.Components.ChangeEventArgs e) { selectedTextColor = e.Value?.ToString() ?? "#000000"; ApplyTextColor(); }
+    void OnFormulaBarInput(Microsoft.AspNetCore.Components.ChangeEventArgs e) => formulaBarValue   = e.Value?.ToString() ?? "";
 
     void OnFormulaBarKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {
@@ -462,7 +1017,9 @@
             sheet[r0.StartRow, r0.StartCol].Value = formulaBarValue;
             formulaBarBaseValue = formulaBarValue;
             Calculate();
+            chartDataVersion++;
             grid?.ForceRerender();
+            TriggerSave();
         }
         else if (e.Key == "Escape")
         {
@@ -481,7 +1038,35 @@
         }
     }
 
-    // ── Formatting actions ───────────────────────────────────────────────────
+    // ── Checkbox cells ────────────────────────────────────────────────────────
+
+    void OnToggleCheckBoxClick()
+    {
+        if (selectedRanges.Count == 0) return;
+        var newValue = !(AnchorCell?.IsCheckBox ?? false);
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                {
+                    var cell = sheet[r, c];
+                    cell.IsCheckBox = newValue;
+                    if (newValue && cell.Value != "true" && cell.Value != "false")
+                        cell.Value = "false";
+                }
+        grid?.ForceRerender();
+        TriggerSave();
+    }
+
+    void OnCheckBoxCellChanged(int rowIndex, int colIndex, bool value)
+    {
+        sheet[rowIndex, colIndex].Value = value ? "true" : "false";
+        Calculate();
+        chartDataVersion++;
+        grid?.ForceRerender();
+        TriggerSave();
+    }
+
+    // ── Formatting actions ────────────────────────────────────────────────────
 
     void ForEachSelected(Action<Cell> action)
     {
@@ -490,19 +1075,13 @@
                 for (var c = rng.StartCol; c <= rng.EndCol; c++)
                     action(sheet[r, c]);
         grid?.ForceRerender();
+        TriggerSave();
     }
 
-    void OnBoldClick() =>
-        Toggle(c => c.Bold, (c, v) => c.Bold = v);
-
-    void OnItalicClick() =>
-        Toggle(c => c.Italic, (c, v) => c.Italic = v);
-
-    void OnUnderlineClick() =>
-        Toggle(c => c.Underline, (c, v) => c.Underline = v);
-
-    void OnStrikeClick() =>
-        Toggle(c => c.Strike, (c, v) => c.Strike = v);
+    void OnBoldClick() =>      Toggle(c => c.Bold,      (c, v) => c.Bold      = v);
+    void OnItalicClick() =>    Toggle(c => c.Italic,    (c, v) => c.Italic    = v);
+    void OnUnderlineClick() => Toggle(c => c.Underline, (c, v) => c.Underline = v);
+    void OnStrikeClick() =>    Toggle(c => c.Strike,    (c, v) => c.Strike    = v);
 
     void Toggle(Func<Cell, bool> get, Action<Cell, bool> set)
     {
@@ -511,10 +1090,16 @@
         ForEachSelected(c => set(c, next));
     }
 
-    void ApplyFill()       => ForEachSelected(c => c.Fill  = selectedFill);
-    void ClearFill()       => ForEachSelected(c => c.Fill  = null);
-    void ApplyTextColor()  => ForEachSelected(c => c.Color = selectedTextColor);
-    void ClearTextColor()  => ForEachSelected(c => c.Color = null);
+    void ToggleFillPicker()      { showFillPicker = !showFillPicker; if (showFillPicker) showTextColorPicker = false; }
+    void ToggleTextColorPicker() { showTextColorPicker = !showTextColorPicker; if (showTextColorPicker) showFillPicker = false; }
+
+    void ApplyFillColor(string? color)      { selectedFill = color; ApplyFill(); showFillPicker = false; }
+    void ApplyTextColorValue(string? color) { selectedTextColor = color; ApplyTextColor(); showTextColorPicker = false; }
+
+    void ApplyFill()      => ForEachSelected(c => c.Fill  = selectedFill);
+    void ClearFill()      => ForEachSelected(c => c.Fill  = null);
+    void ApplyTextColor() => ForEachSelected(c => c.Color = selectedTextColor);
+    void ClearTextColor() => ForEachSelected(c => c.Color = null);
 
     void OnAlignClick(string align)
     {
@@ -523,12 +1108,11 @@
         ForEachSelected(c => c.Align = next);
     }
 
-    // ── Decimal places ───────────────────────────────────────────────────────
+    // ── Decimal places ────────────────────────────────────────────────────────
 
     int GetAnchorDecimalPlaces() => AnchorCell?.DecimalPlaces ?? 2;
 
-    void OnAddDecimalClick() => ApplyDecimalPlaces(GetAnchorDecimalPlaces() + 1);
-
+    void OnAddDecimalClick()    => ApplyDecimalPlaces(GetAnchorDecimalPlaces() + 1);
     void OnRemoveDecimalClick() => ApplyDecimalPlaces(Math.Max(0, GetAnchorDecimalPlaces() - 1));
 
     void ApplyDecimalPlaces(int decimalPlaces)
@@ -539,6 +1123,188 @@
                 for (var c = rng.StartCol; c <= rng.EndCol; c++)
                     sheet[r, c].DecimalPlaces = decimalPlaces;
         grid?.ForceRerender();
+        TriggerSave();
     }
 
+    // ── Charts ────────────────────────────────────────────────────────────────
+
+    void AddChart()
+    {
+        var chart = new SpreadsheetChartDef { Title = $"Chart {charts.Count + 1}" };
+        charts.Add(chart);
+        selectedChart = chart;
+        TriggerSave();
+    }
+
+    void DeleteChart(SpreadsheetChartDef chart)
+    {
+        var idx = charts.IndexOf(chart);
+        charts.Remove(chart);
+        if (selectedChart == chart)
+            selectedChart = charts.Count > 0 ? charts[Math.Max(0, idx - 1)] : null;
+        TriggerSave();
+    }
+
+    void OnChartSelectorChanged(Microsoft.AspNetCore.Components.ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var id))
+            selectedChart = charts.FirstOrDefault(c => c.Id == id);
+    }
+
+    void UseSelectionFor(bool isXRange)
+    {
+        if (selectedChart == null || selectedRanges.Count == 0) return;
+        var r   = selectedRanges[0];
+        var c1  = (char)('A' + r.StartCol);
+        var c2  = (char)('A' + r.EndCol);
+        var rng = $"{c1}{r.StartRow + 1}:{c2}{r.EndRow + 1}";
+        if (isXRange) selectedChart.XRange = rng;
+        else          selectedChart.DataRange = rng;
+        chartDataVersion++;
+        TriggerSave();
+    }
+
+    // ── Conditional formatting management ─────────────────────────────────────
+
+    void AddCondFmtRule()
+    {
+        var rule = new ConditionalFormattingRule();
+        condFmtRules.Add(rule);
+        selectedCondFmtRule = rule;
+        TriggerSave();
+    }
+
+    void DeleteCondFmtRule(ConditionalFormattingRule rule)
+    {
+        condFmtRules.Remove(rule);
+        if (selectedCondFmtRule == rule)
+            selectedCondFmtRule = condFmtRules.Count > 0 ? condFmtRules[^1] : null;
+        OnCondFmtChanged();
+    }
+
+    void OnCondFmtChanged()
+    {
+        Calculate();
+        grid?.ForceRerender();
+        TriggerSave();
+        StateHasChanged();
+    }
+
+    // ── Local-storage persistence ─────────────────────────────────────────────
+
+    void TriggerSave()
+    {
+        saveTimer?.Dispose();
+        saveTimer = new System.Threading.Timer(_ => InvokeAsync(SaveToStorage), null, 800, System.Threading.Timeout.Infinite);
+    }
+
+    async Task SaveToStorage()
+    {
+        if (jsModule == null) return;
+        isSaving = true;
+        StateHasChanged();
+
+        var cells = new List<CellSave>();
+        for (var r = 0; r < RowCount; r++)
+            for (var c = 0; c < ColCount; c++)
+            {
+                var cell = sheet[r, c];
+                if (cell.Value.Length == 0 && !cell.IsCheckBox && !cell.Bold && !cell.Italic &&
+                    !cell.Underline && !cell.Strike && cell.Fill == null && cell.Color == null &&
+                    cell.Align == null && !cell.DecimalPlaces.HasValue) continue;
+                cells.Add(new CellSave { R = r, C = c, V = cell.Value.Length > 0 ? cell.Value : null,
+                    Ckbx = cell.IsCheckBox, B = cell.Bold, I = cell.Italic, U = cell.Underline, S = cell.Strike,
+                    Fill = cell.Fill, Color = cell.Color, Align = cell.Align, Dec = cell.DecimalPlaces });
+            }
+
+        var save = new SpreadsheetSave
+        {
+            Cells   = cells,
+            Charts  = charts.Select(c => new ChartSave
+            {
+                Id = c.Id, Title = c.Title, X = c.X, Y = c.Y, W = c.Width, H = c.Height,
+                DataRange = c.DataRange, XRange = c.XRange, HasHeaderRow = c.HasHeaderRow, HasHeaderCol = c.HasHeaderColumn
+            }).ToList(),
+            CondFmt = condFmtRules.Select(r => new CondFmtSave
+            {
+                Id = r.Id, Range = r.ApplyToRange, Formula = r.Formula,
+                B = r.Bold, I = r.Italic, Bg = r.BackgroundColor, Txt = r.TextColor
+            }).ToList()
+        };
+
+        var json = JsonSerializer.Serialize(save);
+        await jsModule.InvokeVoidAsync("localStorageSet", StorageKey, json);
+
+        isSaving = false;
+        StateHasChanged();
+    }
+
+    async Task LoadFromStorage()
+    {
+        if (jsModule == null) return;
+        string? json = null;
+        try { json = await jsModule.InvokeAsync<string?>("localStorageGet", StorageKey); } catch { }
+        if (json == null) return;
+
+        try
+        {
+            var save = JsonSerializer.Deserialize<SpreadsheetSave>(json);
+            if (save == null) return;
+
+            // Restore cells
+            for (var r = 0; r < RowCount; r++)
+                for (var c = 0; c < ColCount; c++)
+                    sheet[r, c] = new Cell();
+
+            foreach (var cs in save.Cells)
+            {
+                if (cs.R < 0 || cs.R >= RowCount || cs.C < 0 || cs.C >= ColCount) continue;
+                var cell = sheet[cs.R, cs.C];
+                cell.Value = cs.V ?? "";
+                cell.IsCheckBox = cs.Ckbx;
+                cell.Bold = cs.B; cell.Italic = cs.I; cell.Underline = cs.U; cell.Strike = cs.S;
+                cell.Fill = cs.Fill; cell.Color = cs.Color; cell.Align = cs.Align; cell.DecimalPlaces = cs.Dec;
+            }
+
+            charts = save.Charts.Select(cs => new SpreadsheetChartDef
+            {
+                Id = cs.Id, Title = cs.Title, X = cs.X, Y = cs.Y, Width = cs.W, Height = cs.H,
+                DataRange = cs.DataRange, XRange = cs.XRange, HasHeaderRow = cs.HasHeaderRow, HasHeaderColumn = cs.HasHeaderCol
+            }).ToList();
+            selectedChart = charts.Count > 0 ? charts[0] : null;
+
+            condFmtRules = save.CondFmt.Select(r => new ConditionalFormattingRule
+            {
+                Id = r.Id, ApplyToRange = r.Range, Formula = r.Formula,
+                Bold = r.B, Italic = r.I, BackgroundColor = r.Bg, TextColor = r.Txt
+            }).ToList();
+            selectedCondFmtRule = null;
+
+            Calculate();
+            chartDataVersion++;
+            grid?.ForceRerender();
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    async Task ResetData()
+    {
+        if (jsModule != null)
+            try { await jsModule.InvokeVoidAsync("localStorageRemove", StorageKey); } catch { }
+
+        for (var r = 0; r < RowCount; r++)
+            for (var c = 0; c < ColCount; c++)
+                sheet[r, c] = new Cell();
+
+        charts.Clear();
+        selectedChart = null;
+        condFmtRules.Clear();
+        selectedCondFmtRule = null;
+
+        LoadSampleData();
+        Calculate();
+        chartDataVersion++;
+        grid?.ForceRerender();
+    }
 }
