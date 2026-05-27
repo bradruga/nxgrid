@@ -10,11 +10,16 @@
 <div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @(HasMultiLineColumns ? "nx-grid-multiline" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px"
      tabindex="0"
      @onkeydown="@OnGridKeyDown">
+    @if (ShowHeader)
+    {
     <div class="nx-grid-header-row" style="@rowStyle">
-        <div class="nx-grid-row-start @(ShowRowNumbers && !ShowDragHandle ? "nx-grid-row-number" : "")"
-             @onmousedown="@OnCornerMouseDown">
-            @if (ShowRowNumbers && !ShowDragHandle) { <span>#</span> }
-        </div>
+        @if (RowGutter != NxGridRowGutter.Hidden)
+        {
+            <div class="nx-grid-row-start @(RowGutter == NxGridRowGutter.Numbers ? "nx-grid-row-number" : "")"
+                 @onmousedown="@OnCornerMouseDown">
+                @if (RowGutter == NxGridRowGutter.Numbers) { <span>#</span> }
+            </div>
+        }
 
         @foreach (var column in visibleColumns)
         {
@@ -85,7 +90,8 @@
             </div>
         }
     </div>
-    
+    }
+
     @if (IsLoading && LoadingTemplate != null && filteredData.Count == 0)
     {
         <div class="nx-grid-empty-state">@LoadingTemplate</div>
@@ -130,7 +136,7 @@
                                        Columns="@visibleColumns"
                                        RowStyle="@rowStyle"
                                        SelectedRange="@selectedRange"
-                                       ShowRowNumbers="@ShowRowNumbers"
+                                       RowGutter="@EffectiveRowGutter"
                                        IsEditing="@isEditing"
                                        EditRow="@editRow"
                                        EditCol="@editCol"
@@ -146,7 +152,6 @@
                                        OnEditKeyDown="@OnEditInputKeyDown"
                                        OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
                                        OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
-                                       RowsReorderable="@ShowDragHandle"
                                        OnDragHandleMouseDown="@OnDragHandleMouseDown"
                                        OnComboButtonClick="@OnComboButtonClick"
                                        OnDatePickerButtonClick="@OnDatePickerButtonClick"
@@ -170,7 +175,7 @@
                                Columns="@visibleColumns"
                                RowStyle="@rowStyle"
                                SelectedRange="@selectedRange"
-                               ShowRowNumbers="@ShowRowNumbers"
+                               RowGutter="@EffectiveRowGutter"
                                IsEditing="@isEditing"
                                EditRow="@editRow"
                                EditCol="@editCol"
@@ -186,7 +191,6 @@
                                OnEditKeyDown="@OnEditInputKeyDown"
                                OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
                                OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
-                               RowsReorderable="@ShowDragHandle"
                                OnDragHandleMouseDown="@OnDragHandleMouseDown"
                                OnComboButtonClick="@OnComboButtonClick"
                                OnDatePickerButtonClick="@OnDatePickerButtonClick"
@@ -208,7 +212,7 @@
                            Columns="@visibleColumns"
                            RowStyle="@rowStyle"
                            SelectedRange="@selectedRange"
-                           ShowRowNumbers="@ShowRowNumbers"
+                           RowGutter="@EffectiveRowGutter"
                            IsEditing="@isEditing"
                            EditRow="@editRow"
                            EditCol="@editCol"
@@ -224,7 +228,6 @@
                            OnEditKeyDown="@OnEditInputKeyDown"
                            OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
                            OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
-                           RowsReorderable="@ShowDragHandle"
                            OnDragHandleMouseDown="@OnDragHandleMouseDown"
                            OnComboButtonClick="@OnComboButtonClick"
                            OnDatePickerButtonClick="@OnDatePickerButtonClick"

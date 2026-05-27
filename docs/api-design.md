@@ -58,7 +58,8 @@ If writing that felt painful, the API is wrong. It doesn't.
 |---|---|---|---|
 | `Class` | `string?` | — | Extra CSS class on the grid container. |
 | `Style` | `string?` | — | Extra inline style on the grid container. |
-| `ShowRowNumbers` | `bool` | `false` | Renders a sticky left gutter with 1-based row numbers. |
+| `ShowHeader` | `bool` | `true` | When `false`, the column header row is not rendered. Sort, filter, column resize, and `HasColumnMenu` are unavailable when the header is hidden. |
+| `RowGutter` | `NxGridRowGutter` | `Blank` | Controls the leftmost gutter column. `Blank` — 32 px gutter, no content (default). `Hidden` — gutter not rendered. `Numbers` — 1-based row numbers. `DragHandle` — drag handles for row reordering; requires `OnRowDrop`. The drag handle is suppressed (gutter goes blank) when an active sort or filter is applied. |
 | `RowBanding` | `bool` | `true` | Alternates even/odd row background colors. |
 | `HasColumnMenu` | `bool` | `true` | Shows the ▾ button in each column header for sort/filter. |
 | `HeaderClickSelects` | `bool` | `false` | When true, clicking a column header selects the full column; clicking the row-number gutter selects the full row. |
@@ -71,7 +72,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `GroupHeaderTemplate` | `RenderFragment<NxGridGroupHeaderArgs<T>>?` | — | Custom markup for each group header row. When omitted, the header renders as `"{GroupValue} ({Count})"`. When this parameter is set alongside `ChildContent`, column declarations must be wrapped in explicit `<ChildContent>` tags (Blazor requirement for components with multiple named render fragments). |
 | `GroupsCollapsible` | `bool` | `true` | When `true`, clicking a group header row collapses or expands that group. |
 | `GroupCollapsedWhen` | `Func<object?, bool>?` | — | Called once per group at first render with the group's value. When `null`, all groups start expanded. Pass `_ => true` to start all groups collapsed, or a predicate for per-group control (e.g. `v => (DateTime)v! < DateTime.Today`). Has no effect when `GroupsCollapsible` is `false`. |
-| `RowsReorderable` | `bool` | `false` | When `true`, each row renders a drag handle in the row-number gutter position (the same 20 px slot `ShowRowNumbers` uses). Takes priority over `ShowRowNumbers` — when both are `true`, the drag handle is shown and row numbers are suppressed. The gutter is hidden entirely when an active sort or filter is applied — reordering a filtered or sorted subset is ambiguous. Requires `OnRowDrop`. |
+
 
 ### Content
 

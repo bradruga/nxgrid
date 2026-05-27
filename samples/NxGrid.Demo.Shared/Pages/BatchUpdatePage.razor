@@ -16,7 +16,7 @@
         Each operation fires <em>one</em> <code>OnUpdate</code> call regardless of how many rows
         are affected. Watch the log below.
     </p>
-    <NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+    <NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"        MinWidth="50" MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
         <NxGridColumn Property="@(x => x.LastName)"  Width="140" />

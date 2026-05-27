@@ -17,7 +17,7 @@
         column and choose <strong>Manage columns…</strong> to show or hide them. You can also hide
         any visible column using the <strong>Hide column</strong> menu item.
     </p>
-    <NxGrid T="Person" Data="@rows" Style="height:320px" ShowRowNumbers="true"
+    <NxGrid T="Person" Data="@rows" Style="height:320px" RowGutter="NxGridRowGutter.Numbers"
             HasColumnMenu="true" Cursor="@NxGridCursor.Cell">
         <NxGridColumn Display="@(x => x.FirstName + " " + x.LastName)" Title="Name" Width="180" />
         <NxGridColumn Property="@(x => x.Department)" Width="140" />
@@ -53,7 +53,7 @@
         </button>
     </div>
     <NxGrid T="Person" @ref="programmaticGrid" Data="@rows" Style="height:320px"
-            ShowRowNumbers="true" HasColumnMenu="true" Cursor="@NxGridCursor.Cell">
+            RowGutter="NxGridRowGutter.Numbers" HasColumnMenu="true" Cursor="@NxGridCursor.Cell">
         <NxGridColumn Display="@(x => x.FirstName + " " + x.LastName)" Title="Name" Width="180" />
         <NxGridColumn Id="dept" Property="@(x => x.Department)" Width="140" />
         <NxGridColumn Id="age"  Property="@(x => x.Age)" Width="80" Alignment="NxGridColumnAlignment.Right" />

@@ -18,7 +18,7 @@
             OnKeyPressed="@OnKeyPressed"
             OnSelectionChanged="@OnSelectionChanged"
             OnUpdate="@HandleUpdate"
-            ShowRowNumbers="true"
+            RowGutter="NxGridRowGutter.Numbers"
             Cursor="@NxGridCursor.Cell"
             Editable="true">
         <NxGridColumn Property="@(x => x.Id)"        Width="50"  MaxWidth="50" Editable="false" />

@@ -11,10 +11,17 @@
 <div class="doc-section">
     <h2>Interactive Toggle Demo</h2>
     <div class="doc-controls">
-        <label><input type="checkbox" @bind="showRowNumbers" /> <strong>ShowRowNumbers</strong></label>
+        <label><input type="checkbox" @bind="showHeader" />    <strong>ShowHeader</strong></label>
         <label><input type="checkbox" @bind="rowBanding" />    <strong>RowBanding</strong></label>
         <label><input type="checkbox" @bind="hasColumnMenu" /> <strong>HasColumnMenu</strong></label>
         <label><input type="checkbox" @bind="headerClickSelects" /> <strong>HeaderClickSelects</strong></label>
+    </div>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;font-weight:600;">RowGutter:</span>
+        <label><input type="radio" name="rowgutter" @onchange="@(() => rowGutter = NxGridRowGutter.Blank)"      checked="@(rowGutter == NxGridRowGutter.Blank)" />      Blank</label>
+        <label><input type="radio" name="rowgutter" @onchange="@(() => rowGutter = NxGridRowGutter.Hidden)"     checked="@(rowGutter == NxGridRowGutter.Hidden)" />     Hidden</label>
+        <label><input type="radio" name="rowgutter" @onchange="@(() => rowGutter = NxGridRowGutter.Numbers)"    checked="@(rowGutter == NxGridRowGutter.Numbers)" />    Numbers</label>
+        <label><input type="radio" name="rowgutter" @onchange="@(() => rowGutter = NxGridRowGutter.DragHandle)" checked="@(rowGutter == NxGridRowGutter.DragHandle)" /> DragHandle</label>
     </div>
     <div class="doc-controls">
         <span style="font-size:13px;color:#555;font-weight:600;">Cursor:</span>
@@ -23,11 +30,13 @@
         <label><input type="radio" name="cursor" @onchange="@(() => cursor = NxGridCursor.Pointer)" checked="@(cursor == NxGridCursor.Pointer)" /> Pointer</label>
     </div>
     <NxGrid T="Person" Data="@layoutPeople"
-            ShowRowNumbers="@showRowNumbers"
+            ShowHeader="@showHeader"
+            RowGutter="@rowGutter"
             RowBanding="@rowBanding"
             HasColumnMenu="@hasColumnMenu"
             HeaderClickSelects="@headerClickSelects"
             Cursor="@cursor"
+            OnRowDrop="@OnLayoutRowDrop"
             OnColumnResized="@OnColumnResized">
         <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
         <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
@@ -73,7 +82,8 @@
     <table class="doc-table">
         <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-            <tr><td>ShowRowNumbers</td><td>false</td><td>Renders a sticky left gutter with 1-based row numbers</td></tr>
+            <tr><td>ShowHeader</td><td>true</td><td>When <code>false</code>, the column header row is not rendered. Sort, filter, resize, and HasColumnMenu are unavailable.</td></tr>
+            <tr><td>RowGutter</td><td>Blank</td><td><code>Blank</code> — 32 px gutter, no content. <code>Hidden</code> — gutter not rendered. <code>Numbers</code> — 1-based row numbers. <code>DragHandle</code> — drag handles for row reordering; requires <code>OnRowDrop</code>.</td></tr>
             <tr><td>RowBanding</td><td>true</td><td>Alternates even/odd row background colors</td></tr>
             <tr><td>HasColumnMenu</td><td>true</td><td>Shows the ▾ button in each column header for sort and filter</td></tr>
             <tr><td>HeaderClickSelects</td><td>false</td><td>Click a column header to select the entire column; click the row-number gutter to select the entire row</td></tr>
@@ -88,7 +98,8 @@
 
 @code {
     List<Person> layoutPeople = SampleData.GetPeopleCopy();
-    bool showRowNumbers = true;
+    bool showHeader = true;
+    NxGridRowGutter rowGutter = NxGridRowGutter.Blank;
     bool rowBanding = true;
     bool hasColumnMenu = true;
     bool headerClickSelects;
@@ -98,6 +109,13 @@
     void OnColumnResized(NxGridColumnResizedArgs args)
     {
         resizeLog = $"OnColumnResized: column {args.ColumnIndex} → {args.NewWidth}px";
+    }
+
+    void OnLayoutRowDrop(NxGridRowDropArgs<Person> args)
+    {
+        var item = layoutPeople[args.OldIndex];
+        layoutPeople.RemoveAt(args.OldIndex);
+        layoutPeople.Insert(args.NewIndex, item);
     }
 
     string overlaysCode = DemoCodeSamples.Overlays;

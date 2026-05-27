@@ -22,7 +22,7 @@
     <NxGrid T="Person" @ref="grid" Data="@people"
             OnSelectionChanged="@OnSelectionChanged"
             HeaderClickSelects="@headerClickSelects"
-            ShowRowNumbers="true"
+            RowGutter="NxGridRowGutter.Numbers"
             Cursor="@NxGridCursor.Cell">
         <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
         <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />

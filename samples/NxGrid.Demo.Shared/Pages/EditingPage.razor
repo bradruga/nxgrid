@@ -14,7 +14,7 @@
 <div class="doc-section">
     <h2>Text Editing and Combo-Box</h2>
     <p class="doc-note">First, Last, Age, and Department are all editable. Department uses a combo-box dropdown — type to filter, then press <kbd class="doc-kbd">↓</kbd> or click to select.</p>
-    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
         <NxGridColumn Property="@(x => x.LastName)" Width="140" />
@@ -35,7 +35,7 @@
         A single <code>OnUpdate</code> is fired with all affected rows — just like a paste.
     </p>
     <p class="doc-note" style="margin-top:4px">Try: select several rows in the Department column (Shift+Click or Shift+Arrow), type a department name, then press <kbd class="doc-kbd">Ctrl+Enter</kbd>.</p>
-    <NxGrid T="Person" Data="@fillPeople" OnUpdate="@HandleFillUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+    <NxGrid T="Person" Data="@fillPeople" OnUpdate="@HandleFillUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
         <NxGridColumn Property="@(x => x.LastName)" Width="140" />
@@ -51,7 +51,7 @@
     <div class="doc-controls">
         <span style="font-size:13px;color:#555;">Edit blocked: <strong>@cellEditBlockedLog</strong></span>
     </div>
-    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true"
+    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers"
             Editable="true"
             CellEditableGetter="@((row, col) => row.Department != "Finance")"
             OnEditBlocked="@OnEditBlocked">

@@ -16,7 +16,7 @@
         pinned to the left. Try opening the ▾ menu on any column to freeze it too, or to unfreeze
         the existing ones.
     </p>
-    <NxGrid T="SalesRow" Data="@rows" Style="height:360px" ShowRowNumbers="true" Cursor="@NxGridCursor.Cell" HasColumnMenu="true">
+    <NxGrid T="SalesRow" Data="@rows" Style="height:360px" RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell" HasColumnMenu="true">
         <NxGridColumn Title="Employee"   Display="@(x => x.Name)"       Width="140" Frozen="true" />
         <NxGridColumn Title="Department" Display="@(x => x.Department)" Width="130" Frozen="true" />
         <NxGridColumn Property="@(x => x.Jan)"   Width="80" Alignment="NxGridColumnAlignment.Right" />

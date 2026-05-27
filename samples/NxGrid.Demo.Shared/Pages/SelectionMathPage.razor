@@ -20,7 +20,7 @@
         are text so they are excluded from Sum and Avg, but they add to Count.
     </p>
     <NxGrid T="SalesRow" Data="@sales" EnableSelectionMath="true"
-            Style="height:320px" ShowRowNumbers="true">
+            Style="height:320px" RowGutter="NxGridRowGutter.Numbers">
         <NxGridColumn Display="@(x => x.Name)"       Title="Name"       Width="155" Frozen="true" />
         <NxGridColumn Display="@(x => x.Department)" Title="Department" Width="120" Frozen="true" />
         <NxGridColumn Property="@(x => x.Jan)" Width="72" Alignment="NxGridColumnAlignment.Right" />

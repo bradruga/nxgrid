@@ -19,7 +19,7 @@
         <label><input type="checkbox" @bind="darkMode" /> Enable dark theme</label>
     </div>
     <div class="@(darkMode ? "demo-dark-theme" : "")">
-        <NxGrid T="Person" Data="@SampleData.People.ToList()" ShowRowNumbers="true" Cursor="@NxGridCursor.Cell">
+        <NxGrid T="Person" Data="@SampleData.People.ToList()" RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell">
             <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
             <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
             <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
@@ -37,7 +37,7 @@
         per cell. The style is applied before selection color blending, so the selection highlight
         mixes correctly with a custom background color.
     </p>
-    <NxGrid T="Person" Data="@SampleData.People.ToList()" CellStyle="@GetCellStyle" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" CellStyle="@GetCellStyle" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
         <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
         <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
         <NxGridColumn Property="@(x => x.LastName)"   Width="130" />

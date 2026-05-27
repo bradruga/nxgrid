@@ -488,7 +488,7 @@ void OnSignalRRowReceived(Person newRow)
 """;
 
     public static readonly string FrozenColumns = """
-<NxGrid T="SalesRow" Data="@rows" Style="height:360px" ShowRowNumbers="true">
+<NxGrid T="SalesRow" Data="@rows" Style="height:360px" RowGutter="NxGridRowGutter.Numbers">
     <NxGridColumn Title="Employee"   Display="@(x => x.Name)"       Width="140" Frozen="true" />
     <NxGridColumn Title="Department" Display="@(x => x.Department)" Width="130" Frozen="true" />
     <NxGridColumn Property="@(x => x.Jan)"   Width="80" Alignment="NxGridColumnAlignment.Right" />

@@ -1,7 +1,7 @@
 @typeparam T
 
 <div class="nx-grid-row" style="@RowStyle">
-    @if (RowsReorderable)
+    @if (RowGutter == NxGridRowGutter.DragHandle)
     {
         <div class="nx-grid-row-start nx-grid-drag-handle-gutter">
             <span class="nx-grid-drag-handle"
@@ -19,12 +19,19 @@
             </span>
         </div>
     }
-    else
+    else if (RowGutter == NxGridRowGutter.Numbers)
     {
-        <div class="nx-grid-row-start @(ShowRowNumbers ? "nx-grid-row-number" : "")"
+        <div class="nx-grid-row-start nx-grid-row-number"
              @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
              @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
-            @if (ShowRowNumbers) { <span>@(RowIndex + 1)</span> }
+            <span>@(RowIndex + 1)</span>
+        </div>
+    }
+    else if (RowGutter == NxGridRowGutter.Blank)
+    {
+        <div class="nx-grid-row-start"
+             @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
+             @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
         </div>
     }
 
@@ -216,7 +223,7 @@
     [Parameter] public List<NxGridColumn<T>> Columns { get; set; } = [];
     [Parameter] public string RowStyle { get; set; } = "";
     [Parameter] public NxGridRange? SelectedRange { get; set; }
-    [Parameter] public bool ShowRowNumbers { get; set; }
+    [Parameter] public NxGridRowGutter RowGutter { get; set; }
     [Parameter] public bool IsEditing { get; set; }
     [Parameter] public int EditRow { get; set; }
     [Parameter] public int EditCol { get; set; }
@@ -233,7 +240,6 @@
     [Parameter] public Func<KeyboardEventArgs, Task>? OnEditKeyDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseEnter { get; set; }
-    [Parameter] public bool RowsReorderable { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnDragHandleMouseDown { get; set; }
     [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnDatePickerButtonClick { get; set; }
@@ -262,8 +268,7 @@
     private int prevEditCol = -1;
     private string prevEditValue = "";
     private int prevRenderToken = -1;
-    private bool prevShowRowNumbers;
-    private bool prevRowsReorderable;
+    private NxGridRowGutter prevRowGutter;
 
     // Track which edit session we've already focused so we focus exactly once per cell entry
     private (int Row, int Col) focusedSession = (-1, -1);
@@ -290,9 +295,9 @@
         var editChanged           = EditChangedForRow();
         var tokenChanged          = RenderToken != prevRenderToken;
         var cursorChanged         = Cursor != prevCursor;
-        var showRowNumbersChanged = ShowRowNumbers != prevShowRowNumbers || RowsReorderable != prevRowsReorderable;
+        var gutterChanged = RowGutter != prevRowGutter;
 
-        if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged && !showRowNumbersChanged)
+        if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
@@ -304,8 +309,7 @@
         prevEditValue         = EditValue;
         prevRenderToken       = RenderToken;
         prevCursor            = Cursor;
-        prevShowRowNumbers    = ShowRowNumbers;
-        prevRowsReorderable   = RowsReorderable;
+        prevRowGutter = RowGutter;
 
         return true;
     }

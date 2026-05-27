@@ -18,7 +18,7 @@
         overload. Type to filter, press <kbd class="doc-kbd">↓</kbd> or click the chevron to open the full list.
     </p>
     <NxGrid T="Person" Data="@stringPeople" OnUpdate="@HandleStringUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"        Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
         <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
@@ -36,7 +36,7 @@
         in the property and rendered in the cell.
     </p>
     <NxGrid T="TaskRow" Data="@taskRows" OnUpdate="@HandleTaskUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"       Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Employee)" Width="140" Editable="false" />
         <NxGridColumn Property="@(x => x.TaskName)" Title="Task" Width="200"
@@ -53,7 +53,7 @@
         each dropdown row. The <code>Value</code> committed on selection is unchanged.
     </p>
     <NxGrid T="TaskRow" Data="@templateRows" OnUpdate="@HandleTemplateUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"       Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Employee)" Width="140" Editable="false" />
         <NxGridColumn Property="@(x => x.TaskName)" Title="Task" Width="220"
@@ -76,7 +76,7 @@
         change based on that row's <strong>Team</strong>.
     </p>
     <NxGrid T="ScheduleRow" Data="@scheduleRows" OnUpdate="@HandleScheduleUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Employee)" Width="150" Editable="false" />
         <NxGridColumn Property="@(x => x.Team)"     Width="120" Editable="false" />
         <NxGridColumn Property="@(x => x.Skill)"    Width="180"

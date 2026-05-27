@@ -19,7 +19,7 @@
         Press <kbd class="doc-kbd">↓</kbd> while editing to open the calendar via keyboard.
     </p>
     <NxGrid T="EventRow" Data="@basicEvents" OnUpdate="@HandleBasicUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"        Title="ID"    Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Name)"      Title="Event" Width="220" />
         <NxGridColumn Property="@(x => x.EventDate)" Title="Date"  Width="160"
@@ -36,7 +36,7 @@
         Rows with no due date show an empty cell.
     </p>
     <NxGrid T="TaskRow" Data="@tasks" OnUpdate="@HandleTaskUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"          Title="ID"          Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Description)" Title="Task"        Width="220" />
         <NxGridColumn Property="@(x => x.DueDate)"     Title="Due Date"    Width="160"
@@ -55,7 +55,7 @@
         The grid falls back to <code>DateTime.TryParse</code> if the format does not match.
     </p>
     <NxGrid T="MilestoneRow" Data="@milestones" OnUpdate="@HandleMilestoneUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"           Title="ID"          Width="50" MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Name)"         Title="Milestone"   Width="180" />
         <NxGridColumn Property="@(x => x.PlannedDate)"  Title="Planned (ISO)"     Width="160"

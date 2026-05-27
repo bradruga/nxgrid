@@ -4,13 +4,16 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
-    [Microsoft.AspNetCore.Components.Parameter] public bool RowsReorderable { get; set; }
     [Microsoft.AspNetCore.Components.Parameter] public Microsoft.AspNetCore.Components.EventCallback<NxGridRowDropArgs<T>> OnRowDrop { get; set; }
 
     private bool HasActiveSortOrFilter =>
         ActiveColumns.Any(c => c.SortState != 0 || c.FilterState.Count > 0);
 
-    private bool ShowDragHandle => RowsReorderable && !HasActiveSortOrFilter;
+    private bool ShowDragHandle => RowGutter == NxGridRowGutter.DragHandle && !HasActiveSortOrFilter;
+
+    private NxGridRowGutter EffectiveRowGutter => ShowDragHandle ? NxGridRowGutter.DragHandle
+        : RowGutter == NxGridRowGutter.DragHandle ? NxGridRowGutter.Blank
+        : RowGutter;
 
     private async Task OnDragHandleMouseDown(MouseEventArgs args, int rowIndex)
     {

@@ -24,7 +24,7 @@
         </button>
     </div>
     <NxGrid T="Person" @ref="grid" Data="@people" Style="height:380px"
-            ShowRowNumbers="true" Cursor="@NxGridCursor.Cell"
+            RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell"
             CellStyle="@GetCellStyle">
         <NxGridColumn Property="@(x => x.Id)"
                        Title="ID" Width="55" MaxWidth="55"

@@ -23,7 +23,7 @@
         <code>ComboBoxItems</code> is also set.
     </p>
     <NxGrid T="TaskItem" Data="@tasks" OnUpdate="@HandleUpdate" Editable="true"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
         <NxGridColumn Property="@(x => x.Id)"     Title="ID"     Width="50"  Editable="false" />
         <NxGridColumn Property="@(x => x.Title)"  Title="Title"  Width="200" />
         <NxGridColumn Property="@(x => x.Notes)"  Title="Notes"  MultiLine="true" />

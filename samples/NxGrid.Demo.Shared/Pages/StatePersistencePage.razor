@@ -25,7 +25,7 @@
             StateKey="demo-state-persistence"
             Style="height:400px"
             Cursor="@NxGridCursor.Cell"
-            ShowRowNumbers="true">
+            RowGutter="NxGridRowGutter.Numbers">
         <NxGridColumn Id="id"    Property="@(x => x.Id)"         Width="55"  MaxWidth="55" Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn Id="first" Property="@(x => x.FirstName)"  Width="140" />
         <NxGridColumn Id="last"  Property="@(x => x.LastName)"   Width="140" />

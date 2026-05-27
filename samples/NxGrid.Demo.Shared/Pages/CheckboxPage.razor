@@ -18,7 +18,7 @@
         <kbd class="doc-kbd">Space</kbd> to toggle.
     </p>
     <NxGrid T="WorkItem" Data="@editItems" OnUpdate="@HandleUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50"                        Editable="false" />
         <NxGridColumn Property="@(x => x.Description)" Width="240" />
         <NxGridColumn Property="@(x => x.IsComplete)"  Title="Complete" Width="90"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
@@ -34,7 +34,7 @@
         Without <code>OnUpdate</code> (or with <code>Editable="false"</code>), checkboxes render
         as disabled — they accurately reflect the data but cannot be interacted with.
     </p>
-    <NxGrid T="WorkItem" Data="@readOnlyItems" ShowRowNumbers="true">
+    <NxGrid T="WorkItem" Data="@readOnlyItems" RowGutter="NxGridRowGutter.Numbers">
         <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50" />
         <NxGridColumn Property="@(x => x.Description)" Width="240" />
         <NxGridColumn Property="@(x => x.IsComplete)"  Title="Complete" Width="90"  CheckBox="true" Alignment="NxGridColumnAlignment.Center" />
@@ -55,7 +55,7 @@
         <span style="font-size:13px;color:#555;">Edit blocked: <strong>@blockedLog</strong></span>
     </div>
     <NxGrid T="WorkItem" Data="@blockedItems" OnUpdate="@HandleBlockedUpdate"
-            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true"
             CellEditableGetter="@CanEdit"
             OnEditBlocked="@OnEditBlocked">
         <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50"                        Editable="false" />

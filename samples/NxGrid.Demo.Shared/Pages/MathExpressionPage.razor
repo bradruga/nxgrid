@@ -20,7 +20,7 @@
         recalculates immediately.
     </p>
     <NxGrid T="BudgetLine" Data="@lines" OnUpdate="@HandleUpdate"
-            Editable="true" Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+            Editable="true" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
         <NxGridColumn Property="@(x => x.Description)" Width="220" />
         <NxGridColumn Property="@(x => x.Qty)"      Title="Qty"       Width="100"
                       MathExpression="true" Alignment="NxGridColumnAlignment.Right" />
