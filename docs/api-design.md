@@ -71,6 +71,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `GroupHeaderTemplate` | `RenderFragment<NxGridGroupHeaderArgs<T>>?` | — | Custom markup for each group header row. When omitted, the header renders as `"{GroupValue} ({Count})"`. When this parameter is set alongside `ChildContent`, column declarations must be wrapped in explicit `<ChildContent>` tags (Blazor requirement for components with multiple named render fragments). |
 | `GroupsCollapsible` | `bool` | `true` | When `true`, clicking a group header row collapses or expands that group. |
 | `GroupCollapsedWhen` | `Func<object?, bool>?` | — | Called once per group at first render with the group's value. When `null`, all groups start expanded. Pass `_ => true` to start all groups collapsed, or a predicate for per-group control (e.g. `v => (DateTime)v! < DateTime.Today`). Has no effect when `GroupsCollapsible` is `false`. |
+| `RowsReorderable` | `bool` | `false` | When `true`, each row renders a drag handle in the row-number gutter position (the same 20 px slot `ShowRowNumbers` uses). Takes priority over `ShowRowNumbers` — when both are `true`, the drag handle is shown and row numbers are suppressed. The gutter is hidden entirely when an active sort or filter is applied — reordering a filtered or sorted subset is ambiguous. Requires `OnRowDrop`. |
 
 ### Content
 
@@ -96,6 +97,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `OnCellDoubleClicked` | `EventCallback<NxGridCellDoubleClickedArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |
 | `OnContextMenuShowing` | `Action<NxGridContextMenuArgs<T>>?` | Called synchronously just before the context menu opens. The handler receives the right-clicked `Row` and `Column`, and a mutable `Items` list. Append `NxGridContextMenuItem` entries to add custom items after the built-in Copy item. |
 | `OnContextMenuItemClicked` | `EventCallback<NxGridContextMenuItemArgs<T>>` | Fires when the user selects a custom context menu item. Receives the clicked `Item` plus the `Row` and `Column` that were right-clicked. |
+| `OnRowDrop` | `EventCallback<NxGridRowDropArgs<T>>` | Fires after a successful row drag. The host must reorder `Data` in this handler. After the callback returns the grid calls `ApplyFilterAndSort()` and `StateHasChanged()` automatically. The active selection is cleared on drop. |
 
 ### Styling
 
@@ -407,6 +409,31 @@ public sealed class NxGridContextMenuItemArgs<T>
     public NxGridColumn<T> Column { get; init; }
 }
 ```
+
+---
+
+## `NxGridRowDropArgs<T>`
+
+```csharp
+public sealed class NxGridRowDropArgs<T>
+{
+    public T   Item     { get; init; }  // the dragged row
+    public int OldIndex { get; init; }  // index in Data before the drag
+    public int NewIndex { get; init; }  // insertion index into Data after removal from OldIndex
+}
+```
+
+`NewIndex` is the index to pass to `List<T>.Insert()` **after** calling `RemoveAt(OldIndex)`. Example — moving index 1 to after index 3 in a five-item list: `OldIndex = 1`, `NewIndex = 3`.
+
+```csharp
+void HandleDrop(NxGridRowDropArgs<RequisitionLineDto> args)
+{
+    lines.RemoveAt(args.OldIndex);
+    lines.Insert(args.NewIndex, args.Item);
+}
+```
+
+**Auto-scroll:** while dragging, the grid auto-scrolls when the cursor is within 40 px of the top or bottom edge of the scroll container.
 
 ---
 

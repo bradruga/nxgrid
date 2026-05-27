@@ -11,9 +11,9 @@
      tabindex="0"
      @onkeydown="@OnGridKeyDown">
     <div class="nx-grid-header-row" style="@rowStyle">
-        <div class="nx-grid-row-start @(ShowRowNumbers ? "nx-grid-row-number" : "")"
+        <div class="nx-grid-row-start @(ShowRowNumbers && !ShowDragHandle ? "nx-grid-row-number" : "")"
              @onmousedown="@OnCornerMouseDown">
-            @if (ShowRowNumbers) { <span>#</span> }
+            @if (ShowRowNumbers && !ShowDragHandle) { <span>#</span> }
         </div>
 
         @foreach (var column in visibleColumns)
@@ -138,6 +138,8 @@
                                        OnEditKeyDown="@OnEditInputKeyDown"
                                        OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
                                        OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+                                       RowsReorderable="@ShowDragHandle"
+                                       OnDragHandleMouseDown="@OnDragHandleMouseDown"
                                        OnComboButtonClick="@OnComboButtonClick"
                                        OnCheckboxToggle="@OnCheckboxToggleCell"
                                        Cursor="@Cursor"
@@ -175,6 +177,8 @@
                                OnEditKeyDown="@OnEditInputKeyDown"
                                OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
                                OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+                               RowsReorderable="@ShowDragHandle"
+                               OnDragHandleMouseDown="@OnDragHandleMouseDown"
                                OnComboButtonClick="@OnComboButtonClick"
                                OnCheckboxToggle="@OnCheckboxToggleCell"
                                Cursor="@Cursor"
@@ -210,6 +214,8 @@
                            OnEditKeyDown="@OnEditInputKeyDown"
                            OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
                            OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+                           RowsReorderable="@ShowDragHandle"
+                           OnDragHandleMouseDown="@OnDragHandleMouseDown"
                            OnComboButtonClick="@OnComboButtonClick"
                            OnCheckboxToggle="@OnCheckboxToggleCell"
                            Cursor="@Cursor"

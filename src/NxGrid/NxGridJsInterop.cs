@@ -93,6 +93,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public ValueTask TriggerPrint(string printAreaId)
         => module.InvokeVoidAsync("triggerPrint", printAreaId);
 
+    public ValueTask<int> DragRow(int startRowIndex, int rowCount, int rowHeight)
+        => jsObject.InvokeAsync<int>("dragRow", startRowIndex, rowCount, rowHeight);
+
     public async ValueTask DisposeAsync()
     {
         try { await jsObject.InvokeVoidAsync("dispose"); } catch { }

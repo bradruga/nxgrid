@@ -304,6 +304,90 @@
             this._resizeStyleEl = null;
         }
     }
+
+    async dragRow(startRowIndex, rowCount, rowHeight) {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return startRowIndex;
+
+        const headerRow = gridElement.querySelector('.nx-grid-header-row');
+        const headerHeight = headerRow ? headerRow.offsetHeight : 0;
+
+        const indicator = document.createElement('div');
+        indicator.className = 'nx-grid-drop-indicator';
+        indicator.style.display = 'none';
+        gridElement.appendChild(indicator);
+
+        let targetIndex = startRowIndex;
+        let lastClientY = null;
+
+        const updateIndicator = (clientY) => {
+            lastClientY = clientY;
+            const gridRect = gridElement.getBoundingClientRect();
+            const relY = clientY - gridRect.top - headerHeight + gridElement.scrollTop;
+            let idx = Math.round(relY / rowHeight);
+            targetIndex = Math.max(0, Math.min(rowCount, idx));
+            // Absolute top inside the scrollable content — no scrollTop adjustment needed
+            indicator.style.top = `${headerHeight + targetIndex * rowHeight}px`;
+            indicator.style.display = 'block';
+        };
+
+        const autoScrollZone = 40;
+        let scrollInterval = null;
+
+        const clearAutoScroll = () => {
+            if (scrollInterval !== null) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+        };
+
+        const updateAutoScroll = (clientY) => {
+            clearAutoScroll();
+            const gridRect = gridElement.getBoundingClientRect();
+            const relY = clientY - gridRect.top;
+            const maxScroll = gridElement.scrollHeight - gridElement.clientHeight;
+
+            let speed = 0;
+            if (relY < autoScrollZone && gridElement.scrollTop > 0) {
+                speed = -(autoScrollZone - Math.max(0, relY)) / autoScrollZone * 10;
+            } else if (relY > gridRect.height - autoScrollZone && gridElement.scrollTop < maxScroll) {
+                speed = (relY - (gridRect.height - autoScrollZone)) / autoScrollZone * 10;
+            }
+
+            if (speed !== 0) {
+                scrollInterval = setInterval(() => {
+                    const newScroll = Math.max(0, Math.min(maxScroll, gridElement.scrollTop + speed));
+                    if (newScroll === gridElement.scrollTop) { clearAutoScroll(); return; }
+                    gridElement.scrollTop = newScroll;
+                    if (lastClientY !== null) updateIndicator(lastClientY);
+                }, 16);
+            }
+        };
+
+        const mouseMoveHandler = (event) => {
+            updateIndicator(event.clientY);
+            updateAutoScroll(event.clientY);
+        };
+
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.body.style.cursor = 'grabbing';
+        document.body.style.userSelect = 'none';
+
+        const result = await new Promise((resolve) => {
+            document.addEventListener('mouseup', function mouseUpHandler() {
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+                clearAutoScroll();
+                resolve(targetIndex);
+            });
+        });
+
+        indicator.remove();
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
+        return result;
+    }
 }
 
 export { NxGrid };

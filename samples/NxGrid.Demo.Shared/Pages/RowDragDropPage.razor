@@ -1,0 +1,98 @@
+@page "/row-drag-drop"
+
+<PageTitle>Row Drag-and-Drop — NxGrid</PageTitle>
+
+<h1>Row Drag-and-Drop</h1>
+<p class="doc-intro">
+    Set <code>RowsReorderable="true"</code> and handle <code>OnRowDrop</code> to allow users to
+    drag rows into a new order. A grab handle appears on hover in the leftmost gutter. The drag
+    handle is hidden whenever an active sort or filter is applied — reordering a subset is
+    ambiguous.
+</p>
+
+<div class="doc-section">
+    <h2>Reorderable Steps</h2>
+    <p class="doc-note">
+        Hover a row to reveal the grab handle, then drag it to a new position.
+        Try applying a sort — the handles will disappear until the sort is cleared.
+    </p>
+    <NxGrid T="Step" Data="@steps" RowsReorderable="true" OnRowDrop="@HandleDrop"
+            Style="height:360px" HasColumnMenu="true">
+        <NxGridColumn Property="@(x => x.Number)" Title="#" Width="50"
+                      Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Name)"        Title="Step"        Width="220" />
+        <NxGridColumn Property="@(x => x.Description)" Title="Description" Width="360" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@sampleCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Combined with <code>ShowRowNumbers</code></h2>
+    <p class="doc-note">
+        When both <code>RowsReorderable</code> and <code>ShowRowNumbers</code> are set,
+        <code>RowsReorderable</code> takes priority — the drag handle occupies the row-number gutter.
+    </p>
+    <NxGrid T="Step" Data="@steps2" RowsReorderable="true" ShowRowNumbers="true"
+            OnRowDrop="@HandleDrop2" Style="height:300px">
+        <NxGridColumn Property="@(x => x.Number)" Title="#" Width="50"
+                      Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Name)"        Title="Step"        Width="220" />
+    </NxGrid>
+</div>
+
+@code {
+    record Step(int Number, int Order, string Name, string Description);
+
+    List<Step> steps =
+    [
+        new(1,  1,  "Requirements",  "Gather and document functional requirements"),
+        new(2,  2,  "Architecture",  "Define system design and component boundaries"),
+        new(3,  3,  "Environment",   "Set up dev, staging, and CI environments"),
+        new(4,  4,  "Data model",    "Design schema and migration strategy"),
+        new(5,  5,  "Backend",       "Implement API endpoints and business logic"),
+        new(6,  6,  "Frontend",      "Build UI components and wire up API calls"),
+        new(7,  7,  "Unit tests",    "Write tests for critical paths"),
+        new(8,  8,  "Integration",   "End-to-end testing across subsystems"),
+        new(9,  9,  "Code review",   "Peer review, address feedback"),
+        new(10, 10, "Deploy",        "Release to production and monitor"),
+    ];
+
+    List<Step> steps2 =
+    [
+        new(1, 1, "Plan",   "Define scope"),
+        new(2, 2, "Build",  "Write code"),
+        new(3, 3, "Test",   "Verify behaviour"),
+        new(4, 4, "Ship",   "Deploy to prod"),
+    ];
+
+    void HandleDrop(NxGridRowDropArgs<Step> args)
+    {
+        steps.RemoveAt(args.OldIndex);
+        steps.Insert(args.NewIndex, args.Item);
+
+        for (var i = 0; i < steps.Count; i++)
+            steps[i] = steps[i] with { Order = i + 1 };
+    }
+
+    void HandleDrop2(NxGridRowDropArgs<Step> args)
+    {
+        steps2.RemoveAt(args.OldIndex);
+        steps2.Insert(args.NewIndex, args.Item);
+
+        for (var i = 0; i < steps2.Count; i++)
+            steps2[i] = steps2[i] with { Order = i + 1 };
+    }
+
+    string sampleCode = """
+        <NxGrid T="Step" Data="@steps" RowsReorderable="true" OnRowDrop="@HandleDrop">
+            <NxGridColumn Property="@(x => x.Number)" Title="#" Width="50" />
+            <NxGridColumn Property="@(x => x.Name)"  Title="Step" Width="220" />
+        </NxGrid>
+
+        void HandleDrop(NxGridRowDropArgs<Step> args)
+        {
+            steps.RemoveAt(args.OldIndex);
+            steps.Insert(args.NewIndex, args.Item);
+        }
+        """;
+}

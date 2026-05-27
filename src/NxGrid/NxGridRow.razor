@@ -1,11 +1,32 @@
 @typeparam T
 
 <div class="nx-grid-row" style="@RowStyle">
-    <div class="nx-grid-row-start @(ShowRowNumbers ? "nx-grid-row-number" : "")"
-         @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
-         @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
-        @if (ShowRowNumbers) { <span>@(RowIndex + 1)</span> }
-    </div>
+    @if (RowsReorderable)
+    {
+        <div class="nx-grid-row-start nx-grid-drag-handle-gutter">
+            <span class="nx-grid-drag-handle"
+                  @onmousedown="@(args => HandleDragMouseDown(args))"
+                  @onmousedown:stopPropagation
+                  @onmousedown:preventDefault>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="16" viewBox="0 0 12 16" aria-hidden="true">
+                    <circle cx="4"  cy="3"  r="1.5" fill="currentColor"/>
+                    <circle cx="4"  cy="8"  r="1.5" fill="currentColor"/>
+                    <circle cx="4"  cy="13" r="1.5" fill="currentColor"/>
+                    <circle cx="8"  cy="3"  r="1.5" fill="currentColor"/>
+                    <circle cx="8"  cy="8"  r="1.5" fill="currentColor"/>
+                    <circle cx="8"  cy="13" r="1.5" fill="currentColor"/>
+                </svg>
+            </span>
+        </div>
+    }
+    else
+    {
+        <div class="nx-grid-row-start @(ShowRowNumbers ? "nx-grid-row-number" : "")"
+             @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
+             @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
+            @if (ShowRowNumbers) { <span>@(RowIndex + 1)</span> }
+        </div>
+    }
 
     @{ var isMultiLineGrid = Columns.Any(c => c.MultiLine); }
     @for (var ci = 0; ci < Columns.Count; ci++)
@@ -169,6 +190,8 @@
     [Parameter] public Func<KeyboardEventArgs, Task>? OnEditKeyDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseEnter { get; set; }
+    [Parameter] public bool RowsReorderable { get; set; }
+    [Parameter] public Func<MouseEventArgs, int, Task>? OnDragHandleMouseDown { get; set; }
     [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnCheckboxToggle { get; set; }
     [Parameter] public NxGridCursor Cursor { get; set; }
@@ -196,9 +219,13 @@
     private string prevEditValue = "";
     private int prevRenderToken = -1;
     private bool prevShowRowNumbers;
+    private bool prevRowsReorderable;
 
     // Track which edit session we've already focused so we focus exactly once per cell entry
     private (int Row, int Col) focusedSession = (-1, -1);
+
+    private Task HandleDragMouseDown(MouseEventArgs args) =>
+        OnDragHandleMouseDown?.Invoke(args, RowIndex) ?? Task.CompletedTask;
 
     private Task HandleMouseDown(MouseEventArgs args, NxGridColumn<T> col) =>
         OnMouseDown?.Invoke(args, Row, col) ?? Task.CompletedTask;
@@ -219,21 +246,22 @@
         var editChanged           = EditChangedForRow();
         var tokenChanged          = RenderToken != prevRenderToken;
         var cursorChanged         = Cursor != prevCursor;
-        var showRowNumbersChanged = ShowRowNumbers != prevShowRowNumbers;
+        var showRowNumbersChanged = ShowRowNumbers != prevShowRowNumbers || RowsReorderable != prevRowsReorderable;
 
         if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged && !showRowNumbersChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
-        prevRow            = Row;
-        prevRangeSnapshot  = GetRangeSnapshot();
-        prevIsEditing      = IsEditing;
-        prevEditRow        = EditRow;
-        prevEditCol        = EditCol;
-        prevEditValue      = EditValue;
-        prevRenderToken    = RenderToken;
-        prevCursor         = Cursor;
-        prevShowRowNumbers = ShowRowNumbers;
+        prevRow               = Row;
+        prevRangeSnapshot     = GetRangeSnapshot();
+        prevIsEditing         = IsEditing;
+        prevEditRow           = EditRow;
+        prevEditCol           = EditCol;
+        prevEditValue         = EditValue;
+        prevRenderToken       = RenderToken;
+        prevCursor            = Cursor;
+        prevShowRowNumbers    = ShowRowNumbers;
+        prevRowsReorderable   = RowsReorderable;
 
         return true;
     }
