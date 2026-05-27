@@ -80,13 +80,22 @@ public partial class NxGrid<T>
     {
         var data = Data;
 
-        // Apply filters...
         foreach (var column in ActiveColumns)
-        {
             data = column.FilterData(data);
+
+        if (GroupBy != null)
+        {
+            BuildGroupedData(data);
+            return;
         }
 
-        // Apply sorts
+        _groups = [];
+        filteredData = ApplySortToList(data);
+        rowIndices = Enumerable.Range(0, filteredData.Count).ToList();
+    }
+
+    private List<T> ApplySortToList(List<T> items)
+    {
         foreach (var column in ActiveColumns)
         {
             if (column.SortState == 0) continue;
@@ -95,18 +104,12 @@ public partial class NxGrid<T>
             if (getter == null) continue;
 
             if (column.SortState == 1)
-            {
-                data = data.OrderBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString()))
+                items = items.OrderBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString()))
                     .ThenBy(getter).ToList();
-            }
             else if (column.SortState == 2)
-            {
-                data = data.OrderBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString()))
+                items = items.OrderBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString()))
                     .ThenByDescending(getter).ToList();
-            }
         }
-
-        filteredData = data;
-        rowIndices = Enumerable.Range(0, filteredData.Count).ToList();
+        return items;
     }
 }

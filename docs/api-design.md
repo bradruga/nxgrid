@@ -67,6 +67,10 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `AutoSizeColumns` | `bool` | `true` | When `true` (default), columns without a `MaxWidth` use `flex-grow: 1` to fill available space. Set to `false` to start the grid in manual mode immediately — all columns render at their declared `Width` with no flex growth, as if the user had already resized. |
 | `Virtualize` | `bool` | `true` | When `true` (default), rows are rendered with Blazor's `<Virtualize>` component so only the visible rows are in the DOM. Set to `false` to render all rows at once — useful for small grids where browser Ctrl+F search, accessibility tools, or print should see every row. Automatically overridden to `false` when any column has `MultiLine = true`. |
 | `EnableSelectionMath` | `bool` | `false` | When `true`, a status bar is rendered below the grid body (sticky, does not scroll vertically) showing **Sum**, **Avg**, and **Count** for the current selection. Non-numeric cells in the selection are excluded from Sum and Avg but included in Count. Sum and Avg are hidden when the selection contains no numeric cells. The bar disappears when there is no active selection. |
+| `GroupBy` | `Func<T, object?>?` | — | When set, rows are grouped by the value of this function after filtering. Group order follows first-appearance in the filtered result. Sort operates within each group — it does not reorder groups. When `GroupBy` is set, virtualization is disabled regardless of the `Virtualize` parameter (same behavior as `MultiLine`). |
+| `GroupHeaderTemplate` | `RenderFragment<NxGridGroupHeaderArgs<T>>?` | — | Custom markup for each group header row. When omitted, the header renders as `"{GroupValue} ({Count})"`. When this parameter is set alongside `ChildContent`, column declarations must be wrapped in explicit `<ChildContent>` tags (Blazor requirement for components with multiple named render fragments). |
+| `GroupsCollapsible` | `bool` | `true` | When `true`, clicking a group header row collapses or expands that group. |
+| `GroupCollapsedWhen` | `Func<object?, bool>?` | — | Called once per group at first render with the group's value. When `null`, all groups start expanded. Pass `_ => true` to start all groups collapsed, or a predicate for per-group control (e.g. `v => (DateTime)v! < DateTime.Today`). Has no effect when `GroupsCollapsible` is `false`. |
 
 ### Content
 
@@ -340,6 +344,19 @@ public sealed class NxGridTooltipContext<T>
 
 ---
 
+## `NxGridGroupHeaderArgs<T>`
+
+```csharp
+public sealed class NxGridGroupHeaderArgs<T>
+{
+    public object? GroupValue { get; init; }      // the shared value for this group
+    public IReadOnlyList<T> Items { get; init; }  // all rows in the group (including when collapsed)
+    public bool IsCollapsed { get; init; }         // current collapsed state
+}
+```
+
+---
+
 ## Event args types
 
 ```csharp
@@ -439,6 +456,8 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-item-hover-bg:    #e8f4ff;
     --nx-grid-muted-fg:         #888;
     --nx-grid-shadow:           rgba(0, 0, 0, 0.15);
+    --nx-grid-group-header-bg:  #E8E8E8;  /* group header row background */
+    --nx-grid-group-header-fg:  #333333;  /* group header row text */
 }
 ```
 
@@ -456,7 +475,6 @@ Things that cannot be changed through CSS variables (require a CSS override targ
 
 - **Server-side data** — Current `Data: List<T>` is always in-memory. A future `OnReadData: Func<NxGridReadArgs, Task<NxGridReadResult<T>>>` callback would let the host supply a page of data on demand, with `NxGridReadArgs` carrying sort/filter/page state.
 - **Column reordering** — drag-to-reorder columns not yet implemented.
-- **Row grouping / aggregates** — not planned for v1.
 - **`@bind-SelectedItems`** — convenience two-way binding shorthand for the common single-row selection case. Currently requires `OnSelectionChanged` handler.
 
 ### `NxGridColumn<T>` public properties (runtime state)

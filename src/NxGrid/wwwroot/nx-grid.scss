@@ -861,6 +861,43 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
     }
 }
 
+// ── Row grouping ──────────────────────────────────────────────────────────────
+
+$nx-grid-group-header-bg: #E8E8E8;
+$nx-grid-group-header-fg: #333333;
+
+:root {
+    --nx-grid-group-header-bg: #{$nx-grid-group-header-bg};
+    --nx-grid-group-header-fg: #{$nx-grid-group-header-fg};
+}
+
+.nx-grid-group-header {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    background: var(--nx-grid-group-header-bg);
+    color: var(--nx-grid-group-header-fg);
+    font-weight: 600;
+    border-bottom: 1px solid var(--nx-grid-border);
+    user-select: none;
+    -webkit-user-select: none;
+
+    &.nx-grid-group-header-collapsible {
+        cursor: pointer;
+
+        &:hover {
+            filter: brightness(0.96);
+        }
+    }
+}
+
+.nx-grid-group-toggle {
+    margin-right: 6px;
+    font-size: 10px;
+    color: var(--nx-grid-icon-muted-fg);
+    flex-shrink: 0;
+}
+
 // Print area: off-screen until printing; JS injects @media print to bring it into view
 .nx-print-area {
     position: fixed;

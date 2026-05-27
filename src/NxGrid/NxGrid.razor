@@ -88,37 +88,100 @@
     
     @if (!IsVirtualized)
     {
-        @foreach (var context in rowIndices)
+        @if (IsGrouped)
         {
-            <NxGridRow T="T"
-                           @key="context"
-                           Row="@filteredData[context]"
-                           RowIndex="@context"
-                           Columns="@visibleColumns"
-                           RowStyle="@rowStyle"
-                           SelectedRange="@selectedRange"
-                           ShowRowNumbers="@ShowRowNumbers"
-                           IsEditing="@isEditing"
-                           EditRow="@editRow"
-                           EditCol="@editCol"
-                           EditValue="@editValue"
-                           CellStyleFunc="@GetCellStyle"
-                           OnMouseDown="@OnCellMouseDown"
-                           OnMouseEnter="@OnCellMouseEnter"
-                           OnMouseUp="@OnCellMouseUp"
-                           OnMouseLeave="@OnCellMouseLeaveForTooltip"
-                           OnContextMenu="@OnCellContextMenu"
-                           OnDoubleClick="@OnCellDoubleClick"
-                           OnEditInput="@OnEditInputChange"
-                           OnEditKeyDown="@OnEditInputKeyDown"
-                           OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
-                           OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
-                           OnComboButtonClick="@OnComboButtonClick"
-                           OnCheckboxToggle="@OnCheckboxToggleCell"
-                           Cursor="@Cursor"
-                           RenderToken="@renderToken"
-                           GridEditable="@Editable"
-                           CellEditableGetter="@CellEditableGetter" />
+            @foreach (var group in _groups)
+            {
+                var grpValue = group.Value;
+                var grpCollapsed = _collapsedGroupValues.Contains(grpValue);
+                <div @key="@($"grp:{grpValue}")"
+                     class="nx-grid-group-header @(GroupsCollapsible ? "nx-grid-group-header-collapsible" : "")"
+                     style="@rowStyle"
+                     @onclick="@(() => ToggleGroup(grpValue))">
+                    @if (GroupsCollapsible)
+                    {
+                        <span class="nx-grid-group-toggle">@(grpCollapsed ? "▶" : "▼")</span>
+                    }
+                    @if (GroupHeaderTemplate != null)
+                    {
+                        @GroupHeaderTemplate(new NxGridGroupHeaderArgs<T> { GroupValue = grpValue, Items = group.Items, IsCollapsed = grpCollapsed })
+                    }
+                    else
+                    {
+                        <span>@grpValue (@group.Count)</span>
+                    }
+                </div>
+                @if (!grpCollapsed)
+                {
+                    @foreach (var rowIndex in Enumerable.Range(group.StartIndex, group.Count))
+                    {
+                        <NxGridRow T="T"
+                                       @key="rowIndex"
+                                       Row="@filteredData[rowIndex]"
+                                       RowIndex="@rowIndex"
+                                       Columns="@visibleColumns"
+                                       RowStyle="@rowStyle"
+                                       SelectedRange="@selectedRange"
+                                       ShowRowNumbers="@ShowRowNumbers"
+                                       IsEditing="@isEditing"
+                                       EditRow="@editRow"
+                                       EditCol="@editCol"
+                                       EditValue="@editValue"
+                                       CellStyleFunc="@GetCellStyle"
+                                       OnMouseDown="@OnCellMouseDown"
+                                       OnMouseEnter="@OnCellMouseEnter"
+                                       OnMouseUp="@OnCellMouseUp"
+                                       OnMouseLeave="@OnCellMouseLeaveForTooltip"
+                                       OnContextMenu="@OnCellContextMenu"
+                                       OnDoubleClick="@OnCellDoubleClick"
+                                       OnEditInput="@OnEditInputChange"
+                                       OnEditKeyDown="@OnEditInputKeyDown"
+                                       OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
+                                       OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+                                       OnComboButtonClick="@OnComboButtonClick"
+                                       OnCheckboxToggle="@OnCheckboxToggleCell"
+                                       Cursor="@Cursor"
+                                       RenderToken="@renderToken"
+                                       GridEditable="@Editable"
+                                       CellEditableGetter="@CellEditableGetter" />
+                    }
+                }
+            }
+        }
+        else
+        {
+            @foreach (var context in rowIndices)
+            {
+                <NxGridRow T="T"
+                               @key="context"
+                               Row="@filteredData[context]"
+                               RowIndex="@context"
+                               Columns="@visibleColumns"
+                               RowStyle="@rowStyle"
+                               SelectedRange="@selectedRange"
+                               ShowRowNumbers="@ShowRowNumbers"
+                               IsEditing="@isEditing"
+                               EditRow="@editRow"
+                               EditCol="@editCol"
+                               EditValue="@editValue"
+                               CellStyleFunc="@GetCellStyle"
+                               OnMouseDown="@OnCellMouseDown"
+                               OnMouseEnter="@OnCellMouseEnter"
+                               OnMouseUp="@OnCellMouseUp"
+                               OnMouseLeave="@OnCellMouseLeaveForTooltip"
+                               OnContextMenu="@OnCellContextMenu"
+                               OnDoubleClick="@OnCellDoubleClick"
+                               OnEditInput="@OnEditInputChange"
+                               OnEditKeyDown="@OnEditInputKeyDown"
+                               OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
+                               OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+                               OnComboButtonClick="@OnComboButtonClick"
+                               OnCheckboxToggle="@OnCheckboxToggleCell"
+                               Cursor="@Cursor"
+                               RenderToken="@renderToken"
+                               GridEditable="@Editable"
+                               CellEditableGetter="@CellEditableGetter" />
+            }
         }
     }
     else

@@ -1,0 +1,152 @@
+@page "/grouping"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Row Grouping — NxGrid</PageTitle>
+
+<h1>Row Grouping</h1>
+<p class="doc-intro">
+    Set <code>GroupBy</code> on the grid to partition rows into collapsible groups.
+    Sort and filter work normally within each group. Group order follows first-appearance
+    in the filtered data — column sort reorders rows inside groups but does not reorder
+    the groups themselves.
+</p>
+
+<div class="doc-section">
+    <h2>Grouped by Department</h2>
+    <p class="doc-note">
+        Click any group header to collapse or expand it. Sort and filter still work —
+        try sorting by <strong>Age</strong> to reorder people within each department.
+    </p>
+    <NxGrid T="Person" Data="@people" GroupBy="@(x => x.Department)"
+            Style="height:420px">
+        <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name"  Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"       Title="Age"        Width="80"
+                      Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Custom Group Header</h2>
+    <p class="doc-note">
+        Use <code>GroupHeaderTemplate</code> to render custom markup in each header.
+        The context gives you <code>GroupValue</code>, <code>Items</code> (all rows in
+        the group), and <code>IsCollapsed</code> for the toggle icon.
+        When <code>GroupHeaderTemplate</code> is used alongside column declarations,
+        wrap the columns in explicit <code>&lt;ChildContent&gt;</code> tags.
+    </p>
+    <NxGrid T="Person" Data="@people" GroupBy="@(x => x.Department)"
+            Style="height:420px">
+        <GroupHeaderTemplate Context="grp">
+            <strong>@grp.GroupValue</strong>
+            <span style="margin-left:10px;font-weight:normal;color:var(--nx-grid-muted-fg)">
+                @grp.Items.Count @(grp.Items.Count == 1 ? "person" : "people") &mdash;
+                avg age @((int)grp.Items.Average(p => p.Age))
+            </span>
+        </GroupHeaderTemplate>
+        <ChildContent>
+            <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" Width="130" />
+            <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name"  Width="130" />
+            <NxGridColumn Property="@(x => x.Age)"       Title="Age"        Width="80"
+                          Alignment="NxGridColumnAlignment.Right" />
+        </ChildContent>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@customHeaderCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Start Collapsed</h2>
+    <p class="doc-note">
+        Pass a predicate to <code>GroupCollapsedWhen</code> to control initial collapse
+        state per group. Pass <code>_ =&gt; true</code> to start all groups collapsed.
+    </p>
+    <NxGrid T="Person" Data="@people" GroupBy="@(x => x.Department)"
+            GroupCollapsedWhen="@(v => (string)v! != "Engineering")"
+            Style="height:420px">
+        <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name"  Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"       Title="Age"        Width="80"
+                      Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@collapsedCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Parameters</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>GroupBy</td>
+                <td>Func&lt;T, object?&gt;?</td>
+                <td>—</td>
+                <td>
+                    Groups rows by the returned value after filtering. Group order follows
+                    first-appearance in the filtered result. When set, virtualization is
+                    disabled (same behavior as <code>MultiLine</code>).
+                </td>
+            </tr>
+            <tr>
+                <td>GroupHeaderTemplate</td>
+                <td>RenderFragment&lt;NxGridGroupHeaderArgs&lt;T&gt;&gt;?</td>
+                <td>—</td>
+                <td>
+                    Custom markup for each group header. When omitted renders
+                    <em>"{value} ({count})"</em>. Provides
+                    <code>GroupValue</code>, <code>Items</code>, and <code>IsCollapsed</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>GroupsCollapsible</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When <code>true</code>, clicking a group header toggles collapse.</td>
+            </tr>
+            <tr>
+                <td>GroupCollapsedWhen</td>
+                <td>Func&lt;object?, bool&gt;?</td>
+                <td>—</td>
+                <td>
+                    Called once per group at first render. Return <code>true</code> to
+                    start that group collapsed. Pass <code>_ =&gt; true</code> to collapse all.
+                    Has no effect when <code>GroupsCollapsible</code> is <code>false</code>.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<Person> people = SampleData.GeneratePeople(40);
+
+    string basicCode = """
+        <NxGrid T="Person" Data="@people" GroupBy="@(x => x.Department)">
+            <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" />
+            <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name"  />
+            <NxGridColumn Property="@(x => x.Age)"       Title="Age"        />
+        </NxGrid>
+        """;
+
+    string customHeaderCode = """
+        <NxGrid T="Person" Data="@people" GroupBy="@(x => x.Department)">
+            <GroupHeaderTemplate Context="grp">
+                <strong>@grp.GroupValue</strong>
+                <span>@grp.Items.Count people — avg age @((int)grp.Items.Average(p => p.Age))</span>
+            </GroupHeaderTemplate>
+            <ChildContent>
+                <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" />
+                <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name"  />
+                <NxGridColumn Property="@(x => x.Age)"       Title="Age"        />
+            </ChildContent>
+        </NxGrid>
+        """;
+
+    string collapsedCode = """
+        <NxGrid T="Person" Data="@people"
+                GroupBy="@(x => x.Department)"
+                GroupCollapsedWhen="@(v => (string)v! != "Engineering")">
+            ...
+        </NxGrid>
+        """;
+}

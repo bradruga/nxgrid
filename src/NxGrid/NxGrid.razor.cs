@@ -44,12 +44,16 @@ public partial class NxGrid<T>
 
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
     private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
-    private bool IsVirtualized => Virtualize && !HasMultiLineColumns;
+    private bool IsVirtualized => Virtualize && !HasMultiLineColumns && !IsGrouped;
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
     [Parameter] public string? StateKey { get; set; }
     [Parameter] public bool AutoSizeColumns { get; set; } = true;
     [Parameter] public bool Virtualize { get; set; } = true;
     [Parameter] public bool EnableSelectionMath { get; set; }
+    [Parameter] public Func<T, object?>? GroupBy { get; set; }
+    [Parameter] public RenderFragment<NxGridGroupHeaderArgs<T>>? GroupHeaderTemplate { get; set; }
+    [Parameter] public bool GroupsCollapsible { get; set; } = true;
+    [Parameter] public Func<object?, bool>? GroupCollapsedWhen { get; set; }
 
     private string _selectionColor = "#C7C7C7";
 
