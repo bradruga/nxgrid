@@ -86,7 +86,15 @@
         }
     </div>
     
-    @if (!IsVirtualized)
+    @if (IsLoading && LoadingTemplate != null && filteredData.Count == 0)
+    {
+        <div class="nx-grid-empty-state">@LoadingTemplate</div>
+    }
+    else if (!IsLoading && filteredData.Count == 0 && EmptyTemplate != null)
+    {
+        <div class="nx-grid-empty-state">@EmptyTemplate</div>
+    }
+    else if (!IsVirtualized)
     {
         @if (IsGrouped)
         {

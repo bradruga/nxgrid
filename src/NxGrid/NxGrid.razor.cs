@@ -20,6 +20,9 @@ public partial class NxGrid<T>
     [Parameter] public string? Class { get; set; }
     [Parameter] public string? Style { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? EmptyTemplate { get; set; }
+    [Parameter] public RenderFragment? LoadingTemplate { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
     [Parameter] public RenderFragment? Overlays { get; set; }
     [Parameter] public int RowHeight { get; set; } = 28;
     [Parameter] public EventCallback<NxGridSelectionArgs<T>> OnSelectionChanged { get; set; }

@@ -1,0 +1,221 @@
+@page "/empty-state"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Empty &amp; Loading State — NxGrid</PageTitle>
+
+<h1>Empty &amp; Loading State</h1>
+<p class="doc-intro">
+    Use <code>EmptyTemplate</code> to show content inside the grid body when there are no
+    rows to display. Use <code>IsLoading</code> together with <code>LoadingTemplate</code>
+    to prevent a premature empty-state flash while data is still being fetched.
+</p>
+
+<div class="doc-section">
+    <h2>Loading state</h2>
+    <p class="doc-note">
+        <code>IsLoading="true"</code> suppresses <code>EmptyTemplate</code> and shows
+        <code>LoadingTemplate</code> instead. Click <strong>Simulate load</strong> to replay
+        the fetch — the loading template appears for two seconds, then the data arrives.
+    </p>
+    <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+        <button class="doc-btn" @onclick="SimulateLoad" disabled="@isLoading">
+            @(isLoading ? "Loading…" : "Simulate load")
+        </button>
+        <button class="doc-btn" @onclick="ClearData" disabled="@isLoading">Clear data</button>
+    </div>
+    <NxGrid T="Person" Data="@people" IsLoading="@isLoading" Style="height:260px">
+        <LoadingTemplate>
+            <span style="display:flex;align-items:center;gap:8px;color:var(--nx-grid-muted-fg)">
+                <span class="nx-demo-spinner"></span>
+                Fetching people…
+            </span>
+        </LoadingTemplate>
+        <EmptyTemplate>
+            <span style="color:var(--nx-grid-muted-fg)">No people found. Click <em>Simulate load</em> to load data.</span>
+        </EmptyTemplate>
+        <ChildContent>
+            <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" Width="130" />
+            <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name"  Width="130" />
+            <NxGridColumn Property="@(x => x.Department)" Width="140" />
+            <NxGridColumn Property="@(x => x.Age)"        Width="80"
+                          Alignment="NxGridColumnAlignment.Right" />
+        </ChildContent>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@loadingCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>No data vs. all-filtered</h2>
+    <p class="doc-note">
+        Check <code>people.Count</code> inside <code>EmptyTemplate</code> to show a different
+        message depending on whether the grid has no data at all, or has data that the active
+        filter is excluding. Apply a filter via the column menu to see the second message.
+    </p>
+    <NxGrid T="Person" @ref="filterGrid" Data="@filteredPeople" Style="height:300px">
+        <EmptyTemplate>
+            @if (filteredPeople.Count == 0)
+            {
+                <span style="color:var(--nx-grid-muted-fg)">No people have been added yet.</span>
+            }
+            else
+            {
+                <span style="color:var(--nx-grid-muted-fg)">
+                    No people match the current filters.
+                    <a href="#" style="color:var(--nx-grid-accent)" @onclick="ClearFilterGridState" @onclick:preventDefault>Clear filters</a>
+                </span>
+            }
+        </EmptyTemplate>
+        <ChildContent>
+            <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" Width="130" />
+            <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name"  Width="130" />
+            <NxGridColumn Property="@(x => x.Department)" Width="140" />
+            <NxGridColumn Property="@(x => x.Age)"        Width="80"
+                          Alignment="NxGridColumnAlignment.Right" />
+        </ChildContent>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@filterCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Parameters</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>EmptyTemplate</td>
+                <td>RenderFragment?</td>
+                <td>—</td>
+                <td>
+                    Rendered centered in the grid body when <code>filteredData</code> is empty
+                    and <code>IsLoading</code> is <code>false</code>. Column headers remain
+                    visible. Body is blank when not set.
+                </td>
+            </tr>
+            <tr>
+                <td>LoadingTemplate</td>
+                <td>RenderFragment?</td>
+                <td>—</td>
+                <td>
+                    Rendered centered in the grid body when <code>IsLoading</code> is
+                    <code>true</code> and there are no rows. Body is blank while loading
+                    when not set.
+                </td>
+            </tr>
+            <tr>
+                <td>IsLoading</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>
+                    When <code>true</code>, suppresses <code>EmptyTemplate</code> and shows
+                    <code>LoadingTemplate</code> instead. Set this while your async data fetch
+                    is in-flight to prevent a premature empty-state flash.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .nx-demo-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--nx-grid-border);
+        border-top-color: var(--nx-grid-accent);
+        border-radius: 50%;
+        animation: nx-demo-spin 0.7s linear infinite;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+    @@keyframes nx-demo-spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    List<Person> people = [];
+    bool isLoading;
+
+    List<Person> filteredPeople = SampleData.GetPeopleCopy();
+    NxGrid<Person>? filterGrid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SimulateLoad();
+    }
+
+    async Task SimulateLoad()
+    {
+        people = [];
+        isLoading = true;
+        await Task.Delay(2000);
+        people = SampleData.GetPeopleCopy();
+        isLoading = false;
+    }
+
+    void ClearData()
+    {
+        people = [];
+    }
+
+    void ClearFilterGridState()
+    {
+        filterGrid?.ClearSavedState();
+    }
+
+    string loadingCode = """
+        <NxGrid T="Person" Data="@people" IsLoading="@isLoading">
+            <LoadingTemplate>
+                <span>Fetching people…</span>
+            </LoadingTemplate>
+            <EmptyTemplate>
+                <span>No people found.</span>
+            </EmptyTemplate>
+            <ChildContent>
+                <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" />
+                <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name" />
+                <NxGridColumn Property="@(x => x.Department)" />
+                <NxGridColumn Property="@(x => x.Age)" />
+            </ChildContent>
+        </NxGrid>
+
+        @code {
+            List<Person> people = [];
+            bool isLoading = true;
+
+            protected override async Task OnInitializedAsync()
+            {
+                people = await api.GetPeopleAsync();
+                isLoading = false;
+            }
+        }
+        """;
+
+    string filterCode = """
+        <NxGrid T="Person" @ref="grid" Data="@people">
+            <EmptyTemplate>
+                @if (people.Count == 0)
+                {
+                    <span>No people have been added yet.</span>
+                }
+                else
+                {
+                    <span>
+                        No people match the current filters.
+                        <a @onclick="@(() => grid!.ClearSavedState())">Clear filters</a>
+                    </span>
+                }
+            </EmptyTemplate>
+            <ChildContent>
+                <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" />
+                <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name" />
+                <NxGridColumn Property="@(x => x.Department)" />
+                <NxGridColumn Property="@(x => x.Age)" />
+            </ChildContent>
+        </NxGrid>
+
+        @code {
+            NxGrid<Person>? grid;
+            List<Person> people = SampleData.GetPeopleCopy();
+        }
+        """;
+}

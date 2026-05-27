@@ -4,6 +4,49 @@ This document describes how NxGrid behaves at runtime. It covers the mechanics b
 
 ---
 
+## Empty and loading state
+
+When the grid body has no rows to render, `EmptyTemplate` and `LoadingTemplate` fill that space. Column headers remain visible in both states.
+
+### Conditions
+
+| State | Condition | Template shown |
+|---|---|---|
+| Loading | `IsLoading == true` and `filteredData.Count == 0` | `LoadingTemplate` (body is blank if not set) |
+| Empty | `IsLoading == false` and `filteredData.Count == 0` | `EmptyTemplate` (body is blank if not set) |
+| Has rows | `filteredData.Count > 0` | Normal row rendering (templates are not shown) |
+
+`IsLoading` takes priority over `EmptyTemplate`. When `IsLoading` is `true` and there are existing rows (e.g. a background refresh while stale data is still displayed), the rows remain visible and neither template is shown — only the loading or empty template for the no-rows case is affected.
+
+### Preventing the loading flash
+
+Without `IsLoading`, setting `EmptyTemplate` causes it to flash briefly during the initial data fetch, because `Data` starts as `[]`. The fix is to drive `IsLoading` from the same flag that controls whether the fetch is in-flight:
+
+```csharp
+private List<ProjectDto> projects = [];
+private bool isLoading = true;
+
+protected override async Task OnInitializedAsync()
+{
+    projects = await api.GetProjectsAsync();
+    isLoading = false;
+}
+```
+
+```razor
+<NxGrid T="ProjectDto" Data="@projects" IsLoading="@isLoading">
+    <LoadingTemplate><span>Loading…</span></LoadingTemplate>
+    <EmptyTemplate><span>No projects found.</span></EmptyTemplate>
+    <ChildContent>
+        ...
+    </ChildContent>
+</NxGrid>
+```
+
+While the fetch is in-flight, `LoadingTemplate` is shown. Once it completes: if `projects` is non-empty, the rows render normally; if it is empty, `EmptyTemplate` is shown.
+
+---
+
 ## Data pipeline
 
 `Data` is the source of truth. The grid maintains a separate `filteredData` list that is what actually renders. The pipeline runs in this order:

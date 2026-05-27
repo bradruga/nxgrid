@@ -727,6 +727,15 @@
   cursor: not-allowed;
 }
 
+.nx-grid-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 32px 16px;
+  color: var(--nx-grid-muted-fg);
+}
+
 .nx-grid-status-bar {
   position: sticky;
   bottom: 0;

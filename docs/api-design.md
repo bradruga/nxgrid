@@ -78,6 +78,9 @@ If writing that felt painful, the API is wrong. It doesn't.
 | Parameter | Type | Notes |
 |---|---|---|
 | `ChildContent` | `RenderFragment?` | Where `<NxGridColumn>` declarations go. When omitted, columns are auto-generated from `T`'s public readable properties (see [Auto-columns](#auto-columns)). |
+| `EmptyTemplate` | `RenderFragment?` | Rendered centered in the grid body when `filteredData` is empty and `IsLoading` is `false`. Column headers remain visible. When not set the body is blank. |
+| `LoadingTemplate` | `RenderFragment?` | Rendered centered in the grid body when `IsLoading` is `true` and there are no rows. When not set the body is blank while loading. |
+| `IsLoading` | `bool` | `false` | When `true`, suppresses `EmptyTemplate` and shows `LoadingTemplate` instead (if provided). Set this while your async data fetch is in-flight to prevent a premature empty-state flash. |
 | `Overlays` | `RenderFragment?` | Rendered in an absolute-positioned, pointer-events-none layer above the grid. Useful for custom highlights. |
 
 ### Tooltips

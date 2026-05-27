@@ -20,6 +20,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
 - [How to add a date picker to a column](#how-to-add-a-date-picker-to-a-column)
 - [How to enable multi-line text in cells](#how-to-enable-multi-line-text-in-cells)
+- [How to show a message when the grid is empty or loading](#how-to-show-a-message-when-the-grid-is-empty-or-loading)
 - [How to build and use the package locally](#how-to-build-and-use-the-package-locally)
 - [How to publish the package to NuGet.org](#how-to-publish-the-package-to-nugetorg)
 
@@ -719,6 +720,97 @@ This means multi-line grids are not virtualized — all rows are in the DOM at o
 ### Interaction with ComboBoxItems
 
 `MultiLine` is silently ignored when `ComboBoxItems` is also set on the same column. Combo-box columns are always single-line.
+
+---
+
+## How to show a message when the grid is empty or loading
+
+Use `EmptyTemplate` to display content inside the grid body when there are no rows, and `IsLoading` to suppress that template while data is still being fetched.
+
+### Basic empty state
+
+```razor
+<NxGrid T="ProjectDto" Data="@projects">
+    <EmptyTemplate>
+        <span>No projects found.</span>
+    </EmptyTemplate>
+    <ChildContent>
+        <NxGridColumn Property="@(x => x.ProjectNumber)" Title="Number" Width="100" />
+        <NxGridColumn Property="@(x => x.ProjectName)"   Title="Name"   Width="260" />
+    </ChildContent>
+</NxGrid>
+```
+
+### With a loading state (prevents flash on initial load)
+
+Without `IsLoading`, `EmptyTemplate` appears immediately while the async fetch is in-flight because `Data` starts as `[]`. Use `IsLoading` to prevent that flash:
+
+```razor
+<NxGrid T="ProjectDto" Data="@projects" IsLoading="@isLoading">
+    <LoadingTemplate>
+        <span>Loading projects…</span>
+    </LoadingTemplate>
+    <EmptyTemplate>
+        <span>No projects found.</span>
+    </EmptyTemplate>
+    <ChildContent>
+        <NxGridColumn Property="@(x => x.ProjectNumber)" Title="Number" Width="100" />
+        <NxGridColumn Property="@(x => x.ProjectName)"   Title="Name"   Width="260" />
+    </ChildContent>
+</NxGrid>
+
+@code {
+    private List<ProjectDto> projects = [];
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        projects = await api.GetProjectsAsync();
+        isLoading = false;
+    }
+}
+```
+
+### Different messages for no data vs. all-filtered
+
+The `EmptyTemplate` renders when either `Data` is empty or all rows are filtered out. Check `Data.Count` inside the template to distinguish the two cases:
+
+```razor
+<NxGrid T="ProjectDto" @ref="grid" Data="@projects" IsLoading="@isLoading">
+    <LoadingTemplate>
+        <span>Loading…</span>
+    </LoadingTemplate>
+    <EmptyTemplate>
+        @if (projects.Count == 0)
+        {
+            <span>No projects have been created yet.</span>
+        }
+        else
+        {
+            <span>
+                No projects match the current filters.
+                <a @onclick="@(() => grid!.ClearSavedState())">Clear filters</a>
+            </span>
+        }
+    </EmptyTemplate>
+    <ChildContent>
+        <NxGridColumn Property="@(x => x.ProjectNumber)" Title="Number" Width="100" />
+        <NxGridColumn Property="@(x => x.ProjectName)"   Title="Name"   Width="260" />
+    </ChildContent>
+</NxGrid>
+
+@code {
+    private NxGrid<ProjectDto>? grid;
+    private List<ProjectDto> projects = [];
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        projects = await api.GetProjectsAsync();
+        isLoading = false;
+    }
+}
+```
 
 ---
 
