@@ -1,0 +1,116 @@
+@page "/multi-line"
+
+<PageTitle>Multi-Line Editing — NxGrid</PageTitle>
+
+<h1>Multi-Line Editing</h1>
+<p class="doc-intro">
+    Add <code>MultiLine="true"</code> to a column to use a <code>&lt;textarea&gt;</code> in edit mode
+    and render line breaks in view mode. Rows auto-expand to show full content — virtualization is
+    disabled when any column is multi-line so every row is always in the DOM.
+</p>
+
+<div class="doc-section">
+    <h2>Editable Multi-Line Column</h2>
+    <p class="doc-note">
+        The <strong>Notes</strong> column has <code>MultiLine="true"</code>.
+        Press <kbd class="doc-kbd">F2</kbd> or double-click a Notes cell to open the textarea.
+        <kbd class="doc-kbd">Shift+Enter</kbd> inserts a line break,
+        <kbd class="doc-kbd">Enter</kbd> commits and moves down,
+        <kbd class="doc-kbd">Tab</kbd> commits and moves right,
+        <kbd class="doc-kbd">Escape</kbd> cancels.
+        <kbd class="doc-kbd">Ctrl+Enter</kbd> fills the selection (same as single-line columns).
+        The Status column uses a combo-box — <code>MultiLine</code> is silently ignored when
+        <code>ComboBoxItems</code> is also set.
+    </p>
+    <NxGrid T="TaskItem" Data="@tasks" OnUpdate="@HandleUpdate" Editable="true"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true">
+        <NxGridColumn Property="@(x => x.Id)"     Title="ID"     Width="50"  Editable="false" />
+        <NxGridColumn Property="@(x => x.Title)"  Title="Title"  Width="200" />
+        <NxGridColumn Property="@(x => x.Notes)"  Title="Notes"  MultiLine="true" />
+        <NxGridColumn Property="@(x => x.Status)" Title="Status" Width="130"
+                      ComboBoxItems="@(() => NxGridComboItem.From(["Open", "In Progress", "Done", "Blocked"]))" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@editCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Read-Only Multi-Line Display</h2>
+    <p class="doc-note">
+        <code>MultiLine="true"</code> on a non-editable column still renders with
+        <code>white-space: pre-wrap</code>, so stored line breaks are visible without enabling editing.
+    </p>
+    <NxGrid T="TaskItem" Data="@tasks">
+        <NxGridColumn Property="@(x => x.Id)"     Title="ID"     Width="50"  />
+        <NxGridColumn Property="@(x => x.Title)"  Title="Title"  Width="200" />
+        <NxGridColumn Property="@(x => x.Notes)"  Title="Notes"  MultiLine="true" Editable="false" />
+        <NxGridColumn Property="@(x => x.Status)" Title="Status" Width="130" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@displayCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Keyboard Reference</h2>
+    <table class="doc-table">
+        <thead><tr><th>Key</th><th>Single-line column</th><th>Multi-line column</th></tr></thead>
+        <tbody>
+            <tr><td><kbd class="doc-kbd">Enter</kbd></td>         <td>Commit, move down</td><td>Commit, move down</td></tr>
+            <tr><td><kbd class="doc-kbd">Shift+Enter</kbd></td>   <td>—</td>               <td>Insert line break</td></tr>
+            <tr><td><kbd class="doc-kbd">Ctrl+Enter</kbd></td>    <td>Fill selection</td>  <td>Fill selection</td></tr>
+            <tr><td><kbd class="doc-kbd">Tab</kbd></td>           <td>Commit, move right</td><td>Commit, move right</td></tr>
+            <tr><td><kbd class="doc-kbd">Escape</kbd></td>        <td>Cancel</td>          <td>Cancel</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Column Parameter</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>MultiLine</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>
+                    When true, the inline editor is a <code>&lt;textarea&gt;</code> that auto-grows up to
+                    5× <code>RowHeight</code>. Line breaks in the cell value are preserved and displayed with
+                    <code>white-space: pre-wrap</code> in view mode. Ignored when <code>ComboBoxItems</code> is set.
+                    Disables virtualization for the grid.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    class TaskItem
+    {
+        public int    Id     { get; set; }
+        public string Title  { get; set; } = "";
+        public string Notes  { get; set; } = "";
+        public string Status { get; set; } = "Open";
+    }
+
+    List<TaskItem> tasks =
+    [
+        new TaskItem { Id = 1, Title = "Validate login form",      Status = "Done",        Notes = "Check required fields.\nShow inline errors on blur.\nBlock submit until valid." },
+        new TaskItem { Id = 2, Title = "Fix date picker overlap",   Status = "In Progress", Notes = "Calendar panel clips under the modal footer on small viewports.\nNeed to flip the panel upward when there isn't enough space below." },
+        new TaskItem { Id = 3, Title = "Export to CSV",            Status = "Open",        Notes = "Include all visible columns.\nRespect current filter and sort order.\nEscape commas in cell values." },
+        new TaskItem { Id = 4, Title = "Add dark mode",            Status = "Open",        Notes = "" },
+        new TaskItem { Id = 5, Title = "Audit accessibility",      Status = "Blocked",     Notes = "Waiting on design to supply final color contrast ratios.\nAll interactive elements need keyboard focus rings." },
+        new TaskItem { Id = 6, Title = "Cache API responses",      Status = "Open",        Notes = "Use stale-while-revalidate.\nInvalidate on any mutation." },
+        new TaskItem { Id = 7, Title = "Write onboarding guide",   Status = "In Progress", Notes = "Cover initial setup, first data load, and common editing workflows." },
+        new TaskItem { Id = 8, Title = "Performance profiling",    Status = "Open",        Notes = "" },
+    ];
+
+    async Task HandleUpdate(NxGridUpdateArgs<TaskItem> args)
+    {
+        foreach (var row in args.Rows)
+            foreach (var change in row.Changes)
+                change.Apply(row.Row);
+        await Task.CompletedTask;
+    }
+
+    string editCode    = DemoCodeSamples.MultiLineEdit;
+    string displayCode = DemoCodeSamples.MultiLineDisplay;
+}

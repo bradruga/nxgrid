@@ -7,6 +7,7 @@
         @if (ShowRowNumbers) { <span>@(RowIndex + 1)</span> }
     </div>
 
+    @{ var isMultiLineGrid = Columns.Any(c => c.MultiLine); }
     @for (var ci = 0; ci < Columns.Count; ci++)
     {
         var col = Columns[ci];
@@ -14,7 +15,7 @@
         var isAnchor = SelectedRange != null && RowIndex == SelectedRange.StartRow && ci == SelectedRange.StartCol;
         var selected = SelectedRange?.IsCellInRange(RowIndex, ci) == true && !isAnchor;
 
-        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : "")"
+        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
              style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
              @onmousedown="@(args => HandleMouseDown(args, col))"
              @onmouseenter="@(args => HandleMouseEnter(args, col))"
@@ -43,6 +44,33 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
                                 </button>
                     </div>
+                }
+                else if (col.IsMultiLineColumn)
+                {
+                    @* Invisible height anchor — keeps the row from collapsing while the textarea is absolute.
+                       Trailing \n doesn't generate line height in pre-wrap without content on that line,
+                       so append a zero-width space to force the new line to occupy height. *@
+                    <span class="nx-grid-cell-text nx-grid-cell-text-multiline" style="visibility:hidden">@(EditValue.EndsWith('\n') ? EditValue + "​" : EditValue)</span>
+                    <textarea class="nx-grid-edit-textarea"
+                              @ref="editInputRef"
+                              value="@EditValue"
+                              @oninput="@(e => OnEditInput?.Invoke(e))"
+                              @onkeydown="@(e => HandleEditKeyDown(e))"
+                              @onkeydown:stopPropagation
+                              @onmousedown:stopPropagation
+                              @onmouseup:stopPropagation></textarea>
+                }
+                else if (isMultiLineGrid)
+                {
+                    @* Textarea in single-line mode: fills height so text is top-aligned (input always centers) *@
+                    <textarea class="nx-grid-edit-textarea-sl"
+                              @ref="editInputRef"
+                              value="@EditValue"
+                              @oninput="@(e => OnEditInput?.Invoke(e))"
+                              @onkeydown="@(e => HandleEditKeyDown(e))"
+                              @onkeydown:stopPropagation
+                              @onmousedown:stopPropagation
+                              @onmouseup:stopPropagation></textarea>
                 }
                 else
                 {
@@ -95,16 +123,13 @@
             }
             else
             {
-                <span class="nx-grid-cell-text">
-                    @if (col.ComboBoxItems != null && col.Display == null)
-                    {
-                        @col.ResolveComboDisplay(Row)
-                    }
-                    else if (col.EffectiveGetter != null)
-                    {
-                        @(col.EffectiveGetter(Row))
-                    }
-                </span>
+                var cellValue = col.ComboBoxItems != null && col.Display == null
+                    ? (object?)col.ResolveComboDisplay(Row)
+                    : col.EffectiveGetter?.Invoke(Row);
+                var cellDisplay = col.MultiLine && cellValue is string sv && sv.EndsWith('\n')
+                    ? (object?)(sv + "​")
+                    : cellValue;
+                <span class="nx-grid-cell-text @(col.MultiLine ? "nx-grid-cell-text-multiline" : "")">@cellDisplay</span>
                 @if (col.IsComboColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
                      && (col.Editable ?? GridEditable)
                      && (CellEditableGetter == null || CellEditableGetter(Row, col)))

@@ -7,7 +7,7 @@
     @ChildContent
 </CascadingValue>
 
-<div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px"
+<div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @(HasMultiLineColumns ? "nx-grid-multiline" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px"
      tabindex="0"
      @onkeydown="@OnGridKeyDown">
     <div class="nx-grid-header-row" style="@rowStyle">
@@ -86,37 +86,75 @@
         }
     </div>
     
-    <Virtualize Items="@rowIndices" ItemSize="@((float)RowHeight)" OverscanCount="12">
-        <NxGridRow T="T"
-                       @key="context"
-                       Row="@filteredData[context]"
-                       RowIndex="@context"
-                       Columns="@visibleColumns"
-                       RowStyle="@rowStyle"
-                       SelectedRange="@selectedRange"
-                       ShowRowNumbers="@ShowRowNumbers"
-                       IsEditing="@isEditing"
-                       EditRow="@editRow"
-                       EditCol="@editCol"
-                       EditValue="@editValue"
-                       CellStyleFunc="@GetCellStyle"
-                       OnMouseDown="@OnCellMouseDown"
-                       OnMouseEnter="@OnCellMouseEnter"
-                       OnMouseUp="@OnCellMouseUp"
-                       OnMouseLeave="@OnCellMouseLeaveForTooltip"
-                       OnContextMenu="@OnCellContextMenu"
-                       OnDoubleClick="@OnCellDoubleClick"
-                       OnEditInput="@OnEditInputChange"
-                       OnEditKeyDown="@OnEditInputKeyDown"
-                       OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
-                       OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
-                       OnComboButtonClick="@OnComboButtonClick"
-                       OnCheckboxToggle="@OnCheckboxToggleCell"
-                       Cursor="@Cursor"
-                       RenderToken="@renderToken"
-                       GridEditable="@Editable"
-                       CellEditableGetter="@CellEditableGetter" />
-    </Virtualize>
+    @if (!IsVirtualized)
+    {
+        @foreach (var context in rowIndices)
+        {
+            <NxGridRow T="T"
+                           @key="context"
+                           Row="@filteredData[context]"
+                           RowIndex="@context"
+                           Columns="@visibleColumns"
+                           RowStyle="@rowStyle"
+                           SelectedRange="@selectedRange"
+                           ShowRowNumbers="@ShowRowNumbers"
+                           IsEditing="@isEditing"
+                           EditRow="@editRow"
+                           EditCol="@editCol"
+                           EditValue="@editValue"
+                           CellStyleFunc="@GetCellStyle"
+                           OnMouseDown="@OnCellMouseDown"
+                           OnMouseEnter="@OnCellMouseEnter"
+                           OnMouseUp="@OnCellMouseUp"
+                           OnMouseLeave="@OnCellMouseLeaveForTooltip"
+                           OnContextMenu="@OnCellContextMenu"
+                           OnDoubleClick="@OnCellDoubleClick"
+                           OnEditInput="@OnEditInputChange"
+                           OnEditKeyDown="@OnEditInputKeyDown"
+                           OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
+                           OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+                           OnComboButtonClick="@OnComboButtonClick"
+                           OnCheckboxToggle="@OnCheckboxToggleCell"
+                           Cursor="@Cursor"
+                           RenderToken="@renderToken"
+                           GridEditable="@Editable"
+                           CellEditableGetter="@CellEditableGetter" />
+        }
+    }
+    else
+    {
+        <Virtualize Items="@rowIndices" ItemSize="@((float)RowHeight)" OverscanCount="12">
+            <NxGridRow T="T"
+                           @key="context"
+                           Row="@filteredData[context]"
+                           RowIndex="@context"
+                           Columns="@visibleColumns"
+                           RowStyle="@rowStyle"
+                           SelectedRange="@selectedRange"
+                           ShowRowNumbers="@ShowRowNumbers"
+                           IsEditing="@isEditing"
+                           EditRow="@editRow"
+                           EditCol="@editCol"
+                           EditValue="@editValue"
+                           CellStyleFunc="@GetCellStyle"
+                           OnMouseDown="@OnCellMouseDown"
+                           OnMouseEnter="@OnCellMouseEnter"
+                           OnMouseUp="@OnCellMouseUp"
+                           OnMouseLeave="@OnCellMouseLeaveForTooltip"
+                           OnContextMenu="@OnCellContextMenu"
+                           OnDoubleClick="@OnCellDoubleClick"
+                           OnEditInput="@OnEditInputChange"
+                           OnEditKeyDown="@OnEditInputKeyDown"
+                           OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
+                           OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+                           OnComboButtonClick="@OnComboButtonClick"
+                           OnCheckboxToggle="@OnCheckboxToggleCell"
+                           Cursor="@Cursor"
+                           RenderToken="@renderToken"
+                           GridEditable="@Editable"
+                           CellEditableGetter="@CellEditableGetter" />
+        </Virtualize>
+    }
 
     @if (EnableSelectionMath && selectedRange != null)
     {

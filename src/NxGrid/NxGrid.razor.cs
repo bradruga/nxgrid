@@ -43,9 +43,12 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridContextMenuItemArgs<T>> OnContextMenuItemClicked { get; set; }
 
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
+    private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
+    private bool IsVirtualized => Virtualize && !HasMultiLineColumns;
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
     [Parameter] public string? StateKey { get; set; }
     [Parameter] public bool AutoSizeColumns { get; set; } = true;
+    [Parameter] public bool Virtualize { get; set; } = true;
     [Parameter] public bool EnableSelectionMath { get; set; }
 
     private string _selectionColor = "#C7C7C7";
@@ -221,7 +224,8 @@ public partial class NxGrid<T>
     private string BuildRowStyle()
     {
         var totalWidth = 32 + visibleColumns.Sum(c => c.UserWidth ?? Math.Min(Math.Max(c.Width, c.MinWidth ?? 0), c.MaxWidth ?? int.MaxValue));
-        return $"height:{RowHeight}px;min-width:{totalWidth}px";
+        var heightProp = HasMultiLineColumns ? "min-height" : "height";
+        return $"{heightProp}:{RowHeight}px;min-width:{totalWidth}px";
     }
 
     private async Task OnComboButtonClick(int row, int col)

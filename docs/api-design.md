@@ -65,6 +65,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `Cursor` | `NxGridCursor` | `Default` | CSS cursor applied to body cells only (not column or row headers). `Default` → `default`, `Cell` → `cell`, `Pointer` → `pointer`. |
 | `StateKey` | `string?` | — | When set, the grid saves column widths (including manual-mode lock state), sort state, and filter state to `localStorage` under this key after every user change, and restores it on first render. Each grid instance on a page should use a unique key. |
 | `AutoSizeColumns` | `bool` | `true` | When `true` (default), columns without a `MaxWidth` use `flex-grow: 1` to fill available space. Set to `false` to start the grid in manual mode immediately — all columns render at their declared `Width` with no flex growth, as if the user had already resized. |
+| `Virtualize` | `bool` | `true` | When `true` (default), rows are rendered with Blazor's `<Virtualize>` component so only the visible rows are in the DOM. Set to `false` to render all rows at once — useful for small grids where browser Ctrl+F search, accessibility tools, or print should see every row. Automatically overridden to `false` when any column has `MultiLine = true`. |
 | `EnableSelectionMath` | `bool` | `false` | When `true`, a status bar is rendered below the grid body (sticky, does not scroll vertically) showing **Sum**, **Avg**, and **Count** for the current selection. Non-numeric cells in the selection are excluded from Sum and Avg but included in Count. Sum and Avg are hidden when the selection contains no numeric cells. The bar disappears when there is no active selection. |
 
 ### Content
@@ -172,6 +173,7 @@ Columns self-register with their parent grid on initialization and deregister on
 |---|---|---|
 | `Nullable` | `bool` | When `true`, Delete clears the cell to `null` rather than `0`/`""`. |
 | `MathExpression` | `bool` | When `true` and the column is editable, the raw input string is evaluated as an arithmetic expression before being passed to `OnUpdate`. Supports `+`, `-`, `*`, `/`, parentheses, unary negation, and decimal literals. Whitespace is ignored. If evaluation fails (syntax error, division by zero, non-finite result), the raw string is passed unchanged — identical behavior to a column without `MathExpression`. Applies to typed commits, Ctrl+Enter fill, and paste (after `TransformPastedValue` runs). |
+| `MultiLine` | `bool` | When `true`, the cell renders with `white-space: pre-wrap` so newlines and whitespace sequences are preserved. The inline editor is a `<textarea>` that grows with the content. **Shift+Enter** inserts a newline; Enter commits; Tab commits and moves right; Ctrl/⌘+Enter fills the selection. Silently ignored when `ComboBoxItems` is also set on the column. When any visible column has `MultiLine = true`, the grid disables row virtualization and uses `min-height` instead of a fixed row height so rows grow and shrink to fit their content. In this mode, all columns in the grid — including non-`MultiLine` ones — use a single-line `<textarea>` editor (fixed height, no wrapping) rather than a plain `<input>`, so text stays top-aligned regardless of row height. |
 | `ComboBoxItems` | `Func<IEnumerable<NxGridComboItem>>?` | Turns the inline editor into a combo box. The function is called fresh on each open. The selected item's `Value` is committed via `Property`; `Display` is shown in the dropdown and in the non-editing cell. Use `NxGridComboItem.From(source, value, display)` to project any typed collection into combo items. |
 | `ComboBoxItemTemplate` | `RenderFragment<NxGridComboItem>?` | Custom markup for each dropdown item. When set, replaces the plain `Display` string in the dropdown list. |
 
@@ -222,7 +224,9 @@ var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
 | Ctrl/⌘ + Home/End | Jump to first/last cell |
 | Page Up / Down | Move by page height |
 | Tab / Shift+Tab | Move right/left, wrapping rows |
-| Enter / Shift+Enter | Move down/up |
+| Enter | Move down one row (navigation) / commit edit and move down (editing) |
+| Shift+Enter | Move up one row (navigation) / commit edit and move up (editing) |
+| Shift+Enter (editing a `MultiLine` cell) | Insert a newline — does not commit |
 | Ctrl/⌘+Enter | While editing: apply the current value to every editable cell in the selection |
 | F2 | Edit cell in-place (shows existing value) |
 | Printable char | Start editing, replacing value |
@@ -239,6 +243,28 @@ var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
 A column is editable when `Editable` is set (column-level or via the grid-level `Editable`) and the grid has an `OnUpdate` handler. The grid enters edit mode on F2, double-click, or any printable keystroke.
 
 Set `Editable="true"` on the grid (all columns editable) or on individual columns (column-level override), and subscribe to `OnUpdate`. The grid enters edit mode on F2, double-click, or any printable keystroke. `OnUpdate` fires once per operation — single-cell commit, paste, or delete — with all affected rows grouped by row. The host applies changes to the model and persists them.
+
+### Multi-line editing
+
+Set `MultiLine="true"` on a column to enable newline-preserving text editing. In view mode, cell content renders with `white-space: pre-wrap` so embedded newlines and leading/trailing whitespace are visible exactly as stored. In edit mode, the cell shows a `<textarea>` that grows with the content.
+
+When any column in the grid has `MultiLine = true`, every editable column in that grid uses a `<textarea>` editor — `MultiLine` columns get the auto-growing variant; all other columns get a fixed single-line `<textarea>` (no wrapping, fills the row height) instead of the usual `<input>`. This keeps text top-aligned in all cells regardless of row height.
+
+**Key bindings in a multi-line editor:**
+
+| Key | Action |
+|---|---|
+| Shift+Enter | Insert a newline character |
+| Enter | Commit and move down |
+| Shift+Enter (single-line cell) | Commit and move up |
+| Tab | Commit and move right |
+| Shift+Tab | Commit and move left |
+| Ctrl/⌘+Enter | Fill the selection with the current value |
+| Escape | Cancel and restore the original value |
+
+Multi-line is silently ignored when `ComboBoxItems` is also set on the same column (combo boxes are always single-line).
+
+**Row height:** when any visible column has `MultiLine = true`, the grid switches from `<Virtualize>` (uniform row height) to `@foreach` rendering. Rows expand and contract as their tallest multi-line cell grows or shrinks. The `RowHeight` parameter still sets the *minimum* row height. This change applies to the entire grid, so single-line cells in the same grid also get top-aligned text.
 
 ```csharp
 async Task HandleUpdate(NxGridUpdateArgs<Person> args)
@@ -421,6 +447,8 @@ Things that cannot be changed through CSS variables (require a CSS override targ
 - Row height — controlled by the `RowHeight` parameter
 - Column widths — controlled by `Width`, `MinWidth`, `MaxWidth`
 - Font family / size — inherit from the parent element; override `.nx-grid { font-size: 13px; }`
+
+**Cell text whitespace:** all cell text renders with `white-space: pre`, so leading spaces, trailing spaces, and tab characters are preserved and visible exactly as stored. Multi-line columns additionally use `white-space: pre-wrap` so embedded newlines wrap inside the cell.
 
 ---
 

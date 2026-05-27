@@ -6,14 +6,48 @@
         // Prevent Tab from moving browser focus out of the edit cell.
         // Must be a capturing listener (fires before any element handlers).
         this._editTabHandler = (event) => {
+            if (!event.target) return;
+            const cls = event.target.classList;
             if (event.key === 'Tab' &&
-                event.target &&
-                (event.target.classList.contains('nx-grid-edit-input') ||
-                 event.target.classList.contains('nx-grid-combo-input'))) {
+                (cls.contains('nx-grid-edit-input') ||
+                 cls.contains('nx-grid-combo-input') ||
+                 cls.contains('nx-grid-edit-textarea') ||
+                 cls.contains('nx-grid-edit-textarea-sl'))) {
+                event.preventDefault();
+            }
+            // Prevent newline insertion in the single-line textarea used in multiline grids.
+            // The Blazor keydown handler commits on Enter before the char is inserted, but
+            // preventing default here avoids any race with the oninput event.
+            if (event.key === 'Enter' && cls.contains('nx-grid-edit-textarea-sl')) {
+                event.preventDefault();
+            }
+            // Prevent newline insertion when committing a multi-line cell with plain Enter
+            // (or Ctrl+Enter). Without this, the browser inserts \n into the textarea
+            // synchronously — before Blazor removes it — causing a one-frame flash where
+            // the text appears shifted. Shift+Enter intentionally inserts a line break, so
+            // it is allowed through.
+            if (event.key === 'Enter' && !event.shiftKey && cls.contains('nx-grid-edit-textarea')) {
                 event.preventDefault();
             }
         };
         document.addEventListener('keydown', this._editTabHandler, true);
+
+        // Synchronously mirror the textarea value into the hidden height-anchor span so
+        // row height expands in the same JS tick as a Shift+Enter newline insertion.
+        // Without this, the browser repaints the textarea with extra height before Blazor
+        // has updated the span, causing a brief flash where text appears shifted upward.
+        this._editInputHandler = (event) => {
+            if (!event.target) return;
+            if (!event.target.classList.contains('nx-grid-edit-textarea')) return;
+            const ta = event.target;
+            const cell = ta.closest('.nx-grid-cell-editing-ml');
+            if (!cell) return;
+            const anchor = cell.querySelector('.nx-grid-cell-text-multiline');
+            if (!anchor) return;
+            const v = ta.value;
+            anchor.textContent = v.endsWith('\n') ? v + '​' : v;
+        };
+        document.addEventListener('input', this._editInputHandler, true);
 
         // Selectively prevent default for navigation keys so the browser doesn't
         // scroll/navigate, while letting F-keys (F5=refresh, F12=devtools, etc.) through.
@@ -111,9 +145,21 @@
         const headerRow = gridElement.querySelector('.nx-grid-header-row');
         const headerHeight = headerRow ? headerRow.offsetHeight : 0;
 
-        // Vertical
-        const rowTop = rowIndex * rowHeight;
-        const rowBottom = rowTop + rowHeight;
+        // Vertical — use actual DOM positions when virtualization is disabled (multiline mode)
+        let rowTop, rowBottom;
+        if (gridElement.classList.contains('nx-grid-multiline')) {
+            const rows = gridElement.querySelectorAll('.nx-grid-row');
+            if (rowIndex < rows.length) {
+                rowTop    = rows[rowIndex].offsetTop - headerHeight;
+                rowBottom = rowTop + rows[rowIndex].offsetHeight;
+            } else {
+                rowTop    = rowIndex * rowHeight;
+                rowBottom = rowTop + rowHeight;
+            }
+        } else {
+            rowTop    = rowIndex * rowHeight;
+            rowBottom = rowTop + rowHeight;
+        }
         const scrollTop = gridElement.scrollTop;
         const clientHeight = gridElement.clientHeight;
 
@@ -182,6 +228,10 @@
         if (this._gridKeyHandler) {
             document.removeEventListener('keydown', this._gridKeyHandler, true);
             this._gridKeyHandler = null;
+        }
+        if (this._editInputHandler) {
+            document.removeEventListener('input', this._editInputHandler, true);
+            this._editInputHandler = null;
         }
     }
 

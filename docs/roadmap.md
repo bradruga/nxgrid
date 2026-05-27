@@ -160,6 +160,6 @@ Valuable but complex, dependent on upstream items, or lower relative priority.
 
 ## Not planned
 
-- **Row virtualization with variable row height** — the Blazor `<Virtualize>` component requires uniform `ItemSize`. Supporting variable-height rows would require a custom virtual scroller.
+- **Virtualized variable-height rows** — the Blazor `<Virtualize>` component requires uniform `ItemSize`. The `MultiLine` feature handles variable row height by disabling virtualization entirely (`@foreach`). The `Virtualize = false` parameter provides the same escape hatch for fixed-height grids that need full DOM presence (Ctrl+F, accessibility). A custom virtual scroller for large multi-line datasets is out of scope.
 - **Cell merging / spanning** — merging cells across rows or columns conflicts with the rectangular selection model and virtualized rendering.
 - **Built-in pagination UI** — pagination is a presentation concern better handled by the host page. Server-side data (v2) provides the data-fetching primitive; the host controls the UI.

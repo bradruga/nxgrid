@@ -10,7 +10,9 @@ This document describes how NxGrid behaves at runtime. It covers the mechanics b
 
 1. **Filter** — each column's `FilterState` is applied sequentially (AND logic).
 2. **Sort** — the active sort column is applied to the filtered result.
-3. **Virtualize** — `<Virtualize>` renders only visible rows from `filteredData`, with 12-row overscan.
+3. **Render** — rows are rendered from `filteredData`:
+   - **Virtualized (default):** `<Virtualize>` renders only the visible rows with 12-row overscan and uniform `ItemSize = RowHeight`. Rows outside the viewport are not in the DOM.
+   - **Non-virtualized:** a plain `@foreach` loop renders all rows at once. This mode is active when `Virtualize = false` is set explicitly, or automatically when any visible column has `MultiLine = true`. In multiline mode rows use `min-height: RowHeight` so they can grow to fit content; in non-multiline non-virtualized mode rows use a fixed `height: RowHeight`.
 
 The pipeline re-runs (`ApplyFilterAndSort`) when:
 - `OnParametersSet` detects that `Data` has a different reference or a different count than the last render.
@@ -130,8 +132,8 @@ If there is no active selection when a navigation key is pressed, a selection is
 | Page Up / Page Down | Move by the visible page height in rows; column unchanged |
 | Tab | Move right; wraps to column 0 of the next row at the last column; wraps from last row back to first row |
 | Shift+Tab | Move left; wraps to last column of the previous row at column 0; wraps from first row back to last row |
-| Enter | Move down one row; **clamped at last row, no wrap** |
-| Shift+Enter | Move up one row; clamped at row 0 |
+| Enter | Move down one row; **clamped at last row, no wrap**. While editing any cell: commit and move down. |
+| Shift+Enter | Move up one row; clamped at row 0. While editing any cell: commit and move up. **Exception:** while editing a `MultiLine` cell, Shift+Enter inserts a newline and does not commit. |
 
 All navigation scrolls the target cell into view via JS interop.
 
@@ -188,6 +190,24 @@ On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. When `MathExpress
 ### Cancelling an edit
 
 Escape cancels the edit. `OnUpdate` is never called. The data is unchanged because the model was never mutated during editing — `editValue` is a separate field. Focus returns to the grid.
+
+### Multi-line cells
+
+When any visible column has `MultiLine = true`, **all** editable columns in the grid use `<textarea>` editors:
+
+- **`MultiLine` columns** — auto-growing `<textarea>` (expands vertically as content is typed).
+- **Non-`MultiLine` columns in the same grid** — fixed single-line `<textarea>` (`white-space: nowrap; resize: none; overflow: hidden`), sized to fill the full row height. This ensures text is top-aligned even in tall rows, which a plain `<input>` cannot do. These cells do not accept newlines.
+- **Grids with no `MultiLine` columns** — all editors remain plain `<input>` elements.
+
+Several behaviors differ from single-line editing in a `MultiLine` column specifically:
+
+**Shift+Enter:** inserts a newline character into the textarea instead of committing. All other commit/cancel/fill keys behave identically to single-line cells: Enter commits and moves down, Tab commits and moves right, Shift+Tab commits and moves left, Ctrl+Enter fills the selection, Escape cancels.
+
+**Real-time row height:** as the user types, the row expands and contracts immediately. An invisible `visibility:hidden` span holding the current edit value sits behind the textarea as a layout anchor, so the row height is driven by the text content rather than the textarea itself (which is absolutely positioned). A trailing newline is handled by appending a Unicode zero-width space to the anchor so the empty final line is fully accounted for.
+
+**Virtualization is off:** any grid containing at least one `MultiLine` column switches to `@foreach` rendering for all rows. The scroll position for `scrollCellIntoView` uses actual DOM `offsetTop`/`offsetHeight` instead of the computed `rowIndex × RowHeight` formula.
+
+**Single-line cells in a multiline grid:** non-multiline columns in the same grid render their edit control as a `<textarea>` styled for single-line use (`white-space: nowrap; resize: none; overflow: hidden`) rather than a plain `<input>`. This ensures the text is top-aligned inside the cell, matching view mode, and that the editor fills the full (potentially tall) row height.
 
 ### Edit mode and mouse clicks
 
@@ -338,6 +358,14 @@ Manual mode persists across page loads when `StateKey` is set. Calling `ClearSav
 `UserWidth` values are sanitized against the current `MinWidth`/`MaxWidth` when restored from `localStorage`, so adding or tightening constraints after the user has resized will be respected immediately on the next page load.
 
 The header and data rows share the same `rowStyle`, which sets a `min-width` equal to the sum of all columns' `UserWidth ?? max(Width, MinWidth ?? 0)` plus 32 px for the row-number gutter. This prevents the grid from collapsing below a usable minimum when the container is narrow.
+
+---
+
+## Cell text whitespace rendering
+
+All body cell text renders with `white-space: pre`. This means leading spaces, trailing spaces, and embedded tab characters are preserved and visible exactly as stored — the browser will not collapse them. Overflow is still clipped with `text-overflow: ellipsis` for cells that are too narrow.
+
+Multi-line columns additionally use `white-space: pre-wrap` so embedded newlines wrap within the cell rather than overflowing horizontally.
 
 ---
 

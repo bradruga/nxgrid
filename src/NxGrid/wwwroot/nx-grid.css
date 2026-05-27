@@ -98,7 +98,7 @@
 .nx-grid-cell-text {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre;
   min-width: 0;
   flex: 1;
 }
@@ -142,8 +142,56 @@
   background: var(--nx-grid-surface);
   font-size: inherit;
   font-family: inherit;
+  line-height: inherit;
   outline: none;
   z-index: 2;
+}
+
+.nx-grid-edit-textarea {
+  position: absolute;
+  inset: 0;
+  padding: 2px 6px;
+  border: 2px solid var(--nx-grid-selection-border);
+  box-sizing: border-box;
+  background: var(--nx-grid-surface);
+  font-size: inherit;
+  font-family: inherit;
+  line-height: inherit;
+  outline: none;
+  z-index: 2;
+  resize: none;
+  overflow-y: hidden;
+}
+
+.nx-grid-cell-editing-ml {
+  overflow: visible;
+}
+
+.nx-grid-edit-textarea-sl {
+  position: absolute;
+  inset: 0;
+  padding: 2px 6px;
+  border: 2px solid var(--nx-grid-selection-border);
+  box-sizing: border-box;
+  background: var(--nx-grid-surface);
+  font-size: inherit;
+  font-family: inherit;
+  line-height: inherit;
+  outline: none;
+  z-index: 2;
+  resize: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.nx-grid-cell-text-multiline {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+}
+
+.nx-grid-multiline .nx-grid-cell {
+  align-items: flex-start;
 }
 
 .nx-grid-row-start {

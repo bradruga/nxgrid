@@ -18,6 +18,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to allow arithmetic expressions in editable cells](#how-to-allow-arithmetic-expressions-in-editable-cells)
 - [How to show Sum, Avg, and Count for the selected range](#how-to-show-sum-avg-and-count-for-the-selected-range)
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
+- [How to enable multi-line text in cells](#how-to-enable-multi-line-text-in-cells)
 - [How to build and use the package locally](#how-to-build-and-use-the-package-locally)
 - [How to publish the package to NuGet.org](#how-to-publish-the-package-to-nugetorg)
 
@@ -612,6 +613,54 @@ The callback is an `EventCallback<NxGridContextMenuItemArgs<T>>`. The args carry
 - `args.Column` — the `NxGridColumn<T>` that was right-clicked.
 
 The built-in Copy item does not fire `OnContextMenuItemClicked` — only custom items do.
+
+---
+
+## How to enable multi-line text in cells
+
+Set `MultiLine="true"` on any `NxGridColumn` where the stored value may contain newlines or where you want leading/trailing whitespace to be preserved and visible.
+
+```razor
+<NxGrid T="TaskItem" Data="@tasks" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.Title)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Description)" Width="300" MultiLine="true" />
+    <NxGridColumn Property="@(x => x.Notes)"       Width="250" MultiLine="true" />
+</NxGrid>
+```
+
+The column displays with `white-space: pre-wrap` in view mode, so embedded newlines wrap inside the cell and leading/trailing whitespace is visible. In edit mode, a `MultiLine` cell renders a growing `<textarea>`. Non-multiline columns in the same grid also switch from `<input>` to a fixed single-line `<textarea>` so their text stays top-aligned in tall rows.
+
+### Key bindings while editing a multi-line cell
+
+| Key | Action |
+|---|---|
+| **Shift+Enter** | Insert a newline |
+| Enter | Commit and move down |
+| Tab | Commit and move right |
+| Shift+Tab | Commit and move left |
+| Ctrl/⌘+Enter | Fill every editable cell in the selection with the current value |
+| Escape | Cancel, restore original value |
+
+### Variable row height
+
+When any visible column has `MultiLine = true`, the entire grid switches from virtualized rendering to `@foreach`. Rows use `min-height` equal to `RowHeight` and grow to fit the tallest multi-line cell in the row. Rows shrink again when content is deleted.
+
+This means multi-line grids are not virtualized — all rows are in the DOM at once. For large datasets (thousands of rows) with multi-line columns, consider paginating or filtering data before displaying it.
+
+### Read-only multi-line display
+
+`MultiLine` works on non-editable columns too. Set it without `Editable` to display stored multi-line text:
+
+```razor
+<NxGrid T="LogEntry" Data="@logs">
+    <NxGridColumn Property="@(x => x.Timestamp)" Width="160" />
+    <NxGridColumn Property="@(x => x.Message)"   Width="500" MultiLine="true" />
+</NxGrid>
+```
+
+### Interaction with ComboBoxItems
+
+`MultiLine` is silently ignored when `ComboBoxItems` is also set on the same column. Combo-box columns are always single-line.
 
 ---
 

@@ -5,8 +5,10 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
-    private const string KeyEscape = "Escape";
-    private const string KeyF2     = "F2";
+    private const string KeyEscape     = "Escape";
+    private const string KeyF2         = "F2";
+    private const string KeyShiftEnter = "ShiftEnter";
+    private const string KeyShiftTab   = "ShiftTab";
 
     private async Task StartEditing(int row, int col, string? initialChar)
     {
@@ -90,26 +92,40 @@ public partial class NxGrid<T>
         isEditing = false;
         editRow = -1;
         editCol = -1;
+
+        // Compute the post-commit selection before rendering so that editing-end
+        // and selection-move land in a single render frame, preventing a flash
+        // where the just-edited cell briefly shows as the selection anchor.
+        int newRow = row, newCol = col;
+        if (moveKey == KeyEnter)
+        {
+            newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1);
+            selectedRange = new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col };
+        }
+        else if (moveKey == KeyShiftEnter)
+        {
+            newRow = Math.Clamp(row - 1, 0, filteredData.Count - 1);
+            selectedRange = new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col };
+        }
+        else if (moveKey == KeyTab)
+        {
+            newCol = col + 1;
+            if (newCol >= visibleColumns.Count) { newCol = 0; newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1); }
+            selectedRange = new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol };
+        }
+        else if (moveKey == KeyShiftTab)
+        {
+            newCol = col - 1;
+            if (newCol < 0) { newCol = visibleColumns.Count - 1; newRow = row - 1; if (newRow < 0) newRow = filteredData.Count - 1; }
+            selectedRange = new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol };
+        }
+
         StateHasChanged();
 
         if (jsInterop != null) await jsInterop.FocusGrid();
 
-        // Navigate after commit (reuse existing navigation logic)
-        if (moveKey == KeyEnter)
+        if (moveKey != null)
         {
-            var newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1);
-            selectedRange = new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col };
-            StateHasChanged();
-            await RaiseSelectionChanged();
-            await ScrollCellIntoView(newRow, col);
-        }
-        else if (moveKey == KeyTab)
-        {
-            var newCol = col + 1;
-            var newRow = row;
-            if (newCol >= visibleColumns.Count) { newCol = 0; newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1); }
-            selectedRange = new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol };
-            StateHasChanged();
             await RaiseSelectionChanged();
             await ScrollCellIntoView(newRow, newCol);
         }
@@ -142,6 +158,12 @@ public partial class NxGrid<T>
                 isComboOpen = true;
                 comboNeedsPositioning = true;
             }
+            StateHasChanged();
+        }
+        else if (isEditing && editCol >= 0 && visibleColumns[editCol].IsMultiLineColumn)
+        {
+            // Re-render so the hidden height-anchor span in NxGridRow gets the updated value,
+            // allowing the row to grow/shrink in real time as the user types.
             StateHasChanged();
         }
     }
@@ -193,6 +215,8 @@ public partial class NxGrid<T>
     {
         var isComboColumn = isEditing && editCol >= 0 && visibleColumns[editCol].IsComboColumn;
 
+        var isMultiLineColumn = isEditing && editCol >= 0 && visibleColumns[editCol].IsMultiLineColumn;
+
         switch (args.Key)
         {
             case KeyEnter:
@@ -203,15 +227,17 @@ public partial class NxGrid<T>
                     await CommitEditToSelection();
                     break;
                 }
+                if (isMultiLineColumn && args.ShiftKey)
+                    break; // let the browser insert the newline; oninput updates editValue
                 if (isComboColumn && isComboOpen && comboHighlightIndex >= 0)
                     SelectComboOption(comboHighlightIndex);
-                await CommitEdit(KeyEnter);
+                await CommitEdit(args.ShiftKey ? KeyShiftEnter : KeyEnter);
                 break;
 
             case KeyTab:
                 if (isComboColumn && isComboOpen && comboHighlightIndex >= 0)
                     SelectComboOption(comboHighlightIndex);
-                await CommitEdit(KeyTab);
+                await CommitEdit(args.ShiftKey ? KeyShiftTab : KeyTab);
                 break;
 
             case KeyEscape:

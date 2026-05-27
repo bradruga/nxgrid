@@ -76,6 +76,29 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string MultiLineEdit = """
+// MultiLine="true" swaps the inline editor to a <textarea>.
+// Shift+Enter inserts a line break; Enter commits; Tab commits and moves right.
+// Virtualization is disabled automatically when any column is multi-line.
+<NxGrid T="TaskItem" Data="@tasks" OnUpdate="@HandleUpdate" Editable="true">
+    <NxGridColumn Property="@(x => x.Id)"     Title="ID"     Editable="false" />
+    <NxGridColumn Property="@(x => x.Title)"  Title="Title" />
+    <NxGridColumn Property="@(x => x.Notes)"  Title="Notes"  MultiLine="true" />
+    <NxGridColumn Property="@(x => x.Status)" Title="Status"
+                  ComboBoxItems="@(() => NxGridComboItem.From(["Open", "In Progress", "Done", "Blocked"]))" />
+</NxGrid>
+""";
+
+    public static readonly string MultiLineDisplay = """
+// MultiLine="true" also works on non-editable columns — just applies white-space: pre-wrap.
+<NxGrid T="TaskItem" Data="@tasks">
+    <NxGridColumn Property="@(x => x.Id)"     Title="ID" />
+    <NxGridColumn Property="@(x => x.Title)"  Title="Title" />
+    <NxGridColumn Property="@(x => x.Notes)"  Title="Notes" MultiLine="true" Editable="false" />
+    <NxGridColumn Property="@(x => x.Status)" Title="Status" />
+</NxGrid>
+""";
+
     public static readonly string BasicEdit = """
 // Grid-level Editable=true makes all columns editable by default.
 // Override per column with Editable="false" (e.g. Id) or Editable="true".
