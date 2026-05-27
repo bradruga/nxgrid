@@ -4,6 +4,7 @@ namespace NxGrid;
 
 public record NxComboDropdownPosition(double Top, double Left, double Width);
 public record NxMenuPosition(double Top, double Left);
+public record NxDatePickerPosition(double Top, double Left);
 
 public class NxGridJsInterop<T> : IAsyncDisposable
 {
@@ -79,6 +80,11 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public ValueTask<NxComboDropdownPosition> GetComboDropdownPosition()
     {
         return jsObject.InvokeAsync<NxComboDropdownPosition>("getComboDropdownPosition");
+    }
+
+    public ValueTask<NxDatePickerPosition> GetDatePickerPosition()
+    {
+        return jsObject.InvokeAsync<NxDatePickerPosition>("getDatePickerPosition");
     }
 
     public ValueTask<string?> LocalStorageGet(string key)

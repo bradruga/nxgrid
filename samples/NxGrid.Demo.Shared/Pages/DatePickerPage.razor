@@ -1,0 +1,201 @@
+@page "/date-picker"
+
+<PageTitle>Date Picker — NxGrid</PageTitle>
+
+<h1>Date Picker</h1>
+<p class="doc-intro">
+    Set <code>DatePicker="true"</code> on an editable column whose <code>Property</code> points
+    to a <code>DateTime</code> or <code>DateTime?</code>. The inline editor becomes a text input
+    with a calendar button that opens a month-view popup. The user can type a date directly or
+    click a day to commit. Use <code>DateFormat</code> to control display and parsing.
+</p>
+
+<div class="doc-section">
+    <h2>Basic Usage</h2>
+    <p class="doc-note">
+        Click any cell in the <strong>Event Date</strong> column to start editing.
+        Press <kbd class="doc-kbd">F2</kbd> or double-click to open with the existing value,
+        or click the calendar icon to open the picker directly.
+        Press <kbd class="doc-kbd">↓</kbd> while editing to open the calendar via keyboard.
+    </p>
+    <NxGrid T="EventRow" Data="@basicEvents" OnUpdate="@HandleBasicUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)"        Title="ID"    Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Name)"      Title="Event" Width="220" />
+        <NxGridColumn Property="@(x => x.EventDate)" Title="Date"  Width="160"
+                      DatePicker="true" DateFormat="MM/dd/yyyy" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Nullable Date</h2>
+    <p class="doc-note">
+        <code>Nullable="true"</code> allows the date to be cleared. Delete the cell value and
+        commit — <code>NewValue</code> in <code>OnUpdate</code> will be <code>null</code>.
+        Rows with no due date show an empty cell.
+    </p>
+    <NxGrid T="TaskRow" Data="@tasks" OnUpdate="@HandleTaskUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)"          Title="ID"          Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Description)" Title="Task"        Width="220" />
+        <NxGridColumn Property="@(x => x.DueDate)"     Title="Due Date"    Width="160"
+                      DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
+        <NxGridColumn Property="@(x => x.CompletedOn)" Title="Completed"   Width="160"
+                      DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@nullableCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Custom Date Format</h2>
+    <p class="doc-note">
+        <code>DateFormat</code> controls display in the non-editing cell, the value placed
+        in the text input on F2/double-click, and the first parse attempt on commit.
+        The grid falls back to <code>DateTime.TryParse</code> if the format does not match.
+    </p>
+    <NxGrid T="MilestoneRow" Data="@milestones" OnUpdate="@HandleMilestoneUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)"           Title="ID"          Width="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Name)"         Title="Milestone"   Width="180" />
+        <NxGridColumn Property="@(x => x.PlannedDate)"  Title="Planned (ISO)"     Width="160"
+                      DatePicker="true" DateFormat="yyyy-MM-dd" />
+        <NxGridColumn Property="@(x => x.ActualDate)"   Title="Actual (Long)"     Width="190"
+                      DatePicker="true" DateFormat="MMMM d, yyyy" Nullable="true" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@customFormatCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Keyboard Reference</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><kbd class="doc-kbd">F2</kbd> / double-click</td><td>Enter edit mode with existing formatted date; calendar stays closed</td></tr>
+            <tr><td>Any printable key</td><td>Enter edit mode; replaces value with typed character</td></tr>
+            <tr><td>Calendar button or <kbd class="doc-kbd">↓</kbd></td><td>Open the calendar popup</td></tr>
+            <tr><td><kbd class="doc-kbd">←</kbd> / <kbd class="doc-kbd">→</kbd> (calendar open)</td><td>Move highlighted day ±1 day; auto-advances month</td></tr>
+            <tr><td><kbd class="doc-kbd">↑</kbd> / <kbd class="doc-kbd">↓</kbd> (calendar open)</td><td>Move highlighted day ±7 days</td></tr>
+            <tr><td><kbd class="doc-kbd">Page Up</kbd> / <kbd class="doc-kbd">Page Down</kbd></td><td>Navigate view month ±1; shift highlighted date</td></tr>
+            <tr><td><kbd class="doc-kbd">Enter</kbd> (calendar open)</td><td>Commit highlighted date</td></tr>
+            <tr><td><kbd class="doc-kbd">Esc</kbd> (calendar open)</td><td>Close calendar; stay in edit mode</td></tr>
+            <tr><td><kbd class="doc-kbd">Esc</kbd> (calendar closed)</td><td>Cancel edit; restore original value</td></tr>
+            <tr><td><kbd class="doc-kbd">Enter</kbd> / <kbd class="doc-kbd">Tab</kbd></td><td>Commit typed value and navigate</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Parameters</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>DatePicker</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>
+                    When <code>true</code> and the column is editable, the inline editor renders
+                    a free-text input alongside a calendar button that opens a month-view popup.
+                    <code>Property</code> should resolve to <code>DateTime</code> or <code>DateTime?</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>DateFormat</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>
+                    Format string used to display the date in the non-editing cell and to pre-populate
+                    the editor on F2 / double-click (e.g. <code>"MM/dd/yyyy"</code>).
+                    Also used as the first parse format on commit before falling back to
+                    <code>DateTime.TryParse</code>. Defaults to the thread's current culture
+                    short-date pattern when not set.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    class EventRow
+    {
+        public int      Id        { get; set; }
+        public string   Name      { get; set; } = "";
+        public DateTime EventDate { get; set; }
+    }
+
+    class TaskRow
+    {
+        public int       Id          { get; set; }
+        public string    Description { get; set; } = "";
+        public DateTime? DueDate     { get; set; }
+        public DateTime? CompletedOn { get; set; }
+    }
+
+    class MilestoneRow
+    {
+        public int       Id          { get; set; }
+        public string    Name        { get; set; } = "";
+        public DateTime  PlannedDate { get; set; }
+        public DateTime? ActualDate  { get; set; }
+    }
+
+    List<EventRow> basicEvents =
+    [
+        new() { Id = 1, Name = "Annual Conference",     EventDate = new DateTime(2026, 6, 15) },
+        new() { Id = 2, Name = "Product Launch",        EventDate = new DateTime(2026, 7, 1)  },
+        new() { Id = 3, Name = "Board Review",          EventDate = new DateTime(2026, 7, 22) },
+        new() { Id = 4, Name = "Team Offsite",          EventDate = new DateTime(2026, 8, 5)  },
+        new() { Id = 5, Name = "Customer Summit",       EventDate = new DateTime(2026, 9, 10) },
+        new() { Id = 6, Name = "Year-End Presentation", EventDate = new DateTime(2026, 12, 3) },
+    ];
+
+    List<TaskRow> tasks =
+    [
+        new() { Id = 1, Description = "Finalize project plan",   DueDate = new DateTime(2026, 6, 1),  CompletedOn = new DateTime(2026, 5, 30) },
+        new() { Id = 2, Description = "Stakeholder review",      DueDate = new DateTime(2026, 6, 14), CompletedOn = null },
+        new() { Id = 3, Description = "Design sign-off",         DueDate = new DateTime(2026, 6, 20), CompletedOn = null },
+        new() { Id = 4, Description = "Development complete",    DueDate = new DateTime(2026, 7, 15), CompletedOn = null },
+        new() { Id = 5, Description = "QA and testing",          DueDate = new DateTime(2026, 7, 28), CompletedOn = null },
+        new() { Id = 6, Description = "Go-live",                 DueDate = null,                     CompletedOn = null },
+    ];
+
+    List<MilestoneRow> milestones =
+    [
+        new() { Id = 1, Name = "Requirements",   PlannedDate = new DateTime(2026, 5, 1),  ActualDate = new DateTime(2026, 4, 28) },
+        new() { Id = 2, Name = "Architecture",   PlannedDate = new DateTime(2026, 5, 15), ActualDate = new DateTime(2026, 5, 18) },
+        new() { Id = 3, Name = "Development",    PlannedDate = new DateTime(2026, 6, 30), ActualDate = null },
+        new() { Id = 4, Name = "Testing",        PlannedDate = new DateTime(2026, 7, 20), ActualDate = null },
+        new() { Id = 5, Name = "Deployment",     PlannedDate = new DateTime(2026, 8, 1),  ActualDate = null },
+    ];
+
+    async Task HandleBasicUpdate(NxGridUpdateArgs<EventRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    async Task HandleTaskUpdate(NxGridUpdateArgs<TaskRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    async Task HandleMilestoneUpdate(NxGridUpdateArgs<MilestoneRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    string basicCode        = DemoCodeSamples.DatePickerBasic;
+    string nullableCode     = DemoCodeSamples.DatePickerNullable;
+    string customFormatCode = DemoCodeSamples.DatePickerCustomFormat;
+}

@@ -287,6 +287,62 @@ Combo box editing applies to columns that have `ComboBoxItems` set. The behavior
 
 ---
 
+## Date picker
+
+Date picker editing applies to columns that have `DatePicker = true` set. The column should have `Property` pointing to a `DateTime` or `DateTime?` property, and `Editable` must be enabled (directly on the column or via the grid-level `Editable` parameter).
+
+**Opening the calendar:**
+
+| Trigger | Calendar opens? |
+|---|---|
+| F2 | No — edit mode with formatted date in the input; calendar stays closed |
+| Double-click | No — edit mode with formatted date in the input; calendar stays closed |
+| Typing a character | No — edit mode starts, typed character replaces the value; calendar stays closed |
+| Calendar button click | Toggles the calendar popup |
+| Down Arrow (while editing, calendar closed) | Yes — opens and positions the calendar |
+
+**Date display format:**
+
+When `DateFormat` is set (e.g. `"MM/dd/yyyy"`), that format is used:
+- In the non-editing cell (read-only display)
+- To pre-populate the editor when F2 or double-click opens it
+- As the first parse format on commit (before falling back to `DateTime.TryParse`)
+
+When `DateFormat` is not set, the thread's current culture short-date pattern is used.
+
+**Typing a date:**
+
+The user can type any date string into the text input. On commit, the grid tries `DateFormat` first (if set) via `DateTime.TryParseExact`, then falls back to `DateTime.TryParse`. Unrecognizable strings are passed to `OnUpdate` as raw strings (same as any un-parseable typed value).
+
+**Keyboard while calendar is open:**
+
+| Key | Behavior |
+|---|---|
+| Left Arrow | Move highlighted day back one day; auto-advances view month |
+| Right Arrow | Move highlighted day forward one day; auto-advances view month |
+| Down Arrow | Move highlighted day forward one week |
+| Up Arrow | Move highlighted day back one week |
+| Page Down | Advance view month by one; shift highlighted date by the same amount |
+| Page Up | Go back view month by one; shift highlighted date by the same amount |
+| Enter | Commit the highlighted date and close the calendar |
+| Escape | Close the calendar (stays in edit mode); a second Escape cancels the edit |
+
+When the highlight moves past the last day of the current view month, the view auto-advances. Moving before the first day auto-retreats. Page Up/Down shift the highlight by the same number of months so it stays on the same day-of-month where possible.
+
+**Mouse:**
+
+Clicking a day cell commits that date immediately and closes the calendar. The mousedown event on the calendar popup is stopPropagation'd to prevent the input from losing focus.
+
+**Idle calendar button:**
+
+When a date picker column cell is the selection anchor and is editable (but not yet in edit mode), a faint calendar icon button appears in the cell. Clicking it enters edit mode and opens the calendar in one action.
+
+**Commit:**
+
+When a date is committed (by clicking a day or pressing Enter on the highlighted date), the formatted date string is written into `editValue`, the calendar closes, and the commit flow runs exactly as if the user had typed that value. `OnUpdate` is called with `NewValue` as a parsed `DateTime`.
+
+---
+
 ## Delete
 
 The Delete key clears all cells in the current selection. For each cell:

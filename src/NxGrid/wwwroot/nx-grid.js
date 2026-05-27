@@ -11,6 +11,7 @@
             if (event.key === 'Tab' &&
                 (cls.contains('nx-grid-edit-input') ||
                  cls.contains('nx-grid-combo-input') ||
+                 cls.contains('nx-grid-datepicker-input') ||
                  cls.contains('nx-grid-edit-textarea') ||
                  cls.contains('nx-grid-edit-textarea-sl'))) {
                 event.preventDefault();
@@ -201,6 +202,23 @@
         const el = document.getElementById(this.id);
         if (!el) return '';
         return getComputedStyle(el).getPropertyValue(varName).trim();
+    }
+
+    getDatePickerPosition() {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return { top: 0, left: 0 };
+
+        const wrapper = gridElement.querySelector('.nx-grid-datepicker-wrapper');
+        if (!wrapper) return { top: 0, left: 0 };
+
+        const rect = wrapper.getBoundingClientRect();
+        const popupWidth = 228;
+        let left = rect.left;
+
+        if (left + popupWidth > window.innerWidth) left = window.innerWidth - popupWidth - 10;
+        if (left < 0) left = 0;
+
+        return { top: rect.bottom, left };
     }
 
     getComboDropdownPosition() {

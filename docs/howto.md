@@ -18,6 +18,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to allow arithmetic expressions in editable cells](#how-to-allow-arithmetic-expressions-in-editable-cells)
 - [How to show Sum, Avg, and Count for the selected range](#how-to-show-sum-avg-and-count-for-the-selected-range)
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
+- [How to add a date picker to a column](#how-to-add-a-date-picker-to-a-column)
 - [How to enable multi-line text in cells](#how-to-enable-multi-line-text-in-cells)
 - [How to build and use the package locally](#how-to-build-and-use-the-package-locally)
 - [How to publish the package to NuGet.org](#how-to-publish-the-package-to-nugetorg)
@@ -613,6 +614,63 @@ The callback is an `EventCallback<NxGridContextMenuItemArgs<T>>`. The args carry
 - `args.Column` — the `NxGridColumn<T>` that was right-clicked.
 
 The built-in Copy item does not fire `OnContextMenuItemClicked` — only custom items do.
+
+---
+
+## How to add a date picker to a column
+
+Set `DatePicker="true"` on an editable column whose `Property` points to a `DateTime` or `DateTime?`. The inline editor becomes a text input with a calendar button that opens a month-view popup.
+
+```razor
+<NxGrid T="Event" Data="@events" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.Name)"      Width="200" />
+    <NxGridColumn Property="@(x => x.EventDate)" Width="160"
+                  DatePicker="true"
+                  DateFormat="MM/dd/yyyy" />
+</NxGrid>
+
+@code {
+    async Task HandleUpdate(NxGridUpdateArgs<Event> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+}
+```
+
+### Nullable dates
+
+Set `Nullable="true"` to allow the cell to be cleared. When the user deletes the value and commits, `NewValue` is `null`.
+
+```razor
+<NxGridColumn Property="@(x => x.CompletedDate)" Width="160"
+              DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
+```
+
+### DateFormat
+
+`DateFormat` is optional. It controls:
+
+- **Display** — how the date is shown in the non-editing cell.
+- **Edit pre-population** — the formatted value placed in the text input when F2 or double-click opens the editor.
+- **Commit parsing** — `TryParseExact` is tried first with this format before falling back to `DateTime.TryParse`.
+
+When omitted, the thread's current culture short-date pattern is used for display and parsing.
+
+### Keyboard
+
+| Key | Action |
+|---|---|
+| Down Arrow (calendar closed) | Open the calendar |
+| Arrow keys (calendar open) | Move the highlighted day |
+| Page Up / Page Down | Go back / forward one month |
+| Enter | Commit the highlighted date |
+| Escape | Close calendar (first press); cancel edit (second press) |
+
+### Typing vs. picking
+
+The user can type a date directly into the text input — the calendar is optional. Anything that parses as a valid date is committed.
 
 ---
 

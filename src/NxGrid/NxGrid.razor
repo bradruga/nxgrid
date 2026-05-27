@@ -141,6 +141,7 @@
                                        RowsReorderable="@ShowDragHandle"
                                        OnDragHandleMouseDown="@OnDragHandleMouseDown"
                                        OnComboButtonClick="@OnComboButtonClick"
+                                       OnDatePickerButtonClick="@OnDatePickerButtonClick"
                                        OnCheckboxToggle="@OnCheckboxToggleCell"
                                        Cursor="@Cursor"
                                        RenderToken="@renderToken"
@@ -180,6 +181,7 @@
                                RowsReorderable="@ShowDragHandle"
                                OnDragHandleMouseDown="@OnDragHandleMouseDown"
                                OnComboButtonClick="@OnComboButtonClick"
+                               OnDatePickerButtonClick="@OnDatePickerButtonClick"
                                OnCheckboxToggle="@OnCheckboxToggleCell"
                                Cursor="@Cursor"
                                RenderToken="@renderToken"
@@ -217,6 +219,7 @@
                            RowsReorderable="@ShowDragHandle"
                            OnDragHandleMouseDown="@OnDragHandleMouseDown"
                            OnComboButtonClick="@OnComboButtonClick"
+                           OnDatePickerButtonClick="@OnDatePickerButtonClick"
                            OnCheckboxToggle="@OnCheckboxToggleCell"
                            Cursor="@Cursor"
                            RenderToken="@renderToken"
@@ -379,6 +382,53 @@
                     </div>
                 }
             }
+        </div>
+    }
+
+    @if (isEditing && editCol >= 0 && editCol < visibleColumns.Count
+         && visibleColumns[editCol].IsDatePickerColumn && isDatePickerOpen)
+    {
+        <div class="nx-grid-datepicker-popup"
+             style="position:fixed;top:@(datePickerTop)px;left:@(datePickerLeft)px;z-index:1001;@(datePickerNeedsPositioning ? "visibility:hidden;" : "")"
+             @onmousedown:stopPropagation>
+            <div class="nx-grid-datepicker-header">
+                <button type="button" class="nx-grid-datepicker-nav"
+                        @onmousedown="DatePickerPrevMonth"
+                        @onmousedown:stopPropagation
+                        @onmousedown:preventDefault>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
+                </button>
+                <span class="nx-grid-datepicker-title">@datePickerViewDate.ToString("MMMM yyyy")</span>
+                <button type="button" class="nx-grid-datepicker-nav"
+                        @onmousedown="DatePickerNextMonth"
+                        @onmousedown:stopPropagation
+                        @onmousedown:preventDefault>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+                </button>
+            </div>
+            <div class="nx-grid-datepicker-grid">
+                <div class="nx-grid-datepicker-dow">Su</div>
+                <div class="nx-grid-datepicker-dow">Mo</div>
+                <div class="nx-grid-datepicker-dow">Tu</div>
+                <div class="nx-grid-datepicker-dow">We</div>
+                <div class="nx-grid-datepicker-dow">Th</div>
+                <div class="nx-grid-datepicker-dow">Fr</div>
+                <div class="nx-grid-datepicker-dow">Sa</div>
+                @{ var calDays = GetCalendarDays(); }
+                @for (var di = 0; di < calDays.Count; di++)
+                {
+                    var day = calDays[di];
+                    var dayCls = "nx-grid-datepicker-day"
+                        + (!day.IsCurrentMonth ? " nx-grid-datepicker-day-other" : "")
+                        + (day.IsSelected ? " nx-grid-datepicker-day-selected" : day.IsHighlighted ? " nx-grid-datepicker-day-highlight" : day.IsToday ? " nx-grid-datepicker-day-today" : "");
+                    <div class="@dayCls"
+                         @onmousedown="@(() => OnDatePickerDayMouseDown(day.Date))"
+                         @onmousedown:stopPropagation
+                         @onmousedown:preventDefault>
+                        @day.Date.Day
+                    </div>
+                }
+            </div>
         </div>
     }
 

@@ -81,6 +81,30 @@
                               @onmousedown:stopPropagation
                               @onmouseup:stopPropagation></textarea>
                 }
+                else if (col.IsDatePickerColumn)
+                {
+                    <div class="nx-grid-datepicker-wrapper">
+                        <input class="nx-grid-datepicker-input"
+                               @ref="editInputRef"
+                               value="@EditValue"
+                               @oninput="@(e => OnEditInput?.Invoke(e))"
+                               @onkeydown="@(e => HandleEditKeyDown(e))"
+                               @onkeydown:stopPropagation
+                               @onmousedown:stopPropagation
+                               @onmouseup:stopPropagation />
+                        <button type="button" class="nx-grid-datepicker-button"
+                                @onmousedown="@(() => OnDatePickerButtonClick != null ? OnDatePickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                                @onmousedown:stopPropagation
+                                @onmousedown:preventDefault>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </button>
+                    </div>
+                }
                 else if (isMultiLineGrid)
                 {
                     @* Textarea in single-line mode: fills height so text is top-aligned (input always centers) *@
@@ -144,9 +168,14 @@
             }
             else
             {
-                var cellValue = col.ComboBoxItems != null && col.Display == null
-                    ? (object?)col.ResolveComboDisplay(Row)
-                    : col.EffectiveGetter?.Invoke(Row);
+                var rawValue = col.EffectiveGetter?.Invoke(Row);
+                object? cellValue;
+                if (col.IsDatePickerColumn && col.Display == null)
+                    cellValue = (object?)(col.FormatDateValue(rawValue) ?? rawValue?.ToString());
+                else if (col.ComboBoxItems != null && col.Display == null)
+                    cellValue = (object?)col.ResolveComboDisplay(Row);
+                else
+                    cellValue = rawValue;
                 var cellDisplay = col.MultiLine && cellValue is string sv && sv.EndsWith('\n')
                     ? (object?)(sv + "​")
                     : cellValue;
@@ -161,6 +190,22 @@
                             @onmousedown:preventDefault>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
                             </button>
+                }
+                @if (col.IsDatePickerColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
+                     && (col.Editable ?? GridEditable)
+                     && (CellEditableGetter == null || CellEditableGetter(Row, col)))
+                {
+                    <button type="button" class="nx-grid-datepicker-button nx-grid-datepicker-button-idle"
+                            @onmousedown="@(() => OnDatePickerButtonClick != null ? OnDatePickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                            @onmousedown:stopPropagation
+                            @onmousedown:preventDefault>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </button>
                 }
             }
         </div>
@@ -193,6 +238,7 @@
     [Parameter] public bool RowsReorderable { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnDragHandleMouseDown { get; set; }
     [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
+    [Parameter] public Func<int, int, Task>? OnDatePickerButtonClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnCheckboxToggle { get; set; }
     [Parameter] public NxGridCursor Cursor { get; set; }
     [Parameter] public int RenderToken { get; set; }

@@ -99,6 +99,14 @@ public partial class NxGrid<T>
     private double comboDropdownLeft;
     private double comboDropdownWidth;
 
+    // Date picker state
+    private bool isDatePickerOpen;
+    private bool datePickerNeedsPositioning;
+    private DateTime datePickerViewDate;
+    private DateTime? datePickerHighlightDate;
+    private double datePickerTop;
+    private double datePickerLeft;
+
     private bool _manualMode;
     internal bool IsManualMode => _manualMode;
 
@@ -211,6 +219,13 @@ public partial class NxGrid<T>
             StateHasChanged();
         }
 
+        if (datePickerNeedsPositioning && jsInterop != null)
+        {
+            datePickerNeedsPositioning = false;
+            await PositionDatePicker();
+            StateHasChanged();
+        }
+
         if (menuNeedsPositioning && jsInterop != null)
         {
             menuNeedsPositioning = false;
@@ -269,5 +284,101 @@ public partial class NxGrid<T>
         comboDropdownTop   = pos.Top;
         comboDropdownLeft  = pos.Left;
         comboDropdownWidth = pos.Width;
+    }
+
+    private record DatePickerDay(DateTime Date, bool IsCurrentMonth, bool IsToday, bool IsHighlighted, bool IsSelected);
+
+    private async Task OnDatePickerButtonClick(int row, int col)
+    {
+        if (!isEditing || editRow != row || editCol != col)
+            await StartEditing(row, col, initialChar: null);
+
+        if (!isDatePickerOpen)
+        {
+            var parsed = TryParseEditDate();
+            datePickerViewDate = parsed?.Date ?? DateTime.Today;
+            datePickerHighlightDate = parsed?.Date ?? DateTime.Today;
+            isDatePickerOpen = true;
+            datePickerNeedsPositioning = true;
+        }
+        else
+        {
+            isDatePickerOpen = false;
+        }
+        StateHasChanged();
+    }
+
+    private DateTime? TryParseEditDate()
+    {
+        if (!isEditing || editCol < 0 || editCol >= visibleColumns.Count) return null;
+        var col = visibleColumns[editCol];
+        if (!col.IsDatePickerColumn) return null;
+        if (!string.IsNullOrEmpty(col.DateFormat) &&
+            DateTime.TryParseExact(editValue, col.DateFormat,
+                System.Globalization.CultureInfo.CurrentCulture,
+                System.Globalization.DateTimeStyles.None, out var dtFmt))
+            return dtFmt;
+        if (DateTime.TryParse(editValue, out var dt))
+            return dt;
+        return null;
+    }
+
+    private void DatePickerPrevMonth()
+    {
+        datePickerViewDate = datePickerViewDate.AddMonths(-1);
+        StateHasChanged();
+    }
+
+    private void DatePickerNextMonth()
+    {
+        datePickerViewDate = datePickerViewDate.AddMonths(1);
+        StateHasChanged();
+    }
+
+    private async Task OnDatePickerDayMouseDown(DateTime date)
+    {
+        var col = visibleColumns[editCol];
+        var fmt = col.DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+        editValue = date.ToString(fmt);
+        isDatePickerOpen = false;
+        await CommitEdit();
+    }
+
+    private void NavigateCalendar(int days)
+    {
+        var current = datePickerHighlightDate ?? DateTime.Today;
+        datePickerHighlightDate = current.AddDays(days);
+        var h = datePickerHighlightDate.Value;
+        if (h.Month != datePickerViewDate.Month || h.Year != datePickerViewDate.Year)
+            datePickerViewDate = new DateTime(h.Year, h.Month, 1);
+        StateHasChanged();
+    }
+
+    private async Task PositionDatePicker()
+    {
+        if (jsInterop == null) return;
+        var pos = await jsInterop.GetDatePickerPosition();
+        datePickerTop  = pos.Top;
+        datePickerLeft = pos.Left;
+    }
+
+    private List<DatePickerDay> GetCalendarDays()
+    {
+        var firstOfMonth = new DateTime(datePickerViewDate.Year, datePickerViewDate.Month, 1);
+        var start = firstOfMonth.AddDays(-(int)firstOfMonth.DayOfWeek);
+        var selectedDate = TryParseEditDate()?.Date;
+        var today = DateTime.Today;
+        var days = new List<DatePickerDay>(42);
+        for (var i = 0; i < 42; i++)
+        {
+            var date = start.AddDays(i);
+            days.Add(new DatePickerDay(
+                date,
+                date.Month == datePickerViewDate.Month,
+                date.Date == today,
+                date.Date == datePickerHighlightDate?.Date,
+                date.Date == selectedDate));
+        }
+        return days;
     }
 }

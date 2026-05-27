@@ -818,4 +818,47 @@ private async Task OnPrintClick()
 @* No HeaderTemplate on the Age column — it uses Title as normal.  *@
 <NxGridColumn Property="@(x => x.Age)" />
 """;
+
+    public static readonly string DatePickerBasic = """
+// DatePicker="true" adds a calendar button next to the text input.
+// The user can type a date or click the calendar to pick one.
+<NxGrid T="Event" Data="@events" OnUpdate="@HandleUpdate"
+        Cursor="@NxGridCursor.Cell" Editable="true">
+    <NxGridColumn Property="@(x => x.Id)"        Width="50"  Editable="false" />
+    <NxGridColumn Property="@(x => x.Name)"      Width="200" />
+    <NxGridColumn Property="@(x => x.EventDate)" Width="160"
+                  DatePicker="true"
+                  DateFormat="MM/dd/yyyy" />
+</NxGrid>
+
+@code {
+    async Task HandleUpdate(NxGridUpdateArgs<Event> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+}
+""";
+
+    public static readonly string DatePickerNullable = """
+// Nullable="true" allows the date to be cleared.
+// When the user deletes the value and commits, NewValue is null.
+<NxGridColumn Property="@(x => x.CompletedDate)" Width="160"
+              DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
+""";
+
+    public static readonly string DatePickerCustomFormat = """
+// DateFormat controls display, editor pre-population, and commit parsing.
+// The grid tries TryParseExact first, then falls back to DateTime.TryParse.
+
+// Short US date:
+<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" DateFormat="MM/dd/yyyy" />
+
+// ISO 8601:
+<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" DateFormat="yyyy-MM-dd" />
+
+// Long day name:
+<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" DateFormat="MMMM d, yyyy" />
+""";
 }

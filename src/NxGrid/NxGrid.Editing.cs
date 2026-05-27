@@ -30,7 +30,10 @@ public partial class NxGrid<T>
         }
 
         var getter = column.EffectiveGetter;
-        var currentText = getter != null ? getter(filteredData[row])?.ToString() ?? "" : "";
+        var rawValue = getter != null ? getter(filteredData[row]) : null;
+        var currentText = column.IsDatePickerColumn && rawValue is DateTime dt
+            ? dt.ToString(column.DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern)
+            : rawValue?.ToString() ?? "";
 
         isEditing = true;
         editRow = row;
@@ -89,6 +92,8 @@ public partial class NxGrid<T>
         comboHighlightIndex = -1;
         comboAllItems = [];
         comboFilteredOptions = [];
+        isDatePickerOpen = false;
+        datePickerHighlightDate = null;
         isEditing = false;
         editRow = -1;
         editCol = -1;
@@ -138,6 +143,8 @@ public partial class NxGrid<T>
         comboHighlightIndex = -1;
         comboAllItems = [];
         comboFilteredOptions = [];
+        isDatePickerOpen = false;
+        datePickerHighlightDate = null;
         isEditing = false;
         editRow = -1;
         editCol = -1;
@@ -202,6 +209,8 @@ public partial class NxGrid<T>
         comboHighlightIndex = -1;
         comboAllItems = [];
         comboFilteredOptions = [];
+        isDatePickerOpen = false;
+        datePickerHighlightDate = null;
         isEditing = false;
         editRow = -1;
         editCol = -1;
@@ -213,9 +222,9 @@ public partial class NxGrid<T>
 
     private async Task OnEditInputKeyDown(KeyboardEventArgs args)
     {
-        var isComboColumn = isEditing && editCol >= 0 && visibleColumns[editCol].IsComboColumn;
-
-        var isMultiLineColumn = isEditing && editCol >= 0 && visibleColumns[editCol].IsMultiLineColumn;
+        var isComboColumn      = isEditing && editCol >= 0 && visibleColumns[editCol].IsComboColumn;
+        var isMultiLineColumn  = isEditing && editCol >= 0 && visibleColumns[editCol].IsMultiLineColumn;
+        var isDatePickerColumn = isEditing && editCol >= 0 && visibleColumns[editCol].IsDatePickerColumn;
 
         switch (args.Key)
         {
@@ -225,6 +234,14 @@ public partial class NxGrid<T>
                     if (isComboColumn && isComboOpen && comboHighlightIndex >= 0)
                         SelectComboOption(comboHighlightIndex);
                     await CommitEditToSelection();
+                    break;
+                }
+                if (isDatePickerColumn && isDatePickerOpen)
+                {
+                    if (datePickerHighlightDate.HasValue)
+                        await OnDatePickerDayMouseDown(datePickerHighlightDate.Value);
+                    else
+                        await CommitEdit(args.ShiftKey ? KeyShiftEnter : KeyEnter);
                     break;
                 }
                 if (isMultiLineColumn && args.ShiftKey)
@@ -241,7 +258,13 @@ public partial class NxGrid<T>
                 break;
 
             case KeyEscape:
-                if (isComboColumn && isComboOpen)
+                if (isDatePickerColumn && isDatePickerOpen)
+                {
+                    isDatePickerOpen = false;
+                    datePickerHighlightDate = null;
+                    StateHasChanged();
+                }
+                else if (isComboColumn && isComboOpen)
                 {
                     isComboOpen = false;
                     comboHighlightIndex = -1;
@@ -253,8 +276,31 @@ public partial class NxGrid<T>
                 }
                 break;
 
+            case KeyArrowLeft:
+                if (isDatePickerColumn && isDatePickerOpen)
+                    NavigateCalendar(-1);
+                break;
+
+            case KeyArrowRight:
+                if (isDatePickerColumn && isDatePickerOpen)
+                    NavigateCalendar(1);
+                break;
+
             case KeyArrowDown:
-                if (isComboColumn)
+                if (isDatePickerColumn && isDatePickerOpen)
+                {
+                    NavigateCalendar(7);
+                }
+                else if (isDatePickerColumn && !isDatePickerOpen)
+                {
+                    var parsed = TryParseEditDate();
+                    datePickerViewDate = parsed?.Date ?? DateTime.Today;
+                    datePickerHighlightDate = parsed?.Date ?? DateTime.Today;
+                    isDatePickerOpen = true;
+                    datePickerNeedsPositioning = true;
+                    StateHasChanged();
+                }
+                else if (isComboColumn)
                 {
                     if (!isComboOpen)
                     {
@@ -275,9 +321,31 @@ public partial class NxGrid<T>
                 break;
 
             case KeyArrowUp:
-                if (isComboColumn && isComboOpen)
+                if (isDatePickerColumn && isDatePickerOpen)
+                    NavigateCalendar(-7);
+                else if (isComboColumn && isComboOpen)
                 {
                     comboHighlightIndex = Math.Max(comboHighlightIndex - 1, 0);
+                    StateHasChanged();
+                }
+                break;
+
+            case KeyPageUp:
+                if (isDatePickerColumn && isDatePickerOpen)
+                {
+                    datePickerViewDate = datePickerViewDate.AddMonths(-1);
+                    if (datePickerHighlightDate.HasValue)
+                        datePickerHighlightDate = datePickerHighlightDate.Value.AddMonths(-1);
+                    StateHasChanged();
+                }
+                break;
+
+            case KeyPageDown:
+                if (isDatePickerColumn && isDatePickerOpen)
+                {
+                    datePickerViewDate = datePickerViewDate.AddMonths(1);
+                    if (datePickerHighlightDate.HasValue)
+                        datePickerHighlightDate = datePickerHighlightDate.Value.AddMonths(1);
                     StateHasChanged();
                 }
                 break;

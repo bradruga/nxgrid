@@ -41,6 +41,8 @@
     [Parameter] public bool Hideable { get; set; } = true;
     [Parameter] public string? HeaderTooltip { get; set; }
     [Parameter] public RenderFragment? HeaderTooltipTemplate { get; set; }
+    [Parameter] public bool DatePicker { get; set; }
+    [Parameter] public string? DateFormat { get; set; }
 
     // Public Properties
     public string HeaderCellStyle { get; private set; } = "";
@@ -59,6 +61,7 @@
     public bool IsComboColumn => ComboBoxItems != null;
     public bool IsCheckboxColumn => CheckBox;
     public bool IsMultiLineColumn => MultiLine && !IsComboColumn;
+    public bool IsDatePickerColumn => DatePicker;
 
     // Effective getters: explicit parameters take priority, then compiled Property getter
     public Func<T, object?>? EffectiveGetter => Display ?? _compiledPropertyGetter;
@@ -201,7 +204,16 @@
         else if (underlying == typeof(float)    && float.TryParse(rawValue,   out var flt))  { typed = flt; parsed = true; }
         else if (underlying == typeof(decimal)  && decimal.TryParse(rawValue, out var dec))  { typed = dec; parsed = true; }
         else if (underlying == typeof(bool)     && bool.TryParse(rawValue,    out var b))    { typed = b; parsed = true; }
-        else if (underlying == typeof(DateTime) && DateTime.TryParse(rawValue, out var dt))  { typed = dt; parsed = true; }
+        else if (underlying == typeof(DateTime))
+        {
+            if (!string.IsNullOrEmpty(DateFormat) &&
+                DateTime.TryParseExact(rawValue, DateFormat,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    System.Globalization.DateTimeStyles.None, out var dtFmt))
+            { typed = dtFmt; parsed = true; }
+            else if (DateTime.TryParse(rawValue, out var dt))
+            { typed = dt; parsed = true; }
+        }
 
         if (!parsed) return (rawValue, null);
 
@@ -244,6 +256,13 @@
             style += $"position:sticky;left:{left}px;{right}z-index:1;background-color:inherit;";
         }
         return style;
+    }
+
+    public string? FormatDateValue(object? value)
+    {
+        if (value is not DateTime dt) return null;
+        var fmt = DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+        return dt.ToString(fmt);
     }
 
     public string? ResolveComboDisplay(T row)
