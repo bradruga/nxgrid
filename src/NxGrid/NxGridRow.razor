@@ -40,7 +40,8 @@
     {
         var col = Columns[ci];
         var colIdx = ci;
-        var isAnchor = SelectedRange != null && RowIndex == SelectedRange.StartRow && ci == SelectedRange.StartCol;
+        var isAnchor = SelectionMode == NxGridSelectionMode.Cell
+            && SelectedRange != null && RowIndex == SelectedRange.StartRow && ci == SelectedRange.StartCol;
         var selected = SelectedRange?.IsCellInRange(RowIndex, ci) == true && !isAnchor;
 
         <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
@@ -247,6 +248,7 @@
     [Parameter] public NxGridCursor Cursor { get; set; }
     [Parameter] public int RenderToken { get; set; }
     [Parameter] public bool GridEditable { get; set; }
+    [Parameter] public NxGridSelectionMode SelectionMode { get; set; }
 
     private string CursorStyle => Cursor switch
     {
@@ -264,6 +266,7 @@
     private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevRangeSnapshot;
     private bool prevIsEditing;
     private NxGridCursor prevCursor;
+    private NxGridSelectionMode prevSelectionMode;
     private int prevEditRow = -1;
     private int prevEditCol = -1;
     private string prevEditValue = "";
@@ -290,26 +293,28 @@
 
     protected override bool ShouldRender()
     {
-        var rowChanged            = !EqualityComparer<T>.Default.Equals(prevRow, Row);
-        var selChanged            = SelectionChangedForRow();
-        var editChanged           = EditChangedForRow();
-        var tokenChanged          = RenderToken != prevRenderToken;
-        var cursorChanged         = Cursor != prevCursor;
-        var gutterChanged = RowGutter != prevRowGutter;
+        var rowChanged       = !EqualityComparer<T>.Default.Equals(prevRow, Row);
+        var selChanged       = SelectionChangedForRow();
+        var editChanged      = EditChangedForRow();
+        var tokenChanged     = RenderToken != prevRenderToken;
+        var cursorChanged    = Cursor != prevCursor;
+        var gutterChanged    = RowGutter != prevRowGutter;
+        var modeChanged      = SelectionMode != prevSelectionMode;
 
-        if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged)
+        if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
-        prevRow               = Row;
-        prevRangeSnapshot     = GetRangeSnapshot();
-        prevIsEditing         = IsEditing;
-        prevEditRow           = EditRow;
-        prevEditCol           = EditCol;
-        prevEditValue         = EditValue;
-        prevRenderToken       = RenderToken;
-        prevCursor            = Cursor;
-        prevRowGutter = RowGutter;
+        prevRow            = Row;
+        prevRangeSnapshot  = GetRangeSnapshot();
+        prevIsEditing      = IsEditing;
+        prevEditRow        = EditRow;
+        prevEditCol        = EditCol;
+        prevEditValue      = EditValue;
+        prevRenderToken    = RenderToken;
+        prevCursor         = Cursor;
+        prevRowGutter      = RowGutter;
+        prevSelectionMode  = SelectionMode;
 
         return true;
     }

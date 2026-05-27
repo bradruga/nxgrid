@@ -13,6 +13,7 @@ public partial class NxGrid<T>
         DismissTooltip();
         // Cancel if column menu is open
         if (openColumn != null) return;
+        if (SelectionMode == NxGridSelectionMode.None) return;
 
         var rowIndex = filteredData.IndexOf(row);
         var colIndex = visibleColumns.IndexOf(column);
@@ -23,19 +24,39 @@ public partial class NxGrid<T>
             if (selectedRange?.IsCellInRange(rowIndex, colIndex) == true) return;
 
             if (isEditing) await CommitEdit();
-            selectedRange = new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex };
+            selectedRange = SelectionMode == NxGridSelectionMode.Row
+                ? new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }
+                : new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex };
             StateHasChanged();
             await RaiseSelectionChanged();
             return;
         }
 
-        if (args.Button != MouseButtonLeft) return; // Only left button for normal selection
+        if (args.Button != MouseButtonLeft) return;
 
         if (isEditing) await CommitEdit();
 
+        if (SelectionMode == NxGridSelectionMode.Row)
+        {
+            if (args.ShiftKey && selectedRange != null)
+            {
+                selectedRange.EndRow = rowIndex;
+                selectedRange.StartCol = 0;
+                selectedRange.EndCol = visibleColumns.Count - 1;
+            }
+            else
+            {
+                selectedRange = new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 };
+            }
+            StateHasChanged();
+            await RaiseSelectionChanged();
+            leftMouseDown = true;
+            return;
+        }
+
+        // Cell mode
         if (args.ShiftKey && selectedRange != null)
         {
-            // Extend selection: keep anchor (Start), move cursor (End)
             selectedRange.EndRow = rowIndex;
             selectedRange.EndCol = colIndex;
         }
@@ -71,13 +92,20 @@ public partial class NxGrid<T>
         else
             DismissTooltip();
 
-        if (selectedRange != null && leftMouseDown)
+        if (selectedRange != null && leftMouseDown && SelectionMode != NxGridSelectionMode.None)
         {
             var rowIndex = filteredData.IndexOf(row);
-            var colIndex = visibleColumns.IndexOf(column);
 
             selectedRange.EndRow = rowIndex;
-            selectedRange.EndCol = colIndex;
+            if (SelectionMode == NxGridSelectionMode.Row)
+            {
+                selectedRange.StartCol = 0;
+                selectedRange.EndCol = visibleColumns.Count - 1;
+            }
+            else
+            {
+                selectedRange.EndCol = visibleColumns.IndexOf(column);
+            }
 
             StateHasChanged();
 
@@ -138,7 +166,7 @@ public partial class NxGrid<T>
 
     private async Task OnColumnHeaderMouseDown(MouseEventArgs args, NxGridColumn<T> column)
     {
-        if (!HeaderClickSelects || isResizing) return;
+        if (!HeaderClickSelects || isResizing || SelectionMode != NxGridSelectionMode.Cell) return;
         if (args.Button != MouseButtonLeft) return;
 
         var colIndex = visibleColumns.IndexOf(column);
@@ -164,7 +192,7 @@ public partial class NxGrid<T>
     private async Task OnColumnHeaderMouseEnter(MouseEventArgs args, NxGridColumn<T> column)
     {
         ShowHeaderTooltip(args, column);
-        if (!HeaderClickSelects) return;
+        if (!HeaderClickSelects || SelectionMode != NxGridSelectionMode.Cell) return;
         if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) return;
         if (!headerAnchorCol.HasValue) return;
 
@@ -185,6 +213,7 @@ public partial class NxGrid<T>
     private async Task OnRowNumberMouseDown(MouseEventArgs args, int rowIndex)
     {
         if (args.Button != MouseButtonLeft) return;
+        if (SelectionMode == NxGridSelectionMode.None) return;
         int startRow, endRow;
         if (args.ShiftKey && headerAnchorRow.HasValue)
         {
@@ -204,6 +233,7 @@ public partial class NxGrid<T>
 
     private async Task OnRowNumberMouseEnter(MouseEventArgs args, int rowIndex)
     {
+        if (SelectionMode == NxGridSelectionMode.None) return;
         if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) return;
         if (!headerAnchorRow.HasValue) return;
 
@@ -220,7 +250,7 @@ public partial class NxGrid<T>
 
     private async Task OnCornerMouseDown(MouseEventArgs args)
     {
-        if (!HeaderClickSelects) return;
+        if (!HeaderClickSelects || SelectionMode == NxGridSelectionMode.None) return;
         if (args.Button != MouseButtonLeft) return;
         selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 };
         StateHasChanged();

@@ -50,6 +50,7 @@ public partial class NxGrid<T>
     private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
     private bool IsVirtualized => Virtualize && !HasMultiLineColumns && !IsGrouped;
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
+    [Parameter] public NxGridSelectionMode SelectionMode { get; set; } = NxGridSelectionMode.Cell;
     [Parameter] public string? StateKey { get; set; }
     [Parameter] public bool AutoSizeColumns { get; set; } = true;
     [Parameter] public bool Virtualize { get; set; } = true;
@@ -134,6 +135,7 @@ public partial class NxGrid<T>
 
     public async Task SelectRow(T row)
     {
+        if (SelectionMode == NxGridSelectionMode.None) return;
         var rowIndex = filteredData.IndexOf(row);
         if (rowIndex < 0) return;
         selectedRange = new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 };
@@ -157,6 +159,9 @@ public partial class NxGrid<T>
 
     protected override void OnParametersSet()
     {
+        if (SelectionMode == NxGridSelectionMode.None && Editable)
+            Console.Error.WriteLine("[NxGrid] Warning: SelectionMode=None is incompatible with Editable=true — editing will be suppressed.");
+
         if (!AutoSizeColumns)
             _manualMode = true;
         ComputeFrozenOffsets();

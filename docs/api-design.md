@@ -64,6 +64,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `HasColumnMenu` | `bool` | `true` | Shows the ▾ button in each column header for sort/filter. |
 | `HeaderClickSelects` | `bool` | `false` | When true, clicking a column header selects the full column; clicking the row-number gutter selects the full row. |
 | `Cursor` | `NxGridCursor` | `Default` | CSS cursor applied to body cells only (not column or row headers). `Default` → `default`, `Cell` → `cell`, `Pointer` → `pointer`. |
+| `SelectionMode` | `NxGridSelectionMode` | `Cell` | `Cell` — rectangular cell-range selection (default). `Row` — clicking any cell or using arrow keys selects the entire row; Shift extends to a contiguous row range; left/right arrows are no-ops. `None` — no selection highlight or interaction; `OnSelectionChanged` never fires; `SelectRow()` is a no-op. `None` is incompatible with `Editable=true` — a warning is logged and editing is suppressed. |
 | `StateKey` | `string?` | — | When set, the grid saves column widths (including manual-mode lock state), sort state, and filter state to `localStorage` under this key after every user change, and restores it on first render. Each grid instance on a page should use a unique key. |
 | `AutoSizeColumns` | `bool` | `true` | When `true` (default), columns without a `MaxWidth` use `flex-grow: 1` to fill available space. Set to `false` to start the grid in manual mode immediately — all columns render at their declared `Width` with no flex growth, as if the user had already resized. |
 | `Virtualize` | `bool` | `true` | When `true` (default), rows are rendered with Blazor's `<Virtualize>` component so only the visible rows are in the DOM. Set to `false` to render all rows at once — useful for small grids where browser Ctrl+F search, accessibility tools, or print should see every row. Automatically overridden to `false` when any column has `MultiLine = true`. |
@@ -194,6 +195,8 @@ Columns self-register with their parent grid on initialization and deregister on
 ## Selection model
 
 Selection is always a rectangular range. Ranges can be extended with Shift+click or Shift+Arrow. Multiple non-contiguous ranges are not supported.
+
+In `Row` mode the range always spans all visible columns, so `StartCol = 0` and `EndCol = visibleColumns.Count - 1`. Use `args.Ranges[0].Items` to get the selected row objects — the `Columns` list will contain every visible column.
 
 ```csharp
 public class NxGridSelectionArgs<T>

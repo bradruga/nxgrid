@@ -242,6 +242,41 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string SelectionModeRow = """
+// Row mode — clicking any cell selects the entire row.
+// Shift+click / Shift+Arrow extends to a contiguous row range.
+// Left / right arrow keys are no-ops.
+<NxGrid T="Person"
+        Data="@people"
+        SelectionMode="NxGridSelectionMode.Row"
+        OnSelectionChanged="@OnSelectionChanged">
+    ...
+</NxGrid>
+
+@code {
+    Person? selected;
+
+    void OnSelectionChanged(NxGridSelectionArgs<Person> args)
+    {
+        // Items always contains the selected row objects
+        selected = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
+    }
+}
+""";
+
+    public static readonly string SelectionModeNone = """
+// None mode — no selection highlight or interaction.
+// OnSelectionChanged never fires. Use for display-only report grids.
+<NxGrid T="ActivityDto"
+        Data="@activities"
+        SelectionMode="NxGridSelectionMode.None"
+        Cursor="NxGridCursor.Default">
+    <NxGridColumn Property="@(x => x.Date)"     Title="Date" />
+    <NxGridColumn Property="@(x => x.UserName)" Title="User" />
+    <NxGridColumn Property="@(x => x.Action)"   Title="Action" />
+</NxGrid>
+""";
+
     public static readonly string DarkTheme = """
 /* In your CSS — override the custom properties on an ancestor element */
 .dark-theme {

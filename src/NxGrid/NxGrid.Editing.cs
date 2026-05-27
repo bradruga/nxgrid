@@ -12,6 +12,7 @@ public partial class NxGrid<T>
 
     private async Task StartEditing(int row, int col, string? initialChar)
     {
+        if (SelectionMode == NxGridSelectionMode.None) return;
         var column = visibleColumns[col];
         if (!IsColumnEditable(column) || !OnUpdate.HasDelegate) return;
 

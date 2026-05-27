@@ -23,88 +23,91 @@ public partial class NxGrid<T>
     {
         if (isEditing) return; // input's @onkeydown:stopPropagation handles this
 
-        if (ModifierPressed(args) && string.Equals(args.Key, KeyCopy, StringComparison.OrdinalIgnoreCase))
+        if (SelectionMode != NxGridSelectionMode.None)
         {
-            await CopySelectionToClipboard();
-            return;
-        }
-
-        if (ModifierPressed(args) && string.Equals(args.Key, KeyPaste, StringComparison.OrdinalIgnoreCase))
-        {
-            await PasteFromClipboard();
-            return;
-        }
-
-        if (ModifierPressed(args) && string.Equals(args.Key, KeySelectAll, StringComparison.OrdinalIgnoreCase))
-        {
-            if (filteredData.Count > 0 && visibleColumns.Count > 0)
+            if (ModifierPressed(args) && string.Equals(args.Key, KeyCopy, StringComparison.OrdinalIgnoreCase))
             {
-                selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 };
-                StateHasChanged();
-                await RaiseSelectionChanged();
-            }
-            return;
-        }
-
-        if (args.Key == KeyDelete)
-        {
-            await DeleteSelection();
-            return;
-        }
-
-        if (args.Key is KeyArrowUp or KeyArrowDown or KeyArrowLeft or KeyArrowRight)
-        {
-            await HandleArrowKey(args);
-            return;
-        }
-
-        if (args.Key is KeyHome or KeyEnd)
-        {
-            await HandleHomeEnd(args);
-            return;
-        }
-
-        if (args.Key is KeyPageUp or KeyPageDown)
-        {
-            await HandlePageUpDown(args);
-            return;
-        }
-
-        if (args.Key == KeyTab)
-        {
-            await HandleTabKey(args);
-            return;
-        }
-
-        if (args.Key == KeyEnter)
-        {
-            await HandleEnterKey(args);
-            return;
-        }
-
-        // F2 → edit showing existing value
-        if (args.Key == KeyF2 && selectedRange != null)
-        {
-            await StartEditing(selectedRange.StartRow, selectedRange.StartCol, initialChar: null);
-            return;
-        }
-
-        // Space on a checkbox column → toggle (must come before IsPrintableKey, which also matches " ")
-        if (args.Key == " " && selectedRange != null && !args.CtrlKey && !args.AltKey && !args.MetaKey)
-        {
-            var checkboxCol = visibleColumns[selectedRange.StartCol];
-            if (checkboxCol.IsCheckboxColumn)
-            {
-                await OnCheckboxToggleCell(selectedRange.StartRow, selectedRange.StartCol);
+                await CopySelectionToClipboard();
                 return;
             }
-        }
 
-        // Printable character → start editing with that character pre-filled
-        if (IsPrintableKey(args) && selectedRange != null)
-        {
-            await StartEditing(selectedRange.StartRow, selectedRange.StartCol, initialChar: args.Key);
-            return;
+            if (ModifierPressed(args) && string.Equals(args.Key, KeyPaste, StringComparison.OrdinalIgnoreCase))
+            {
+                await PasteFromClipboard();
+                return;
+            }
+
+            if (ModifierPressed(args) && string.Equals(args.Key, KeySelectAll, StringComparison.OrdinalIgnoreCase))
+            {
+                if (filteredData.Count > 0 && visibleColumns.Count > 0)
+                {
+                    selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 };
+                    StateHasChanged();
+                    await RaiseSelectionChanged();
+                }
+                return;
+            }
+
+            if (args.Key == KeyDelete)
+            {
+                await DeleteSelection();
+                return;
+            }
+
+            if (args.Key is KeyArrowUp or KeyArrowDown or KeyArrowLeft or KeyArrowRight)
+            {
+                await HandleArrowKey(args);
+                return;
+            }
+
+            if (args.Key is KeyHome or KeyEnd)
+            {
+                await HandleHomeEnd(args);
+                return;
+            }
+
+            if (args.Key is KeyPageUp or KeyPageDown)
+            {
+                await HandlePageUpDown(args);
+                return;
+            }
+
+            if (args.Key == KeyTab)
+            {
+                await HandleTabKey(args);
+                return;
+            }
+
+            if (args.Key == KeyEnter)
+            {
+                await HandleEnterKey(args);
+                return;
+            }
+
+            // F2 → edit showing existing value
+            if (args.Key == KeyF2 && selectedRange != null)
+            {
+                await StartEditing(selectedRange.StartRow, selectedRange.StartCol, initialChar: null);
+                return;
+            }
+
+            // Space on a checkbox column → toggle (must come before IsPrintableKey, which also matches " ")
+            if (args.Key == " " && selectedRange != null && !args.CtrlKey && !args.AltKey && !args.MetaKey)
+            {
+                var checkboxCol = visibleColumns[selectedRange.StartCol];
+                if (checkboxCol.IsCheckboxColumn)
+                {
+                    await OnCheckboxToggleCell(selectedRange.StartRow, selectedRange.StartCol);
+                    return;
+                }
+            }
+
+            // Printable character → start editing with that character pre-filled
+            if (IsPrintableKey(args) && selectedRange != null)
+            {
+                await StartEditing(selectedRange.StartRow, selectedRange.StartCol, initialChar: args.Key);
+                return;
+            }
         }
 
         // Unhandled key — let the host page respond
@@ -131,10 +134,12 @@ public partial class NxGrid<T>
     private async Task HandleArrowKey(KeyboardEventArgs args)
     {
         if (filteredData.Count == 0 || visibleColumns.Count == 0) return;
+        if (SelectionMode == NxGridSelectionMode.Row && args.Key is KeyArrowLeft or KeyArrowRight) return;
 
         if (selectedRange == null)
         {
-            selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = 0, EndCol = 0 };
+            var endCol = SelectionMode == NxGridSelectionMode.Row ? visibleColumns.Count - 1 : 0;
+            selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = 0, EndCol = endCol };
             StateHasChanged();
             await RaiseSelectionChanged();
             return;
@@ -163,9 +168,15 @@ public partial class NxGrid<T>
             selectedRange.StartCol = newEndCol;
         }
 
+        if (SelectionMode == NxGridSelectionMode.Row)
+        {
+            selectedRange.StartCol = 0;
+            selectedRange.EndCol = visibleColumns.Count - 1;
+        }
+
         StateHasChanged();
         await RaiseSelectionChanged();
-        await ScrollCellIntoView(newEndRow, newEndCol);
+        await ScrollCellIntoView(newEndRow, SelectionMode == NxGridSelectionMode.Row ? 0 : newEndCol);
     }
 
     private async Task HandleHomeEnd(KeyboardEventArgs args)
@@ -174,14 +185,30 @@ public partial class NxGrid<T>
 
         if (selectedRange == null)
         {
-            selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = 0, EndCol = 0 };
+            var endCol = SelectionMode == NxGridSelectionMode.Row ? visibleColumns.Count - 1 : 0;
+            selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = 0, EndCol = endCol };
             StateHasChanged();
             await RaiseSelectionChanged();
             return;
         }
 
-        var newEndRow = args.ShiftKey ? selectedRange.EndRow : selectedRange.StartRow;
-        var newEndCol = args.ShiftKey ? selectedRange.EndCol : selectedRange.StartCol;
+        int newEndRow, newEndCol;
+
+        if (SelectionMode == NxGridSelectionMode.Row)
+        {
+            newEndRow = args.Key == KeyHome ? 0 : filteredData.Count - 1;
+            if (!args.ShiftKey) selectedRange.StartRow = newEndRow;
+            selectedRange.EndRow = newEndRow;
+            selectedRange.StartCol = 0;
+            selectedRange.EndCol = visibleColumns.Count - 1;
+            StateHasChanged();
+            await RaiseSelectionChanged();
+            await ScrollCellIntoView(newEndRow, 0);
+            return;
+        }
+
+        newEndRow = args.ShiftKey ? selectedRange.EndRow : selectedRange.StartRow;
+        newEndCol = args.ShiftKey ? selectedRange.EndCol : selectedRange.StartCol;
 
         switch (args.Key)
         {
@@ -237,9 +264,15 @@ public partial class NxGrid<T>
             selectedRange.StartCol = newEndCol;
         }
 
+        if (SelectionMode == NxGridSelectionMode.Row)
+        {
+            selectedRange.StartCol = 0;
+            selectedRange.EndCol = visibleColumns.Count - 1;
+        }
+
         StateHasChanged();
         await RaiseSelectionChanged();
-        await ScrollCellIntoView(newEndRow, newEndCol);
+        await ScrollCellIntoView(newEndRow, SelectionMode == NxGridSelectionMode.Row ? 0 : newEndCol);
     }
 
     private async Task HandleTabKey(KeyboardEventArgs args)
@@ -248,14 +281,28 @@ public partial class NxGrid<T>
 
         if (selectedRange == null)
         {
-            selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = 0, EndCol = 0 };
+            var endCol = SelectionMode == NxGridSelectionMode.Row ? visibleColumns.Count - 1 : 0;
+            selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = 0, EndCol = endCol };
             StateHasChanged();
             await RaiseSelectionChanged();
             return;
         }
 
         var row = selectedRange.StartRow;
-        var col = selectedRange.StartCol;
+        int col;
+
+        if (SelectionMode == NxGridSelectionMode.Row)
+        {
+            row = Math.Clamp(row + (args.ShiftKey ? -1 : 1), 0, filteredData.Count - 1);
+            selectedRange.StartRow = row; selectedRange.EndRow = row;
+            selectedRange.StartCol = 0;  selectedRange.EndCol = visibleColumns.Count - 1;
+            StateHasChanged();
+            await RaiseSelectionChanged();
+            await ScrollCellIntoView(row, 0);
+            return;
+        }
+
+        col = selectedRange.StartCol;
 
         if (!args.ShiftKey)
         {
@@ -289,13 +336,14 @@ public partial class NxGrid<T>
         }
 
         var row = selectedRange.StartRow;
-        var col = selectedRange.StartCol;
+        var col = SelectionMode == NxGridSelectionMode.Row ? 0 : selectedRange.StartCol;
 
         row += args.ShiftKey ? -1 : 1;
         row = Math.Clamp(row, 0, filteredData.Count - 1);
 
         selectedRange.StartRow = row; selectedRange.StartCol = col;
-        selectedRange.EndRow   = row; selectedRange.EndCol   = col;
+        selectedRange.EndRow   = row;
+        selectedRange.EndCol   = SelectionMode == NxGridSelectionMode.Row ? visibleColumns.Count - 1 : col;
 
         StateHasChanged();
         await RaiseSelectionChanged();

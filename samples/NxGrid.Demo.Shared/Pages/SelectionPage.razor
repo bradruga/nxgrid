@@ -4,38 +4,113 @@
 
 <h1>Selection</h1>
 <p class="doc-intro">
-    Selection is always a rectangular range. Click a cell to anchor the selection,
-    then <kbd class="doc-kbd">Shift+click</kbd> or <kbd class="doc-kbd">Shift+Arrow</kbd> to extend it.
-    <code>OnSelectionChanged</code> fires on every change — mouse, keyboard, or programmatic.
+    <code>SelectionMode</code> controls how the grid responds to mouse and keyboard interaction.
+    <code>Cell</code> (default) gives you rectangular cell-range selection.
+    <code>Row</code> selects entire rows — the natural fit for master-detail layouts.
+    <code>None</code> disables all selection feedback for display-only grids.
 </p>
 
 <div class="doc-section">
-    <h2>Interactive Example</h2>
+    <h2>SelectionMode.Cell — Rectangular Range</h2>
+    <p class="doc-para">
+        Click to anchor, <kbd class="doc-kbd">Shift+click</kbd> or <kbd class="doc-kbd">Shift+Arrow</kbd> to extend.
+        <kbd class="doc-kbd">Ctrl+A</kbd> selects all. <kbd class="doc-kbd">Ctrl+C</kbd> copies the range as TSV.
+    </p>
     <div class="doc-controls">
         <label>
             <input type="checkbox" @bind="headerClickSelects" />
             <strong>HeaderClickSelects</strong> — click a column header to select the whole column
         </label>
         <button class="doc-btn" @onclick="SelectAlice">SelectRow(alice)</button>
-        <button class="doc-btn doc-btn-secondary" @onclick="ClearOutput">Clear log</button>
+        <button class="doc-btn doc-btn-secondary" @onclick="ClearCellLog">Clear log</button>
     </div>
-    <NxGrid T="Person" @ref="grid" Data="@people"
-            OnSelectionChanged="@OnSelectionChanged"
+    <NxGrid T="Person" @ref="cellGrid" Data="@cellPeople"
+            SelectionMode="NxGridSelectionMode.Cell"
+            OnSelectionChanged="@OnCellSelectionChanged"
             HeaderClickSelects="@headerClickSelects"
             RowGutter="NxGridRowGutter.Numbers"
-            Cursor="@NxGridCursor.Cell">
+            Cursor="@NxGridCursor.Cell"
+            Style="height:260px">
         <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
         <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
         <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
         <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn Property="@(x => x.Department)" />
     </NxGrid>
-    <div class="doc-output">@selectionText</div>
+    <div class="doc-output">@(string.IsNullOrEmpty(cellLog) ? "Click a cell to see selection info…" : cellLog)</div>
+</div>
+
+<div class="doc-section">
+    <h2>SelectionMode.Row — Master-Detail</h2>
+    <p class="doc-para">
+        Clicking any cell in a row selects the whole row.
+        <kbd class="doc-kbd">Shift+click</kbd> and <kbd class="doc-kbd">Shift+↑↓</kbd> extend to a contiguous row range.
+        Left/right arrows are no-ops. <code>args.Ranges[0].Items</code> gives you the selected row objects directly.
+    </p>
+    <div class="doc-demo-row">
+        <div class="doc-demo-grid">
+            <NxGrid T="Person" Data="@rowPeople"
+                    SelectionMode="NxGridSelectionMode.Row"
+                    OnSelectionChanged="@OnRowSelectionChanged"
+                    Cursor="@NxGridCursor.Pointer"
+                    Style="height:260px">
+                <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+                <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+                <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+                <NxGridColumn Property="@(x => x.Department)" />
+            </NxGrid>
+        </div>
+        <div class="doc-detail-panel">
+            @if (selectedPerson != null)
+            {
+                <div class="doc-detail-card">
+                    <div class="doc-detail-name">@selectedPerson.FirstName @selectedPerson.LastName</div>
+                    <div class="doc-detail-row"><span>ID</span><span>@selectedPerson.Id</span></div>
+                    <div class="doc-detail-row"><span>Age</span><span>@selectedPerson.Age</span></div>
+                    <div class="doc-detail-row"><span>Department</span><span>@selectedPerson.Department</span></div>
+                    <div class="doc-detail-row"><span>Email</span><span>@($"{selectedPerson.FirstName.ToLower()}.{selectedPerson.LastName.ToLower()}@corp.com")</span></div>
+                </div>
+            }
+            else
+            {
+                <div class="doc-detail-empty">← Select a row</div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>SelectionMode.None — Display-Only</h2>
+    <p class="doc-para">
+        No selection highlight is applied. Mouse clicks, keyboard navigation, and
+        <code>OnSelectionChanged</code> are all suppressed. Use for read-only report grids
+        where selection feedback would be misleading.
+    </p>
+    <NxGrid T="Person" Data="@nonePeople"
+            SelectionMode="NxGridSelectionMode.None"
+            Cursor="NxGridCursor.Default"
+            Style="height:200px">
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <div class="doc-output" style="color:var(--nx-grid-muted-fg)">Click anywhere in the grid — nothing is highlighted.</div>
 </div>
 
 <div class="doc-section">
     <h2>OnSelectionChanged</h2>
     <pre class="doc-code">@selectionCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Row Mode</h2>
+    <pre class="doc-code">@selectionModeRowCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>None Mode</h2>
+    <pre class="doc-code">@selectionModeNoneCode</pre>
 </div>
 
 <div class="doc-section">
@@ -51,43 +126,54 @@
         </thead>
         <tbody>
             <tr><td>StartRow / EndRow</td><td>int</td><td>First and last row index in the currently filtered/sorted data</td></tr>
-            <tr><td>StartCol / EndCol</td><td>int</td><td>First and last column index</td></tr>
+            <tr><td>StartCol / EndCol</td><td>int</td><td>First and last column index (always 0 / last in Row mode)</td></tr>
             <tr><td>Items</td><td>List&lt;T&gt;</td><td>Unique row objects in the range</td></tr>
-            <tr><td>Columns</td><td>List&lt;NxGridColumn&lt;T&gt;&gt;</td><td>Column objects in the range</td></tr>
+            <tr><td>Columns</td><td>List&lt;NxGridColumn&lt;T&gt;&gt;</td><td>Column objects in the range (all visible columns in Row mode)</td></tr>
         </tbody>
     </table>
 </div>
 
 @code {
-    List<Person> people = SampleData.GetPeopleCopy();
-    NxGrid<Person> grid = null!;
-    bool headerClickSelects;
-    string selectionText = "Click a cell to see selection info…";
+    List<Person> cellPeople = SampleData.GetPeopleCopy();
+    List<Person> rowPeople  = SampleData.GetPeopleCopy();
+    List<Person> nonePeople = SampleData.GetPeopleCopy();
 
-    void OnSelectionChanged(NxGridSelectionArgs<Person> args)
+    NxGrid<Person> cellGrid = null!;
+    bool headerClickSelects;
+    string cellLog = "";
+    Person? selectedPerson;
+
+    void OnCellSelectionChanged(NxGridSelectionArgs<Person> args)
     {
         var range = args.Ranges.FirstOrDefault();
-        if (range == null) { selectionText = "No selection"; return; }
+        if (range == null) { cellLog = "No selection"; return; }
 
         var rows = range.EndRow - range.StartRow + 1;
         var cols = range.EndCol - range.StartCol + 1;
         var preview = range.Items.Take(3).Select(p => $"{p.FirstName} {p.LastName}");
         var names = string.Join(", ", preview) + (range.Items.Count > 3 ? "…" : "");
 
-        selectionText =
+        cellLog =
             $"{rows} row{(rows == 1 ? "" : "s")} × {cols} col{(cols == 1 ? "" : "s")} " +
             $"[rows {range.StartRow}–{range.EndRow}, cols {range.StartCol}–{range.EndCol}]" +
             $"  →  {names}";
     }
 
-    async Task SelectAlice()
+    void OnRowSelectionChanged(NxGridSelectionArgs<Person> args)
     {
-        var alice = people.FirstOrDefault(p => p.FirstName == "Alice");
-        if (alice != null) await grid.SelectRow(alice);
+        selectedPerson = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
     }
 
-    void ClearOutput() => selectionText = "";
+    async Task SelectAlice()
+    {
+        var alice = cellPeople.FirstOrDefault(p => p.FirstName == "Alice");
+        if (alice != null) await cellGrid.SelectRow(alice);
+    }
 
-    string selectionCode = DemoCodeSamples.Selection;
-    string selectRowCode = DemoCodeSamples.SelectRow;
+    void ClearCellLog() => cellLog = "";
+
+    string selectionCode        = DemoCodeSamples.Selection;
+    string selectionModeRowCode = DemoCodeSamples.SelectionModeRow;
+    string selectionModeNoneCode = DemoCodeSamples.SelectionModeNone;
+    string selectRowCode        = DemoCodeSamples.SelectRow;
 }
