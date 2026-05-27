@@ -28,14 +28,6 @@ Small, self-contained improvements with no breaking API changes.
 
 ---
 
-### Column visibility toggle
-
-**What:** A `Visible` parameter on `NxGridColumn` (default `true`). Hidden columns are excluded from rendering, selection, copy, and paste but retain their sort/filter state.
-
-**Why:** A common pattern is to show/hide columns based on user preference or screen size. Currently the only option is to add/remove `<NxGridColumn>` elements from markup, which resets all column state.
-
----
-
 ### Multi-sort
 
 **What:** Allow multiple columns to be sorted simultaneously, with a defined priority order. The column menu would show the sort rank (1st, 2nd, etc.) when multiple columns are active.
@@ -90,37 +82,17 @@ Significant new capabilities. Some may require breaking API changes or substanti
 
 ---
 
-### Custom cell editors
-
-**What:** A `EditorTemplate` parameter on `NxGridColumn` — a `RenderFragment<NxGridEditContext<T>>` that renders a custom editor in place of the default text input. `NxGridEditContext<T>` provides the current value, a commit callback, and a cancel callback.
-
-**Why:** Many columns need richer editors: date pickers, number steppers with increment/decrement buttons, star ratings, color swatches. The current text input forces all editing through a string round-trip.
-
-**Design:** The grid manages focus, Escape handling, and the overlay layer. The custom editor is responsible for calling commit or cancel. `ComboBoxItems` would be reimplementable as a built-in EditorTemplate.
-
----
-
-### Undo / redo
-
-**What:** Ctrl+Z / Ctrl+Y (or ⌘+Z / ⌘+Shift+Z on Mac) to undo and redo cell edits, multi-cell pastes, and deletes.
-
-**Why:** Paste and Delete operate on potentially large ranges. There is currently no recovery path for an accidental overwrite.
-
-**Design:** An internal edit history stack, capped at a configurable depth (default 50). Each entry stores the affected cells and their previous values. Undo re-applies previous values via the column setters, so host model state stays consistent.
-
----
-
 ## Backlog
 
 Valuable but complex, dependent on upstream items, or lower relative priority.
 
-### Row grouping and aggregates
+### Group aggregate rows
 
-**What:** Group rows by a column value, with collapsible groups and optional aggregate rows (sum, count, min/max/avg) at the group footer.
+**What:** Optional aggregate footer rows at the bottom of each group showing sum, count, min/max/avg for numeric columns.
 
-**Why:** A major data grid capability for financial and analytical use cases.
+**Why:** Row grouping with collapsible groups is already implemented (`GroupBy`, `GroupHeaderTemplate`, `GroupsCollapsible`). What remains is the aggregate summary row — a major capability for financial and analytical use cases.
 
-**Dependency:** Best designed after server-side data, since group aggregates on large datasets typically need server computation.
+**Dependency:** Best designed after server-side data, since aggregates on large datasets typically need server computation.
 
 ---
 
@@ -129,24 +101,6 @@ Valuable but complex, dependent on upstream items, or lower relative priority.
 **What:** A `DetailTemplate` parameter on `NxGrid` — a `RenderFragment<T>` rendered below a row when expanded. Rows are expanded by clicking a toggle in the row-number gutter or via a programmatic API.
 
 **Why:** Master/detail is a common pattern: click a row to see sub-records, extended fields, or a related form inline.
-
----
-
-### Column grouping headers
-
-**What:** Spanning header cells that label a group of adjacent columns (e.g. "Q1" spanning January/February/March).
-
-**Why:** Common in financial and reporting grids where columns represent related time periods or categories.
-
----
-
-### Row drag-and-drop reordering
-
-**What:** Drag rows by a handle in the row-number gutter to reorder them. An `OnRowReordered` event provides the new index.
-
-**Why:** Useful for ordered lists where the user controls sequence (priority queues, step lists, ranked items).
-
-**Constraint:** Incompatible with active sort. The drag handle would be hidden or disabled when a sort is active.
 
 ---
 

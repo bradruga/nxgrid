@@ -64,7 +64,7 @@ samples/
 tests/NxGrid.Tests/
   NxGridRenderTests.cs   # bUnit component tests
 
-docs/api-design.md       # Authoritative public API reference
+docs/reference.md        # Authoritative public API reference
 ```
 
 ## Architecture
@@ -100,7 +100,7 @@ This mirrors the `Data` / `filteredData` split for rows.
 
 ### Theming
 
-All visual properties are CSS custom properties (override on `:root` or a parent element): `--nx-grid-accent`, `--nx-grid-header-bg`, `--nx-grid-surface`, `--nx-grid-border`, etc. Full list in `docs/api-design.md`.
+All visual properties are CSS custom properties (override on `:root` or a parent element): `--nx-grid-accent`, `--nx-grid-header-bg`, `--nx-grid-surface`, `--nx-grid-border`, etc. Full list in `docs/reference.md`.
 
 ## Testing
 

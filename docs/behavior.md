@@ -1,6 +1,6 @@
 # NxGrid — Runtime Behavior Reference
 
-This document describes how NxGrid behaves at runtime. It covers the mechanics behind the public API — the rules, edge cases, and algorithms that are not obvious from the parameter list alone. See `api-design.md` for the parameter reference.
+This document describes how NxGrid behaves at runtime. It covers the mechanics behind the public API — the rules, edge cases, and algorithms that are not obvious from the parameter list alone. See `reference.md` for the parameter reference.
 
 ---
 

@@ -190,6 +190,13 @@ Columns self-register with their parent grid on initialization and deregister on
 | `DatePicker` | `bool` | `false` | When `true` and the column is editable, the inline editor renders a free-text input alongside a calendar button that opens a month-view popup. The user can type a date directly or click a day to commit. `Property` should resolve to `DateTime` or `DateTime?`. |
 | `DateFormat` | `string?` | — | Format string used both to display the date in the non-editing cell and to pre-populate the editor on F2 / double-click (e.g. `"MM/dd/yyyy"`). Also used as the first parse format on commit before falling back to `DateTime.TryParse`. Defaults to the thread's current culture short-date pattern when not set. |
 
+### Runtime state
+
+| Property | Type | Notes |
+|---|---|---|
+| `UserHidden` | `bool?` | Set by the user at runtime via the column menu. `null` means the user has not overridden the declared `Hidden` value. Read `IsHidden` to get the effective visibility state. |
+| `IsHidden` | `bool` | `UserHidden ?? Hidden` — the effective hidden state. Hidden columns are excluded from all rendering, selection, and index-based operations. |
+
 ---
 
 ## Selection model
@@ -507,15 +514,3 @@ Things that cannot be changed through CSS variables (require a CSS override targ
 
 ---
 
-## Open questions / future work
-
-- **Server-side data** — Current `Data: List<T>` is always in-memory. A future `OnReadData: Func<NxGridReadArgs, Task<NxGridReadResult<T>>>` callback would let the host supply a page of data on demand, with `NxGridReadArgs` carrying sort/filter/page state.
-- **Column reordering** — drag-to-reorder columns not yet implemented.
-- **`@bind-SelectedItems`** — convenience two-way binding shorthand for the common single-row selection case. Currently requires `OnSelectionChanged` handler.
-
-### `NxGridColumn<T>` public properties (runtime state)
-
-| Property | Type | Notes |
-|---|---|---|
-| `UserHidden` | `bool?` | Set by the user at runtime via the column menu. `null` means the user has not overridden the declared `Hidden` value. Read `IsHidden` to get the effective visibility state. |
-| `IsHidden` | `bool` | `UserHidden ?? Hidden` — the effective hidden state. Hidden columns are excluded from all rendering, selection, and index-based operations. |

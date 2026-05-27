@@ -11,13 +11,17 @@ A high-performance, virtualised data grid component for Blazor.
 - **Zero config** — just pass a `List<T>` and get a fully functional grid; columns are generated from your model automatically
 - Virtualised rendering — handles tens of thousands of rows without paging
 - Client-side sort and filter via the column menu
-- Multi-cell rectangular selection (mouse, keyboard, Shift+Arrow)
-- Inline editing with optional combo-box dropdowns
+- Multi-cell rectangular selection with selection math (sum, avg, count)
+- Inline editing — text input, combo-box dropdowns, date picker, multi-line, and math expressions
 - Copy / paste as TSV (Excel-compatible)
-- Column resize by drag
-- Frozen (sticky) columns via `Frozen` parameter or the column menu
-- Hidden/hideable columns — hide columns at design time or let users hide/show via the column menu
+- Row grouping with collapsible groups
+- Row drag-and-drop reordering
+- Column resize, freeze, and hide/show — user-configurable via column menu or programmatically
 - Full keyboard navigation (Arrow, Tab, Enter, Page Up/Down, Ctrl+Arrow, Home/End)
+- Custom cell and header templates, per-cell styling, cell and header tooltips
+- Context menu with custom items
+- Print filtered/sorted data
+- State persistence via `localStorage` (column widths, sort, filter, hidden state)
 - Themeable via CSS custom properties — no CSS framework required
 
 ## Installation
@@ -138,11 +142,11 @@ Override any CSS custom property on `:root` or a parent element — no SCSS requ
 }
 ```
 
-Full list of variables: [docs/api-design.md](docs/api-design.md).
+Full list of variables: [docs/reference.md](docs/reference.md).
 
 ## API reference
 
-Full parameter reference, keyboard shortcuts, selection model, and theming guide: [docs/api-design.md](docs/api-design.md).
+Full parameter reference, keyboard shortcuts, selection model, and theming guide: [docs/reference.md](docs/reference.md).
 
 ## License
 
