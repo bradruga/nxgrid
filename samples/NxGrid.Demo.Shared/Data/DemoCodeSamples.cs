@@ -85,7 +85,7 @@ public static class DemoCodeSamples
     <NxGridColumn Property="@(x => x.Title)"  Title="Title" />
     <NxGridColumn Property="@(x => x.Notes)"  Title="Notes"  MultiLine="true" />
     <NxGridColumn Property="@(x => x.Status)" Title="Status"
-                  ComboBoxItems="@(() => NxGridComboItem.From(["Open", "In Progress", "Done", "Blocked"]))" />
+                  ComboBoxItems="@(_ => NxGridComboItem.From(["Open", "In Progress", "Done", "Blocked"]))" />
 </NxGrid>
 """;
 
@@ -107,7 +107,7 @@ public static class DemoCodeSamples
     <NxGridColumn Property="@(x => x.Id)"  Editable="false" />
     <NxGridColumn Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" />
     <NxGridColumn Property="@(x => x.Department)"
-                  ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
+                  ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
 </NxGrid>
 
 @code {
@@ -130,7 +130,7 @@ public static class DemoCodeSamples
 // OnUpdate fires once with all affected rows — same shape as a paste.
 <NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Editable="true">
     <NxGridColumn Property="@(x => x.Department)"
-                  ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
+                  ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
     ...
 </NxGrid>
 
@@ -354,14 +354,14 @@ void OnSignalRRowReceived(Person newRow)
 // The simplest case — wrap a plain string array.
 // NxGridComboItem.From(IEnumerable<string?>) sets Value and Display to the same string.
 <NxGridColumn Property="@(x => x.Department)"
-              ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+              ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
 """;
 
     public static readonly string ComboBoxObjectProjection = """
-// Value / Display separation: TaskCode is stored in the property; the full name is shown.
 // NxGridComboItem.From projects any typed collection — no wrapper objects needed.
-<NxGridColumn Property="@(x => x.TaskCode)" Title="Task"
-              ComboBoxItems="@(() => NxGridComboItem.From(Tasks, t => t.Code, t => t.Name))" />
+// Value is what gets stored in the property and shown in the cell.
+<NxGridColumn Property="@(x => x.TaskName)" Title="Task"
+              ComboBoxItems="@(_ => NxGridComboItem.From(Tasks, t => t.Name, t => t.Name))" />
 
 @code {
     record TaskOption(string Code, string Name);
@@ -380,13 +380,29 @@ void OnSignalRRowReceived(Person newRow)
     public static readonly string ComboBoxItemTemplateCode = """
 // ComboBoxItemTemplate renders each dropdown row with custom markup.
 // The item's Value is still committed on selection — template is display-only.
-<NxGridColumn Property="@(x => x.TaskCode)" Title="Task"
-              ComboBoxItems="@(() => NxGridComboItem.From(Tasks, t => t.Code, t => t.Name))">
+<NxGridColumn Property="@(x => x.TaskName)" Title="Task"
+              ComboBoxItems="@(_ => NxGridComboItem.From(Tasks, t => t.Name, t => t.Name))">
     <ComboBoxItemTemplate Context="item">
-        <span class="demo-combo-code">@item.Value</span>
         <span class="demo-combo-name">@item.Display</span>
     </ComboBoxItemTemplate>
 </NxGridColumn>
+""";
+
+    public static readonly string ComboBoxPerRow = """
+// ComboBoxItems receives the row — return a different list based on any property.
+// Called fresh on each open; preload data into a dictionary for instant lookup.
+<NxGridColumn Property="@(x => x.Skill)"
+              ComboBoxItems="@(row => SkillsByTeam[row.Team]
+                                       .Select(s => new NxGridComboItem { Value = s, Display = s }))" />
+
+@code {
+    static readonly Dictionary<string, string[]> SkillsByTeam = new()
+    {
+        ["Frontend"]       = ["React", "TypeScript", "CSS", "Performance"],
+        ["Backend"]        = ["C#", "SQL", "Redis", "RabbitMQ"],
+        ["Infrastructure"] = ["Kubernetes", "Terraform", "CI/CD", "Monitoring"],
+    };
+}
 """;
 
     public static readonly string OnUpdate = """

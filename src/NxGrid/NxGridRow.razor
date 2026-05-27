@@ -172,8 +172,6 @@
                 object? cellValue;
                 if (col.IsDatePickerColumn && col.Display == null)
                     cellValue = (object?)(col.FormatDateValue(rawValue) ?? rawValue?.ToString());
-                else if (col.ComboBoxItems != null && col.Display == null)
-                    cellValue = (object?)col.ResolveComboDisplay(Row);
                 else
                     cellValue = rawValue;
                 var cellDisplay = col.MultiLine && cellValue is string sv && sv.EndsWith('\n')

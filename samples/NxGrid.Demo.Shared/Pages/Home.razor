@@ -30,7 +30,7 @@
         <NxGridColumn Title="Last"  Property="@(x => x.LastName)"  Width="120" />
         <NxGridColumn Property="@(x => x.Age)"       Width="70"  Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn Property="@(x => x.Department)"
-                      ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+                      ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
     </NxGrid>
 </div>
 

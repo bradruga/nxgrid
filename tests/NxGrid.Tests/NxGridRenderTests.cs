@@ -159,29 +159,27 @@ public class NxGridRenderTests : BunitContext
             .AddChildContent<NxGridColumn<Row>>(col => col
                 .Add(x => x.Display, r => "Dept: " + r.Department)
                 .Add(x => x.Title, "Department")
-                .Add(x => x.ComboBoxItems, () => NxGridComboItem.From(["Engineering", "Finance", "HR"]))));
+                .Add(x => x.ComboBoxItems, (Row _) => NxGridComboItem.From(["Engineering", "Finance", "HR"]))));
 
         var cell = cut.Find(".nx-grid-cell-text");
         Assert.That(cell.TextContent.Trim(), Is.EqualTo("Dept: Engineering"));
     }
 
     [Test]
-    public void ComboBoxColumnWithoutDisplayShowsComboItemLabel()
+    public void ComboBoxColumnShowsRawPropertyValue()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         Expression<Func<Row, object?>> prop = r => r.Department;
         var cut = Render<NxGrid<Row>>(p => p
-            .Add(x => x.Data, [new Row("Alice", "ENG")])
+            .Add(x => x.Data, [new Row("Alice", "Engineering")])
             .Add(x => x.ChildContent, b =>
             {
                 b.OpenComponent<NxGridColumn<Row>>(0);
                 b.AddAttribute(1, "Property", prop);
                 b.AddAttribute(2, "Title", "Department");
-                b.AddAttribute(3, "ComboBoxItems", (Func<IEnumerable<NxGridComboItem>>)(() =>
-                    NxGridComboItem.From(
-                        new[] { ("ENG", "Engineering"), ("FIN", "Finance") },
-                        t => t.Item1, t => t.Item2)));
+                b.AddAttribute(3, "ComboBoxItems", (Func<Row, IEnumerable<NxGridComboItem>>)(_ =>
+                    NxGridComboItem.From(["Engineering", "Finance", "HR"])));
                 b.CloseComponent();
             }));
 

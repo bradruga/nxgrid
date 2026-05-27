@@ -28,7 +28,7 @@
         <NxGridColumn Property="@(x => x.Title)"  Title="Title"  Width="200" />
         <NxGridColumn Property="@(x => x.Notes)"  Title="Notes"  MultiLine="true" />
         <NxGridColumn Property="@(x => x.Status)" Title="Status" Width="130"
-                      ComboBoxItems="@(() => NxGridComboItem.From(["Open", "In Progress", "Done", "Blocked"]))" />
+                      ComboBoxItems="@(_ => NxGridComboItem.From(["Open", "In Progress", "Done", "Blocked"]))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@editCode</pre>
 </div>

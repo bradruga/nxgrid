@@ -41,8 +41,7 @@ public partial class NxGrid<T>
     private int PrintSelectionColCount => selectedRange == null ? 0 :
         Math.Abs(selectedRange.EndCol - selectedRange.StartCol) + 1;
 
-    private object? PrintCellValue(NxGridColumn<T> col, T row) =>
-        col.IsComboColumn ? col.ResolveComboDisplay(row) : col.EffectiveGetter?.Invoke(row);
+    private object? PrintCellValue(NxGridColumn<T> col, T row) => col.EffectiveGetter?.Invoke(row);
 
     private void ClosePrintDialog() => printDialogOpen = false;
 

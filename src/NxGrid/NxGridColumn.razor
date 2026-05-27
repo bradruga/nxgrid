@@ -22,12 +22,12 @@
     [Parameter] public RenderFragment<T>? Template { get; set; }
     [Parameter] public RenderFragment? HeaderTemplate { get; set; }
     /// <summary>
-    /// Turns the column into a combo-box editor. The function is called fresh on each open.
-    /// Use <see cref="NxGridComboItem.From{TItem}"/> to project any typed collection without
-    /// constructing <see cref="NxGridComboItem"/> objects manually:
-    /// <code>ComboBoxItems="@(() => NxGridComboItem.From(accounts, a => a.Id, a => a.Name))"</code>
+    /// Turns the column into a combo-box editor. The function receives the row object so the
+    /// list can vary per row. It is called fresh each time the dropdown opens; results are not cached.
+    /// Use <see cref="NxGridComboItem.From{TItem}"/> to project any typed collection:
+    /// <code>ComboBoxItems="@(_ => NxGridComboItem.From(accounts, a => a.Name, a => a.Name))"</code>
     /// </summary>
-    [Parameter] public Func<IEnumerable<NxGridComboItem>>? ComboBoxItems { get; set; }
+    [Parameter] public Func<T, IEnumerable<NxGridComboItem>>? ComboBoxItems { get; set; }
     /// <summary>
     /// Custom markup for each dropdown item. When set, replaces the plain Display string in the list.
     /// </summary>
@@ -263,13 +263,6 @@
         if (value is not DateTime dt) return null;
         var fmt = DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
         return dt.ToString(fmt);
-    }
-
-    public string? ResolveComboDisplay(T row)
-    {
-        if (ComboBoxItems == null) return null;
-        var rawValue = EffectiveValueGetter?.Invoke(row)?.ToString();
-        return ComboBoxItems().FirstOrDefault(i => i.Value == rawValue)?.Display ?? rawValue;
     }
 
     public List<T> FilterData(List<T> data)

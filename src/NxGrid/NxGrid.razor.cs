@@ -267,7 +267,7 @@ public partial class NxGrid<T>
 
     private void LoadAllComboItems()
     {
-        comboAllItems = visibleColumns[editCol].ComboBoxItems?.Invoke().ToList() ?? [];
+        comboAllItems = visibleColumns[editCol].ComboBoxItems?.Invoke(filteredData[editRow]).ToList() ?? [];
     }
 
     private void RefreshComboFilteredOptions(bool showAll = false)

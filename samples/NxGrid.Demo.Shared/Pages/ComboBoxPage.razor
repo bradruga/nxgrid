@@ -5,10 +5,10 @@
 <h1>Combo Box</h1>
 <p class="doc-intro">
     Set <code>ComboBoxItems</code> on a column to turn its inline editor into a dropdown.
-    The function is called fresh on each open so the list can be dynamic.
-    Use <code>NxGridComboItem.From</code> to project any typed collection — the selected
-    item's <code>Value</code> is committed to the property; <code>Display</code> is shown
-    in both the dropdown and the non-editing cell.
+    The function receives the row object so the list can vary per row — called fresh on each open.
+    Use <code>NxGridComboItem.From</code> to project any typed collection. The selected item's
+    <code>Value</code> is committed to the property and shown in the cell; <code>Display</code>
+    is used only inside the dropdown list.
 </p>
 
 <div class="doc-section">
@@ -23,27 +23,25 @@
         <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
         <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
         <NxGridColumn Property="@(x => x.Department)"
-                      ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+                      ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@stringListCode</pre>
 </div>
 
 <div class="doc-section">
-    <h2>Separate Value and Display</h2>
+    <h2>Object Projection</h2>
     <p class="doc-note">
-        The task code (e.g. <code>DEV</code>) is stored in the property; the full name
-        (<code>Development</code>) is shown in the cell and the dropdown.
-        The "Stored value" column shows exactly what is written to the model on selection.
+        <code>NxGridComboItem.From</code> projects any typed collection into combo items —
+        no wrapper objects needed. The selected item's <code>Value</code> is what gets stored
+        in the property and rendered in the cell.
     </p>
     <NxGrid T="TaskRow" Data="@taskRows" OnUpdate="@HandleTaskUpdate"
             Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"       Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Employee)" Width="140" Editable="false" />
-        <NxGridColumn Property="@(x => x.TaskCode)" Title="Task" Width="180"
-                      ComboBoxItems="@(() => NxGridComboItem.From(TaskOptions, t => t.Code, t => t.Name))" />
+        <NxGridColumn Property="@(x => x.TaskName)" Title="Task" Width="200"
+                      ComboBoxItems="@(_ => NxGridComboItem.From(TaskOptions, t => t.Name, t => t.Name))" />
         <NxGridColumn Property="@(x => x.Hours)"    Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Title="Stored value" Display="@(x => x.TaskCode)"
-                      Width="110" Alignment="NxGridColumnAlignment.Center" Editable="false" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@objectProjectionCode</pre>
 </div>
@@ -58,8 +56,8 @@
             Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"       Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Employee)" Width="140" Editable="false" />
-        <NxGridColumn Property="@(x => x.TaskCode)" Title="Task" Width="220"
-                      ComboBoxItems="@(() => NxGridComboItem.From(TaskOptions, t => t.Code, t => t.Name))">
+        <NxGridColumn Property="@(x => x.TaskName)" Title="Task" Width="220"
+                      ComboBoxItems="@(_ => NxGridComboItem.From(TaskOptions, t => t.Name, t => t.Name))">
             <ComboBoxItemTemplate Context="item">
                 <span class="demo-combo-code">@item.Value</span>
                 <span class="demo-combo-name">@item.Display</span>
@@ -71,19 +69,37 @@
 </div>
 
 <div class="doc-section">
+    <h2>Per-Row Options</h2>
+    <p class="doc-note">
+        The function receives the row, so the list can depend on any property.
+        Here each team has its own skill set — open the dropdown on any row and the options
+        change based on that row's <strong>Team</strong>.
+    </p>
+    <NxGrid T="ScheduleRow" Data="@scheduleRows" OnUpdate="@HandleScheduleUpdate"
+            Cursor="@NxGridCursor.Cell" ShowRowNumbers="true" Editable="true">
+        <NxGridColumn Property="@(x => x.Employee)" Width="150" Editable="false" />
+        <NxGridColumn Property="@(x => x.Team)"     Width="120" Editable="false" />
+        <NxGridColumn Property="@(x => x.Skill)"    Width="180"
+                      ComboBoxItems="@(row => SkillsByTeam.GetValueOrDefault(row.Team, [])
+                                               .Select(s => new NxGridComboItem { Value = s, Display = s }))" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@perRowCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Parameters</h2>
     <table class="doc-table">
         <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
             <tr>
                 <td>ComboBoxItems</td>
-                <td>Func&lt;IEnumerable&lt;NxGridComboItem&gt;&gt;?</td>
+                <td>Func&lt;T, IEnumerable&lt;NxGridComboItem&gt;&gt;?</td>
                 <td>
-                    Turns the column into a combo-box editor. Called fresh on each open.
-                    Use <code>NxGridComboItem.From(source, value, display)</code> to project any typed collection,
-                    or <code>NxGridComboItem.From(stringList)</code> when value and display are the same.
-                    The selected item's <code>Value</code> is committed via <code>Property</code>;
-                    <code>Display</code> is shown in the dropdown and the non-editing cell.
+                    Turns the column into a combo-box editor. Receives the row object so the list can vary per row;
+                    called fresh on each open. Use <code>NxGridComboItem.From(source, value, display)</code> to
+                    project any typed collection, or <code>NxGridComboItem.From(stringList)</code> when value and
+                    display are the same. The selected item's <code>Value</code> is committed via
+                    <code>Property</code> and shown in the cell; <code>Display</code> is used only in the dropdown.
                 </td>
             </tr>
             <tr>
@@ -131,7 +147,7 @@
     {
         public int    Id       { get; set; }
         public string Employee { get; set; } = "";
-        public string TaskCode { get; set; } = "";
+        public string TaskName { get; set; } = "";
         public int    Hours    { get; set; }
     }
 
@@ -139,25 +155,57 @@
 
     List<TaskRow> taskRows =
     [
-        new() { Id = 1, Employee = "Alice Johnson",  TaskCode = "DEV", Hours = 6 },
-        new() { Id = 2, Employee = "Bob Smith",      TaskCode = "QA",  Hours = 4 },
-        new() { Id = 3, Employee = "Carol Williams", TaskCode = "MGT", Hours = 3 },
-        new() { Id = 4, Employee = "David Brown",    TaskCode = "DEV", Hours = 8 },
-        new() { Id = 5, Employee = "Eve Davis",      TaskCode = "DOC", Hours = 2 },
-        new() { Id = 6, Employee = "Frank Miller",   TaskCode = "MTG", Hours = 1 },
-        new() { Id = 7, Employee = "Grace Wilson",   TaskCode = "QA",  Hours = 5 },
-        new() { Id = 8, Employee = "Henry Moore",    TaskCode = "DEV", Hours = 7 },
+        new() { Id = 1, Employee = "Alice Johnson",  TaskName = "Development",       Hours = 6 },
+        new() { Id = 2, Employee = "Bob Smith",      TaskName = "Quality Assurance", Hours = 4 },
+        new() { Id = 3, Employee = "Carol Williams", TaskName = "Project Management",Hours = 3 },
+        new() { Id = 4, Employee = "David Brown",    TaskName = "Development",       Hours = 8 },
+        new() { Id = 5, Employee = "Eve Davis",      TaskName = "Documentation",     Hours = 2 },
+        new() { Id = 6, Employee = "Frank Miller",   TaskName = "Meetings",          Hours = 1 },
+        new() { Id = 7, Employee = "Grace Wilson",   TaskName = "Quality Assurance", Hours = 5 },
+        new() { Id = 8, Employee = "Henry Moore",    TaskName = "Development",       Hours = 7 },
     ];
 
     List<TaskRow> templateRows =
     [
-        new() { Id = 1, Employee = "Alice Johnson",  TaskCode = "DEV", Hours = 6 },
-        new() { Id = 2, Employee = "Bob Smith",      TaskCode = "QA",  Hours = 4 },
-        new() { Id = 3, Employee = "Carol Williams", TaskCode = "MGT", Hours = 3 },
-        new() { Id = 4, Employee = "David Brown",    TaskCode = "DEV", Hours = 8 },
-        new() { Id = 5, Employee = "Eve Davis",      TaskCode = "DOC", Hours = 2 },
-        new() { Id = 6, Employee = "Frank Miller",   TaskCode = "MTG", Hours = 1 },
+        new() { Id = 1, Employee = "Alice Johnson",  TaskName = "Development",       Hours = 6 },
+        new() { Id = 2, Employee = "Bob Smith",      TaskName = "Quality Assurance", Hours = 4 },
+        new() { Id = 3, Employee = "Carol Williams", TaskName = "Project Management",Hours = 3 },
+        new() { Id = 4, Employee = "David Brown",    TaskName = "Development",       Hours = 8 },
+        new() { Id = 5, Employee = "Eve Davis",      TaskName = "Documentation",     Hours = 2 },
+        new() { Id = 6, Employee = "Frank Miller",   TaskName = "Meetings",          Hours = 1 },
     ];
+
+    class ScheduleRow
+    {
+        public string Employee { get; set; } = "";
+        public string Team     { get; set; } = "";
+        public string Skill    { get; set; } = "";
+    }
+
+    static readonly Dictionary<string, string[]> SkillsByTeam = new()
+    {
+        ["Frontend"]       = ["React", "TypeScript", "CSS", "Performance"],
+        ["Backend"]        = ["C#", "SQL", "Redis", "RabbitMQ"],
+        ["Infrastructure"] = ["Kubernetes", "Terraform", "CI/CD", "Monitoring"],
+    };
+
+    List<ScheduleRow> scheduleRows =
+    [
+        new() { Employee = "Alice Johnson",  Team = "Frontend",       Skill = "React" },
+        new() { Employee = "Bob Smith",      Team = "Backend",        Skill = "C#" },
+        new() { Employee = "Carol Williams", Team = "Infrastructure",  Skill = "Kubernetes" },
+        new() { Employee = "David Brown",    Team = "Frontend",       Skill = "TypeScript" },
+        new() { Employee = "Eve Davis",      Team = "Backend",        Skill = "SQL" },
+        new() { Employee = "Frank Miller",   Team = "Infrastructure",  Skill = "Terraform" },
+    ];
+
+    async Task HandleScheduleUpdate(NxGridUpdateArgs<ScheduleRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
 
     async Task HandleStringUpdate(NxGridUpdateArgs<Person> args)
     {
@@ -186,4 +234,5 @@
     string stringListCode        = DemoCodeSamples.ComboBoxStringList;
     string objectProjectionCode  = DemoCodeSamples.ComboBoxObjectProjection;
     string itemTemplateCode      = DemoCodeSamples.ComboBoxItemTemplateCode;
+    string perRowCode            = DemoCodeSamples.ComboBoxPerRow;
 }

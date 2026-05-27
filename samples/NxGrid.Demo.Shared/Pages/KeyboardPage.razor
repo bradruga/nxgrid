@@ -25,7 +25,7 @@
         <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
         <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
         <NxGridColumn Property="@(x => x.Age)"       Width="70"  Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Department)" ComboBoxItems="@(() => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
+        <NxGridColumn Property="@(x => x.Department)" ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
     </NxGrid>
     <div class="doc-output">@selectionLog</div>
 </div>
