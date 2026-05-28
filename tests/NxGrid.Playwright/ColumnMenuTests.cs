@@ -3,18 +3,12 @@ using NUnit.Framework;
 
 namespace NxGrid.Playwright;
 
-[TestFixtureSource(nameof(AppUrls))]
+[TestFixtureSource(typeof(TestConfig), nameof(TestConfig.AppUrls))]
 public class ColumnMenuTests : PageTest
 {
     private readonly string _baseUrl;
 
     public ColumnMenuTests(string baseUrl) => _baseUrl = baseUrl;
-
-    private static readonly string[] AppUrls =
-    {
-        "http://localhost:5254",   // Blazor Server
-        "http://localhost:5233",   // Blazor WASM
-    };
 
     // The home page has two grids; target the declared-columns grid (second one).
     private Microsoft.Playwright.ILocator DeclaredHeader

@@ -3,18 +3,12 @@ using NUnit.Framework;
 
 namespace NxGrid.Playwright;
 
-[TestFixtureSource(nameof(AppUrls))]
+[TestFixtureSource(typeof(TestConfig), nameof(TestConfig.AppUrls))]
 public class GridRenderTests : PageTest
 {
     private readonly string _baseUrl;
 
     public GridRenderTests(string baseUrl) => _baseUrl = baseUrl;
-
-    private static readonly string[] AppUrls =
-    {
-        "http://localhost:5254",   // Blazor Server
-        "http://localhost:5233",   // Blazor WASM
-    };
 
     [Test]
     public async Task HomePage_GridRendersWithExpectedColumns()

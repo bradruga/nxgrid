@@ -4,18 +4,12 @@ using NUnit.Framework;
 
 namespace NxGrid.Playwright;
 
-[TestFixtureSource(nameof(AppUrls))]
+[TestFixtureSource(typeof(TestConfig), nameof(TestConfig.AppUrls))]
 public class StatePersistenceTests : PageTest
 {
     private readonly string _baseUrl;
 
     public StatePersistenceTests(string baseUrl) => _baseUrl = baseUrl;
-
-    private static readonly string[] AppUrls =
-    {
-        "http://localhost:5254",   // Blazor Server
-        "http://localhost:5233",   // Blazor WASM
-    };
 
     private const string PersistencePage = "/state-persistence";
     private const string StorageKey = "demo-state-persistence";
