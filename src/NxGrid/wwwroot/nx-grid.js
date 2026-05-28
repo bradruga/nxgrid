@@ -323,6 +323,193 @@
         }
     }
 
+    getFillHandlePosition(maxRow, maxCol, rowHeight) {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return null;
+
+        const headerRow = gridElement.querySelector('.nx-grid-header-row');
+        const headerHeight = headerRow ? headerRow.offsetHeight : 0;
+        const gridRect = gridElement.getBoundingClientRect();
+
+        const headerCells = headerRow ? headerRow.querySelectorAll('.nx-grid-cell') : [];
+        if (maxCol < 0 || maxCol >= headerCells.length) return null;
+
+        const colRect = headerCells[maxCol].getBoundingClientRect();
+        const colRight = colRect.right; // viewport coord
+
+        let rowBottomViewport;
+        if (gridElement.classList.contains('nx-grid-multiline')) {
+            const rows = gridElement.querySelectorAll('.nx-grid-row');
+            if (maxRow < rows.length)
+                rowBottomViewport = rows[maxRow].getBoundingClientRect().bottom;
+            else
+                return null;
+        } else {
+            const rowBottom = headerHeight + (maxRow + 1) * rowHeight - gridElement.scrollTop;
+            rowBottomViewport = gridRect.top + rowBottom;
+        }
+
+        // Hide if bottom-right corner is not visible within the grid viewport
+        const visTop = gridRect.top + headerHeight;
+        if (rowBottomViewport < visTop + 4 || rowBottomViewport > gridRect.bottom - 2) return null;
+        if (colRight < gridRect.left + 4 || colRight > gridRect.right + 2) return null;
+
+        return { top: rowBottomViewport - 4, left: colRight - 4 };
+    }
+
+    async dragFill(minRow, maxRow, minCol, maxCol, rowHeight, rowCount) {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return null;
+
+        const headerRow = gridElement.querySelector('.nx-grid-header-row');
+        const headerHeight = headerRow ? headerRow.offsetHeight : 0;
+        const gridRect = gridElement.getBoundingClientRect();
+        const headerCells = headerRow ? Array.from(headerRow.querySelectorAll('.nx-grid-cell')) : [];
+        const colCount = headerCells.length;
+
+        // Column bounds in scrollable content coordinates (stable: content-space left/right)
+        const colBounds = headerCells.map(c => {
+            const r = c.getBoundingClientRect();
+            return {
+                left:  r.left  - gridRect.left + gridElement.scrollLeft,
+                right: r.right - gridRect.left + gridElement.scrollLeft,
+            };
+        });
+
+        const isMultiLine = gridElement.classList.contains('nx-grid-multiline');
+
+        const getRowTop = (idx) => {
+            if (!isMultiLine) return headerHeight + idx * rowHeight;
+            const rows = gridElement.querySelectorAll('.nx-grid-row');
+            return idx < rows.length ? rows[idx].offsetTop : headerHeight + idx * rowHeight;
+        };
+        const getRowBottom = (idx) => {
+            if (!isMultiLine) return headerHeight + (idx + 1) * rowHeight;
+            const rows = gridElement.querySelectorAll('.nx-grid-row');
+            if (idx < rows.length) { const r = rows[idx]; return r.offsetTop + r.offsetHeight; }
+            return headerHeight + (idx + 1) * rowHeight;
+        };
+        const getRowAtY = (clientY) => {
+            const relY = clientY - gridRect.top + gridElement.scrollTop;
+            if (!isMultiLine) {
+                const dataY = relY - headerHeight;
+                return Math.max(0, Math.min(rowCount - 1, Math.floor(dataY / rowHeight)));
+            }
+            const rows = gridElement.querySelectorAll('.nx-grid-row');
+            for (let i = 0; i < rows.length; i++) {
+                if (relY < rows[i].offsetTop + rows[i].offsetHeight) return i;
+            }
+            return Math.max(0, rows.length - 1);
+        };
+        const getColAtX = (clientX) => {
+            const relX = clientX - gridRect.left + gridElement.scrollLeft;
+            for (let c = 0; c < colBounds.length; c++) {
+                if (relX < colBounds[c].right) return c;
+            }
+            return Math.max(0, colBounds.length - 1);
+        };
+
+        // Source region in content-space coordinates
+        const srcTop    = getRowTop(minRow);
+        const srcBottom = getRowBottom(maxRow);
+        const srcLeft   = minCol < colBounds.length ? colBounds[minCol].left  : 0;
+        const srcRight  = maxCol < colBounds.length ? colBounds[maxCol].right : 0;
+
+        // Preview overlay (absolute = scrolls with content)
+        const preview = document.createElement('div');
+        preview.className = 'nx-grid-fill-preview';
+        preview.style.display = 'none';
+        gridElement.appendChild(preview);
+
+        let direction = null;
+        let fillCount = 0;
+
+        const updatePreview = (clientX, clientY) => {
+            const relX = clientX - gridRect.left + gridElement.scrollLeft;
+            const relY = clientY - gridRect.top  + gridElement.scrollTop;
+
+            const extendDown  = Math.max(0, relY - srcBottom);
+            const extendUp    = Math.max(0, srcTop  - relY);
+            const extendRight = Math.max(0, relX - srcRight);
+            const extendLeft  = Math.max(0, srcLeft - relX);
+            const maxExt = Math.max(extendDown, extendUp, extendRight, extendLeft);
+
+            if (maxExt < rowHeight / 4) {
+                preview.style.display = 'none';
+                direction = null; fillCount = 0;
+                return;
+            }
+
+            let pTop, pLeft, pWidth, pHeight;
+
+            if (extendDown >= extendUp && extendDown >= extendRight && extendDown >= extendLeft) {
+                direction = 'down';
+                const targetRow = Math.min(rowCount - 1, getRowAtY(clientY));
+                fillCount = Math.max(1, targetRow - maxRow);
+                pTop    = srcBottom;
+                pLeft   = srcLeft;
+                pWidth  = srcRight - srcLeft;
+                pHeight = getRowBottom(maxRow + fillCount) - srcBottom;
+            } else if (extendUp >= extendDown && extendUp >= extendRight && extendUp >= extendLeft) {
+                direction = 'up';
+                const targetRow = Math.max(0, getRowAtY(clientY));
+                fillCount = Math.max(1, minRow - targetRow);
+                const fillTop = getRowTop(minRow - fillCount);
+                pTop    = fillTop;
+                pLeft   = srcLeft;
+                pWidth  = srcRight - srcLeft;
+                pHeight = srcTop - fillTop;
+            } else if (extendRight >= extendLeft) {
+                direction = 'right';
+                const targetCol = Math.min(colCount - 1, getColAtX(clientX));
+                fillCount = Math.max(1, targetCol - maxCol);
+                const endCol = Math.min(maxCol + fillCount, colCount - 1);
+                pTop    = srcTop;
+                pLeft   = srcRight;
+                pWidth  = colBounds[endCol].right - srcRight;
+                pHeight = srcBottom - srcTop;
+            } else {
+                direction = 'left';
+                const targetCol = Math.max(0, getColAtX(clientX));
+                fillCount = Math.max(1, minCol - targetCol);
+                const startCol = Math.max(0, minCol - fillCount);
+                pTop    = srcTop;
+                pLeft   = colBounds[startCol].left;
+                pWidth  = srcLeft - colBounds[startCol].left;
+                pHeight = srcBottom - srcTop;
+            }
+
+            if (fillCount > 0 && pWidth > 0 && pHeight > 0) {
+                preview.style.top    = `${pTop}px`;
+                preview.style.left   = `${pLeft}px`;
+                preview.style.width  = `${pWidth}px`;
+                preview.style.height = `${pHeight}px`;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        };
+
+        const mouseMoveHandler = (e) => updatePreview(e.clientX, e.clientY);
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.body.style.cursor    = 'crosshair';
+        document.body.style.userSelect = 'none';
+
+        const result = await new Promise(resolve => {
+            document.addEventListener('mouseup', function upHandler() {
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', upHandler);
+                resolve(direction && fillCount > 0 ? { direction, fillCount } : null);
+            });
+        });
+
+        preview.remove();
+        document.body.style.cursor    = '';
+        document.body.style.userSelect = '';
+
+        return result;
+    }
+
     async dragRow(startRowIndex, rowCount, rowHeight) {
         const gridElement = document.getElementById(this.id);
         if (!gridElement) return startRowIndex;

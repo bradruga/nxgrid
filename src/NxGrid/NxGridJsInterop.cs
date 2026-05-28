@@ -5,6 +5,8 @@ namespace NxGrid;
 public record NxComboDropdownPosition(double Top, double Left, double Width);
 public record NxMenuPosition(double Top, double Left);
 public record NxDatePickerPosition(double Top, double Left);
+public record NxFillHandlePosition(double Top, double Left);
+public record NxDragFillResult(string Direction, int FillCount);
 
 public class NxGridJsInterop<T> : IAsyncDisposable
 {
@@ -101,6 +103,12 @@ public class NxGridJsInterop<T> : IAsyncDisposable
 
     public ValueTask<int> DragRow(int startRowIndex, int rowCount, int rowHeight)
         => jsObject.InvokeAsync<int>("dragRow", startRowIndex, rowCount, rowHeight);
+
+    public ValueTask<NxFillHandlePosition?> GetFillHandlePosition(int maxRow, int maxCol, int rowHeight)
+        => jsObject.InvokeAsync<NxFillHandlePosition?>("getFillHandlePosition", maxRow, maxCol, rowHeight);
+
+    public ValueTask<NxDragFillResult?> DragFill(int minRow, int maxRow, int minCol, int maxCol, int rowHeight, int rowCount)
+        => jsObject.InvokeAsync<NxDragFillResult?>("dragFill", minRow, maxRow, minCol, maxCol, rowHeight, rowCount);
 
     public async ValueTask DisposeAsync()
     {

@@ -123,6 +123,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `OnCopied` | `EventCallback<NxGridCopiedArgs<T>>` | Fires after the selection is written to the clipboard. `args` exposes `MinRow`, `MaxRow`, `MinCol`, `MaxCol` — the bounding box of the copied range. Use to capture side-channel data (e.g. cell styles) alongside the OS clipboard text. |
 | `OnPasted` | `EventCallback<NxGridPastedArgs<T>>` | Fires after a paste completes (after `OnUpdate`). `args` exposes `OriginRow`/`OriginCol` (top-left of the paste destination), `SelectionEndRow`/`SelectionEndCol` (bottom-right of the active selection, for single-cell fill), and `ClipboardRows`/`ClipboardCols` (dimensions of the parsed clipboard). Use alongside `OnCopied` to apply side-channel data (e.g. cell styles) to the paste destination. |
 | `OnUpdate` | `EventCallback<NxGridUpdateArgs<T>>` | Fires after any edit — single-cell commit, paste, or delete. `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with the full list of cell changes. The host is responsible for applying changes to the model and persisting them. Required for editing to be enabled. |
+| `EnableDragFill` | `bool` | `true` | Enables the fill handle — a small square at the bottom-right corner of the active selection. Drag it in any direction to fill adjacent editable cells. Auto-disabled when `SelectionMode` is `Row` or `None`. Only visible when exactly one selection range is active and `OnUpdate` is set. |
 
 ### Public methods
 
@@ -326,6 +327,37 @@ async Task HandleUpdate(NxGridUpdateArgs<Person> args)
 **Fill selection with Ctrl+Enter.** While editing a cell, press Ctrl+Enter to write the current value to every editable cell in the selection — across all rows and columns in the range. Non-editable columns and cells blocked by `CellEditableGetter` are silently skipped. A single `OnUpdate` call is fired with all affected rows, identical to paste behavior.
 
 Combo-box editing activates when `ComboBoxItems` is set. The dropdown filters as the user types (against `Display`) and can be navigated with Arrow keys. The non-editing cell shows the `Display` of the item whose `Value` matches the stored property value; if no match is found the raw stored value is shown as a fallback.
+
+---
+
+## Drag to fill
+
+When `EnableDragFill` is `true` (default) and `SelectionMode` is `Cell`, a small square handle
+appears at the bottom-right corner of the active selection whenever exactly one range is selected
+and `OnUpdate` is wired up. Dragging it fills adjacent editable cells in any of the four directions.
+
+### Fill rules
+
+| Source type | Fill behavior |
+|---|---|
+| Single numeric cell | Increment by 1 per step (1 → 2, 3, 4 …) |
+| 2+ numeric cells selected along the fill axis | Detect the linear step and continue the series (1, 3 → 5, 7, 9 …) |
+| `DateTime` / `DateOnly` | Increment by one calendar day per step |
+| Everything else (text, bool, etc.) | Copy the source value into every filled cell |
+
+### Series detection
+
+When the selection spans two or more cells along the fill direction, NxGrid reads the first and
+last values, computes the step `(last − first) / (count − 1)`, and extrapolates. Non-numeric
+source values are always copied regardless of selection size.
+
+### Constraints
+
+- Requires `EnableDragFill = true` and `SelectionMode = Cell`.
+- Only shows the handle when exactly **one** range is selected (Ctrl+click multi-range hides it).
+- Respects `CellEditableGetter` — blocked cells are silently skipped.
+- Fires a single `OnUpdate` after the drag completes, with all affected rows.
+- Drag fill does not open edit mode and does not interact with the clipboard.
 
 ---
 

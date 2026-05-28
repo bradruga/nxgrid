@@ -1131,3 +1131,25 @@ $nx-grid-group-header-fg: #333333;
         margin: 0 0 16px;
     }
 }
+
+// ── Drag-to-fill ─────────────────────────────────────────────────────────────
+
+.nx-grid-fill-handle {
+    position: fixed;
+    width: 7px;
+    height: 7px;
+    background-color: var(--nx-grid-selection-border);
+    border: 1px solid var(--nx-grid-surface);
+    cursor: crosshair;
+    z-index: 5;
+    box-sizing: border-box;
+}
+
+.nx-grid-fill-preview {
+    position: absolute;
+    pointer-events: none;
+    z-index: 4;
+    box-sizing: border-box;
+    border: 1.5px dashed var(--nx-grid-selection-border);
+    background-color: rgba(33, 115, 70, 0.06);
+}

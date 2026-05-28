@@ -62,6 +62,7 @@ public partial class NxGrid<T>
     [Parameter] public RenderFragment<NxGridGroupHeaderArgs<T>>? GroupHeaderTemplate { get; set; }
     [Parameter] public bool GroupsCollapsible { get; set; } = true;
     [Parameter] public Func<object?, bool>? GroupCollapsedWhen { get; set; }
+    [Parameter] public bool EnableDragFill { get; set; } = true;
 
     private const string FocusCellStorageKey = "nx-grid-focus-cell";
     private bool _focusCellEnabled;
@@ -253,6 +254,13 @@ public partial class NxGrid<T>
                 menuTop = pos.Top;
                 menuLeft = pos.Left;
             }
+            StateHasChanged();
+        }
+
+        if (_fillHandleNeedsPositioning && jsInterop != null)
+        {
+            _fillHandleNeedsPositioning = false;
+            await PositionFillHandleAsync();
             StateHasChanged();
         }
     }

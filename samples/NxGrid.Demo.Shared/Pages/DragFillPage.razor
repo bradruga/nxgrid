@@ -1,0 +1,135 @@
+@page "/drag-fill"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Drag to Fill — NxGrid</PageTitle>
+
+<h1>Drag to Fill</h1>
+<p class="doc-intro">
+    Select one or more cells, then drag the small green square at the bottom-right corner of
+    the selection to fill adjacent cells. Works in all four directions.
+</p>
+
+<div class="doc-section">
+    <h2>Number Series</h2>
+    <p class="doc-note">
+        Select a single number and drag down — it increments by 1 each step.
+        Select two numbers (e.g. 2 and 4) and drag — NxGrid detects the step of 2 and continues
+        the series. Select a column header to select the whole column.
+    </p>
+    <NxGrid T="FillRow" Data="@numberRows" OnUpdate="@HandleUpdate"
+            Editable="true" Cursor="NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
+        <NxGridColumn Property="@(x => x.Label)"  Title="Label"  Width="120" Editable="false" />
+        <NxGridColumn Property="@(x => x.ValueA)" Title="Value A" Width="100" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.ValueB)" Title="Value B" Width="100" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.ValueC)" Title="Value C" Width="100" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>Text Copy</h2>
+    <p class="doc-note">
+        Non-numeric values are copied verbatim. Select a cell with a department name and drag
+        down to fill the rows below it. Fill also works leftward and rightward.
+    </p>
+    <NxGrid T="Person" Data="@textPeople" OnUpdate="@HandlePeopleUpdate"
+            Editable="true" Cursor="NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
+        <NxGridColumn Property="@(x => x.Id)"         Title="ID"         MaxWidth="50"  Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Title="First Name" Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Title="Last Name"  Width="130" />
+        <NxGridColumn Property="@(x => x.Department)" Title="Department" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"        Title="Age"        Width="80"  Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>Disabled</h2>
+    <p class="doc-note">
+        Set <code>EnableDragFill="false"</code> to hide the fill handle entirely.
+    </p>
+    <NxGrid T="FillRow" Data="@noFillRows" OnUpdate="@HandleNoFillUpdate"
+            Editable="true" Cursor="NxGridCursor.Cell" EnableDragFill="false">
+        <NxGridColumn Property="@(x => x.Label)"  Title="Label"  Width="120" Editable="false" />
+        <NxGridColumn Property="@(x => x.ValueA)" Title="Value A" Width="100" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.ValueB)" Title="Value B" Width="100" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>Fill Rules</h2>
+    <table class="doc-table">
+        <thead><tr><th>Source type</th><th>Fill behavior</th></tr></thead>
+        <tbody>
+            <tr><td>Single numeric cell</td><td>Increment by 1 per step</td></tr>
+            <tr><td>2+ numeric cells along fill axis</td><td>Detect step; continue the series (1, 3 → 5, 7, 9 …)</td></tr>
+            <tr><td><code>DateTime</code> / <code>DateOnly</code></td><td>Increment by one calendar day per step</td></tr>
+            <tr><td>Text, bool, or other</td><td>Copy the last value into every filled cell</td></tr>
+        </tbody>
+    </table>
+    <pre class="doc-code" style="margin-top:12px">@fillCode</pre>
+</div>
+
+@code {
+    record FillRow
+    {
+        public string Label  { get; set; } = "";
+        public double ValueA { get; set; }
+        public double ValueB { get; set; }
+        public double ValueC { get; set; }
+    }
+
+    List<FillRow> numberRows = Enumerable.Range(1, 12).Select(i => new FillRow
+    {
+        Label  = $"Row {i}",
+        ValueA = i <= 2 ? i         : 0,
+        ValueB = i <= 2 ? i * 2     : 0,
+        ValueC = i == 1 ? 100       : 0,
+    }).ToList();
+
+    List<Person> textPeople = SampleData.GetPeopleCopy();
+
+    List<FillRow> noFillRows = Enumerable.Range(1, 4).Select(i => new FillRow
+    {
+        Label = $"Row {i}", ValueA = i, ValueB = i * 10
+    }).ToList();
+
+    void HandleUpdate(NxGridUpdateArgs<FillRow> args)
+    {
+        foreach (var row in args.Rows)
+            foreach (var change in row.Changes)
+                change.Apply(row.Row);
+    }
+
+    void HandlePeopleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var row in args.Rows)
+            foreach (var change in row.Changes)
+                change.Apply(row.Row);
+    }
+
+    void HandleNoFillUpdate(NxGridUpdateArgs<FillRow> args)
+    {
+        foreach (var row in args.Rows)
+            foreach (var change in row.Changes)
+                change.Apply(row.Row);
+    }
+
+    string fillCode = """
+        <NxGrid T="MyRow" Data="@rows" OnUpdate="@HandleUpdate"
+                Editable="true" EnableDragFill="true">
+            <NxGridColumn Property="@(x => x.Qty)"  Title="Qty"  />
+            <NxGridColumn Property="@(x => x.Name)" Title="Name" />
+        </NxGrid>
+
+        @code {
+            // EnableDragFill defaults to true — no need to set it explicitly.
+            // Set EnableDragFill="false" to disable the fill handle.
+
+            async Task HandleUpdate(NxGridUpdateArgs<MyRow> args)
+            {
+                foreach (var rowArgs in args.Rows)
+                    foreach (var change in rowArgs.Changes)
+                        change.Apply(rowArgs.Row);   // writes typed value back via Property setter
+            }
+        }
+        """;
+}

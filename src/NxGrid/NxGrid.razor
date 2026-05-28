@@ -490,6 +490,16 @@
         </div>
     }
 
+    @if (ShowFillHandle)
+    {
+        <div class="nx-grid-fill-handle"
+             style="top:@(_fillHandleTop)px;left:@(_fillHandleLeft)px;@(_fillHandleNeedsPositioning || !_fillHandleVisible ? "visibility:hidden;" : "")"
+             @onmousedown="OnFillHandleMouseDown"
+             @onmousedown:preventDefault
+             @onmousedown:stopPropagation>
+        </div>
+    }
+
     @if (Overlays != null)
     {
         <div style="position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; pointer-events:none;">

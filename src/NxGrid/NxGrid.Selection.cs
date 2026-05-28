@@ -149,6 +149,9 @@ public partial class NxGrid<T>
 
     private async Task RaiseSelectionChanged()
     {
+        if (IsDragFillActive)
+            _fillHandleNeedsPositioning = true;
+
         var selectionArgs = new NxGridSelectionArgs<T>();
 
         foreach (var range in selectedRanges)
