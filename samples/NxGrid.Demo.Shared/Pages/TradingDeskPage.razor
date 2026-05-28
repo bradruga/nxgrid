@@ -499,7 +499,7 @@
 
     // ── Cell styling ──────────────────────────────────────────────────────────
 
-    string? GetCellStyle(StockRow row, NxGridColumn<StockRow> col)
+    NxGridCellStyle? GetCellStyle(StockRow row, NxGridColumn<StockRow> col)
     {
         var title     = col.Title ?? "";
         var isFlash   = flashSymbols.Contains(row.Symbol);
@@ -512,24 +512,24 @@
             if (row.ChangePct > 0)
             {
                 var fg = darkMode ? "#4ade80" : "#15803d";
-                return $"color:{fg};background:rgba(22,163,74,{alpha});font-weight:600;";
+                return new NxGridCellStyle { Style = $"color:{fg};background:rgba(22,163,74,{alpha});font-weight:600;" };
             }
             if (row.ChangePct < 0)
             {
                 var fg = darkMode ? "#f87171" : "#b91c1c";
-                return $"color:{fg};background:rgba(220,38,38,{alpha});font-weight:600;";
+                return new NxGridCellStyle { Style = $"color:{fg};background:rgba(220,38,38,{alpha});font-weight:600;" };
             }
-            return flashCss.Length > 0 ? flashCss : null;
+            return flashCss.Length > 0 ? new NxGridCellStyle { Style = flashCss } : null;
         }
 
         if (title == "Target" && row.Target.HasValue)
         {
             var met = row.Price >= row.Target.Value;
             var fg  = met ? (darkMode ? "#4ade80" : "#15803d") : (darkMode ? "#f87171" : "#b91c1c");
-            return $"color:{fg};font-weight:600;{flashCss}";
+            return new NxGridCellStyle { Style = $"color:{fg};font-weight:600;{flashCss}" };
         }
 
-        return flashCss.Length > 0 ? flashCss : null;
+        return flashCss.Length > 0 ? new NxGridCellStyle { Style = flashCss } : null;
     }
 
     // ── Formatting ────────────────────────────────────────────────────────────

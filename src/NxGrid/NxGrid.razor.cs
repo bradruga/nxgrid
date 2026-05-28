@@ -27,7 +27,7 @@ public partial class NxGrid<T>
     [Parameter] public int RowHeight { get; set; } = 28;
     [Parameter] public EventCallback<NxGridSelectionArgs<T>> OnSelectionChanged { get; set; }
     [Parameter] public EventCallback<NxGridKeyPressedArgs> OnKeyPressed { get; set; }
-    [Parameter] public Func<T, NxGridColumn<T>, string?>? CellStyle { get; set; }
+    [Parameter] public Func<T, NxGridColumn<T>, NxGridCellStyle?>? CellStyle { get; set; }
     [Parameter] public bool ShowHeader { get; set; } = true;
     [Parameter] public NxGridRowGutter RowGutter { get; set; } = NxGridRowGutter.Blank;
     [Parameter] public bool RowBanding { get; set; } = true;

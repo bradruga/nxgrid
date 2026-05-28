@@ -42,6 +42,10 @@ public partial class SpreadsheetPage
         public string? Color     { get; set; }
         public string? Align     { get; set; }
         public int?   DecimalPlaces { get; set; }
+        public string? BorderTop    { get; set; }
+        public string? BorderRight  { get; set; }
+        public string? BorderBottom { get; set; }
+        public string? BorderLeft   { get; set; }
     }
 
     sealed class SsRow
@@ -96,6 +100,14 @@ public partial class SpreadsheetPage
         public string? Align { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int?    Dec   { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? BT { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? BR { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? BB { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? BL { get; set; }
     }
 
     class ChartSave

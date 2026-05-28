@@ -55,27 +55,31 @@
     List<Person> people = SampleData.GeneratePeople(40);
     NxGrid<Person>? grid;
 
-    string? GetCellStyle(Person row, NxGridColumn<Person> col) => col.EffectiveTitle switch
+    NxGridCellStyle? GetCellStyle(Person row, NxGridColumn<Person> col)
     {
-        "Department" => row.Department switch
+        var s = col.EffectiveTitle switch
         {
-            "Engineering" => "background:#dbeafe;color:#1e40af",
-            "Finance"     => "background:#dcfce7;color:#166534",
-            "HR"          => "background:#fef9c3;color:#854d0e",
-            "Marketing"   => "background:#fce7f3;color:#9d174d",
-            "Sales"       => "background:#ffedd5;color:#9a3412",
-            "Legal"       => "background:#ede9fe;color:#5b21b6",
-            _             => null
-        },
-        "Age" => row.Age switch
-        {
-            >= 55 => "color:#dc2626;font-weight:600",
-            >= 45 => "color:#d97706",
-            <= 28 => "color:#16a34a",
-            _     => null
-        },
-        _ => null
-    };
+            "Department" => row.Department switch
+            {
+                "Engineering" => "background:#dbeafe;color:#1e40af",
+                "Finance"     => "background:#dcfce7;color:#166534",
+                "HR"          => "background:#fef9c3;color:#854d0e",
+                "Marketing"   => "background:#fce7f3;color:#9d174d",
+                "Sales"       => "background:#ffedd5;color:#9a3412",
+                "Legal"       => "background:#ede9fe;color:#5b21b6",
+                _             => null
+            },
+            "Age" => row.Age switch
+            {
+                >= 55 => "color:#dc2626;font-weight:600",
+                >= 45 => "color:#d97706",
+                <= 28 => "color:#16a34a",
+                _     => null
+            },
+            _ => null
+        };
+        return s is null ? null : new NxGridCellStyle { Style = s };
+    }
 
     string basicCode = DemoCodeSamples.PrintBasic;
     string dynamicTitleCode = DemoCodeSamples.PrintDynamicTitle;

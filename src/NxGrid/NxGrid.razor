@@ -550,7 +550,7 @@
                                     <tr>
                                         @foreach (var col in GetPrintColumns())
                                         {
-                                            <td style="@(CellStyle?.Invoke(row, col))">@PrintCellValue(col, row)</td>
+                                            <td style="@(CellStyle != null ? BuildCellStyleCss(CellStyle(row, col)) : null)">@PrintCellValue(col, row)</td>
                                         }
                                     </tr>
                                 }
@@ -586,7 +586,7 @@
                         <tr>
                             @foreach (var col in GetPrintColumns())
                             {
-                                <td style="@(CellStyle?.Invoke(row, col))">@PrintCellValue(col, row)</td>
+                                <td style="@(CellStyle != null ? BuildCellStyleCss(CellStyle(row, col)) : null)">@PrintCellValue(col, row)</td>
                             }
                         </tr>
                     }

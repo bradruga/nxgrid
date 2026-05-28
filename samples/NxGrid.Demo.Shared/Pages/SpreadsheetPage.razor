@@ -182,6 +182,81 @@
 
         <div style="width:1px; height:22px; background:#ccc;"></div>
 
+        @* Borders (split button) *@
+        <div style="position:relative; display:flex;">
+            <button type="button" class="ss-btn ss-split-l" title="Apply box border"
+                    style="flex-direction:column; gap:1px; padding:2px 5px;"
+                    @onclick="ApplyBorderBox">
+                <svg width="14" height="14" viewBox="0 0 16 16">
+                    <rect x="2" y="2" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <span style="display:block; width:20px; height:3px; background:@selectedBorderColor; border:1px solid rgba(0,0,0,.2); border-radius:1px;"></span>
+            </button>
+            <button type="button" class="ss-btn ss-split-r" title="Border options" @onclick="ToggleBorderPicker">
+                <svg width="7" height="5" viewBox="0 0 7 5"><path d="M0 0l3.5 5L7 0z" fill="currentColor"/></svg>
+            </button>
+            @if (showBorderPicker)
+            {
+                <div style="position:fixed; inset:0; z-index:99;" @onclick="@(() => showBorderPicker = false)"></div>
+                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:white; border:1px solid #ccc; border-radius:4px; box-shadow:0 4px 16px rgba(0,0,0,.15); padding:8px; width:160px;">
+                    <div style="font-size:10px; color:#999; margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px;">Borders</div>
+                    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:2px; margin-bottom:8px;">
+                        <button type="button" class="ss-btn" title="Outer box" @onclick="ApplyBorderBox" @onmousedown:preventDefault>
+                            <svg width="14" height="14" viewBox="0 0 16 16">
+                                <rect x="2" y="2" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="ss-btn" title="All borders" @onclick="ApplyBorderAll" @onmousedown:preventDefault>
+                            <svg width="14" height="14" viewBox="0 0 16 16">
+                                <rect x="2" y="2" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                                <line x1="8" y1="2" x2="8" y2="14" stroke="currentColor" stroke-width="1.5"/>
+                                <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="ss-btn" title="Top" @onclick="ApplyBorderTop" @onmousedown:preventDefault>
+                            <svg width="14" height="14" viewBox="0 0 16 16">
+                                <rect x="2" y="2" width="12" height="12" fill="none" stroke="#bbb" stroke-width="0.5"/>
+                                <line x1="2" y1="2" x2="14" y2="2" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="ss-btn" title="Bottom" @onclick="ApplyBorderBottom" @onmousedown:preventDefault>
+                            <svg width="14" height="14" viewBox="0 0 16 16">
+                                <rect x="2" y="2" width="12" height="12" fill="none" stroke="#bbb" stroke-width="0.5"/>
+                                <line x1="2" y1="14" x2="14" y2="14" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="ss-btn" title="Left" @onclick="ApplyBorderLeft" @onmousedown:preventDefault>
+                            <svg width="14" height="14" viewBox="0 0 16 16">
+                                <rect x="2" y="2" width="12" height="12" fill="none" stroke="#bbb" stroke-width="0.5"/>
+                                <line x1="2" y1="2" x2="2" y2="14" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="ss-btn" title="Right" @onclick="ApplyBorderRight" @onmousedown:preventDefault>
+                            <svg width="14" height="14" viewBox="0 0 16 16">
+                                <rect x="2" y="2" width="12" height="12" fill="none" stroke="#bbb" stroke-width="0.5"/>
+                                <line x1="14" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="ss-btn" title="No border" @onclick="ClearBorders" @onmousedown:preventDefault
+                                style="grid-column:1/-1;">
+                            <svg width="14" height="14" viewBox="0 0 16 16">
+                                <rect x="2" y="2" width="12" height="12" fill="none" stroke="#bbb" stroke-width="0.5" stroke-dasharray="2,2"/>
+                                <line x1="3" y1="3" x2="13" y2="13" stroke="#c00" stroke-width="1.5"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div style="border-top:1px solid #eee; padding-top:6px; display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:11px; color:#666; flex-shrink:0;">Color:</span>
+                        <input type="color" value="@selectedBorderColor"
+                               @onchange="@(e => selectedBorderColor = e.Value?.ToString() ?? "#000000")"
+                               style="width:26px; height:22px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div style="width:1px; height:22px; background:#ccc;"></div>
+
         @* Charts toggle *@
         <button type="button" class="ss-btn @(showChartPanel ? "ss-btn-active" : "")"
                 @onclick="@(() => { showChartPanel = !showChartPanel; if (showChartPanel) showCondFmtPanel = false; })"
@@ -543,10 +618,14 @@
     string formulaBarBaseValue  = "";
     string anchorRef            = "";
 
-    string? selectedFill      = "#FFFF00";
-    string? selectedTextColor = "#000000";
+    string? selectedFill        = "#FFFF00";
+    string? selectedTextColor   = "#000000";
+    string  selectedBorderColor = "#000000";
     bool    showFillPicker;
     bool    showTextColorPicker;
+    bool    showBorderPicker;
+
+    string BorderValue => $"1px solid {selectedBorderColor}";
 
     string FillBarBg      => selectedFill      ?? "linear-gradient(135deg,#fff 40%,#c00 40%,#c00 60%,#fff 60%)";
     string TextColorBarBg => selectedTextColor ?? "#000000";
@@ -676,6 +755,13 @@
         }
 
         sheet[0, 6].Italic = true;
+
+        // Header bottom border + totals top border
+        for (var c = 0; c <= 10; c++)
+        {
+            sheet[0,   c].BorderBottom = "2px solid #4472C4";
+            sheet[tot, c].BorderTop    = "2px solid #4472C4";
+        }
 
         // Default conditional formatting rules
         condFmtRules =
@@ -940,7 +1026,7 @@
 
     // ── Cell display / style ─────────────────────────────────────────────────
 
-    string? GetCellStyle(SsRow row, NxGridColumn<SsRow> col)
+    NxGridCellStyle? GetCellStyle(SsRow row, NxGridColumn<SsRow> col)
     {
         var ci   = col.Title![0] - 'A';
         var cell = sheet[row.RowIndex, ci];
@@ -966,7 +1052,19 @@
         else if (IsNumeric(cell.Display))
             s += "text-align:right;";
 
-        return s.Length > 0 ? s : null;
+        var hasBorders = cell.BorderTop != null || cell.BorderRight != null ||
+                         cell.BorderBottom != null || cell.BorderLeft != null;
+
+        if (s.Length == 0 && !hasBorders) return null;
+
+        return new NxGridCellStyle
+        {
+            Style        = s.Length > 0 ? s : null,
+            BorderTop    = cell.BorderTop,
+            BorderRight  = cell.BorderRight,
+            BorderBottom = cell.BorderBottom,
+            BorderLeft   = cell.BorderLeft,
+        };
     }
 
     // ── Grid events ──────────────────────────────────────────────────────────
@@ -1090,8 +1188,9 @@
         ForEachSelected(c => set(c, next));
     }
 
-    void ToggleFillPicker()      { showFillPicker = !showFillPicker; if (showFillPicker) showTextColorPicker = false; }
-    void ToggleTextColorPicker() { showTextColorPicker = !showTextColorPicker; if (showTextColorPicker) showFillPicker = false; }
+    void ToggleFillPicker()      { showFillPicker = !showFillPicker;           if (showFillPicker)      { showTextColorPicker = false; showBorderPicker = false; } }
+    void ToggleTextColorPicker() { showTextColorPicker = !showTextColorPicker; if (showTextColorPicker) { showFillPicker = false;      showBorderPicker = false; } }
+    void ToggleBorderPicker()    { showBorderPicker = !showBorderPicker;       if (showBorderPicker)    { showFillPicker = false;      showTextColorPicker = false; } }
 
     void ApplyFillColor(string? color)      { selectedFill = color; ApplyFill(); showFillPicker = false; }
     void ApplyTextColorValue(string? color) { selectedTextColor = color; ApplyTextColor(); showTextColorPicker = false; }
@@ -1100,6 +1199,100 @@
     void ClearFill()      => ForEachSelected(c => c.Fill  = null);
     void ApplyTextColor() => ForEachSelected(c => c.Color = selectedTextColor);
     void ClearTextColor() => ForEachSelected(c => c.Color = null);
+
+    // Sets one border side and clears the opposing side on the adjacent cell so shared
+    // boundaries never accumulate two borders regardless of how cells were styled independently.
+    void SetBorder(int r, int c, string side, string? value)
+    {
+        var cell = sheet[r, c];
+        switch (side)
+        {
+            case "top":
+                cell.BorderTop = value;
+                if (value != null && r > 0)              sheet[r - 1, c].BorderBottom = null;
+                break;
+            case "bottom":
+                cell.BorderBottom = value;
+                if (value != null && r < RowCount - 1)   sheet[r + 1, c].BorderTop    = null;
+                break;
+            case "left":
+                cell.BorderLeft = value;
+                if (value != null && c > 0)              sheet[r, c - 1].BorderRight  = null;
+                break;
+            case "right":
+                cell.BorderRight = value;
+                if (value != null && c < ColCount - 1)   sheet[r, c + 1].BorderLeft   = null;
+                break;
+        }
+    }
+
+    void ApplyBorderBox()
+    {
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                {
+                    if (r == rng.StartRow) SetBorder(r, c, "top",    BorderValue);
+                    if (r == rng.EndRow)   SetBorder(r, c, "bottom", BorderValue);
+                    if (c == rng.StartCol) SetBorder(r, c, "left",   BorderValue);
+                    if (c == rng.EndCol)   SetBorder(r, c, "right",  BorderValue);
+                }
+        grid?.ForceRerender(); TriggerSave(); showBorderPicker = false;
+    }
+
+    void ApplyBorderAll()
+    {
+        // Collapsed borders: every cell owns its right+bottom edges; left+top only on the
+        // range perimeter. SetBorder also clears the opposing neighbor edge throughout.
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                {
+                    SetBorder(r, c, "right",  BorderValue);
+                    SetBorder(r, c, "bottom", BorderValue);
+                    SetBorder(r, c, "top",    r == rng.StartRow ? BorderValue : null);
+                    SetBorder(r, c, "left",   c == rng.StartCol ? BorderValue : null);
+                }
+        grid?.ForceRerender(); TriggerSave(); showBorderPicker = false;
+    }
+
+    void ApplyBorderTop()
+    {
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                    SetBorder(r, c, "top", BorderValue);
+        grid?.ForceRerender(); TriggerSave(); showBorderPicker = false;
+    }
+
+    void ApplyBorderBottom()
+    {
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                    SetBorder(r, c, "bottom", BorderValue);
+        grid?.ForceRerender(); TriggerSave(); showBorderPicker = false;
+    }
+
+    void ApplyBorderLeft()
+    {
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                    SetBorder(r, c, "left", BorderValue);
+        grid?.ForceRerender(); TriggerSave(); showBorderPicker = false;
+    }
+
+    void ApplyBorderRight()
+    {
+        foreach (var rng in selectedRanges)
+            for (var r = rng.StartRow; r <= rng.EndRow; r++)
+                for (var c = rng.StartCol; c <= rng.EndCol; c++)
+                    SetBorder(r, c, "right", BorderValue);
+        grid?.ForceRerender(); TriggerSave(); showBorderPicker = false;
+    }
+
+    void ClearBorders() { ForEachSelected(c => { c.BorderTop = c.BorderRight = c.BorderBottom = c.BorderLeft = null; }); showBorderPicker = false; }
 
     void OnAlignClick(string align)
     {
@@ -1211,10 +1404,13 @@
                 var cell = sheet[r, c];
                 if (cell.Value.Length == 0 && !cell.IsCheckBox && !cell.Bold && !cell.Italic &&
                     !cell.Underline && !cell.Strike && cell.Fill == null && cell.Color == null &&
-                    cell.Align == null && !cell.DecimalPlaces.HasValue) continue;
+                    cell.Align == null && !cell.DecimalPlaces.HasValue &&
+                    cell.BorderTop == null && cell.BorderRight == null &&
+                    cell.BorderBottom == null && cell.BorderLeft == null) continue;
                 cells.Add(new CellSave { R = r, C = c, V = cell.Value.Length > 0 ? cell.Value : null,
                     Ckbx = cell.IsCheckBox, B = cell.Bold, I = cell.Italic, U = cell.Underline, S = cell.Strike,
-                    Fill = cell.Fill, Color = cell.Color, Align = cell.Align, Dec = cell.DecimalPlaces });
+                    Fill = cell.Fill, Color = cell.Color, Align = cell.Align, Dec = cell.DecimalPlaces,
+                    BT = cell.BorderTop, BR = cell.BorderRight, BB = cell.BorderBottom, BL = cell.BorderLeft });
             }
 
         var save = new SpreadsheetSave
@@ -1264,6 +1460,7 @@
                 cell.IsCheckBox = cs.Ckbx;
                 cell.Bold = cs.B; cell.Italic = cs.I; cell.Underline = cs.U; cell.Strike = cs.S;
                 cell.Fill = cs.Fill; cell.Color = cs.Color; cell.Align = cs.Align; cell.DecimalPlaces = cs.Dec;
+                cell.BorderTop = cs.BT; cell.BorderRight = cs.BR; cell.BorderBottom = cs.BB; cell.BorderLeft = cs.BL;
             }
 
             charts = save.Charts.Select(cs => new SpreadsheetChartDef

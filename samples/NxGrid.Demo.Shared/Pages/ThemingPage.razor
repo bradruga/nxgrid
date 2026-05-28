@@ -31,11 +31,12 @@
 </div>
 
 <div class="doc-section">
-    <h2>CellStyle — Per-Cell Inline Styles</h2>
+    <h2>CellStyle — Per-Cell Styling</h2>
     <p class="doc-note">
-        Provide a <code>Func&lt;T, NxGridColumn&lt;T&gt;, string?&gt;</code> to return an inline style string
-        per cell. The style is applied before selection color blending, so the selection highlight
-        mixes correctly with a custom background color.
+        Provide a <code>Func&lt;T, NxGridColumn&lt;T&gt;, NxGridCellStyle?&gt;</code> to style individual cells.
+        Use <code>Style</code> for arbitrary inline CSS, <code>Border</code> for a full-cell outline, or individual
+        sides (<code>BorderTop</code>, <code>BorderRight</code>, <code>BorderBottom</code>, <code>BorderLeft</code>).
+        All styling is applied before selection color blending, so custom backgrounds mix correctly with highlights.
     </p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" CellStyle="@GetCellStyle" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
         <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
@@ -45,6 +46,22 @@
         <NxGridColumn Property="@(x => x.Department)" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@cellStyleCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>CellStyle — Borders</h2>
+    <p class="doc-note">
+        Use <code>Border</code> to outline an entire cell, or individual sides to apply directional accents.
+        Individual sides override <code>Border</code> — the same precedence as CSS <code>border</code> + <code>border-top</code>.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" CellStyle="@GetBorderStyle" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
+        <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@cellBordersCode</pre>
 </div>
 
 <div class="doc-section">
@@ -77,15 +94,38 @@
 @code {
     bool darkMode;
 
-    string? GetCellStyle(Person p, NxGridColumn<Person> col)
+    NxGridCellStyle? GetCellStyle(Person p, NxGridColumn<Person> col)
     {
         if (col.Title == "Age" && p.Age >= 50)
-            return "color:#dc2626;font-weight:600;";
+            return new NxGridCellStyle { Style = "color:#dc2626;font-weight:600;" };
         if (col.Title == "Department" && p.Department == "Engineering")
-            return "background-color:#eff6ff;";
+            return new NxGridCellStyle { Style = "background-color:#eff6ff;" };
+        return null;
+    }
+
+    NxGridCellStyle? GetBorderStyle(Person p, NxGridColumn<Person> col)
+    {
+        // Thick left accent on Engineering rows
+        if (col.Title == "Department" && p.Department == "Engineering")
+            return new NxGridCellStyle
+            {
+                Style      = "background-color:#eff6ff;",
+                BorderLeft = "3px solid #0078d4"
+            };
+        // Full outline on Finance rows
+        if (p.Department == "Finance")
+            return new NxGridCellStyle { Border = "1px solid #d97706" };
+        // Top border only on rows where age >= 50
+        if (col.Title == "Age" && p.Age >= 50)
+            return new NxGridCellStyle
+            {
+                Style     = "color:#dc2626;font-weight:600;",
+                BorderTop = "2px solid #dc2626"
+            };
         return null;
     }
 
     string darkThemeCode = DemoCodeSamples.DarkTheme;
     string cellStyleCode = DemoCodeSamples.CellStyle;
+    string cellBordersCode = DemoCodeSamples.CellBorders;
 }

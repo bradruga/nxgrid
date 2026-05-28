@@ -15,9 +15,9 @@ public partial class NxGrid<T>
         var baseStyle = column.CellStyle ?? "";
         if (CellStyle != null)
         {
-            var extra = CellStyle(item, column);
-            if (!string.IsNullOrEmpty(extra))
-                baseStyle += extra;
+            var s = CellStyle(item, column);
+            if (s != null)
+                baseStyle += BuildCellStyleCss(s);
         }
 
         if (!selected) return baseStyle;
@@ -27,6 +27,18 @@ public partial class NxGrid<T>
 
         var blended = BlendHexColors(cellHex!, _selectionColor);
         return RemoveBgColorFromStyle(baseStyle) + $"background-color:{blended};";
+    }
+
+    internal static string? BuildCellStyleCss(NxGridCellStyle? s)
+    {
+        if (s == null) return null;
+        var css = s.Style ?? "";
+        if (s.Border       != null) css += $"border:{s.Border};";
+        if (s.BorderTop    != null) css += $"border-top:{s.BorderTop};";
+        if (s.BorderRight  != null) css += $"border-right:{s.BorderRight};";
+        if (s.BorderBottom != null) css += $"border-bottom:{s.BorderBottom};";
+        if (s.BorderLeft   != null) css += $"border-left:{s.BorderLeft};";
+        return css.Length > 0 ? css : null;
     }
 
     private static bool TryExtractHexBgColor(string style, out string? hex)

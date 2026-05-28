@@ -108,7 +108,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `CellStyle` | `Func<T, NxGridColumn<T>, string?>?` | Return an inline style string per cell. Applied before selection blending, so the highlight color mixes correctly with a custom background. |
+| `CellStyle` | `Func<T, NxGridColumn<T>, NxGridCellStyle?>?` | Return per-cell style overrides. Border properties are applied in CSS shorthand-then-specific order (`Border` first, then individual sides). The `Style` string is applied before border properties, so named properties win. Selection blending still applies to any `background-color` set in `Style`. |
 
 ### Clipboard / editing
 
@@ -365,6 +365,26 @@ public sealed class NxGridComboItem
         Func<TItem, string?> display);
 }
 ```
+
+---
+
+## `NxGridCellStyle`
+
+```csharp
+public sealed class NxGridCellStyle
+{
+    public string? Style        { get; init; }  // arbitrary inline CSS applied first
+    public string? Border       { get; init; }  // all four sides, e.g. "1px solid #ccc"
+    public string? BorderTop    { get; init; }  // overrides Border's top
+    public string? BorderRight  { get; init; }  // overrides Border's right
+    public string? BorderBottom { get; init; }  // overrides Border's bottom
+    public string? BorderLeft   { get; init; }  // overrides Border's left
+}
+```
+
+Border precedence mirrors CSS: `Border` (shorthand) is emitted first, then any set individual side
+overrides it. Setting both `Border = "1px solid #ccc"` and `BorderLeft = "3px solid red"` produces
+three thin gray sides and one thick red left side.
 
 ---
 

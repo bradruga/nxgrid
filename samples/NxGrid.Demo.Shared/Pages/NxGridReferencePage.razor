@@ -285,9 +285,9 @@
         <tbody>
             <tr>
                 <td>CellStyle</td>
-                <td>Func&lt;T, NxGridColumn&lt;T&gt;, string?&gt;?</td>
+                <td>Func&lt;T, NxGridColumn&lt;T&gt;, NxGridCellStyle?&gt;?</td>
                 <td>—</td>
-                <td>Return an inline style string per cell. Applied before selection blending so custom background colors mix correctly with the highlight.</td>
+                <td>Return per-cell style overrides. Set <code>Style</code> for arbitrary inline CSS, <code>Border</code> for a full-cell outline, or individual sides (<code>BorderTop</code>, <code>BorderRight</code>, <code>BorderBottom</code>, <code>BorderLeft</code>). Individual sides override <code>Border</code>. Applied before selection blending so background colors mix correctly.</td>
                 <td><a href="/theming">Theming</a></td>
             </tr>
         </tbody>

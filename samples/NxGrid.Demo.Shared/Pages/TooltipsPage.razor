@@ -188,10 +188,12 @@
         }
     </div>;
 
-    string? HistoryCellStyle(Person row, NxGridColumn<Person> col)
+    NxGridCellStyle? HistoryCellStyle(Person row, NxGridColumn<Person> col)
     {
         var key = (row.Id, col.EffectiveTitle);
-        return _history.ContainsKey(key) ? "background-color:rgba(0,120,212,0.07);" : null;
+        return _history.ContainsKey(key)
+            ? new NxGridCellStyle { Style = "background-color:rgba(0,120,212,0.07);" }
+            : null;
     }
 
     // ── Code samples ──────────────────────────────────────────────────────────

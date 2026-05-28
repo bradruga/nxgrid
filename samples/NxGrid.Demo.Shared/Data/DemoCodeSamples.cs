@@ -314,15 +314,40 @@ public static class DemoCodeSamples
 </NxGrid>
 
 @code {
-    // Return an inline style string, or null to use the default style.
+    // Return an NxGridCellStyle, or null to use the default style.
     // Applied before selection blending — colors mix correctly with selections.
-    string? GetCellStyle(Person row, NxGridColumn<Person> col)
+    NxGridCellStyle? GetCellStyle(Person row, NxGridColumn<Person> col)
     {
         if (col.Title == "Age" && row.Age >= 50)
-            return "color:#dc2626;font-weight:600;";
+            return new NxGridCellStyle { Style = "color:#dc2626;font-weight:600;" };
 
         if (col.Title == "Department" && row.Department == "Engineering")
-            return "background-color:#eff6ff;";
+            return new NxGridCellStyle { Style = "background-color:#eff6ff;" };
+
+        return null;
+    }
+}
+""";
+
+    public static readonly string CellBorders = """
+<NxGrid T="Person" Data="@people" CellStyle="@GetCellStyle">
+    ...
+</NxGrid>
+
+@code {
+    NxGridCellStyle? GetCellStyle(Person row, NxGridColumn<Person> col)
+    {
+        // Full outline on the selected row
+        if (row == highlighted)
+            return new NxGridCellStyle { Border = "1px solid #0078d4" };
+
+        // Colored left accent on a specific column
+        if (col.Title == "Department" && row.Department == "Engineering")
+            return new NxGridCellStyle
+            {
+                Style      = "background-color:#eff6ff;",
+                BorderLeft = "3px solid #0078d4"
+            };
 
         return null;
     }
