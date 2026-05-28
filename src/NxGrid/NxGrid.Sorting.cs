@@ -32,6 +32,17 @@ public partial class NxGrid<T>
         await SaveStateAsync();
     }
 
+    private async Task OnClearAllFiltersClick()
+    {
+        foreach (var col in columns)
+            col.FilterState = [];
+
+        openColumn = null;
+        ApplyFilterAndSort();
+        StateHasChanged();
+        await SaveStateAsync();
+    }
+
     private async Task OnFilterOk(List<object?> values)
     {
         openColumn!.FilterState = values;
