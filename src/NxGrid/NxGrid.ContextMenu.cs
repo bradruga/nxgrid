@@ -5,6 +5,8 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
+    private bool contextMenuCellEditable;
+
     private void OnCellContextMenu(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
         var rowIndex = filteredData.IndexOf(row);
@@ -22,6 +24,10 @@ public partial class NxGrid<T>
         contextMenuColumn = column;
         contextMenuX      = args.ClientX;
         contextMenuY      = args.ClientY;
+
+        contextMenuCellEditable = OnUpdate.HasDelegate
+            && IsColumnEditable(column)
+            && (CellEditableGetter == null || CellEditableGetter(row, column));
 
         contextMenuItems = [];
         if (OnContextMenuShowing != null)
@@ -56,10 +62,22 @@ public partial class NxGrid<T>
     private async Task OnContextMenuCopyClick()
     {
         showContextMenu = false;
-        await CopySelectionToClipboard();
+        await CopySelectionToClipboard(includeHeaders: false);
     }
 
-    private async Task CopySelectionToClipboard()
+    private async Task OnContextMenuCopyWithHeadersClick()
+    {
+        showContextMenu = false;
+        await CopySelectionToClipboard(includeHeaders: true);
+    }
+
+    private async Task OnContextMenuPasteClick()
+    {
+        showContextMenu = false;
+        await PasteFromClipboard();
+    }
+
+    private async Task CopySelectionToClipboard(bool includeHeaders = false)
     {
         if (selectedRanges.Count == 0 || jsInterop == null) return;
 
@@ -72,6 +90,15 @@ public partial class NxGrid<T>
         copyOrigin = (minRow, minCol);
 
         var rows = new List<string>();
+
+        if (includeHeaders)
+        {
+            var headers = new List<string>();
+            for (var c = minCol; c <= maxCol; c++)
+                headers.Add(visibleColumns[c].EffectiveTitle ?? "");
+            rows.Add(string.Join("\t", headers));
+        }
+
         for (var r = minRow; r <= maxRow; r++)
         {
             var cells = new List<string>();

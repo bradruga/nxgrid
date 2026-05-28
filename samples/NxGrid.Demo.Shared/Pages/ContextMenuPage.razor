@@ -4,7 +4,8 @@
 
 <h1>Context Menu</h1>
 <p class="doc-intro">
-    Right-clicking any cell opens a context menu. The built-in <strong>Copy</strong> item is always first.
+    Right-clicking any cell opens a context menu. The built-in <strong>Copy</strong> and <strong>Copy with headers</strong>
+    items are always present. <strong>Paste</strong> appears only when the right-clicked cell is editable.
     Use <code>OnContextMenuShowing</code> to append custom items, and <code>OnContextMenuItemClicked</code>
     to handle them. The handler receives the right-clicked row and column along with the item that was selected.
 </p>
@@ -51,6 +52,24 @@
 </div>
 
 <div class="doc-section">
+    <h2>Copy with headers and Paste</h2>
+    <p class="doc-note">
+        <strong>Copy with headers</strong> is always available — it prepends a tab-separated header row to the
+        copied TSV so column titles travel with the data. <strong>Paste</strong> appears only when the right-clicked
+        cell is editable. Try copying a range with headers, then pasting it into a spreadsheet application.
+        You can also copy from elsewhere and paste back into the grid.
+    </p>
+    <NxGrid T="Person" Data="@pasteData"
+            Editable="true"
+            OnUpdate="@HandlePasteUpdate">
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
     <h2>Parameters</h2>
     <table class="doc-table">
         <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
@@ -58,7 +77,7 @@
             <tr>
                 <td>OnContextMenuShowing</td>
                 <td>Action&lt;NxGridContextMenuArgs&lt;T&gt;&gt;?</td>
-                <td>Called synchronously just before the context menu opens. Append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code> to add custom items after the built-in Copy.</td>
+                <td>Called synchronously just before the context menu opens. Append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code> to add custom items after the built-in items (Copy, Copy with headers, Paste).</td>
             </tr>
             <tr>
                 <td>OnContextMenuItemClicked</td>
@@ -99,6 +118,22 @@
 @code {
     string basicLog   = "none";
     string dynamicLog = "none";
+
+    List<Person> pasteData = SampleData.People.Take(6).Select(p => new Person
+    {
+        Id         = p.Id,
+        FirstName  = p.FirstName,
+        LastName   = p.LastName,
+        Department = p.Department,
+        Age        = p.Age
+    }).ToList();
+
+    void HandlePasteUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var row in args.Rows)
+            foreach (var change in row.Changes)
+                change.Apply(row.Row);
+    }
 
     void BuildBasicMenu(NxGridContextMenuArgs<Person> args)
     {

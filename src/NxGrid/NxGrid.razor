@@ -353,6 +353,17 @@
                     @onclick="@OnContextMenuCopyClick">
                 Copy
             </button>
+            <button type="button" class="nx-grid-context-item"
+                    @onclick="@OnContextMenuCopyWithHeadersClick">
+                Copy with headers
+            </button>
+            @if (contextMenuCellEditable)
+            {
+                <button type="button" class="nx-grid-context-item"
+                        @onclick="@OnContextMenuPasteClick">
+                    Paste
+                </button>
+            }
             @foreach (var menuItem in contextMenuItems)
             {
                 var capturedItem = menuItem;
