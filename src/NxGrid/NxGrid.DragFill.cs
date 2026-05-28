@@ -33,16 +33,16 @@ public partial class NxGrid<T>
         return false;
     }
 
-    private double _fillHandleTop;
-    private double _fillHandleLeft;
-    private bool _fillHandleVisible;
-    private bool _fillHandleNeedsPositioning;
+    private double fillHandleTop;
+    private double fillHandleLeft;
+    private bool fillHandleVisible;
+    private bool fillHandleNeedsPositioning;
 
     private async Task PositionFillHandleAsync()
     {
         if (!ShowFillHandle || jsInterop == null || ActiveRange == null)
         {
-            _fillHandleVisible = false;
+            fillHandleVisible = false;
             return;
         }
 
@@ -52,13 +52,13 @@ public partial class NxGrid<T>
         var pos = await jsInterop.GetFillHandlePosition(maxRow, maxCol, RowHeight);
         if (pos != null)
         {
-            _fillHandleTop  = pos.Top;
-            _fillHandleLeft = pos.Left;
-            _fillHandleVisible = true;
+            fillHandleTop = pos.Top;
+            fillHandleLeft = pos.Left;
+            fillHandleVisible = true;
         }
         else
         {
-            _fillHandleVisible = false;
+            fillHandleVisible = false;
         }
     }
 
@@ -67,7 +67,7 @@ public partial class NxGrid<T>
         if (args.Button != MouseButtonLeft) return;
         if (ActiveRange == null || jsInterop == null) return;
 
-        _fillHandleVisible = false;
+        fillHandleVisible = false;
         StateHasChanged();
 
         var minRow = Math.Min(ActiveRange.StartRow, ActiveRange.EndRow);
@@ -81,7 +81,7 @@ public partial class NxGrid<T>
             await ApplyDragFill(minRow, maxRow, minCol, maxCol, result.Direction, result.FillCount);
 
         renderToken++;
-        _fillHandleNeedsPositioning = true;
+        fillHandleNeedsPositioning = true;
         StateHasChanged();
     }
 

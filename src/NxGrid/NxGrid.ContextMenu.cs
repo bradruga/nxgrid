@@ -80,9 +80,9 @@ public partial class NxGrid<T>
     private async Task OnFocusCellToggle()
     {
         showContextMenu = false;
-        _focusCellEnabled = !_focusCellEnabled;
+        focusCellEnabled = !focusCellEnabled;
         if (jsInterop != null)
-            await jsInterop.LocalStorageSet(FocusCellStorageKey, _focusCellEnabled ? "true" : "false");
+            await jsInterop.LocalStorageSet(FocusCellStorageKey, focusCellEnabled ? "true" : "false");
         StateHasChanged();
     }
 

@@ -28,7 +28,7 @@ public class NxGridEditingTests : BunitContext
     }
 
     [Test]
-    public async Task CtrlEnter_FillsAllCellsInSelectedRange()
+    public async Task CtrlEnter_WithMultiCellSelection_FillsAllCells()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -94,7 +94,7 @@ public class NxGridEditingTests : BunitContext
     }
 
     [Test]
-    public async Task CtrlEnter_SkipsCellsBlockedByCellEditableGetter()
+    public async Task CtrlEnter_WithEditableGetterBlocking_SkipsBlockedCells()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -134,7 +134,7 @@ public class NxGridEditingTests : BunitContext
     }
 
     [Test]
-    public async Task CtrlEnter_SkipsNonEditableColumns()
+    public async Task CtrlEnter_WithNonEditableColumn_SkipsColumn()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -178,7 +178,7 @@ public class NxGridEditingTests : BunitContext
     }
 
     [Test]
-    public async Task RegularEnter_OnlyUpdatesEditingCell_WhenMultipleCellsSelected()
+    public async Task RegularEnter_WithMultipleCellsSelected_UpdatesOnlyEditingCell()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 

@@ -100,7 +100,7 @@ public partial class NxGrid<T>
             return;
         }
 
-        _groups = [];
+        groups = [];
         filteredData = ApplySortToList(data);
         rowIndices = Enumerable.Range(0, filteredData.Count).ToList();
     }

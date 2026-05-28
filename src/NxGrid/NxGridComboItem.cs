@@ -2,7 +2,7 @@ namespace NxGrid;
 
 public sealed class NxGridComboItem
 {
-    public string? Value   { get; init; }
+    public string? Value { get; init; }
     public string? Display { get; init; }
 
     /// <summary>

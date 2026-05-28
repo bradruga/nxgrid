@@ -100,7 +100,7 @@ public partial class NxGrid<T>
         }
 
         if (columns.Any(c => c.UserWidth.HasValue))
-            _manualMode = true;
+            manualMode = true;
 
         ComputeFrozenOffsets();
 
@@ -139,7 +139,7 @@ public partial class NxGrid<T>
         if (jsInterop != null)
             await jsInterop.LocalStorageRemove(StateKey);
 
-        _manualMode = !AutoSizeColumns;
+        manualMode = !AutoSizeColumns;
         foreach (var column in columns)
         {
             column.UserWidth = null;

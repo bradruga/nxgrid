@@ -3,12 +3,12 @@ namespace NxGrid;
 public partial class NxGrid<T>
 {
     private bool printDialogOpen;
-    private string? _printTitle;
+    private string? printTitle;
     private bool printAll = true;
 
     public Task PrintAsync(string? title = null)
     {
-        _printTitle = title;
+        printTitle = title;
         printAll = true;
         printDialogOpen = true;
         StateHasChanged();

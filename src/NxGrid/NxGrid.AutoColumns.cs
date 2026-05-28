@@ -5,7 +5,7 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
-    private List<NxGridColumn<T>>? _autoColumns;
+    private List<NxGridColumn<T>>? autoColumns;
 
     // Returns real columns when any are registered or ChildContent is present (real columns incoming).
     // Falls back to reflection-generated columns only when the grid has no ChildContent at all,
@@ -13,7 +13,7 @@ public partial class NxGrid<T>
     private IReadOnlyList<NxGridColumn<T>> ActiveColumns =>
         ChildContent != null || columns.Count > 0
             ? columns
-            : (_autoColumns ??= BuildAutoColumns());
+            : (autoColumns ??= BuildAutoColumns());
 
     private static List<NxGridColumn<T>> BuildAutoColumns()
     {

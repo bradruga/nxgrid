@@ -104,10 +104,10 @@
     {
         @if (IsGrouped)
         {
-            @foreach (var group in _groups)
+            @foreach (var group in groups)
             {
                 var grpValue = group.Value;
-                var grpCollapsed = _collapsedGroupValues.Contains(grpValue);
+                var grpCollapsed = collapsedGroupValues.Contains(grpValue);
                 <div @key="@($"grp:{grpValue}")"
                      class="nx-grid-group-header @(GroupsCollapsible ? "nx-grid-group-header-collapsible" : "")"
                      style="@rowStyle"
@@ -162,7 +162,7 @@
                                        GridEditable="@Editable"
                                        CellEditableGetter="@CellEditableGetter"
                                        SelectionMode="@SelectionMode"
-                                       FocusCellEnabled="@(_focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
+                                       FocusCellEnabled="@(focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
                                        FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
                                        FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
                     }
@@ -206,7 +206,7 @@
                                GridEditable="@Editable"
                                CellEditableGetter="@CellEditableGetter"
                                SelectionMode="@SelectionMode"
-                               FocusCellEnabled="@(_focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
+                               FocusCellEnabled="@(focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
                                FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
                                FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
             }
@@ -248,7 +248,7 @@
                            GridEditable="@Editable"
                            CellEditableGetter="@CellEditableGetter"
                            SelectionMode="@SelectionMode"
-                           FocusCellEnabled="@(_focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
+                           FocusCellEnabled="@(focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
                            FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
                            FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
         </Virtualize>
@@ -390,7 +390,7 @@
                 <div class="nx-grid-menu-divider"></div>
                 <button type="button" class="nx-grid-context-item"
                         @onclick="@OnFocusCellToggle">
-                    <input type="checkbox" checked="@_focusCellEnabled" style="pointer-events:none;margin-right:6px;" tabindex="-1" />
+                    <input type="checkbox" checked="@focusCellEnabled" style="pointer-events:none;margin-right:6px;" tabindex="-1" />
                     Focus Cell
                 </button>
             }
@@ -493,7 +493,7 @@
     @if (ShowFillHandle)
     {
         <div class="nx-grid-fill-handle"
-             style="top:@(_fillHandleTop)px;left:@(_fillHandleLeft)px;@(_fillHandleNeedsPositioning || !_fillHandleVisible ? "visibility:hidden;" : "")"
+             style="top:@(fillHandleTop)px;left:@(fillHandleLeft)px;@(fillHandleNeedsPositioning || !fillHandleVisible ? "visibility:hidden;" : "")"
              @onmousedown="OnFillHandleMouseDown"
              @onmousedown:preventDefault
              @onmousedown:stopPropagation>
@@ -525,27 +525,27 @@
         </div>
     }
 
-    @if (_tooltipVisible && _tooltipColumn != null)
+    @if (tooltipVisible && tooltipColumn != null)
     {
-        <div class="nx-grid-tooltip" style="position:fixed;top:@(_tooltipTop)px;left:@(_tooltipLeft)px;z-index:1002;pointer-events:none;">
-            @if (_tooltipIsHeader)
+        <div class="nx-grid-tooltip" style="position:fixed;top:@(tooltipTop)px;left:@(tooltipLeft)px;z-index:1002;pointer-events:none;">
+            @if (tooltipIsHeader)
             {
-                @if (_tooltipColumn.HeaderTooltipTemplate != null)
+                @if (tooltipColumn.HeaderTooltipTemplate != null)
                 {
-                    @_tooltipColumn.HeaderTooltipTemplate
+                    @tooltipColumn.HeaderTooltipTemplate
                 }
                 else
                 {
-                    @_tooltipColumn.HeaderTooltip
+                    @tooltipColumn.HeaderTooltip
                 }
             }
-            else if (TooltipTemplate != null && _tooltipRow != null)
+            else if (TooltipTemplate != null && tooltipRow != null)
             {
-                @TooltipTemplate(new NxGridTooltipContext<T> { Row = _tooltipRow, Column = _tooltipColumn, Data = _tooltipData })
+                @TooltipTemplate(new NxGridTooltipContext<T> { Row = tooltipRow, Column = tooltipColumn, Data = tooltipData })
             }
             else
             {
-                @_tooltipData?.ToString()
+                @tooltipData?.ToString()
             }
         </div>
     }
@@ -606,9 +606,9 @@
         </div>
 
         <div id="@($"{id}-print")" class="nx-print-area" aria-hidden="true">
-            @if (!string.IsNullOrWhiteSpace(_printTitle))
+            @if (!string.IsNullOrWhiteSpace(printTitle))
             {
-                <h1 class="nx-print-title">@_printTitle</h1>
+                <h1 class="nx-print-title">@printTitle</h1>
             }
             <p class="nx-print-date">@DateTime.Now.ToShortDateString()</p>
             <table class="nx-print-table">

@@ -1,10 +1,11 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
 namespace NxGrid;
 
 public partial class NxGrid<T>
 {
-    [Microsoft.AspNetCore.Components.Parameter] public Microsoft.AspNetCore.Components.EventCallback<NxGridRowDropArgs<T>> OnRowDrop { get; set; }
+    [Parameter] public EventCallback<NxGridRowDropArgs<T>> OnRowDrop { get; set; }
 
     private bool HasActiveSortOrFilter =>
         ActiveColumns.Any(c => c.SortState != 0 || c.FilterState.Count > 0);

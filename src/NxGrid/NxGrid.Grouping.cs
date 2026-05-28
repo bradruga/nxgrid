@@ -4,38 +4,38 @@ public partial class NxGrid<T>
 {
     private sealed record GroupInfo(object? Value, int StartIndex, int Count, IReadOnlyList<T> Items);
 
-    private List<GroupInfo> _groups = [];
-    private readonly HashSet<object?> _collapsedGroupValues = new(EqualityComparer<object?>.Default);
-    private readonly HashSet<object?> _seenGroupValues = new(EqualityComparer<object?>.Default);
-    private Func<T, object?>? _lastGroupBy;
+    private List<GroupInfo> groups = [];
+    private readonly HashSet<object?> collapsedGroupValues = new(EqualityComparer<object?>.Default);
+    private readonly HashSet<object?> seenGroupValues = new(EqualityComparer<object?>.Default);
+    private Func<T, object?>? lastGroupBy;
 
     private bool IsGrouped => GroupBy != null;
 
     private void BuildGroupedData(List<T> filteredInput)
     {
-        if (!ReferenceEquals(GroupBy, _lastGroupBy))
+        if (!ReferenceEquals(GroupBy, lastGroupBy))
         {
-            _lastGroupBy = GroupBy;
-            _seenGroupValues.Clear();
-            _collapsedGroupValues.Clear();
+            lastGroupBy = GroupBy;
+            seenGroupValues.Clear();
+            collapsedGroupValues.Clear();
         }
 
         var grouped = filteredInput.GroupBy(GroupBy!).ToList();
         var newData = new List<T>(filteredInput.Count);
-        _groups = new List<GroupInfo>(grouped.Count);
+        groups = new List<GroupInfo>(grouped.Count);
 
         foreach (var g in grouped)
         {
             var items = ApplySortToList(g.ToList());
             var value = g.Key;
 
-            if (_seenGroupValues.Add(value))
+            if (seenGroupValues.Add(value))
             {
                 if (GroupCollapsedWhen?.Invoke(value) == true)
-                    _collapsedGroupValues.Add(value);
+                    collapsedGroupValues.Add(value);
             }
 
-            _groups.Add(new GroupInfo(value, newData.Count, items.Count, items));
+            groups.Add(new GroupInfo(value, newData.Count, items.Count, items));
             newData.AddRange(items);
         }
 
@@ -46,8 +46,8 @@ public partial class NxGrid<T>
     private void ToggleGroup(object? value)
     {
         if (!GroupsCollapsible) return;
-        if (!_collapsedGroupValues.Remove(value))
-            _collapsedGroupValues.Add(value);
+        if (!collapsedGroupValues.Remove(value))
+            collapsedGroupValues.Add(value);
         StateHasChanged();
     }
 }

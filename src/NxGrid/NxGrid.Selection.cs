@@ -4,9 +4,11 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
-    private const int MouseButtonLeft   = 0;
-    private const int MouseButtonRight  = 2;
-    private const int MouseButtonsLeft  = 1; // args.Buttons bitmask bit for left button
+    private const int MouseButtonLeft = 0;
+    private const int MouseButtonRight = 2;
+    private const int MouseButtonsLeft = 1; // args.Buttons bitmask bit for left button
+
+    private bool isResizing;
 
     private async Task OnCellMouseDown(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
@@ -150,7 +152,7 @@ public partial class NxGrid<T>
     private async Task RaiseSelectionChanged()
     {
         if (IsDragFillActive)
-            _fillHandleNeedsPositioning = true;
+            fillHandleNeedsPositioning = true;
 
         var selectionArgs = new NxGridSelectionArgs<T>();
 
@@ -198,8 +200,6 @@ public partial class NxGrid<T>
         openColumn = column;
         StateHasChanged();
     }
-
-    private bool isResizing;
 
     private async Task OnColumnHeaderMouseDown(MouseEventArgs args, NxGridColumn<T> column)
     {
@@ -345,8 +345,8 @@ public partial class NxGrid<T>
                     visibleColumns[i].UserWidth = (int)allWidths[i];
             }
 
-            _manualMode = true;
-            _pendingResizeCleanup = true;
+            manualMode = true;
+            pendingResizeCleanup = true;
             ComputeFrozenOffsets();
             renderToken++;
             StateHasChanged();

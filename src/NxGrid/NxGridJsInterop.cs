@@ -31,84 +31,84 @@ public class NxGridJsInterop<T> : IAsyncDisposable
         return new NxGridJsInterop<T>(module, jsObject, reference);
     }
 
-    public ValueTask<bool> IsMacPlatform()
+    public Task<bool> IsMacPlatform()
     {
-        return module.InvokeAsync<bool>("isMacPlatform");
+        return module.InvokeAsync<bool>("isMacPlatform").AsTask();
     }
 
-    public ValueTask SetClipboardText(string text)
+    public Task SetClipboardText(string text)
     {
-        return jsObject.InvokeVoidAsync("copyToClipboard", text);
+        return jsObject.InvokeVoidAsync("copyToClipboard", text).AsTask();
     }
 
-    public ValueTask<string> GetClipboardText()
+    public Task<string> GetClipboardText()
     {
-        return jsObject.InvokeAsync<string>("readFromClipboard");
+        return jsObject.InvokeAsync<string>("readFromClipboard").AsTask();
     }
 
-    public ValueTask<NxMenuPosition> PositionColumnMenu(int columnIndex)
+    public Task<NxMenuPosition> PositionColumnMenu(int columnIndex)
     {
-        return jsObject.InvokeAsync<NxMenuPosition>("positionColumnMenu", columnIndex);
+        return jsObject.InvokeAsync<NxMenuPosition>("positionColumnMenu", columnIndex).AsTask();
     }
 
-    public ValueTask<double[]> ResizeColumn(int columnIndex, double startMouseX, int? minWidth, int? maxWidth)
+    public Task<double[]> ResizeColumn(int columnIndex, double startMouseX, int? minWidth, int? maxWidth)
     {
-        return jsObject.InvokeAsync<double[]>("resizeColumn", columnIndex, startMouseX, minWidth, maxWidth);
+        return jsObject.InvokeAsync<double[]>("resizeColumn", columnIndex, startMouseX, minWidth, maxWidth).AsTask();
     }
 
-    public ValueTask CleanupResizeStyle()
+    public Task CleanupResizeStyle()
     {
-        return jsObject.InvokeVoidAsync("cleanupResizeStyle");
+        return jsObject.InvokeVoidAsync("cleanupResizeStyle").AsTask();
     }
 
-    public ValueTask<int> GetPageRowCount(int rowHeight)
+    public Task<int> GetPageRowCount(int rowHeight)
     {
-        return jsObject.InvokeAsync<int>("getPageRowCount", rowHeight);
+        return jsObject.InvokeAsync<int>("getPageRowCount", rowHeight).AsTask();
     }
 
-    public ValueTask ScrollCellIntoView(int rowIndex, int rowHeight, int colIndex)
+    public Task ScrollCellIntoView(int rowIndex, int rowHeight, int colIndex)
     {
-        return jsObject.InvokeVoidAsync("scrollCellIntoView", rowIndex, rowHeight, colIndex);
+        return jsObject.InvokeVoidAsync("scrollCellIntoView", rowIndex, rowHeight, colIndex).AsTask();
     }
 
-    public ValueTask FocusGrid()
+    public Task FocusGrid()
     {
-        return jsObject.InvokeVoidAsync("focusGrid");
+        return jsObject.InvokeVoidAsync("focusGrid").AsTask();
     }
 
-    public ValueTask<string> GetCssVar(string varName)
-        => jsObject.InvokeAsync<string>("getCssVar", varName);
+    public Task<string> GetCssVar(string varName)
+        => jsObject.InvokeAsync<string>("getCssVar", varName).AsTask();
 
-    public ValueTask<NxComboDropdownPosition> GetComboDropdownPosition()
+    public Task<NxComboDropdownPosition> GetComboDropdownPosition()
     {
-        return jsObject.InvokeAsync<NxComboDropdownPosition>("getComboDropdownPosition");
+        return jsObject.InvokeAsync<NxComboDropdownPosition>("getComboDropdownPosition").AsTask();
     }
 
-    public ValueTask<NxDatePickerPosition> GetDatePickerPosition()
+    public Task<NxDatePickerPosition> GetDatePickerPosition()
     {
-        return jsObject.InvokeAsync<NxDatePickerPosition>("getDatePickerPosition");
+        return jsObject.InvokeAsync<NxDatePickerPosition>("getDatePickerPosition").AsTask();
     }
 
-    public ValueTask<string?> LocalStorageGet(string key)
-        => module.InvokeAsync<string?>("localStorageGet", key);
+    public Task<string?> LocalStorageGet(string key)
+        => module.InvokeAsync<string?>("localStorageGet", key).AsTask();
 
-    public ValueTask LocalStorageSet(string key, string value)
-        => module.InvokeVoidAsync("localStorageSet", key, value);
+    public Task LocalStorageSet(string key, string value)
+        => module.InvokeVoidAsync("localStorageSet", key, value).AsTask();
 
-    public ValueTask LocalStorageRemove(string key)
-        => module.InvokeVoidAsync("localStorageRemove", key);
+    public Task LocalStorageRemove(string key)
+        => module.InvokeVoidAsync("localStorageRemove", key).AsTask();
 
-    public ValueTask TriggerPrint(string printAreaId)
-        => module.InvokeVoidAsync("triggerPrint", printAreaId);
+    public Task TriggerPrint(string printAreaId)
+        => module.InvokeVoidAsync("triggerPrint", printAreaId).AsTask();
 
-    public ValueTask<int> DragRow(int startRowIndex, int rowCount, int rowHeight)
-        => jsObject.InvokeAsync<int>("dragRow", startRowIndex, rowCount, rowHeight);
+    public Task<int> DragRow(int startRowIndex, int rowCount, int rowHeight)
+        => jsObject.InvokeAsync<int>("dragRow", startRowIndex, rowCount, rowHeight).AsTask();
 
-    public ValueTask<NxFillHandlePosition?> GetFillHandlePosition(int maxRow, int maxCol, int rowHeight)
-        => jsObject.InvokeAsync<NxFillHandlePosition?>("getFillHandlePosition", maxRow, maxCol, rowHeight);
+    public Task<NxFillHandlePosition?> GetFillHandlePosition(int maxRow, int maxCol, int rowHeight)
+        => jsObject.InvokeAsync<NxFillHandlePosition?>("getFillHandlePosition", maxRow, maxCol, rowHeight).AsTask();
 
-    public ValueTask<NxDragFillResult?> DragFill(int minRow, int maxRow, int minCol, int maxCol, int rowHeight, int rowCount)
-        => jsObject.InvokeAsync<NxDragFillResult?>("dragFill", minRow, maxRow, minCol, maxCol, rowHeight, rowCount);
+    public Task<NxDragFillResult?> DragFill(int minRow, int maxRow, int minCol, int maxCol, int rowHeight, int rowCount)
+        => jsObject.InvokeAsync<NxDragFillResult?>("dragFill", minRow, maxRow, minCol, maxCol, rowHeight, rowCount).AsTask();
 
     public async ValueTask DisposeAsync()
     {

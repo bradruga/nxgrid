@@ -65,18 +65,18 @@
     public bool IsDatePickerColumn => DatePicker;
 
     // Effective getters: explicit parameters take priority, then compiled Property getter
-    public Func<T, object?>? EffectiveGetter => Display ?? _compiledPropertyGetter;
+    public Func<T, object?>? EffectiveGetter => Display ?? compiledPropertyGetter;
     public Func<T, object?>? EffectiveCopyGetter => CopyGetter ?? EffectiveGetter;
-    public Func<T, object?>? EffectiveValueGetter => _compiledPropertyGetter ?? Display;
+    public Func<T, object?>? EffectiveValueGetter => compiledPropertyGetter ?? Display;
 
     // Title resolution: explicit Title > [Display] attribute > PascalCase-split property name
-    public string EffectiveTitle => Title ?? _displayName ?? _inferredName ?? "";
+    public string EffectiveTitle => Title ?? displayName ?? inferredName ?? "";
 
-    private Func<T, object?>? _compiledPropertyGetter;
-    private Action<T, object?>? _compiledPropertySetter;
-    private Type? _propertyType;
-    private string? _displayName;
-    private string? _inferredName;
+    private Func<T, object?>? compiledPropertyGetter;
+    private Action<T, object?>? compiledPropertySetter;
+    private Type? propertyType;
+    private string? displayName;
+    private string? inferredName;
 
     protected override void OnInitialized()
     {
@@ -100,11 +100,11 @@
     {
         if (Property == null)
         {
-            _compiledPropertyGetter = null;
-            _compiledPropertySetter = null;
-            _propertyType = null;
-            _displayName = null;
-            _inferredName = null;
+            compiledPropertyGetter = null;
+            compiledPropertySetter = null;
+            propertyType = null;
+            displayName = null;
+            inferredName = null;
             return;
         }
 
@@ -116,31 +116,31 @@
         if (body is not MemberExpression member)
         {
             // Not a simple member access — read-only (getter only, no setter)
-            _compiledPropertyGetter = Property.Compile();
-            _compiledPropertySetter = null;
-            _propertyType = null;
-            _displayName = null;
-            _inferredName = null;
+            compiledPropertyGetter = Property.Compile();
+            compiledPropertySetter = null;
+            propertyType = null;
+            displayName = null;
+            inferredName = null;
             return;
         }
 
-        _propertyType = member.Type;
-        _compiledPropertyGetter = Property.Compile();
-        _inferredName = SplitPascalCase(member.Member.Name);
-        _displayName = member.Member.GetCustomAttribute<DisplayAttribute>()?.GetName();
+        propertyType = member.Type;
+        compiledPropertyGetter = Property.Compile();
+        inferredName = SplitPascalCase(member.Member.Name);
+        displayName = member.Member.GetCustomAttribute<DisplayAttribute>()?.GetName();
 
         var canWrite = member.Member is PropertyInfo pi ? pi.CanWrite : member.Member is FieldInfo;
         if (canWrite)
         {
             var rowParam = Property.Parameters[0];
             var valueParam = Expression.Parameter(typeof(object), "value");
-            var assignment = Expression.Assign(member, Expression.Convert(valueParam, _propertyType));
-            _compiledPropertySetter = Expression.Lambda<Action<T, object?>>(
+            var assignment = Expression.Assign(member, Expression.Convert(valueParam, propertyType));
+            compiledPropertySetter = Expression.Lambda<Action<T, object?>>(
                 assignment, rowParam, valueParam).Compile();
         }
         else
         {
-            _compiledPropertySetter = null;
+            compiledPropertySetter = null;
         }
     }
 
@@ -177,17 +177,17 @@
     // Returns (rawValue, null) when Property is not set or parsing fails — Apply is a no-op.
     public (object? typedValue, Action<T>? apply) ParseAndBuildApply(string? rawValue)
     {
-        if (_compiledPropertySetter == null || _propertyType == null)
+        if (compiledPropertySetter == null || propertyType == null)
             return (rawValue, null);
 
-        var underlying = System.Nullable.GetUnderlyingType(_propertyType) ?? _propertyType;
-        var isNullable  = System.Nullable.GetUnderlyingType(_propertyType) != null;
+        var underlying = System.Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+        var isNullable  = System.Nullable.GetUnderlyingType(propertyType) != null;
 
         if (rawValue == null)
         {
-            if (isNullable || !_propertyType.IsValueType)
+            if (isNullable || !propertyType.IsValueType)
             {
-                var s = _compiledPropertySetter;
+                var s = compiledPropertySetter;
                 return (null, row => s(row, null));
             }
             return (null, null);
@@ -219,7 +219,7 @@
 
         if (!parsed) return (rawValue, null);
 
-        var setter  = _compiledPropertySetter;
+        var setter  = compiledPropertySetter;
         var capture = typed;
         return (typed, row => setter(row, capture));
     }

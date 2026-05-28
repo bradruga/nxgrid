@@ -4,14 +4,14 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
-    private CancellationTokenSource? _tooltipCts;
-    private bool _tooltipVisible;
-    private double _tooltipLeft;
-    private double _tooltipTop;
-    private object? _tooltipData;
-    private T? _tooltipRow;
-    private NxGridColumn<T>? _tooltipColumn;
-    private bool _tooltipIsHeader;
+    private CancellationTokenSource? tooltipCts;
+    private bool tooltipVisible;
+    private double tooltipLeft;
+    private double tooltipTop;
+    private object? tooltipData;
+    private T? tooltipRow;
+    private NxGridColumn<T>? tooltipColumn;
+    private bool tooltipIsHeader;
 
     internal void StartCellTooltipTimer(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
@@ -23,8 +23,8 @@ public partial class NxGrid<T>
         var x = args.ClientX;
         var y = args.ClientY;
 
-        _tooltipCts = new CancellationTokenSource();
-        var token = _tooltipCts.Token;
+        tooltipCts = new CancellationTokenSource();
+        var token = tooltipCts.Token;
 
         _ = RunTooltipTimerAsync(capturedRow, capturedCol, x, y, token);
     }
@@ -40,13 +40,13 @@ public partial class NxGrid<T>
             var data = await CellTooltip!(row, column);
             if (data == null || token.IsCancellationRequested) return;
 
-            _tooltipData = data;
-            _tooltipRow = row;
-            _tooltipColumn = column;
-            _tooltipLeft = x + 14;
-            _tooltipTop = y + 20;
-            _tooltipVisible = true;
-            _tooltipIsHeader = false;
+            tooltipData = data;
+            tooltipRow = row;
+            tooltipColumn = column;
+            tooltipLeft = x + 14;
+            tooltipTop = y + 20;
+            tooltipVisible = true;
+            tooltipIsHeader = false;
             StateHasChanged();
         }
         catch (OperationCanceledException) { }
@@ -66,8 +66,8 @@ public partial class NxGrid<T>
         var x = args.ClientX;
         var y = args.ClientY;
 
-        _tooltipCts = new CancellationTokenSource();
-        var token = _tooltipCts.Token;
+        tooltipCts = new CancellationTokenSource();
+        var token = tooltipCts.Token;
 
         _ = RunHeaderTooltipTimerAsync(capturedCol, x, y, token);
     }
@@ -79,11 +79,11 @@ public partial class NxGrid<T>
             await Task.Delay(TooltipDelayMs, token);
             if (token.IsCancellationRequested) return;
 
-            _tooltipColumn = column;
-            _tooltipLeft = x + 14;
-            _tooltipTop = y + 20;
-            _tooltipIsHeader = true;
-            _tooltipVisible = true;
+            tooltipColumn = column;
+            tooltipLeft = x + 14;
+            tooltipTop = y + 20;
+            tooltipIsHeader = true;
+            tooltipVisible = true;
             StateHasChanged();
         }
         catch (OperationCanceledException) { }
@@ -91,20 +91,20 @@ public partial class NxGrid<T>
 
     internal void HideHeaderTooltip()
     {
-        if (_tooltipIsHeader || _tooltipCts != null) DismissTooltip();
+        if (tooltipIsHeader || tooltipCts != null) DismissTooltip();
     }
 
     private void DismissTooltip()
     {
-        _tooltipCts?.Cancel();
-        _tooltipCts?.Dispose();
-        _tooltipCts = null;
+        tooltipCts?.Cancel();
+        tooltipCts?.Dispose();
+        tooltipCts = null;
 
-        if (!_tooltipVisible) return;
-        _tooltipVisible = false;
-        _tooltipData = null;
-        _tooltipRow = default;
-        _tooltipColumn = null;
+        if (!tooltipVisible) return;
+        tooltipVisible = false;
+        tooltipData = null;
+        tooltipRow = default;
+        tooltipColumn = null;
         StateHasChanged();
     }
 }

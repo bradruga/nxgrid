@@ -62,7 +62,7 @@
         document.addEventListener('keydown', this._gridKeyHandler, true);
 
         // Lost focus event for column menu and context menu
-        document.addEventListener('click', (event) => {
+        this._menuClickHandler = (event) => {
             const gridElement = document.getElementById(this.id);
             if (!gridElement) return;
 
@@ -80,7 +80,8 @@
             if (contextMenu && !contextMenu.contains(event.target)) {
                 this.dotNetObjectReference.invokeMethodAsync('OnContextMenuLostFocus');
             }
-        });
+        };
+        document.addEventListener('click', this._menuClickHandler);
     }
 
     copyToClipboard(text) {
@@ -250,6 +251,10 @@
         if (this._editInputHandler) {
             document.removeEventListener('input', this._editInputHandler, true);
             this._editInputHandler = null;
+        }
+        if (this._menuClickHandler) {
+            document.removeEventListener('click', this._menuClickHandler);
+            this._menuClickHandler = null;
         }
     }
 

@@ -65,9 +65,9 @@ public partial class NxGrid<T>
     [Parameter] public bool EnableDragFill { get; set; } = true;
 
     private const string FocusCellStorageKey = "nx-grid-focus-cell";
-    private bool _focusCellEnabled;
+    private bool focusCellEnabled;
 
-    private string _selectionColor = "#C7C7C7";
+    private string selectionColor = "#C7C7C7";
 
     private int? headerAnchorCol;
     private int? headerAnchorRow;
@@ -120,11 +120,23 @@ public partial class NxGrid<T>
     private double datePickerTop;
     private double datePickerLeft;
 
-    private bool _manualMode;
-    internal bool IsManualMode => _manualMode;
+    private bool manualMode;
+    internal bool IsManualMode => manualMode;
 
     private int renderToken;
-    private bool _pendingResizeCleanup;
+    private bool pendingResizeCleanup;
+
+    private NxGridColumn<T>? openColumn;
+    private bool menuNeedsPositioning;
+    private double menuTop;
+    private double menuLeft;
+
+    private bool showContextMenu;
+    private double contextMenuX;
+    private double contextMenuY;
+    private T? contextMenuRow;
+    private NxGridColumn<T>? contextMenuColumn;
+    private List<NxGridContextMenuItem> contextMenuItems = [];
 
     public void ForceRerender()
     {
@@ -153,25 +165,13 @@ public partial class NxGrid<T>
     }
 
 
-    private NxGridColumn<T>? openColumn;
-    private bool menuNeedsPositioning;
-    private double menuTop;
-    private double menuLeft;
-
-    private bool showContextMenu;
-    private double contextMenuX;
-    private double contextMenuY;
-    private T? contextMenuRow;
-    private NxGridColumn<T>? contextMenuColumn;
-    private List<NxGridContextMenuItem> contextMenuItems = [];
-
     protected override void OnParametersSet()
     {
         if (SelectionMode == NxGridSelectionMode.None && Editable)
             Console.Error.WriteLine("[NxGrid] Warning: SelectionMode=None is incompatible with Editable=true — editing will be suppressed.");
 
         if (!AutoSizeColumns)
-            _manualMode = true;
+            manualMode = true;
         ComputeFrozenOffsets();
 
         if (Data.Count != loadedDataCount || !ReferenceEquals(Data, loadedData))
@@ -210,9 +210,9 @@ public partial class NxGrid<T>
         if (jsInterop != null)
         {
             var color = await jsInterop.GetCssVar("--nx-grid-selection-bg");
-            if (!string.IsNullOrEmpty(color) && color != _selectionColor)
+            if (!string.IsNullOrEmpty(color) && color != selectionColor)
             {
-                _selectionColor = color;
+                selectionColor = color;
                 StateHasChanged();
             }
         }
@@ -224,9 +224,9 @@ public partial class NxGrid<T>
             StateHasChanged();
         }
 
-        if (_pendingResizeCleanup && jsInterop != null)
+        if (pendingResizeCleanup && jsInterop != null)
         {
-            _pendingResizeCleanup = false;
+            pendingResizeCleanup = false;
             await jsInterop.CleanupResizeStyle();
         }
 
@@ -257,9 +257,9 @@ public partial class NxGrid<T>
             StateHasChanged();
         }
 
-        if (_fillHandleNeedsPositioning && jsInterop != null)
+        if (fillHandleNeedsPositioning && jsInterop != null)
         {
-            _fillHandleNeedsPositioning = false;
+            fillHandleNeedsPositioning = false;
             await PositionFillHandleAsync();
             StateHasChanged();
         }
@@ -271,7 +271,7 @@ public partial class NxGrid<T>
         var val = await jsInterop.LocalStorageGet(FocusCellStorageKey);
         if (val == "true")
         {
-            _focusCellEnabled = true;
+            focusCellEnabled = true;
             StateHasChanged();
         }
     }
@@ -317,8 +317,8 @@ public partial class NxGrid<T>
     {
         if (jsInterop == null) return;
         var pos = await jsInterop.GetComboDropdownPosition();
-        comboDropdownTop   = pos.Top;
-        comboDropdownLeft  = pos.Left;
+        comboDropdownTop = pos.Top;
+        comboDropdownLeft = pos.Left;
         comboDropdownWidth = pos.Width;
     }
 
@@ -394,7 +394,7 @@ public partial class NxGrid<T>
     {
         if (jsInterop == null) return;
         var pos = await jsInterop.GetDatePickerPosition();
-        datePickerTop  = pos.Top;
+        datePickerTop = pos.Top;
         datePickerLeft = pos.Left;
     }
 

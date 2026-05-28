@@ -19,7 +19,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void RendersContainerElement()
+    public void Render_WithDefaultData_RendersContainerElement()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -33,7 +33,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void RendersColumnHeader()
+    public void Render_WithTitleParameter_RendersColumnHeader()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -48,7 +48,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void RendersAllColumnHeaders()
+    public void Render_WithMultipleColumns_RendersAllColumnHeaders()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -73,7 +73,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void RendersCorrectRowCount()
+    public void Render_WithThreeRows_RendersCorrectRowCount()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -91,7 +91,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void RendersCustomCellTemplate()
+    public void Render_WithCellTemplate_RendersCustomCellTemplate()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -112,7 +112,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void InfersTitleFromPropertyName()
+    public void Title_WithPropertyExpression_InfersTitleFromPropertyName()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -131,7 +131,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void PrefersDisplayAttributeOverPropertyName()
+    public void Title_WithDisplayAttribute_PrefersAttributeOverPropertyName()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -150,7 +150,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void ComboBoxColumnDisplayTakesPrecedenceOverComboItemLabel()
+    public void ComboBox_WithDisplayGetter_ShowsDisplayInsteadOfComboLabel()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -166,7 +166,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void ComboBoxColumnShowsRawPropertyValue()
+    public void ComboBox_WithPropertyOnly_ShowsRawPropertyValue()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -188,7 +188,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void RendersCustomHeaderTemplate()
+    public void Render_WithHeaderTemplate_RendersCustomHeaderTemplate()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -297,7 +297,7 @@ public class NxGridRenderTests : BunitContext
     // ── EnableSelectionMath ───────────────────────────────────────────────────
 
     [Test]
-    public void EnableSelectionMath_StatusBarAbsentWithNoSelection()
+    public void EnableSelectionMath_WithNoSelection_StatusBarAbsent()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = Render<NxGrid<NumericRow>>(p => p
@@ -310,7 +310,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public async Task EnableSelectionMath_StatusBarRenderedAfterSelection()
+    public async Task EnableSelectionMath_AfterRowSelected_StatusBarRendered()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         var row = new NumericRow(10, 5m);
