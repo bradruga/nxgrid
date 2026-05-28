@@ -41,6 +41,22 @@ Add columns when you need titles, widths, alignment, editing, combo-boxes, or te
 
 If writing that felt painful, the API is wrong. It doesn't.
 
+`@bind-SelectedItems` is a shorter alternative for the common case of tracking which rows are selected:
+
+```razor
+<NxGrid T="Person" Data="@people" @bind-SelectedItems="selectedPeople">
+    <NxGridColumn Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Department)" />
+</NxGrid>
+
+@code {
+    List<Person> people = [ /* ... */ ];
+    List<Person> selectedPeople = [];
+}
+```
+
+This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Ranges.SelectMany(r => r.Items).Distinct().ToList())"`.
+
 ---
 
 ## `NxGrid<T>` parameters
@@ -98,6 +114,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | Parameter | Type | Notes |
 |---|---|---|
 | `OnSelectionChanged` | `EventCallback<NxGridSelectionArgs<T>>` | Fires on every selection change (mouse, keyboard, programmatic). |
+| `SelectedItems` | `List<T>?` | Two-way bindable list of the currently selected row objects (all ranges combined, deduplicated). Use `@bind-SelectedItems="@myList"` as a shorthand for `OnSelectionChanged`. `SelectedItemsChanged` fires in sync with `OnSelectionChanged`. Setting this from outside (e.g. `myList = []`) also updates the visual selection in the grid. |
 | `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. |
 | `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip. `args.ColumnIndex` and `args.NewWidth` (px). |
 | `OnCellDoubleClicked` | `EventCallback<NxGridCellDoubleClickedArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |

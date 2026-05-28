@@ -183,6 +183,13 @@ public partial class NxGrid<T>
         }
 
         await OnSelectionChanged.InvokeAsync(selectionArgs);
+
+        if (SelectedItemsChanged.HasDelegate)
+        {
+            var items = selectionArgs.Ranges.SelectMany(r => r.Items).Distinct().ToList();
+            lastRaisedSelectedItems = items;
+            await SelectedItemsChanged.InvokeAsync(items);
+        }
     }
 
     private void OnCellMouseUp(T row, NxGridColumn<T> column)
@@ -292,6 +299,30 @@ public partial class NxGrid<T>
         selectedRanges = [new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 }];
         StateHasChanged();
         await RaiseSelectionChanged();
+    }
+
+    private void SyncSelectionFromItems(List<T>? items)
+    {
+        if (items == null || items.Count == 0)
+        {
+            selectedRanges = [];
+            return;
+        }
+
+        var newRanges = new List<NxGridRange>();
+        foreach (var item in items)
+        {
+            var rowIndex = filteredData.IndexOf(item);
+            if (rowIndex < 0) continue;
+            newRanges.Add(new NxGridRange
+            {
+                StartRow = rowIndex,
+                StartCol = 0,
+                EndRow = rowIndex,
+                EndCol = visibleColumns.Count > 0 ? visibleColumns.Count - 1 : 0
+            });
+        }
+        selectedRanges = newRanges;
     }
 
     // Returns the range of column indices to resize. If the resized column is part of a full-row

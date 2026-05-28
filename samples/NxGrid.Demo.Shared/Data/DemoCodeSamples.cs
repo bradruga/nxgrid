@@ -264,6 +264,25 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string BindSelectedItems = """
+// @bind-SelectedItems is a shorthand for the common OnSelectionChanged pattern.
+// selectedPeople is updated automatically on every selection change.
+<NxGrid T="Person"
+        Data="@people"
+        SelectionMode="NxGridSelectionMode.Row"
+        @bind-SelectedItems="selectedPeople"
+        Cursor="NxGridCursor.Pointer">
+    <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+    <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
+    <NxGridColumn Property="@(x => x.Department)" />
+</NxGrid>
+
+@code {
+    List<Person> people = [ /* ... */ ];
+    List<Person> selectedPeople = [];
+}
+""";
+
     public static readonly string SelectionModeNone = """
 // None mode — no selection highlight or interaction.
 // OnSelectionChanged never fires. Use for display-only report grids.

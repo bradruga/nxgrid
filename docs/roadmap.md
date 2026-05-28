@@ -8,16 +8,6 @@ Planned and considered improvements, organized by priority tier. Items within a 
 
 Small, self-contained improvements with no breaking API changes.
 
-### `@bind-SelectedItems` two-way binding
-
-**What:** A convenience parameter that binds directly to a `List<T>` of selected row objects, eliminating the need to write an `OnSelectionChanged` handler for the common single-row selection case.
-
-**Why:** The current pattern requires four lines of boilerplate (handler declaration, callback wire-up, range navigation, distinct extraction) for what is conceptually a single binding.
-
-**Design:** `@bind-SelectedItems="selectedPeople"` would be equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Ranges.SelectMany(r => r.Items).Distinct().ToList())"`.
-
----
-
 ### Edit validation
 
 **What:** A `Validator` parameter on `NxGridColumn` — a `Func<T, string?, string?>` that returns `null` for a valid value or an error message string. Invalid commits are blocked and the cell is highlighted until the value is corrected or the edit is cancelled.

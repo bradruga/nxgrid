@@ -125,6 +125,53 @@
 </div>
 
 <div class="doc-section">
+    <h2>@@bind-SelectedItems — Two-Way Binding</h2>
+    <p class="doc-para">
+        <code>@@bind-SelectedItems</code> keeps a <code>List&lt;T&gt;</code> in sync with the selection automatically —
+        no <code>OnSelectionChanged</code> handler required. The list always contains the unique row objects
+        across all active ranges.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn doc-btn-secondary" @onclick="ClearBindSelection">Clear selection</button>
+    </div>
+    <div class="doc-demo-row">
+        <div class="doc-demo-grid">
+            <NxGrid T="Person" Data="@bindPeople"
+                    SelectionMode="NxGridSelectionMode.Row"
+                    @bind-SelectedItems="bindSelectedPeople"
+                    Cursor="NxGridCursor.Pointer"
+                    Style="height:260px">
+                <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+                <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+                <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+                <NxGridColumn Property="@(x => x.Department)" />
+            </NxGrid>
+        </div>
+        <div class="doc-detail-panel">
+            @if (bindSelectedPeople.Count > 0)
+            {
+                @foreach (var p in bindSelectedPeople)
+                {
+                    <div class="doc-detail-card" style="margin-bottom:6px">
+                        <div class="doc-detail-name">@p.FirstName @p.LastName</div>
+                        <div class="doc-detail-row"><span>Dept</span><span>@p.Department</span></div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="doc-detail-empty">← Select a row</div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>@@bind-SelectedItems</h2>
+    <pre class="doc-code">@bindSelectedItemsCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>OnSelectionChanged</h2>
     <pre class="doc-code">@selectionCode</pre>
 </div>
@@ -164,6 +211,8 @@
     List<Person> rowPeople   = SampleData.GetPeopleCopy();
     List<Person> nonePeople  = SampleData.GetPeopleCopy();
     List<Person> multiPeople = SampleData.GetPeopleCopy();
+    List<Person> bindPeople  = SampleData.GetPeopleCopy();
+    List<Person> bindSelectedPeople = [];
 
     NxGrid<Person> cellGrid = null!;
     bool headerClickSelects;
@@ -200,6 +249,7 @@
 
     void ClearCellLog() => cellLog = "";
     void ClearMultiLog() => multiLog = "";
+    void ClearBindSelection() => bindSelectedPeople = [];
 
     void OnMultiSelectionChanged(NxGridSelectionArgs<Person> args)
     {
@@ -221,6 +271,7 @@
                    "\n" + string.Join("\n", parts);
     }
 
+    string bindSelectedItemsCode = DemoCodeSamples.BindSelectedItems;
     string selectionCode        = DemoCodeSamples.Selection;
     string selectionModeRowCode = DemoCodeSamples.SelectionModeRow;
     string selectionModeNoneCode = DemoCodeSamples.SelectionModeNone;

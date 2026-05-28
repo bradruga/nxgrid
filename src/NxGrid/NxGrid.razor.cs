@@ -26,6 +26,8 @@ public partial class NxGrid<T>
     [Parameter] public RenderFragment? Overlays { get; set; }
     [Parameter] public int RowHeight { get; set; } = 28;
     [Parameter] public EventCallback<NxGridSelectionArgs<T>> OnSelectionChanged { get; set; }
+    [Parameter] public List<T>? SelectedItems { get; set; }
+    [Parameter] public EventCallback<List<T>> SelectedItemsChanged { get; set; }
     [Parameter] public EventCallback<NxGridKeyPressedArgs> OnKeyPressed { get; set; }
     [Parameter] public Func<T, NxGridColumn<T>, NxGridCellStyle?>? CellStyle { get; set; }
     [Parameter] public bool ShowHeader { get; set; } = true;
@@ -94,6 +96,8 @@ public partial class NxGrid<T>
     private List<NxGridRange> selectedRanges = [];
     private NxGridRange? ActiveRange => selectedRanges.Count > 0 ? selectedRanges[^1] : null;
     private bool leftMouseDown;
+
+    private List<T>? lastRaisedSelectedItems;
 
     // Editing state
     private bool isEditing;
@@ -179,6 +183,12 @@ public partial class NxGrid<T>
             loadedDataCount = Data.Count;
             loadedData = Data;
             ApplyFilterAndSort();
+        }
+
+        if (!ReferenceEquals(SelectedItems, lastRaisedSelectedItems))
+        {
+            lastRaisedSelectedItems = SelectedItems;
+            SyncSelectionFromItems(SelectedItems);
         }
     }
 
