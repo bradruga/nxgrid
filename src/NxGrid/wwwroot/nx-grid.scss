@@ -7,6 +7,7 @@ $nx-grid-row-odd-bg:    #ececec;
 $nx-grid-surface:       #fff;
 $nx-grid-selection-bg:          #C7C7C7;
 $nx-grid-selected-border:       #AFAFAF;
+$nx-grid-focus-cell-bg:         #d6f5e3;
 $nx-grid-accent:              #0078d4;
 $nx-grid-accent-dark:         #005a9e;
 $nx-grid-selection-border:    #217346;
@@ -28,6 +29,7 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
     --nx-grid-surface:       #{$nx-grid-surface};
     --nx-grid-selection-bg:         #{$nx-grid-selection-bg};
     --nx-grid-selected-border:      #{$nx-grid-selected-border};
+    --nx-grid-focus-cell-bg:        #{$nx-grid-focus-cell-bg};
     --nx-grid-accent:              #{$nx-grid-accent};
     --nx-grid-accent-dark:         #{$nx-grid-accent-dark};
     --nx-grid-selection-border:    #{$nx-grid-selection-border};
@@ -148,6 +150,10 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
 .nx-grid-row .nx-grid-cell.nx-grid-cell-anchor {
     border-right-color: var(--nx-grid-selected-border);
     border-bottom-color: var(--nx-grid-selected-border);
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cell-focus-highlight {
+    background-color: var(--nx-grid-focus-cell-bg);
 }
 
 .nx-grid-row .nx-grid-cell.nx-grid-cell-selected {

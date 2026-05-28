@@ -77,6 +77,15 @@ public partial class NxGrid<T>
         await PasteFromClipboard();
     }
 
+    private async Task OnFocusCellToggle()
+    {
+        showContextMenu = false;
+        _focusCellEnabled = !_focusCellEnabled;
+        if (jsInterop != null)
+            await jsInterop.LocalStorageSet(FocusCellStorageKey, _focusCellEnabled ? "true" : "false");
+        StateHasChanged();
+    }
+
     private async Task CopySelectionToClipboard(bool includeHeaders = false)
     {
         if (selectedRanges.Count == 0 || jsInterop == null) return;

@@ -51,6 +51,7 @@ public partial class NxGrid<T>
     private bool IsVirtualized => Virtualize && !HasMultiLineColumns && !IsGrouped;
     [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
     [Parameter] public NxGridSelectionMode SelectionMode { get; set; } = NxGridSelectionMode.Cell;
+    [Parameter] public bool AllowFocusCellMode { get; set; } = true;
     [Parameter] public string? StateKey { get; set; }
     [Parameter] public bool AutoSizeColumns { get; set; } = true;
     [Parameter] public bool Virtualize { get; set; } = true;
@@ -59,6 +60,9 @@ public partial class NxGrid<T>
     [Parameter] public RenderFragment<NxGridGroupHeaderArgs<T>>? GroupHeaderTemplate { get; set; }
     [Parameter] public bool GroupsCollapsible { get; set; } = true;
     [Parameter] public Func<object?, bool>? GroupCollapsedWhen { get; set; }
+
+    private const string FocusCellStorageKey = "nx-grid-focus-cell";
+    private bool _focusCellEnabled;
 
     private string _selectionColor = "#C7C7C7";
 
@@ -197,6 +201,7 @@ public partial class NxGrid<T>
             jsInterop = await NxGridJsInterop<T>.Create(this, JsRuntime, id);
             isMac = await jsInterop.IsMacPlatform();
             await RestoreStateAsync();
+            await LoadFocusCellStateAsync();
         }
 
         if (jsInterop != null)
@@ -246,6 +251,17 @@ public partial class NxGrid<T>
                 menuTop = pos.Top;
                 menuLeft = pos.Left;
             }
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadFocusCellStateAsync()
+    {
+        if (jsInterop == null) return;
+        var val = await jsInterop.LocalStorageGet(FocusCellStorageKey);
+        if (val == "true")
+        {
+            _focusCellEnabled = true;
             StateHasChanged();
         }
     }

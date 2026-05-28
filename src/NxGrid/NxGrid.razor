@@ -161,7 +161,10 @@
                                        RenderToken="@renderToken"
                                        GridEditable="@Editable"
                                        CellEditableGetter="@CellEditableGetter"
-                                       SelectionMode="@SelectionMode" />
+                                       SelectionMode="@SelectionMode"
+                                       FocusCellEnabled="@(_focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
+                                       FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
+                                       FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
                     }
                 }
             }
@@ -202,7 +205,10 @@
                                RenderToken="@renderToken"
                                GridEditable="@Editable"
                                CellEditableGetter="@CellEditableGetter"
-                               SelectionMode="@SelectionMode" />
+                               SelectionMode="@SelectionMode"
+                               FocusCellEnabled="@(_focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
+                               FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
+                               FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
             }
         }
     }
@@ -241,7 +247,10 @@
                            RenderToken="@renderToken"
                            GridEditable="@Editable"
                            CellEditableGetter="@CellEditableGetter"
-                           SelectionMode="@SelectionMode" />
+                           SelectionMode="@SelectionMode"
+                           FocusCellEnabled="@(_focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
+                           FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
+                           FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
         </Virtualize>
     }
 
@@ -362,6 +371,15 @@
                 <button type="button" class="nx-grid-context-item"
                         @onclick="@OnContextMenuPasteClick">
                     Paste
+                </button>
+            }
+            @if (AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)
+            {
+                <div class="nx-grid-menu-divider"></div>
+                <button type="button" class="nx-grid-context-item"
+                        @onclick="@OnFocusCellToggle">
+                    <input type="checkbox" checked="@_focusCellEnabled" style="pointer-events:none;margin-right:6px;" tabindex="-1" />
+                    Focus Cell
                 </button>
             }
             @foreach (var menuItem in contextMenuItems)

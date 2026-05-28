@@ -65,6 +65,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `HeaderClickSelects` | `bool` | `false` | When true, clicking a column header selects the full column; clicking the row-number gutter selects the full row. |
 | `Cursor` | `NxGridCursor` | `Default` | CSS cursor applied to body cells only (not column or row headers). `Default` → `default`, `Cell` → `cell`, `Pointer` → `pointer`. |
 | `SelectionMode` | `NxGridSelectionMode` | `Cell` | `Cell` — rectangular cell-range selection (default). `Row` — clicking any cell or using arrow keys selects the entire row; Shift extends to a contiguous row range; left/right arrows are no-ops. `None` — no selection highlight or interaction; `OnSelectionChanged` never fires; `SelectRow()` is a no-op. `None` is incompatible with `Editable=true` — a warning is logged and editing is suppressed. |
+| `AllowFocusCellMode` | `bool` | `true` | When `true` and `SelectionMode` is `Cell`, the right-click context menu shows a **Focus Cell** checkbox. When checked, all cells sharing the same row or column as the selection anchor receive the `--nx-grid-focus-cell-bg` background highlight (no selection border). The on/off state is stored in `localStorage` under the key `nx-grid-focus-cell` and shared across all NxGrid instances. |
 | `StateKey` | `string?` | — | When set, the grid saves column widths (including manual-mode lock state), sort state, and filter state to `localStorage` under this key after every user change, and restores it on first render. Each grid instance on a page should use a unique key. |
 | `AutoSizeColumns` | `bool` | `true` | When `true` (default), columns without a `MaxWidth` use `flex-grow: 1` to fill available space. Set to `false` to start the grid in manual mode immediately — all columns render at their declared `Width` with no flex growth, as if the user had already resized. |
 | `Virtualize` | `bool` | `true` | When `true` (default), rows are rendered with Blazor's `<Virtualize>` component so only the visible rows are in the DOM. Set to `false` to render all rows at once — useful for small grids where browser Ctrl+F search, accessibility tools, or print should see every row. Automatically overridden to `false` when any column has `MultiLine = true`. |
@@ -100,7 +101,7 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. |
 | `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip. `args.ColumnIndex` and `args.NewWidth` (px). |
 | `OnCellDoubleClicked` | `EventCallback<NxGridCellDoubleClickedArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |
-| `OnContextMenuShowing` | `Action<NxGridContextMenuArgs<T>>?` | Called synchronously just before the context menu opens. The handler receives the right-clicked `Row` and `Column`, and a mutable `Items` list. Append `NxGridContextMenuItem` entries to add custom items after the built-in items. Built-in items: **Copy** (always), **Copy with headers** (always), **Paste** (only when the right-clicked cell is editable). |
+| `OnContextMenuShowing` | `Action<NxGridContextMenuArgs<T>>?` | Called synchronously just before the context menu opens. The handler receives the right-clicked `Row` and `Column`, and a mutable `Items` list. Append `NxGridContextMenuItem` entries to add custom items after the built-in items. Built-in items: **Copy** (always), **Copy with headers** (always), **Paste** (only when the right-clicked cell is editable), **Focus Cell** checkbox (only when `SelectionMode` is `Cell` and `AllowFocusCellMode` is `true`). |
 | `OnContextMenuItemClicked` | `EventCallback<NxGridContextMenuItemArgs<T>>` | Fires when the user selects a custom context menu item. Receives the clicked `Item` plus the `Row` and `Column` that were right-clicked. |
 | `OnRowDrop` | `EventCallback<NxGridRowDropArgs<T>>` | Fires after a successful row drag. The host must reorder `Data` in this handler. After the callback returns the grid calls `ApplyFilterAndSort()` and `StateHasChanged()` automatically. The active selection is cleared on drop. |
 
@@ -527,6 +528,7 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-row-odd-bg:       #ececec;
     --nx-grid-surface:          #fff;
     --nx-grid-selection-bg:     #C7C7C7;  /* selected cell background */
+    --nx-grid-focus-cell-bg:    #d6f5e3;  /* Focus Cell row/column highlight */
     --nx-grid-selected-border:  #AFAFAF;  /* border around selected cells */
     --nx-grid-selection-border: #217346;  /* green border on the active edit input */
     --nx-grid-accent:           #0078d4;  /* focus rings, hover states */

@@ -6,6 +6,7 @@
 <p class="doc-intro">
     Right-clicking any cell opens a context menu. The built-in <strong>Copy</strong> and <strong>Copy with headers</strong>
     items are always present. <strong>Paste</strong> appears only when the right-clicked cell is editable.
+    In cell-selection mode a <strong>Focus Cell</strong> checkbox highlights the anchor row and column.
     Use <code>OnContextMenuShowing</code> to append custom items, and <code>OnContextMenuItemClicked</code>
     to handle them. The handler receives the right-clicked row and column along with the item that was selected.
 </p>
@@ -67,6 +68,24 @@
         <NxGridColumn Property="@(x => x.Department)" />
         <NxGridColumn Property="@(x => x.Age)"        Width="70" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>Focus Cell</h2>
+    <p class="doc-note">
+        Right-click any cell and check <strong>Focus Cell</strong> to highlight the entire row and column of the
+        selection anchor. The setting is stored in <code>localStorage</code> so it persists across page loads and
+        is shared by all grids on the page. Set <code>AllowFocusCellMode="false"</code> to hide the option from
+        the context menu entirely.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()">
+        <NxGridColumn Property="@(x => x.Id)"         MinWidth="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" Width="160" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@focusCellCode</pre>
 </div>
 
 <div class="doc-section">
@@ -177,6 +196,21 @@
         };
     }
 
-    string basicCode   = DemoCodeSamples.ContextMenuBasic;
-    string dynamicCode = DemoCodeSamples.ContextMenuDynamic;
+    string basicCode     = DemoCodeSamples.ContextMenuBasic;
+    string dynamicCode   = DemoCodeSamples.ContextMenuDynamic;
+    string focusCellCode = """
+        <NxGrid T="Person" Data="@people">
+            <NxGridColumn Property="@(x => x.FirstName)" />
+            <NxGridColumn Property="@(x => x.LastName)"  />
+            <NxGridColumn Property="@(x => x.Department)" />
+        </NxGrid>
+
+        <!-- Disable the option entirely -->
+        <NxGrid T="Person" Data="@people" AllowFocusCellMode="false">
+            ...
+        </NxGrid>
+
+        /* Override the highlight color in CSS */
+        :root { --nx-grid-focus-cell-bg: #fff3cd; }
+        """;
 }

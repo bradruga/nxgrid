@@ -45,8 +45,13 @@
             && SelectedRange != null && RowIndex == SelectedRange.StartRow && ci == SelectedRange.StartCol;
         var inAdditional = AdditionalRanges.Count > 1 && AdditionalRanges.Take(AdditionalRanges.Count - 1).Any(r => r.IsCellInRange(RowIndex, ci));
         var selected = (SelectedRange?.IsCellInRange(RowIndex, ci) == true && !isAnchor) || inAdditional;
+        var isFocusHighlighted = FocusCellEnabled
+            && FocusCellAnchorRow >= 0
+            && (RowIndex == FocusCellAnchorRow || ci == FocusCellAnchorCol)
+            && !isAnchor
+            && !selected;
 
-        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
+        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
              style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
              @onmousedown="@(args => HandleMouseDown(args, col))"
              @onmouseenter="@(args => HandleMouseEnter(args, col))"
@@ -252,6 +257,9 @@
     [Parameter] public int RenderToken { get; set; }
     [Parameter] public bool GridEditable { get; set; }
     [Parameter] public NxGridSelectionMode SelectionMode { get; set; }
+    [Parameter] public bool FocusCellEnabled { get; set; }
+    [Parameter] public int FocusCellAnchorRow { get; set; } = -1;
+    [Parameter] public int FocusCellAnchorCol { get; set; } = -1;
 
     private string CursorStyle => Cursor switch
     {
@@ -276,6 +284,9 @@
     private string prevEditValue = "";
     private int prevRenderToken = -1;
     private NxGridRowGutter prevRowGutter;
+    private bool prevFocusCellEnabled;
+    private int prevFocusCellAnchorRow = -1;
+    private int prevFocusCellAnchorCol = -1;
 
     // Track which edit session we've already focused so we focus exactly once per cell entry
     private (int Row, int Col) focusedSession = (-1, -1);
@@ -305,8 +316,9 @@
         var cursorChanged    = Cursor != prevCursor;
         var gutterChanged    = RowGutter != prevRowGutter;
         var modeChanged      = SelectionMode != prevSelectionMode;
+        var focusChanged     = FocusCellChangedForRow();
 
-        if (!rowChanged && !selChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged)
+        if (!rowChanged && !selChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged && !focusChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
@@ -321,6 +333,9 @@
         prevCursor              = Cursor;
         prevRowGutter           = RowGutter;
         prevSelectionMode       = SelectionMode;
+        prevFocusCellEnabled    = FocusCellEnabled;
+        prevFocusCellAnchorRow  = FocusCellAnchorRow;
+        prevFocusCellAnchorCol  = FocusCellAnchorCol;
 
         return true;
     }
@@ -431,6 +446,23 @@
         if (!wasAffected && !isAffected) return false;
         if (wasAffected != isAffected)   return true;
         return prevEditCol != EditCol || prevEditValue != EditValue;
+    }
+
+    private bool FocusCellChangedForRow()
+    {
+        if (FocusCellEnabled == prevFocusCellEnabled
+            && FocusCellAnchorRow == prevFocusCellAnchorRow
+            && FocusCellAnchorCol == prevFocusCellAnchorCol)
+            return false;
+
+        // Feature toggled on or off — re-render all rows
+        if (FocusCellEnabled != prevFocusCellEnabled) return true;
+
+        // Anchor column changed — affects every row (each row has a cell in that column)
+        if (FocusCellAnchorCol != prevFocusCellAnchorCol) return true;
+
+        // Only anchor row changed — only the two affected rows need to re-render
+        return RowIndex == FocusCellAnchorRow || RowIndex == prevFocusCellAnchorRow;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
