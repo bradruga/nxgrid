@@ -135,7 +135,8 @@
                                        RowIndex="@rowIndex"
                                        Columns="@visibleColumns"
                                        RowStyle="@rowStyle"
-                                       SelectedRange="@selectedRange"
+                                       SelectedRange="@ActiveRange"
+                                       AdditionalRanges="@selectedRanges"
                                        RowGutter="@EffectiveRowGutter"
                                        IsEditing="@isEditing"
                                        EditRow="@editRow"
@@ -175,7 +176,8 @@
                                RowIndex="@context"
                                Columns="@visibleColumns"
                                RowStyle="@rowStyle"
-                               SelectedRange="@selectedRange"
+                               SelectedRange="@ActiveRange"
+                               AdditionalRanges="@selectedRanges"
                                RowGutter="@EffectiveRowGutter"
                                IsEditing="@isEditing"
                                EditRow="@editRow"
@@ -213,7 +215,8 @@
                            RowIndex="@context"
                            Columns="@visibleColumns"
                            RowStyle="@rowStyle"
-                           SelectedRange="@selectedRange"
+                           SelectedRange="@ActiveRange"
+                           AdditionalRanges="@selectedRanges"
                            RowGutter="@EffectiveRowGutter"
                            IsEditing="@isEditing"
                            EditRow="@editRow"
@@ -242,7 +245,7 @@
         </Virtualize>
     }
 
-    @if (EnableSelectionMath && selectedRange != null)
+    @if (EnableSelectionMath && selectedRanges.Count > 0)
     {
         var math = ComputeSelectionMath();
         <div class="nx-grid-status-bar">
@@ -512,9 +515,9 @@
                                    @onchange="@(() => printAll = true)" />
                             <span>Print everything — @filteredData.Count @(filteredData.Count == 1 ? "row" : "rows"), @visibleColumns.Count @(visibleColumns.Count == 1 ? "column" : "columns")</span>
                         </label>
-                        <label class="nx-print-option @(selectedRange == null ? "nx-print-option-disabled" : "")">
+                        <label class="nx-print-option @(ActiveRange == null ? "nx-print-option-disabled" : "")">
                             <input type="radio" name="@($"nx-print-scope-{id}")"
-                                   disabled="@(selectedRange == null)"
+                                   disabled="@(ActiveRange == null)"
                                    checked="@(!printAll)"
                                    @onchange="@(() => printAll = false)" />
                             <span>Print selection — @PrintSelectionRowCount @(PrintSelectionRowCount == 1 ? "row" : "rows"), @PrintSelectionColCount @(PrintSelectionColCount == 1 ? "column" : "columns")</span>

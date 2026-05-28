@@ -27,7 +27,7 @@ public partial class NxGrid<T>
 
         if (newIndex == rowIndex) return;
 
-        selectedRange = null;
+        selectedRanges = [];
 
         await OnRowDrop.InvokeAsync(new NxGridRowDropArgs<T>
         {

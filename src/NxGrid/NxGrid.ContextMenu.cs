@@ -9,13 +9,13 @@ public partial class NxGrid<T>
     {
         var rowIndex = filteredData.IndexOf(row);
         var colIndex = visibleColumns.IndexOf(column);
-        if (selectedRange == null)
+        if (selectedRanges.Count == 0)
         {
-            selectedRange = new NxGridRange
+            selectedRanges = [new NxGridRange
             {
                 StartRow = rowIndex, StartCol = colIndex,
                 EndRow = rowIndex,   EndCol = colIndex
-            };
+            }];
         }
 
         contextMenuRow    = row;
@@ -61,24 +61,31 @@ public partial class NxGrid<T>
 
     private async Task CopySelectionToClipboard()
     {
-        if (selectedRange == null || jsInterop == null) return;
+        if (selectedRanges.Count == 0 || jsInterop == null) return;
 
-        var startRow = Math.Min(selectedRange.StartRow, selectedRange.EndRow);
-        var endRow   = Math.Max(selectedRange.StartRow, selectedRange.EndRow);
-        var startCol = Math.Min(selectedRange.StartCol, selectedRange.EndCol);
-        var endCol   = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
+        // Bounding box across all ranges; cells outside every range copy as empty
+        var minRow = selectedRanges.Min(r => Math.Min(r.StartRow, r.EndRow));
+        var maxRow = selectedRanges.Max(r => Math.Max(r.StartRow, r.EndRow));
+        var minCol = selectedRanges.Min(r => Math.Min(r.StartCol, r.EndCol));
+        var maxCol = selectedRanges.Max(r => Math.Max(r.StartCol, r.EndCol));
 
-        copyOrigin = (startRow, startCol);
+        copyOrigin = (minRow, minCol);
 
         var rows = new List<string>();
-        for (var r = startRow; r <= endRow; r++)
+        for (var r = minRow; r <= maxRow; r++)
         {
             var cells = new List<string>();
-            for (var c = startCol; c <= endCol; c++)
+            for (var c = minCol; c <= maxCol; c++)
             {
-                var getter = visibleColumns[c].EffectiveGetter;
-                var value = getter != null ? getter(filteredData[r])?.ToString() ?? "" : "";
-                cells.Add(value);
+                if (selectedRanges.Any(range => range.IsCellInRange(r, c)))
+                {
+                    var getter = visibleColumns[c].EffectiveGetter;
+                    cells.Add(getter != null ? getter(filteredData[r])?.ToString() ?? "" : "");
+                }
+                else
+                {
+                    cells.Add("");
+                }
             }
             rows.Add(string.Join("\t", cells));
         }

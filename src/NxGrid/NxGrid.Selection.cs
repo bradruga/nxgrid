@@ -21,12 +21,12 @@ public partial class NxGrid<T>
         if (args.Button == MouseButtonRight)
         {
             // Right-click: preserve selection if cell is already selected, otherwise single-select
-            if (selectedRange?.IsCellInRange(rowIndex, colIndex) == true) return;
+            if (selectedRanges.Any(r => r.IsCellInRange(rowIndex, colIndex))) return;
 
             if (isEditing) await CommitEdit();
-            selectedRange = SelectionMode == NxGridSelectionMode.Row
+            selectedRanges = [SelectionMode == NxGridSelectionMode.Row
                 ? new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }
-                : new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex };
+                : new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex }];
             StateHasChanged();
             await RaiseSelectionChanged();
             return;
@@ -36,17 +36,29 @@ public partial class NxGrid<T>
 
         if (isEditing) await CommitEdit();
 
+        var ctrlHeld = isMac ? args.MetaKey : args.CtrlKey;
+
         if (SelectionMode == NxGridSelectionMode.Row)
         {
-            if (args.ShiftKey && selectedRange != null)
+            if (args.ShiftKey && ActiveRange != null)
             {
-                selectedRange.EndRow = rowIndex;
-                selectedRange.StartCol = 0;
-                selectedRange.EndCol = visibleColumns.Count - 1;
+                ActiveRange.EndRow = rowIndex;
+                ActiveRange.StartCol = 0;
+                ActiveRange.EndCol = visibleColumns.Count - 1;
+            }
+            else if (ctrlHeld)
+            {
+                // Ctrl+click in Row mode: toggle the clicked row range
+                var existing = selectedRanges.FindIndex(r =>
+                    r.IsCellInRange(rowIndex, 0));
+                if (existing >= 0)
+                    selectedRanges.RemoveAt(existing);
+                else
+                    selectedRanges.Add(new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 });
             }
             else
             {
-                selectedRange = new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 };
+                selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
             }
             StateHasChanged();
             await RaiseSelectionChanged();
@@ -55,23 +67,45 @@ public partial class NxGrid<T>
         }
 
         // Cell mode
-        if (args.ShiftKey && selectedRange != null)
+        if (args.ShiftKey && ActiveRange != null)
         {
-            selectedRange.EndRow = rowIndex;
-            selectedRange.EndCol = colIndex;
+            ActiveRange.EndRow = rowIndex;
+            ActiveRange.EndCol = colIndex;
         }
-        else
+        else if (ctrlHeld)
         {
-            if (rowIndex != selectedRange?.StartRow || rowIndex != selectedRange?.EndRow ||
-                colIndex != selectedRange?.StartCol || colIndex != selectedRange?.EndCol)
+            // Ctrl+click: check if we're clicking a cell that's the sole member of an existing range
+            var existingIdx = selectedRanges.FindIndex(r =>
+                r.StartRow == rowIndex && r.EndRow == rowIndex &&
+                r.StartCol == colIndex && r.EndCol == colIndex);
+            if (existingIdx >= 0)
             {
-                selectedRange = new NxGridRange
+                selectedRanges.RemoveAt(existingIdx);
+            }
+            else
+            {
+                selectedRanges.Add(new NxGridRange
                 {
                     StartRow = rowIndex,
                     StartCol = colIndex,
                     EndRow = rowIndex,
                     EndCol = colIndex
-                };
+                });
+            }
+        }
+        else
+        {
+            if (selectedRanges.Count > 1 ||
+                rowIndex != ActiveRange?.StartRow || rowIndex != ActiveRange?.EndRow ||
+                colIndex != ActiveRange?.StartCol || colIndex != ActiveRange?.EndCol)
+            {
+                selectedRanges = [new NxGridRange
+                {
+                    StartRow = rowIndex,
+                    StartCol = colIndex,
+                    EndRow = rowIndex,
+                    EndCol = colIndex
+                }];
             }
         }
 
@@ -92,19 +126,19 @@ public partial class NxGrid<T>
         else
             DismissTooltip();
 
-        if (selectedRange != null && leftMouseDown && SelectionMode != NxGridSelectionMode.None)
+        if (ActiveRange != null && leftMouseDown && SelectionMode != NxGridSelectionMode.None)
         {
             var rowIndex = filteredData.IndexOf(row);
 
-            selectedRange.EndRow = rowIndex;
+            ActiveRange.EndRow = rowIndex;
             if (SelectionMode == NxGridSelectionMode.Row)
             {
-                selectedRange.StartCol = 0;
-                selectedRange.EndCol = visibleColumns.Count - 1;
+                ActiveRange.StartCol = 0;
+                ActiveRange.EndCol = visibleColumns.Count - 1;
             }
             else
             {
-                selectedRange.EndCol = visibleColumns.IndexOf(column);
+                ActiveRange.EndCol = visibleColumns.IndexOf(column);
             }
 
             StateHasChanged();
@@ -117,19 +151,19 @@ public partial class NxGrid<T>
     {
         var selectionArgs = new NxGridSelectionArgs<T>();
 
-        if (selectedRange != null)
+        foreach (var range in selectedRanges)
         {
             var selectionRange = new NxGridSelectionRange<T>();
 
-            var startRow = Math.Min(selectedRange.StartRow, selectedRange.EndRow);
-            var endRow = Math.Max(selectedRange.StartRow, selectedRange.EndRow);
+            var startRow = Math.Min(range.StartRow, range.EndRow);
+            var endRow = Math.Max(range.StartRow, range.EndRow);
             for (var i = startRow; i <= endRow; i++)
             {
                 selectionRange.Items.Add(filteredData[i]);
             }
 
-            var startCol = Math.Min(selectedRange.StartCol, selectedRange.EndCol);
-            var endCol = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
+            var startCol = Math.Min(range.StartCol, range.EndCol);
+            var endCol = Math.Max(range.StartCol, range.EndCol);
             for (var i = startCol; i <= endCol; i++)
             {
                 selectionRange.Columns.Add(visibleColumns[i]);
@@ -184,7 +218,7 @@ public partial class NxGrid<T>
             headerAnchorCol = colIndex;
         }
 
-        selectedRange = new NxGridRange { StartRow = 0, StartCol = startCol, EndRow = filteredData.Count - 1, EndCol = endCol };
+        selectedRanges = [new NxGridRange { StartRow = 0, StartCol = startCol, EndRow = filteredData.Count - 1, EndCol = endCol }];
         StateHasChanged();
         await RaiseSelectionChanged();
     }
@@ -199,13 +233,13 @@ public partial class NxGrid<T>
         var colIndex = visibleColumns.IndexOf(column);
         if (colIndex < 0) return;
 
-        selectedRange = new NxGridRange
+        selectedRanges = [new NxGridRange
         {
             StartRow = 0,
             StartCol = Math.Min(headerAnchorCol.Value, colIndex),
             EndRow   = filteredData.Count - 1,
             EndCol   = Math.Max(headerAnchorCol.Value, colIndex)
-        };
+        }];
         StateHasChanged();
         await RaiseSelectionChanged();
     }
@@ -226,7 +260,7 @@ public partial class NxGrid<T>
             headerAnchorRow = rowIndex;
         }
 
-        selectedRange = new NxGridRange { StartRow = startRow, StartCol = 0, EndRow = endRow, EndCol = visibleColumns.Count - 1 };
+        selectedRanges = [new NxGridRange { StartRow = startRow, StartCol = 0, EndRow = endRow, EndCol = visibleColumns.Count - 1 }];
         StateHasChanged();
         await RaiseSelectionChanged();
     }
@@ -237,13 +271,13 @@ public partial class NxGrid<T>
         if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) return;
         if (!headerAnchorRow.HasValue) return;
 
-        selectedRange = new NxGridRange
+        selectedRanges = [new NxGridRange
         {
             StartRow = Math.Min(headerAnchorRow.Value, rowIndex),
             StartCol = 0,
             EndRow   = Math.Max(headerAnchorRow.Value, rowIndex),
             EndCol   = visibleColumns.Count - 1
-        };
+        }];
         StateHasChanged();
         await RaiseSelectionChanged();
     }
@@ -252,7 +286,7 @@ public partial class NxGrid<T>
     {
         if (!HeaderClickSelects || SelectionMode == NxGridSelectionMode.None) return;
         if (args.Button != MouseButtonLeft) return;
-        selectedRange = new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 };
+        selectedRanges = [new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 }];
         StateHasChanged();
         await RaiseSelectionChanged();
     }
@@ -261,13 +295,14 @@ public partial class NxGrid<T>
     // column selection, returns all selected columns; otherwise just the single column.
     private IEnumerable<int> GetEntireColumnSelection(int columnIndex)
     {
-        if (selectedRange != null
-            && selectedRange.StartRow == 0
-            && selectedRange.EndRow == filteredData.Count - 1
-            && columnIndex >= selectedRange.StartCol
-            && columnIndex <= selectedRange.EndCol)
+        var active = ActiveRange;
+        if (active != null
+            && active.StartRow == 0
+            && active.EndRow == filteredData.Count - 1
+            && columnIndex >= active.StartCol
+            && columnIndex <= active.EndCol)
         {
-            return Enumerable.Range(selectedRange.StartCol, selectedRange.EndCol - selectedRange.StartCol + 1);
+            return Enumerable.Range(active.StartCol, active.EndCol - active.StartCol + 1);
         }
         return [columnIndex];
     }

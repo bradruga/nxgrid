@@ -7,7 +7,7 @@ public partial class NxGrid<T>
         var column = FindColumn(columnId);
         if (column == null) return;
         column.UserHidden = hidden;
-        if (hidden) selectedRange = null;
+        if (hidden) selectedRanges = [];
         ComputeFrozenOffsets();
         renderToken++;
         StateHasChanged();
@@ -19,7 +19,7 @@ public partial class NxGrid<T>
         if (openColumn == null) return;
         openColumn.UserHidden = true;
         openColumn = null;
-        selectedRange = null;
+        selectedRanges = [];
         ComputeFrozenOffsets();
         renderToken++;
         StateHasChanged();
@@ -38,7 +38,7 @@ public partial class NxGrid<T>
     private void OnChooserToggle(NxGridColumn<T> column, bool visible)
     {
         column.UserHidden = !visible;
-        if (!visible) selectedRange = null;
+        if (!visible) selectedRanges = [];
         ComputeFrozenOffsets();
         renderToken++;
         StateHasChanged();

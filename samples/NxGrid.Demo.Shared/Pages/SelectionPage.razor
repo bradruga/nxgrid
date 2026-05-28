@@ -80,6 +80,32 @@
 </div>
 
 <div class="doc-section">
+    <h2>Multi-Range Selection (Ctrl+Click)</h2>
+    <p class="doc-para">
+        Hold <kbd class="doc-kbd">Ctrl</kbd> (⌘ on Mac) while clicking or dragging to build up multiple independent
+        selection ranges. Each range highlights separately and all contribute to
+        <code>args.Ranges</code>. <kbd class="doc-kbd">Shift+click</kbd> still extends the most recent range while
+        keeping the others. Any plain click without Ctrl collapses back to a single range.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn doc-btn-secondary" @onclick="ClearMultiLog">Clear log</button>
+    </div>
+    <NxGrid T="Person" Data="@multiPeople"
+            SelectionMode="NxGridSelectionMode.Cell"
+            OnSelectionChanged="@OnMultiSelectionChanged"
+            RowGutter="NxGridRowGutter.Numbers"
+            Cursor="NxGridCursor.Cell"
+            Style="height:260px">
+        <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <div class="doc-output">@(string.IsNullOrEmpty(multiLog) ? "Ctrl+click cells to build multiple ranges…" : multiLog)</div>
+</div>
+
+<div class="doc-section">
     <h2>SelectionMode.None — Display-Only</h2>
     <p class="doc-para">
         No selection highlight is applied. Mouse clicks, keyboard navigation, and
@@ -134,13 +160,15 @@
 </div>
 
 @code {
-    List<Person> cellPeople = SampleData.GetPeopleCopy();
-    List<Person> rowPeople  = SampleData.GetPeopleCopy();
-    List<Person> nonePeople = SampleData.GetPeopleCopy();
+    List<Person> cellPeople  = SampleData.GetPeopleCopy();
+    List<Person> rowPeople   = SampleData.GetPeopleCopy();
+    List<Person> nonePeople  = SampleData.GetPeopleCopy();
+    List<Person> multiPeople = SampleData.GetPeopleCopy();
 
     NxGrid<Person> cellGrid = null!;
     bool headerClickSelects;
     string cellLog = "";
+    string multiLog = "";
     Person? selectedPerson;
 
     void OnCellSelectionChanged(NxGridSelectionArgs<Person> args)
@@ -171,6 +199,27 @@
     }
 
     void ClearCellLog() => cellLog = "";
+    void ClearMultiLog() => multiLog = "";
+
+    void OnMultiSelectionChanged(NxGridSelectionArgs<Person> args)
+    {
+        if (args.Ranges.Count == 0) { multiLog = "No selection"; return; }
+
+        var parts = args.Ranges.Select((r, i) =>
+        {
+            var rows = r.EndRow - r.StartRow + 1;
+            var cols = r.EndCol - r.StartCol + 1;
+            return $"Range {i + 1}: {rows}×{cols} [rows {r.StartRow}–{r.EndRow}, cols {r.StartCol}–{r.EndCol}]";
+        });
+
+        var totalCells = args.Ranges.Sum(r => (r.EndRow - r.StartRow + 1) * (r.EndCol - r.StartCol + 1));
+        var totalRows  = args.Ranges.SelectMany(r => r.Items).Distinct().Count();
+
+        multiLog = $"{args.Ranges.Count} range{(args.Ranges.Count == 1 ? "" : "s")}, " +
+                   $"{totalCells} cell{(totalCells == 1 ? "" : "s")}, " +
+                   $"{totalRows} unique row{(totalRows == 1 ? "" : "s")}" +
+                   "\n" + string.Join("\n", parts);
+    }
 
     string selectionCode        = DemoCodeSamples.Selection;
     string selectionModeRowCode = DemoCodeSamples.SelectionModeRow;

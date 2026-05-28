@@ -201,7 +201,21 @@ Columns self-register with their parent grid on initialization and deregister on
 
 ## Selection model
 
-Selection is always a rectangular range. Ranges can be extended with Shift+click or Shift+Arrow. Multiple non-contiguous ranges are not supported.
+Selection is one or more rectangular ranges. Hold **Ctrl** (⌘ on Mac) while clicking or dragging to add a new range without clearing existing ones; existing ranges remain highlighted. **Shift+click** or **Shift+Arrow** extends the most recent range. Any plain click or navigation key without Ctrl replaces all ranges with a single new one.
+
+### Multi-range selection (Ctrl+click)
+
+| Interaction | Effect |
+|---|---|
+| Ctrl/⌘ + click | Anchor a new range at the clicked cell; existing ranges are preserved |
+| Ctrl/⌘ + drag | Extend the newly anchored range by dragging |
+| Ctrl/⌘ + Shift + click | Extend the most recent range to the clicked cell (same as Shift+click, but other ranges are preserved) |
+
+Ctrl+clicking a cell that is the sole member of a single-cell range removes that range.
+
+Arrow keys, Tab, Enter, and Ctrl+A always collapse to a single range. Editing (F2, typing) also starts from the most recent range's anchor cell, with all other ranges cleared.
+
+`args.Ranges` contains one `NxGridSelectionRange<T>` per range, in the order they were created. The last entry is the active (most recently anchored) range.
 
 In `Row` mode the range always spans all visible columns, so `StartCol = 0` and `EndCol = visibleColumns.Count - 1`. Use `args.Ranges[0].Items` to get the selected row objects — the `Columns` list will contain every visible column.
 
@@ -226,11 +240,14 @@ public class NxGridSelectionRange<T>
 Typical patterns:
 
 ```csharp
-// All selected rows (regardless of which columns)
+// All selected rows across all ranges (regardless of which columns)
 var rows = args.Ranges.SelectMany(r => r.Items).Distinct().ToList();
 
 // The single selected row (single-row mode)
 var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
+
+// Total count of ranges (> 1 when Ctrl+click multi-select is active)
+var rangeCount = args.Ranges.Count;
 ```
 
 ---
@@ -244,6 +261,8 @@ var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
 | Ctrl/⌘ + Arrow | Jump to edge of data block (Excel-style) |
 | Home / End | Jump to first/last column |
 | Ctrl/⌘ + Home/End | Jump to first/last cell |
+| Ctrl/⌘ + Click | Add a new selection range at the clicked cell (preserves existing ranges) |
+| Ctrl/⌘ + Shift + Click | Extend the most recent range to the clicked cell (preserves other ranges) |
 | Page Up / Down | Move by page height |
 | Tab / Shift+Tab | Move right/left, wrapping rows |
 | Enter | Move down one row (navigation) / commit edit and move down (editing) |

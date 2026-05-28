@@ -4,30 +4,35 @@ public partial class NxGrid<T>
 {
     private (double Sum, double Avg, int Count, int NumericCount) ComputeSelectionMath()
     {
-        if (selectedRange == null || filteredData.Count == 0)
+        if (selectedRanges.Count == 0 || filteredData.Count == 0)
             return (0, 0, 0, 0);
-
-        var minRow = Math.Min(selectedRange.StartRow, selectedRange.EndRow);
-        var maxRow = Math.Max(selectedRange.StartRow, selectedRange.EndRow);
-        var minCol = Math.Min(selectedRange.StartCol, selectedRange.EndCol);
-        var maxCol = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
 
         double sum = 0;
         int count = 0;
         int numericCount = 0;
+        var visited = new HashSet<(int, int)>();
 
-        for (var r = minRow; r <= maxRow; r++)
+        foreach (var range in selectedRanges)
         {
-            if (r >= filteredData.Count) continue;
-            for (var c = minCol; c <= maxCol; c++)
+            var minRow = Math.Min(range.StartRow, range.EndRow);
+            var maxRow = Math.Max(range.StartRow, range.EndRow);
+            var minCol = Math.Min(range.StartCol, range.EndCol);
+            var maxCol = Math.Max(range.StartCol, range.EndCol);
+
+            for (var r = minRow; r <= maxRow; r++)
             {
-                if (c >= visibleColumns.Count) continue;
-                count++;
-                var val = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
-                if (val != null && TryConvertToDouble(val, out var d))
+                if (r >= filteredData.Count) continue;
+                for (var c = minCol; c <= maxCol; c++)
                 {
-                    sum += d;
-                    numericCount++;
+                    if (c >= visibleColumns.Count) continue;
+                    if (!visited.Add((r, c))) continue;
+                    count++;
+                    var val = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
+                    if (val != null && TryConvertToDouble(val, out var d))
+                    {
+                        sum += d;
+                        numericCount++;
+                    }
                 }
             }
         }

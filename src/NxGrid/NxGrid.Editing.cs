@@ -106,24 +106,24 @@ public partial class NxGrid<T>
         if (moveKey == KeyEnter)
         {
             newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1);
-            selectedRange = new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col };
+            selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col }];
         }
         else if (moveKey == KeyShiftEnter)
         {
             newRow = Math.Clamp(row - 1, 0, filteredData.Count - 1);
-            selectedRange = new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col };
+            selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col }];
         }
         else if (moveKey == KeyTab)
         {
             newCol = col + 1;
             if (newCol >= visibleColumns.Count) { newCol = 0; newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1); }
-            selectedRange = new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol };
+            selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol }];
         }
         else if (moveKey == KeyShiftTab)
         {
             newCol = col - 1;
             if (newCol < 0) { newCol = visibleColumns.Count - 1; newRow = row - 1; if (newRow < 0) newRow = filteredData.Count - 1; }
-            selectedRange = new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol };
+            selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol }];
         }
 
         StateHasChanged();
@@ -178,32 +178,47 @@ public partial class NxGrid<T>
 
     private async Task CommitEditToSelection()
     {
-        if (!isEditing || selectedRange == null) return;
-
-        var minRow = Math.Min(selectedRange.StartRow, selectedRange.EndRow);
-        var maxRow = Math.Max(selectedRange.StartRow, selectedRange.EndRow);
-        var minCol = Math.Min(selectedRange.StartCol, selectedRange.EndCol);
-        var maxCol = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
+        if (!isEditing || selectedRanges.Count == 0) return;
 
         if (OnUpdate.HasDelegate)
         {
-            var rowArgs = new List<NxGridRowChange<T>>();
-            for (var r = minRow; r <= maxRow; r++)
+            var rowChanges = new Dictionary<int, List<NxGridCellChange<T>>>();
+            var visitedCells = new HashSet<(int, int)>();
+
+            foreach (var range in selectedRanges)
             {
-                var changes = new List<NxGridCellChange<T>>();
-                for (var c = minCol; c <= maxCol; c++)
+                var minRow = Math.Min(range.StartRow, range.EndRow);
+                var maxRow = Math.Max(range.StartRow, range.EndRow);
+                var minCol = Math.Min(range.StartCol, range.EndCol);
+                var maxCol = Math.Max(range.StartCol, range.EndCol);
+
+                for (var r = minRow; r <= maxRow; r++)
                 {
-                    if (!IsColumnEditable(visibleColumns[c])) continue;
-                    if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], visibleColumns[c])) continue;
-                    var oldValue = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
-                    var (typedValue, applyAction) = visibleColumns[c].ParseAndBuildApply(editValue);
-                    changes.Add(new NxGridCellChange<T> { Column = visibleColumns[c], OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction });
+                    for (var c = minCol; c <= maxCol; c++)
+                    {
+                        if (!visitedCells.Add((r, c))) continue;
+                        if (!IsColumnEditable(visibleColumns[c])) continue;
+                        if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], visibleColumns[c])) continue;
+                        var oldValue = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
+                        var (typedValue, applyAction) = visibleColumns[c].ParseAndBuildApply(editValue);
+                        if (!rowChanges.TryGetValue(r, out var changes))
+                        {
+                            changes = [];
+                            rowChanges[r] = changes;
+                        }
+                        changes.Add(new NxGridCellChange<T> { Column = visibleColumns[c], OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction });
+                    }
                 }
-                if (changes.Count > 0)
-                    rowArgs.Add(new NxGridRowChange<T> { Row = filteredData[r], Changes = changes });
             }
-            if (rowArgs.Count > 0)
+
+            if (rowChanges.Count > 0)
+            {
+                var rowArgs = rowChanges
+                    .OrderBy(kvp => kvp.Key)
+                    .Select(kvp => new NxGridRowChange<T> { Row = filteredData[kvp.Key], Changes = kvp.Value })
+                    .ToList();
                 await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
+            }
         }
 
         isComboOpen = false;
@@ -369,33 +384,48 @@ public partial class NxGrid<T>
 
     private async Task DeleteSelection()
     {
-        if (selectedRange == null) return;
+        if (selectedRanges.Count == 0) return;
 
-        var minRow = Math.Min(selectedRange.StartRow, selectedRange.EndRow);
-        var maxRow = Math.Max(selectedRange.StartRow, selectedRange.EndRow);
-        var minCol = Math.Min(selectedRange.StartCol, selectedRange.EndCol);
-        var maxCol = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
+        // Collect all (row, col) pairs across every range, deduplicated, grouped by row
+        var rowChanges = new Dictionary<int, List<NxGridCellChange<T>>>();
+        var visitedCells = new HashSet<(int, int)>();
 
-        if (OnUpdate.HasDelegate)
+        foreach (var range in selectedRanges)
         {
-            var rowArgs = new List<NxGridRowChange<T>>();
+            var minRow = Math.Min(range.StartRow, range.EndRow);
+            var maxRow = Math.Max(range.StartRow, range.EndRow);
+            var minCol = Math.Min(range.StartCol, range.EndCol);
+            var maxCol = Math.Max(range.StartCol, range.EndCol);
+
             for (var r = minRow; r <= maxRow; r++)
             {
-                var changes = new List<NxGridCellChange<T>>();
                 for (var c = minCol; c <= maxCol; c++)
                 {
+                    if (!visitedCells.Add((r, c))) continue;
                     if (!IsColumnEditable(visibleColumns[c])) continue;
                     if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], visibleColumns[c])) continue;
+
                     var oldValue = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
                     var defaultStr = GetColumnDefaultString(visibleColumns[c]);
                     var (typedDefault, applyDefault) = visibleColumns[c].ParseAndBuildApply(defaultStr);
+
+                    if (!rowChanges.TryGetValue(r, out var changes))
+                    {
+                        changes = [];
+                        rowChanges[r] = changes;
+                    }
                     changes.Add(new NxGridCellChange<T> { Column = visibleColumns[c], OldValue = oldValue, NewValue = typedDefault, ApplyAction = applyDefault });
                 }
-                if (changes.Count > 0)
-                    rowArgs.Add(new NxGridRowChange<T> { Row = filteredData[r], Changes = changes });
             }
-            if (rowArgs.Count > 0)
-                await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
+        }
+
+        if (OnUpdate.HasDelegate && rowChanges.Count > 0)
+        {
+            var rowArgs = rowChanges
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => new NxGridRowChange<T> { Row = filteredData[kvp.Key], Changes = kvp.Value })
+                .ToList();
+            await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
         }
 
         renderToken++;
@@ -428,7 +458,7 @@ public partial class NxGrid<T>
 
     private async Task PasteFromClipboard()
     {
-        if (selectedRange == null || jsInterop == null) return;
+        if (ActiveRange == null || jsInterop == null) return;
 
         var text = await jsInterop.GetClipboardText();
         if (string.IsNullOrEmpty(text)) return;
@@ -437,10 +467,10 @@ public partial class NxGrid<T>
         var clipRows = text.TrimEnd('\n', '\r').Split('\n');
         var clipCols = clipRows[0].TrimEnd('\r').Split('\t');
 
-        var originRow  = Math.Min(selectedRange.StartRow, selectedRange.EndRow);
-        var originCol  = Math.Min(selectedRange.StartCol, selectedRange.EndCol);
-        var selEndRow  = Math.Max(selectedRange.StartRow, selectedRange.EndRow);
-        var selEndCol  = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
+        var originRow  = Math.Min(ActiveRange.StartRow, ActiveRange.EndRow);
+        var originCol  = Math.Min(ActiveRange.StartCol, ActiveRange.EndCol);
+        var selEndRow  = Math.Max(ActiveRange.StartRow, ActiveRange.EndRow);
+        var selEndCol  = Math.Max(ActiveRange.StartCol, ActiveRange.EndCol);
 
         // rowIndex → list of changes, preserving row order
         var rowChanges = new Dictionary<int, List<NxGridCellChange<T>>>();
@@ -545,25 +575,13 @@ public partial class NxGrid<T>
     {
         int minRow, maxRow, minCol, maxCol;
 
-        if (selectedRange != null)
+        // Expand to the full selection only when the trigger cell is inside any selected range
+        if (selectedRanges.Any(r => r.IsCellInRange(triggerRow, triggerCol)))
         {
-            var sMinRow = Math.Min(selectedRange.StartRow, selectedRange.EndRow);
-            var sMaxRow = Math.Max(selectedRange.StartRow, selectedRange.EndRow);
-            var sMinCol = Math.Min(selectedRange.StartCol, selectedRange.EndCol);
-            var sMaxCol = Math.Max(selectedRange.StartCol, selectedRange.EndCol);
-
-            // Expand to full selection only when the trigger cell is inside it
-            if (triggerRow >= sMinRow && triggerRow <= sMaxRow &&
-                triggerCol >= sMinCol && triggerCol <= sMaxCol)
-            {
-                minRow = sMinRow; maxRow = sMaxRow;
-                minCol = sMinCol; maxCol = sMaxCol;
-            }
-            else
-            {
-                minRow = maxRow = triggerRow;
-                minCol = maxCol = triggerCol;
-            }
+            minRow = selectedRanges.Min(r => Math.Min(r.StartRow, r.EndRow));
+            maxRow = selectedRanges.Max(r => Math.Max(r.StartRow, r.EndRow));
+            minCol = selectedRanges.Min(r => Math.Min(r.StartCol, r.EndCol));
+            maxCol = selectedRanges.Max(r => Math.Max(r.StartCol, r.EndCol));
         }
         else
         {

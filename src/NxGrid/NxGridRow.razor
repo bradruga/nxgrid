@@ -41,8 +41,10 @@
         var col = Columns[ci];
         var colIdx = ci;
         var isAnchor = SelectionMode == NxGridSelectionMode.Cell
+            && AdditionalRanges.Count <= 1
             && SelectedRange != null && RowIndex == SelectedRange.StartRow && ci == SelectedRange.StartCol;
-        var selected = SelectedRange?.IsCellInRange(RowIndex, ci) == true && !isAnchor;
+        var inAdditional = AdditionalRanges.Count > 1 && AdditionalRanges.Take(AdditionalRanges.Count - 1).Any(r => r.IsCellInRange(RowIndex, ci));
+        var selected = (SelectedRange?.IsCellInRange(RowIndex, ci) == true && !isAnchor) || inAdditional;
 
         <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
              style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
@@ -224,6 +226,7 @@
     [Parameter] public List<NxGridColumn<T>> Columns { get; set; } = [];
     [Parameter] public string RowStyle { get; set; } = "";
     [Parameter] public NxGridRange? SelectedRange { get; set; }
+    [Parameter] public IReadOnlyList<NxGridRange> AdditionalRanges { get; set; } = [];
     [Parameter] public NxGridRowGutter RowGutter { get; set; }
     [Parameter] public bool IsEditing { get; set; }
     [Parameter] public int EditRow { get; set; }
@@ -264,6 +267,7 @@
     // in-place mutations to NxGridRange (e.g. during mouse-drag) are detected correctly.
     private T? prevRow;
     private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevRangeSnapshot;
+    private List<(int, int, int, int)> prevAdditionalSnapshots = [];
     private bool prevIsEditing;
     private NxGridCursor prevCursor;
     private NxGridSelectionMode prevSelectionMode;
@@ -295,26 +299,28 @@
     {
         var rowChanged       = !EqualityComparer<T>.Default.Equals(prevRow, Row);
         var selChanged       = SelectionChangedForRow();
+        var addlChanged      = AdditionalRangesChangedForRow();
         var editChanged      = EditChangedForRow();
         var tokenChanged     = RenderToken != prevRenderToken;
         var cursorChanged    = Cursor != prevCursor;
         var gutterChanged    = RowGutter != prevRowGutter;
         var modeChanged      = SelectionMode != prevSelectionMode;
 
-        if (!rowChanged && !selChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged)
+        if (!rowChanged && !selChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
-        prevRow            = Row;
-        prevRangeSnapshot  = GetRangeSnapshot();
-        prevIsEditing      = IsEditing;
-        prevEditRow        = EditRow;
-        prevEditCol        = EditCol;
-        prevEditValue      = EditValue;
-        prevRenderToken    = RenderToken;
-        prevCursor         = Cursor;
-        prevRowGutter      = RowGutter;
-        prevSelectionMode  = SelectionMode;
+        prevRow                 = Row;
+        prevRangeSnapshot       = GetRangeSnapshot();
+        prevAdditionalSnapshots = GetAdditionalSnapshots();
+        prevIsEditing           = IsEditing;
+        prevEditRow             = EditRow;
+        prevEditCol             = EditCol;
+        prevEditValue           = EditValue;
+        prevRenderToken         = RenderToken;
+        prevCursor              = Cursor;
+        prevRowGutter           = RowGutter;
+        prevSelectionMode       = SelectionMode;
 
         return true;
     }
@@ -325,6 +331,41 @@
             Math.Max(SelectedRange.StartRow, SelectedRange.EndRow),
             Math.Min(SelectedRange.StartCol, SelectedRange.EndCol),
             Math.Max(SelectedRange.StartCol, SelectedRange.EndCol));
+
+    private List<(int, int, int, int)> GetAdditionalSnapshots()
+    {
+        if (AdditionalRanges.Count <= 1) return [];
+        var result = new List<(int, int, int, int)>(AdditionalRanges.Count - 1);
+        for (var i = 0; i < AdditionalRanges.Count - 1; i++)
+        {
+            var r = AdditionalRanges[i];
+            result.Add((Math.Min(r.StartRow, r.EndRow), Math.Max(r.StartRow, r.EndRow),
+                        Math.Min(r.StartCol, r.EndCol), Math.Max(r.StartCol, r.EndCol)));
+        }
+        return result;
+    }
+
+    private bool AdditionalRangesChangedForRow()
+    {
+        var curr = GetAdditionalSnapshots();
+        if (curr.Count != prevAdditionalSnapshots.Count)
+        {
+            // Check if any old or new snapshot touches this row
+            return prevAdditionalSnapshots.Any(s => RowIndex >= s.Item1 && RowIndex <= s.Item2)
+                || curr.Any(s => RowIndex >= s.Item1 && RowIndex <= s.Item2);
+        }
+        for (var i = 0; i < curr.Count; i++)
+        {
+            if (curr[i] != prevAdditionalSnapshots[i])
+            {
+                var prev = prevAdditionalSnapshots[i];
+                if ((RowIndex >= prev.Item1 && RowIndex <= prev.Item2) ||
+                    (RowIndex >= curr[i].Item1 && RowIndex <= curr[i].Item2))
+                    return true;
+            }
+        }
+        return false;
+    }
 
     private bool SelectionChangedForRow()
     {
@@ -362,23 +403,25 @@
 
     private string GetSelectionBorderStyle(int row, int col)
     {
-        if (SelectedRange == null || !SelectedRange.IsCellInRange(row, col))
-            return "";
-
-        var minRow = Math.Min(SelectedRange.StartRow, SelectedRange.EndRow);
-        var maxRow = Math.Max(SelectedRange.StartRow, SelectedRange.EndRow);
-        var minCol = Math.Min(SelectedRange.StartCol, SelectedRange.EndCol);
-        var maxCol = Math.Max(SelectedRange.StartCol, SelectedRange.EndCol);
-
+        if (AdditionalRanges.Count > 1) return "";
         var shadows = new System.Text.StringBuilder();
-        if (row == minRow) shadows.Append("inset 0 2px 0 0 var(--nx-grid-selection-border),");
-        if (row == maxRow) shadows.Append("inset 0 -2px 0 0 var(--nx-grid-selection-border),");
-        if (col == minCol) shadows.Append("inset 2px 0 0 0 var(--nx-grid-selection-border),");
-        if (col == maxCol) shadows.Append("inset -2px 0 0 0 var(--nx-grid-selection-border),");
+        AppendRangeBorderShadows(shadows, row, col, SelectedRange);
+        return shadows.Length > 0 ? $"box-shadow:{shadows.ToString().TrimEnd(',')};" : "";
+    }
 
-        return shadows.Length > 0
-            ? $"box-shadow:{shadows.ToString().TrimEnd(',')};"
-            : "";
+    private static void AppendRangeBorderShadows(System.Text.StringBuilder sb, int row, int col, NxGridRange? range)
+    {
+        if (range == null || !range.IsCellInRange(row, col)) return;
+
+        var minRow = Math.Min(range.StartRow, range.EndRow);
+        var maxRow = Math.Max(range.StartRow, range.EndRow);
+        var minCol = Math.Min(range.StartCol, range.EndCol);
+        var maxCol = Math.Max(range.StartCol, range.EndCol);
+
+        if (row == minRow) sb.Append("inset 0 2px 0 0 var(--nx-grid-selection-border),");
+        if (row == maxRow) sb.Append("inset 0 -2px 0 0 var(--nx-grid-selection-border),");
+        if (col == minCol) sb.Append("inset 2px 0 0 0 var(--nx-grid-selection-border),");
+        if (col == maxCol) sb.Append("inset -2px 0 0 0 var(--nx-grid-selection-border),");
     }
 
     private bool EditChangedForRow()

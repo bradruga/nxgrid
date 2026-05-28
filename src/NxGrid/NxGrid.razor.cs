@@ -84,7 +84,8 @@ public partial class NxGrid<T>
     private NxGridJsInterop<T>? jsInterop;
     private bool isMac;
 
-    private NxGridRange? selectedRange;
+    private List<NxGridRange> selectedRanges = [];
+    private NxGridRange? ActiveRange => selectedRanges.Count > 0 ? selectedRanges[^1] : null;
     private bool leftMouseDown;
 
     // Editing state
@@ -138,7 +139,7 @@ public partial class NxGrid<T>
         if (SelectionMode == NxGridSelectionMode.None) return;
         var rowIndex = filteredData.IndexOf(row);
         if (rowIndex < 0) return;
-        selectedRange = new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 };
+        selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
         StateHasChanged();
         await RaiseSelectionChanged();
         await ScrollCellIntoView(rowIndex, 0);
