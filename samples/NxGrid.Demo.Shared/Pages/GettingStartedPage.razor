@@ -1,0 +1,124 @@
+@page "/getting-started"
+
+<PageTitle>Getting Started — NxGrid</PageTitle>
+
+<h1>Getting Started</h1>
+<p class="doc-intro">
+    Install NxGrid, drop a grid onto a page, and have a fully functional grid with sort, filter,
+    and keyboard navigation in under five minutes.
+</p>
+
+<div class="doc-section">
+    <h2>1 — Install the package</h2>
+    <p class="doc-note">Add NxGrid to your Blazor project from the NuGet CLI:</p>
+    <pre class="doc-code">@installCli</pre>
+    <p class="doc-note" style="margin-top:12px">Add the stylesheet to your host — <code>App.razor</code> (Blazor Web) or <code>index.html</code> (WASM):</p>
+    <pre class="doc-code">@installStylesheet</pre>
+    <p class="doc-note" style="margin-top:12px">Optionally add a global using to <code>_Imports.razor</code> so you don't need <code>@@using NxGrid</code> on every page:</p>
+    <pre class="doc-code">@installUsing</pre>
+</div>
+
+<div class="doc-section">
+    <h2>2 — Your first grid</h2>
+    <p class="doc-note">
+        Pass a <code>List&lt;T&gt;</code> to <code>Data</code> and you're done. NxGrid generates columns
+        from your model's public properties — names split on PascalCase boundaries, numeric types
+        right-aligned, <code>[Display]</code> attributes respected. Sort and filter work immediately.
+    </p>
+    <pre class="doc-code">@autoColumnsCode</pre>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Style="margin-top:12px" />
+</div>
+
+<div class="doc-section">
+    <h2>3 — Declare columns</h2>
+    <p class="doc-note">
+        Add <code>&lt;NxGridColumn&gt;</code> children for control over titles, widths, alignment, and
+        display formatting. Use <code>OnSelectionChanged</code> to react to the user's selection.
+    </p>
+    <pre class="doc-code">@declaredColumnsCode</pre>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" OnSelectionChanged="@OnSelected"
+            Style="margin-top:12px">
+        <NxGridColumn Property="@(x => x.FirstName)" Title="First"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"  Title="Last"   Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"       Width="80"     Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    @if (selectedName != null)
+    {
+        <div class="doc-output">Selected: @selectedName</div>
+    }
+</div>
+
+<div class="doc-section">
+    <h2>4 — Enable editing</h2>
+    <p class="doc-note">
+        Set <code>Editable="true"</code> and handle <code>OnUpdate</code>. The grid manages the edit
+        state machine — F2, double-click, or typing opens the editor; Enter or Tab commits. Call
+        <code>change.Apply(row)</code> to write the typed value back to your model.
+    </p>
+    <pre class="doc-code">@editableCode</pre>
+    <NxGrid T="Person" Data="@editPeople" Editable="true" OnUpdate="@HandleUpdate"
+            Cursor="NxGridCursor.Cell" Style="margin-top:12px">
+        <NxGridColumn Property="@(x => x.FirstName)" Title="First"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"  Title="Last"   Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"       Width="80"     Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)"
+                      ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>Next steps</h2>
+    <div class="feature-grid">
+        <a href="/selection" class="feature-card">
+            <div class="feature-card-title">Selection</div>
+            <div class="feature-card-desc">Cell and row selection modes, programmatic SelectRow, OnSelectionChanged</div>
+        </a>
+        <a href="/columns" class="feature-card">
+            <div class="feature-card-title">Columns</div>
+            <div class="feature-card-desc">Custom templates, Display vs Property, alignment, width constraints</div>
+        </a>
+        <a href="/frozen-columns" class="feature-card">
+            <div class="feature-card-title">Frozen Columns</div>
+            <div class="feature-card-desc">Sticky columns, user-toggle freeze via column menu</div>
+        </a>
+        <a href="/grouping" class="feature-card">
+            <div class="feature-card-title">Row Grouping</div>
+            <div class="feature-card-desc">GroupBy with collapsible groups and custom group header templates</div>
+        </a>
+        <a href="/theming" class="feature-card">
+            <div class="feature-card-title">Theming</div>
+            <div class="feature-card-desc">CSS custom properties, dark mode, per-cell CellStyle</div>
+        </a>
+        <a href="/state-persistence" class="feature-card">
+            <div class="feature-card-title">State Persistence</div>
+            <div class="feature-card-desc">Save column widths, sort, and filters to localStorage via StateKey</div>
+        </a>
+    </div>
+</div>
+
+@code {
+    List<Person> editPeople = SampleData.GetPeopleCopy();
+    string? selectedName;
+
+    string installCli       = "dotnet add package NxGrid";
+    string installStylesheet = """<link rel="stylesheet" href="_content/NxGrid/nx-grid.css" />""";
+    string installUsing     = "@using NxGrid";
+    string autoColumnsCode  = DemoCodeSamples.AutoColumns;
+    string declaredColumnsCode = DemoCodeSamples.QuickStart;
+    string editableCode     = DemoCodeSamples.GettingStartedEditable;
+
+    void OnSelected(NxGridSelectionArgs<Person> args)
+    {
+        var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
+        selectedName = row is null ? null : $"{row.FirstName} {row.LastName}";
+    }
+
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+}

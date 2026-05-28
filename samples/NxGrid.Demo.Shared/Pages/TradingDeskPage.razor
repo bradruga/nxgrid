@@ -1,0 +1,629 @@
+@page "/trading-desk"
+@implements IDisposable
+@using System.Threading
+@using Microsoft.AspNetCore.Components.Web
+@using NxGrid
+
+<PageTitle>Trading Desk — NxGrid</PageTitle>
+
+<h1>Trading Desk</h1>
+<p class="doc-intro">
+    A live market dashboard that puts NxGrid's most powerful features together: real-time data
+    updates via <code>ForceRerender()</code>, conditional cell styling for P&amp;L color coding,
+    <code>Template</code> sparklines, frozen columns, multi-range selection with aggregation, and
+    inline price-target editing — all in a single component.
+</p>
+
+<div class="@ContainerClass" style="border:1px solid var(--nx-grid-border,#ddd); border-radius:6px; overflow:hidden; margin-bottom:8px;">
+
+    @* ── Toolbar ── *@
+    <div class="td-toolbar">
+        <div class="@LiveBadgeClass">
+            @if (isLive) { <span class="td-pulse-dot"></span> }
+            @(isLive ? "LIVE" : "PAUSED")
+        </div>
+
+        <button class="td-btn" @onclick="ToggleLive">@(isLive ? "⏸ Pause" : "▶ Resume")</button>
+
+        <div class="td-sep-v"></div>
+
+        @foreach (var s in SectorOptions)
+        {
+            var sector = s;
+            <button class="td-chip @(sectorFilter == sector ? "td-chip-on" : "")"
+                    @onclick="@(() => SetSector(sector))">
+                @(sector ?? "All")
+            </button>
+        }
+
+        <div class="td-sep-v"></div>
+
+        <button class="td-btn @(darkMode ? "td-btn-on" : "")" @onclick="@(() => darkMode = !darkMode)">
+            @(darkMode ? "☀ Light" : "🌙 Dark")
+        </button>
+
+        <span style="margin-left:auto; font-size:11px; opacity:0.5;">
+            @updateCount updates · last tick @lastTick
+        </span>
+    </div>
+
+    @* ── Grid ── *@
+    <NxGrid T="StockRow"
+            @ref="grid"
+            Data="@displayStocks"
+            Style="height:460px"
+            RowHeight="30"
+            Cursor="NxGridCursor.Cell"
+            Editable="true"
+            CellEditableGetter="@((row, col) => col.Title == "Target")"
+            RowBanding="true"
+            CellStyle="@GetCellStyle"
+            OnSelectionChanged="@HandleSelection"
+            OnUpdate="@HandleUpdate">
+
+        <NxGridColumn T="StockRow" Title="Symbol"
+                      Property="@(x => x.Symbol)"
+                      Width="72" MinWidth="72" MaxWidth="72"
+                      Frozen="true" />
+
+        <NxGridColumn T="StockRow" Title="Name"
+                      Property="@(x => x.Name)"
+                      Width="162" MinWidth="130"
+                      Frozen="true" />
+
+        <NxGridColumn T="StockRow" Title="Sector"
+                      Property="@(x => x.Sector)"
+                      Width="110" MinWidth="100" />
+
+        <NxGridColumn T="StockRow" Title="Price"
+                      Property="@(x => x.Price)"
+                      Display="@(x => x.Price.ToString("F2"))"
+                      Width="88" Alignment="NxGridColumnAlignment.Right" />
+
+        <NxGridColumn T="StockRow" Title="Change"
+                      Property="@(x => x.Change)"
+                      Display="@(x => FormatChange(x.Change))"
+                      Width="82" Alignment="NxGridColumnAlignment.Right" />
+
+        <NxGridColumn T="StockRow" Title="Chg %"
+                      Property="@(x => x.ChangePct)"
+                      Display="@(x => FormatChangePct(x.ChangePct))"
+                      Width="82" Alignment="NxGridColumnAlignment.Right" />
+
+        <NxGridColumn T="StockRow" Title="Volume"
+                      Property="@(x => x.VolumeK)"
+                      Display="@(x => FormatVolume(x.VolumeK))"
+                      Width="86" Alignment="NxGridColumnAlignment.Right" />
+
+        <NxGridColumn T="StockRow" Title="Mkt Cap"
+                      Property="@(x => x.MarketCapB)"
+                      Display="@(x => FormatMarketCap(x.MarketCapB))"
+                      Width="82" Alignment="NxGridColumnAlignment.Right" />
+
+        <NxGridColumn T="StockRow" Title="Target"
+                      Display="@(x => x.Target.HasValue ? x.Target.Value.ToString("F2") : "")"
+                      Width="76" Alignment="NxGridColumnAlignment.Right" />
+
+        <NxGridColumn T="StockRow" Title="Trend"
+                      Width="84" MinWidth="84" MaxWidth="84">
+            <Template Context="row">
+                <svg width="76" height="24" viewBox="0 0 76 24" style="display:block;overflow:visible;">
+                    @if (row.History.Length >= 2)
+                    {
+                        <polyline points="@GetSparklinePoints(row.History, 76, 24)"
+                                  fill="none"
+                                  stroke="@(row.ChangePct >= 0 ? (darkMode ? "#4ade80" : "#16a34a") : (darkMode ? "#f87171" : "#dc2626"))"
+                                  stroke-width="1.5"
+                                  stroke-linejoin="round"
+                                  stroke-linecap="round" />
+                    }
+                </svg>
+            </Template>
+        </NxGridColumn>
+
+    </NxGrid>
+
+    @* ── Stats bar ── *@
+    <div class="td-stats">
+        @if (selectedCount > 0)
+        {
+            <span class="td-stat"><strong>@selectedCount</strong> selected</span>
+            <span class="td-stat-sep">|</span>
+            <span class="td-stat">
+                Avg Chg: <strong class="@(selectedAvgChangePct >= 0 ? "td-pos" : "td-neg")">
+                    @((selectedAvgChangePct >= 0 ? "+" : "") + selectedAvgChangePct.ToString("F2"))%
+                </strong>
+            </span>
+            <span class="td-stat-sep">|</span>
+            <span class="td-stat">Avg Price: <strong>$@selectedAvgPrice.ToString("F2")</strong></span>
+            @if (selectedBest != null)
+            {
+                <span class="td-stat-sep">|</span>
+                <span class="td-stat">Best: <strong class="td-pos">@selectedBest</strong></span>
+            }
+            @if (selectedWorst != null)
+            {
+                <span class="td-stat-sep">|</span>
+                <span class="td-stat">Worst: <strong class="td-neg">@selectedWorst</strong></span>
+            }
+        }
+        else
+        {
+            <span class="td-stat"><strong class="td-pos">@gainers</strong> gainers</span>
+            <span class="td-stat-sep">|</span>
+            <span class="td-stat"><strong class="td-neg">@losers</strong> losers</span>
+            @if (marketTopGainer != null)
+            {
+                <span class="td-stat-sep">|</span>
+                <span class="td-stat">
+                    Top: <strong class="td-pos">
+                        @marketTopGainer.Symbol &nbsp;+@marketTopGainer.ChangePct.ToString("F2")%
+                    </strong>
+                </span>
+            }
+            @if (marketTopLoser != null)
+            {
+                <span class="td-stat-sep">|</span>
+                <span class="td-stat">
+                    Worst: <strong class="td-neg">
+                        @marketTopLoser.Symbol &nbsp;@marketTopLoser.ChangePct.ToString("F2")%
+                    </strong>
+                </span>
+            }
+            <span class="td-stat-sep">|</span>
+            <span class="td-stat" style="opacity:0.6;">
+                Select rows to see aggregates
+            </span>
+        }
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>How it works</h2>
+    <p class="doc-note">
+        A <code>System.Threading.Timer</code> fires every 1.2 seconds on a thread-pool thread and calls
+        <code>InvokeAsync</code> to update 6–10 random stock prices on the Blazor sync context, then
+        calls <code>ForceRerender()</code>. <code>CellStyle</code> maps P&amp;L magnitude to a green/red
+        RGBA background — the more extreme the move, the deeper the color. A flash overlay applies briefly
+        to each updated row. The <code>Template</code> column draws SVG polylines from a rolling 30-point
+        price history. The <code>Target</code> column is editable — double-click to set your price target;
+        it turns green when the live price hits it.
+    </p>
+    <pre class="doc-code">@codeSnippet</pre>
+</div>
+
+<style>
+    /* ── Container / dark mode ── */
+    .td-container { background: var(--nx-grid-surface, #fff); }
+
+    .td-dark {
+        --nx-grid-surface:        #0d1117;
+        --nx-grid-row-even-bg:    #161b22;
+        --nx-grid-row-odd-bg:     #1c2128;
+        --nx-grid-header-bg:      #1c2128;
+        --nx-grid-border:         #30363d;
+        --nx-grid-header-border:  #444c56;
+        --nx-grid-hover-bg:       #21262d;
+        --nx-grid-item-hover-bg:  #1e3a5f;
+        --nx-grid-selection-bg:   #2d4b73;
+        --nx-grid-selected-border:#4d7cc7;
+        --nx-grid-selection-border:#4d7cc7;
+        --nx-grid-accent:         #388bfd;
+        --nx-grid-accent-dark:    #1f6feb;
+        --nx-grid-row-number-fg:  #6e7681;
+        --nx-grid-icon-fg:        #c9d1d9;
+        --nx-grid-icon-muted-fg:  #8b949e;
+        --nx-grid-muted-fg:       #6e7681;
+        --nx-grid-group-header-bg:#21262d;
+        --nx-grid-group-header-fg:#c9d1d9;
+        --nx-grid-shadow:         rgba(0,0,0,0.4);
+        background: #0d1117;
+        color: #c9d1d9;
+    }
+
+    /* ── Toolbar ── */
+    .td-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--nx-grid-border, #ddd);
+        background: var(--nx-grid-header-bg, #f8f9fa);
+        flex-wrap: wrap;
+    }
+
+    /* ── Live badge ── */
+    .td-live-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 9px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        margin-right: 4px;
+    }
+    .td-badge-live   { background: #dcfce7; color: #15803d; }
+    .td-badge-paused { background: #fef3c7; color: #92400e; }
+
+    .td-pulse-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: #16a34a;
+        animation: td-pulse 1.2s ease-in-out infinite;
+        flex-shrink: 0;
+    }
+    @@keyframes td-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%       { opacity: 0.35; transform: scale(0.8); }
+    }
+
+    .td-sep-v { width: 1px; height: 20px; background: var(--nx-grid-border, #ddd); margin: 0 3px; }
+
+    /* ── Toolbar buttons ── */
+    .td-btn {
+        display: inline-flex; align-items: center; gap: 4px;
+        height: 26px; padding: 0 9px;
+        border: 1px solid var(--nx-grid-border, #ccc);
+        border-radius: 4px;
+        background: var(--nx-grid-surface, #fff);
+        color: inherit; font-size: 12px; cursor: pointer;
+    }
+    .td-btn:hover { background: #e2e8f0; border-color: #94a3b8; }
+    .td-btn-on { background: #dce8f8; border-color: #90b4e0; color: #1a4a80; }
+
+    /* ── Sector chips ── */
+    .td-chip {
+        height: 24px; padding: 0 9px;
+        border: 1px solid var(--nx-grid-border, #ccc);
+        border-radius: 12px;
+        background: transparent; color: inherit;
+        font-size: 11px; cursor: pointer; white-space: nowrap;
+    }
+    .td-chip:hover      { background: #e2e8f0; border-color: #94a3b8; }
+    .td-chip-on:hover   { background: var(--nx-grid-accent, #0055b3); border-color: transparent; }
+    .td-chip-on { background: var(--nx-grid-accent, #0066cc); color: #fff; border-color: transparent; }
+
+    /* ── Stats bar ── */
+    .td-stats {
+        display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+        padding: 5px 12px;
+        font-size: 12px;
+        border-top: 1px solid var(--nx-grid-border, #ddd);
+        background: var(--nx-grid-header-bg, #f8f9fa);
+    }
+    .td-stat     { padding: 0 2px; }
+    .td-stat-sep { padding: 0 7px; opacity: 0.3; }
+    .td-pos { color: #16a34a; }
+    .td-neg { color: #dc2626; }
+
+    /* ── Dark mode overrides ── */
+    .td-dark .td-btn:hover  { background: rgba(255,255,255,0.08); border-color: #6e7681; }
+    .td-dark .td-chip:hover { background: rgba(255,255,255,0.08); border-color: #6e7681; }
+    .td-dark .td-badge-live   { background: #052e16; color: #4ade80; }
+    .td-dark .td-badge-paused { background: #451a03; color: #fbbf24; }
+    .td-dark .td-pulse-dot    { background: #4ade80; }
+    .td-dark .td-btn-on       { background: #1e3a5f; border-color: #388bfd; color: #93c5fd; }
+    .td-dark .td-chip-on      { background: #388bfd; color: #fff; }
+    .td-dark .td-pos          { color: #4ade80; }
+    .td-dark .td-neg          { color: #f87171; }
+</style>
+
+@code {
+    // ── Constants ─────────────────────────────────────────────────────────────
+    const int TickMs    = 1200;
+    const int FlashMs   = 700;
+    const int HistLen   = 30;
+
+    static readonly string?[] SectorOptions =
+        [null, "Technology", "Finance", "Healthcare", "Energy", "Retail", "Media"];
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    NxGrid<StockRow>? grid;
+    List<StockRow>    allStocks     = [];
+    List<StockRow>    displayStocks = [];
+    string?           sectorFilter  = null;
+    bool              isLive        = true;
+    bool              darkMode      = false;
+    int               updateCount   = 0;
+    string            lastTick      = "--:--:--";
+
+    HashSet<string> flashSymbols = [];
+    Timer? liveTimer;
+    Timer? flashTimer;
+    readonly Random rng = new(42);
+
+    // Selection stats
+    List<NxGridSelectionRange<StockRow>> selection = [];
+    int     selectedCount;
+    decimal selectedAvgChangePct;
+    decimal selectedAvgPrice;
+    string? selectedBest;
+    string? selectedWorst;
+
+    // Market overview stats
+    int       gainers;
+    int       losers;
+    StockRow? marketTopGainer;
+    StockRow? marketTopLoser;
+
+    string ContainerClass  => $"td-container{(darkMode ? " td-dark" : "")}";
+    string LiveBadgeClass  => $"td-live-badge {(isLive ? "td-badge-live" : "td-badge-paused")}";
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    protected override void OnInitialized()
+    {
+        InitStocks();
+        ApplySectorFilter();
+        UpdateMarketStats();
+        liveTimer = new Timer(OnTimerTick, null, TickMs, TickMs);
+    }
+
+    public void Dispose()
+    {
+        liveTimer?.Dispose();
+        flashTimer?.Dispose();
+    }
+
+    // ── Live updates ──────────────────────────────────────────────────────────
+
+    void ToggleLive()
+    {
+        isLive = !isLive;
+        liveTimer?.Change(isLive ? TickMs : Timeout.Infinite, isLive ? TickMs : Timeout.Infinite);
+    }
+
+    void OnTimerTick(object? _) => InvokeAsync(Tick);
+
+    void Tick()
+    {
+        var count = rng.Next(6, 11);
+        var indices = Enumerable.Range(0, allStocks.Count)
+            .OrderBy(_ => rng.Next())
+            .Take(count);
+
+        var updated = new HashSet<string>();
+        foreach (var i in indices)
+        {
+            var s = allStocks[i];
+            var delta = (decimal)(rng.NextDouble() * 0.008 - 0.004);
+            s.Price    = Math.Round(Math.Max(0.01m, s.Price * (1 + delta)), 2);
+            s.Change   = Math.Round(s.Price - s.Open, 2);
+            s.ChangePct = Math.Round(s.Open > 0 ? (s.Price - s.Open) / s.Open * 100 : 0, 3);
+
+            var h = s.History.ToList();
+            h.Add(s.Price);
+            if (h.Count > HistLen) h.RemoveAt(0);
+            s.History = [.. h];
+
+            updated.Add(s.Symbol);
+        }
+
+        flashSymbols = updated;
+        updateCount += count;
+        lastTick = DateTime.Now.ToString("HH:mm:ss");
+        UpdateMarketStats();
+        UpdateSelectionStats();
+        StateHasChanged();
+        grid?.ForceRerender();
+
+        flashTimer?.Dispose();
+        flashTimer = new Timer(_ => InvokeAsync(() =>
+        {
+            flashSymbols.Clear();
+            grid?.ForceRerender();
+        }), null, FlashMs, Timeout.Infinite);
+    }
+
+    // ── Sector filter ─────────────────────────────────────────────────────────
+
+    void SetSector(string? sector)
+    {
+        sectorFilter = sector;
+        ApplySectorFilter();
+        selectedCount = 0;
+        selectedAvgChangePct = 0;
+        selectedAvgPrice = 0;
+        selectedBest = selectedWorst = null;
+        selection.Clear();
+    }
+
+    void ApplySectorFilter()
+    {
+        displayStocks = sectorFilter == null
+            ? allStocks
+            : allStocks.Where(s => s.Sector == sectorFilter).ToList();
+    }
+
+    // ── Stats ─────────────────────────────────────────────────────────────────
+
+    void UpdateMarketStats()
+    {
+        gainers        = allStocks.Count(s => s.ChangePct > 0);
+        losers         = allStocks.Count(s => s.ChangePct < 0);
+        marketTopGainer = allStocks.MaxBy(s => s.ChangePct);
+        marketTopLoser  = allStocks.MinBy(s => s.ChangePct);
+    }
+
+    void HandleSelection(NxGridSelectionArgs<StockRow> args)
+    {
+        selection = args.Ranges;
+        UpdateSelectionStats();
+    }
+
+    void UpdateSelectionStats()
+    {
+        var rows = GetSelectedRows();
+        selectedCount = rows.Count;
+        if (rows.Count == 0)
+        {
+            selectedAvgChangePct = 0; selectedAvgPrice = 0;
+            selectedBest = selectedWorst = null;
+            return;
+        }
+        selectedAvgChangePct = rows.Average(s => s.ChangePct);
+        selectedAvgPrice     = rows.Average(s => s.Price);
+        var best  = rows.MaxBy(s => s.ChangePct);
+        var worst = rows.MinBy(s => s.ChangePct);
+        selectedBest  = best  != null ? $"{best.Symbol} {(best.ChangePct  >= 0 ? "+" : "")}{best.ChangePct:F2}%"  : null;
+        selectedWorst = worst != null ? $"{worst.Symbol} {worst.ChangePct:F2}%" : null;
+    }
+
+    List<StockRow> GetSelectedRows()
+    {
+        if (selection.Count == 0) return [];
+        var rowIndices = new HashSet<int>();
+        foreach (var range in selection)
+            for (var r = range.StartRow; r <= range.EndRow; r++)
+                rowIndices.Add(r);
+        return rowIndices
+            .Where(i => i >= 0 && i < displayStocks.Count)
+            .Select(i => displayStocks[i])
+            .Distinct()
+            .ToList();
+    }
+
+    // ── Editing ───────────────────────────────────────────────────────────────
+
+    void HandleUpdate(NxGridUpdateArgs<StockRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                if (change.Column.Title == "Target")
+                    rowArgs.Row.Target = decimal.TryParse(
+                        change.NewValue?.ToString(), out var d) ? d : (decimal?)null;
+    }
+
+    // ── Cell styling ──────────────────────────────────────────────────────────
+
+    string? GetCellStyle(StockRow row, NxGridColumn<StockRow> col)
+    {
+        var title     = col.Title ?? "";
+        var isFlash   = flashSymbols.Contains(row.Symbol);
+        var flashCss  = isFlash ? (darkMode ? "background:#1a3a28;" : "background:#fefce8;") : "";
+
+        if (title is "Change" or "Chg %")
+        {
+            var intensity = (double)Math.Min(Math.Abs(row.ChangePct) / 4.5m, 1m);
+            var alpha = (0.08 + intensity * 0.26).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+            if (row.ChangePct > 0)
+            {
+                var fg = darkMode ? "#4ade80" : "#15803d";
+                return $"color:{fg};background:rgba(22,163,74,{alpha});font-weight:600;";
+            }
+            if (row.ChangePct < 0)
+            {
+                var fg = darkMode ? "#f87171" : "#b91c1c";
+                return $"color:{fg};background:rgba(220,38,38,{alpha});font-weight:600;";
+            }
+            return flashCss.Length > 0 ? flashCss : null;
+        }
+
+        if (title == "Target" && row.Target.HasValue)
+        {
+            var met = row.Price >= row.Target.Value;
+            var fg  = met ? (darkMode ? "#4ade80" : "#15803d") : (darkMode ? "#f87171" : "#b91c1c");
+            return $"color:{fg};font-weight:600;{flashCss}";
+        }
+
+        return flashCss.Length > 0 ? flashCss : null;
+    }
+
+    // ── Formatting ────────────────────────────────────────────────────────────
+
+    static string FormatChange(decimal v)    => (v >= 0 ? "+" : "") + v.ToString("F2");
+    static string FormatChangePct(decimal v) => (v >= 0 ? "+" : "") + v.ToString("F2") + "%";
+
+    static string FormatVolume(long vk)
+    {
+        if (vk >= 1_000_000) return (vk / 1_000_000m).ToString("F1") + "B";
+        if (vk >= 1_000)     return (vk / 1_000m).ToString("F1") + "M";
+        return vk + "K";
+    }
+
+    static string FormatMarketCap(decimal b) =>
+        b >= 1_000 ? (b / 1_000m).ToString("F1") + "T" : b.ToString("F0") + "B";
+
+    // ── Sparkline ─────────────────────────────────────────────────────────────
+
+    static string GetSparklinePoints(decimal[] history, int w, int h)
+    {
+        if (history.Length < 2) return "";
+        var min = history.Min();
+        var max = history.Max();
+        var range = max - min;
+        const int pad = 2;
+        return string.Join(" ", history.Select((v, i) =>
+        {
+            var x = pad + (double)i / (history.Length - 1) * (w - 2 * pad);
+            var y = range == 0
+                ? (double)(h / 2)
+                : pad + (double)(max - v) / (double)range * (h - 2 * pad);
+            return $"{x:F1},{y:F1}";
+        }));
+    }
+
+    // ── Data initialization ───────────────────────────────────────────────────
+
+    void InitStocks()
+    {
+        var defs = new (string Sym, string Name, string Sector, decimal Price, long VolK, decimal CapB)[]
+        {
+            ("AAPL",  "Apple Inc.",           "Technology",  178.25m, 62_000, 2_760),
+            ("MSFT",  "Microsoft Corp.",      "Technology",  412.50m, 25_000, 3_060),
+            ("NVDA",  "NVIDIA Corp.",         "Technology",  875.60m, 43_000, 2_160),
+            ("GOOGL", "Alphabet Inc.",        "Technology",  175.30m, 24_000, 2_190),
+            ("META",  "Meta Platforms",       "Technology",  525.80m, 18_000, 1_340),
+            ("AMZN",  "Amazon.com Inc.",      "Technology",  218.45m, 34_000, 2_290),
+            ("JPM",   "JPMorgan Chase",       "Finance",     205.70m, 12_000,   595),
+            ("GS",    "Goldman Sachs",        "Finance",     478.90m,  3_200,   159),
+            ("BAC",   "Bank of America",      "Finance",      39.85m, 48_000,   306),
+            ("V",     "Visa Inc.",            "Finance",     278.90m,  8_500,   572),
+            ("JNJ",   "Johnson & Johnson",    "Healthcare",  158.20m,  7_800,   382),
+            ("UNH",   "UnitedHealth Group",   "Healthcare",  525.40m,  3_900,   483),
+            ("LLY",   "Eli Lilly & Co.",      "Healthcare",  832.50m,  3_100,   790),
+            ("PFE",   "Pfizer Inc.",          "Healthcare",   28.40m, 28_000,   161),
+            ("XOM",   "Exxon Mobil Corp.",    "Energy",      112.30m, 15_600,   448),
+            ("CVX",   "Chevron Corp.",        "Energy",      152.60m,  8_200,   288),
+            ("WMT",   "Walmart Inc.",         "Retail",       68.75m, 14_500,   552),
+            ("TGT",   "Target Corp.",         "Retail",      165.30m,  5_900,    76),
+            ("NFLX",  "Netflix Inc.",         "Media",       685.40m,  4_800,   295),
+            ("DIS",   "Walt Disney Co.",      "Media",       113.60m, 12_000,   208),
+        };
+
+        var hr = new Random(123);
+        allStocks = defs.Select(d =>
+        {
+            // Generate initial price history with a slight downtrend from open → current
+            var h = new List<decimal>();
+            var p = d.Price * (1 - (decimal)(hr.NextDouble() * 0.035));
+            for (var i = 0; i < HistLen; i++)
+            {
+                p = Math.Max(0.01m, p * (1 + (decimal)(hr.NextDouble() * 0.008 - 0.004)));
+                h.Add(Math.Round(p, 2));
+            }
+
+            var openDelta = (decimal)(hr.NextDouble() * 0.025 - 0.012);
+            var open = Math.Round(d.Price * (1 - openDelta), 2);
+
+            return new StockRow
+            {
+                Symbol     = d.Sym,
+                Name       = d.Name,
+                Sector     = d.Sector,
+                Price      = d.Price,
+                Open       = open,
+                Change     = Math.Round(d.Price - open, 2),
+                ChangePct  = Math.Round((d.Price - open) / open * 100, 3),
+                VolumeK    = d.VolK,
+                MarketCapB = d.CapB,
+                History    = [.. h],
+            };
+        }).ToList();
+    }
+
+    // codeSnippet is defined in TradingDeskPage.razor.cs to avoid Rider raw-string-literal parse issues
+}

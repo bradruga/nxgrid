@@ -1,0 +1,240 @@
+@page "/reference/nxgrid-column"
+
+<PageTitle>NxGridColumn — Reference</PageTitle>
+
+<h1>NxGridColumn&lt;T&gt;</h1>
+<p class="doc-intro">
+    Column configuration component. Columns self-register with their parent grid on initialization
+    and deregister on disposal — columns inside <code>@@if</code> blocks or <code>@@foreach</code>
+    loops are fully supported. All parameters are optional except that at least one of
+    <code>Property</code> or <code>Display</code> is needed for sort, filter, editing, and copy to work.
+</p>
+
+<div class="doc-section">
+    <h2>Data Binding</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Property</td>
+                <td>Expression&lt;Func&lt;T, object?&gt;&gt;?</td>
+                <td>—</td>
+                <td>Member expression (e.g. <code>x =&gt; x.Age</code>). Used for display, sort/filter, and as the target for <code>change.Apply(row)</code>. Get-only properties are supported for display/sort but are not editable.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>Display</td>
+                <td>Func&lt;T, object?&gt;?</td>
+                <td>—</td>
+                <td>Display value override — takes priority over <code>Property</code> for rendering and clipboard copy. <code>Property</code> is still used for sort/filter when <code>Display</code> is set.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>Editable</td>
+                <td>bool?</td>
+                <td>—</td>
+                <td>Makes the column editable when true, read-only when false. When not set, falls back to the grid-level <code>Editable</code> parameter. Requires <code>OnUpdate</code> on the grid.</td>
+                <td><a href="/editing">Editing</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Identity</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Id</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>Stable identity used for state persistence and <code>SetColumnHidden</code>. Falls back to <code>Title</code> when not set. Always set <code>Id</code> on columns you control programmatically or that use <code>StateKey</code>.</td>
+                <td><a href="/state-persistence">State Persistence</a><br /><a href="/hidden-columns">Hidden Columns</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Display</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Title</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>Column header text. Falls back to a <code>[Display(Name)]</code> attribute, then to the property name split on PascalCase boundaries (e.g. FirstName → "First Name").</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Width</td>
+                <td>int</td>
+                <td>100</td>
+                <td>Preferred width in pixels. Not a minimum — without <code>MinWidth</code>, the column can be dragged narrower.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>MinWidth</td>
+                <td>int?</td>
+                <td>—</td>
+                <td>Hard minimum in pixels, enforced during drag and in auto mode.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>MaxWidth</td>
+                <td>int?</td>
+                <td>—</td>
+                <td>Hard maximum in pixels. When null, the column uses flex-grow in auto mode so extra space is distributed proportionally.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>Alignment</td>
+                <td>NxGridColumnAlignment</td>
+                <td>Left</td>
+                <td><code>Left</code>, <code>Center</code>, or <code>Right</code> cell alignment.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>Frozen</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>Pins the column sticky to the left of the scroll area. Multiple frozen columns stack in declaration order.</td>
+                <td><a href="/frozen-columns">Frozen Columns</a></td>
+            </tr>
+            <tr>
+                <td>Freezable</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, the column menu shows a Freeze / Unfreeze toggle.</td>
+                <td><a href="/frozen-columns">Frozen Columns</a></td>
+            </tr>
+            <tr>
+                <td>Hidden</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>Excludes the column from rendering. A hidden column still participates in sort and filter.</td>
+                <td><a href="/hidden-columns">Hidden Columns</a></td>
+            </tr>
+            <tr>
+                <td>Hideable</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, the column menu shows Hide column and Manage columns….</td>
+                <td><a href="/hidden-columns">Hidden Columns</a></td>
+            </tr>
+            <tr>
+                <td>Template</td>
+                <td>RenderFragment&lt;T&gt;?</td>
+                <td>—</td>
+                <td>Custom cell content. The grid still renders the cell container (padding, selection highlight, alignment).</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>CheckBox</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>Renders bool/bool? cells as checkboxes. Clicking or pressing Space toggles immediately and fires <code>OnUpdate</code> — no F2 required.</td>
+                <td><a href="/checkbox">Checkbox</a></td>
+            </tr>
+            <tr>
+                <td>HeaderTemplate</td>
+                <td>RenderFragment?</td>
+                <td>—</td>
+                <td>Custom markup inside the column header cell. Sort/filter icons and the menu button still appear.</td>
+                <td><a href="/header-template">Header Template</a></td>
+            </tr>
+            <tr>
+                <td>HeaderTooltip</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>Static tooltip shown immediately on header hover.</td>
+                <td><a href="/tooltips">Tooltips</a></td>
+            </tr>
+            <tr>
+                <td>HeaderTooltipTemplate</td>
+                <td>RenderFragment?</td>
+                <td>—</td>
+                <td>Custom tooltip markup for the column header. Overrides <code>HeaderTooltip</code>.</td>
+                <td><a href="/tooltips">Tooltips</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Editing</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Nullable</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>When true, Delete clears the cell to null instead of 0 or "".</td>
+                <td><a href="/editing">Editing</a></td>
+            </tr>
+            <tr>
+                <td>MathExpression</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>When true, the committed value is evaluated as an arithmetic expression (+ - * / parentheses) before being passed to <code>OnUpdate</code>. Falls back to the raw string on failure.</td>
+                <td><a href="/math-expression">Math Expression</a></td>
+            </tr>
+            <tr>
+                <td>MultiLine</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>Uses a growing textarea editor. Shift+Enter inserts a newline; Enter commits. Disables virtualization for the entire grid. Silently ignored when <code>ComboBoxItems</code> is also set.</td>
+                <td><a href="/multi-line">Multi-Line</a></td>
+            </tr>
+            <tr>
+                <td>ComboBoxItems</td>
+                <td>Func&lt;IEnumerable&lt;NxGridComboItem&gt;&gt;?</td>
+                <td>—</td>
+                <td>Turns the inline editor into a combo-box dropdown. Called fresh on each open.</td>
+                <td><a href="/combo-box">Combo Box</a></td>
+            </tr>
+            <tr>
+                <td>ComboBoxItemTemplate</td>
+                <td>RenderFragment&lt;NxGridComboItem&gt;?</td>
+                <td>—</td>
+                <td>Custom markup for each dropdown item. Overrides the plain <code>Display</code> string.</td>
+                <td><a href="/combo-box">Combo Box</a></td>
+            </tr>
+            <tr>
+                <td>DatePicker</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>Adds a calendar button and month-view popup to the inline editor. <code>Property</code> should resolve to <code>DateTime</code> or <code>DateTime?</code>.</td>
+                <td><a href="/date-picker">Date Picker</a></td>
+            </tr>
+            <tr>
+                <td>DateFormat</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>Controls display format, editor pre-population, and commit parsing (tried before <code>DateTime.TryParse</code>). Defaults to the thread's short-date culture pattern.</td>
+                <td><a href="/date-picker">Date Picker</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Runtime State</h2>
+    <p class="doc-note">These are read-only properties on the column object — not Razor parameters. Use them to inspect current state at runtime.</p>
+    <table class="doc-table">
+        <thead><tr><th>Property</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>UserHidden</td>
+                <td><code>bool?</code> — Set by the user via the column menu. null means the declared <code>Hidden</code> value is in effect.</td>
+            </tr>
+            <tr>
+                <td>IsHidden</td>
+                <td><code>bool</code> — Effective hidden state: <code>UserHidden ?? Hidden</code>. This is what the grid uses for all rendering and selection logic.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

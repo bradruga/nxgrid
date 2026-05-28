@@ -1,0 +1,385 @@
+@page "/reference/nxgrid"
+
+<PageTitle>NxGrid — Reference</PageTitle>
+
+<h1>NxGrid&lt;T&gt;</h1>
+<p class="doc-intro">
+    The main grid component. Generic over T — the row object type. Blazor infers T from the
+    <code>Data</code> parameter so an explicit type parameter is rarely needed. Columns are declared
+    as <code>NxGridColumn&lt;T&gt;</code> child content.
+</p>
+
+<div class="doc-section">
+    <h2>Data</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Data</td>
+                <td>List&lt;T&gt;</td>
+                <td>required</td>
+                <td>The row data. Sorting and filtering operate on this list; the grid re-runs its pipeline when the reference or count changes — call <code>ForceRerender()</code> for in-place property mutations.</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>RowHeight</td>
+                <td>int</td>
+                <td>28</td>
+                <td>Row height in pixels. Becomes the minimum height when <code>MultiLine</code> columns are present.</td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Layout</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Class</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>Extra CSS class on the grid container.</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Style</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>Extra inline style on the grid container.</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>ShowHeader</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When false, the column header row is not rendered; sort, filter, resize, and the column menu are unavailable.</td>
+                <td><a href="/layout">Layout</a></td>
+            </tr>
+            <tr>
+                <td>RowGutter</td>
+                <td>NxGridRowGutter</td>
+                <td>Blank</td>
+                <td>Controls the leftmost gutter column: <code>Blank</code> (default), <code>Hidden</code>, <code>Numbers</code> (1-based row numbers), or <code>DragHandle</code> (requires <code>OnRowDrop</code>).</td>
+                <td><a href="/layout">Layout</a><br /><a href="/row-drag-drop">Row Drag &amp; Drop</a></td>
+            </tr>
+            <tr>
+                <td>RowBanding</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>Alternates even/odd row background colors.</td>
+                <td><a href="/layout">Layout</a></td>
+            </tr>
+            <tr>
+                <td>HasColumnMenu</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>Shows the ▾ menu button in each column header for sort, filter, freeze, and hide.</td>
+                <td><a href="/layout">Layout</a></td>
+            </tr>
+            <tr>
+                <td>HeaderClickSelects</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>When true, clicking a column header selects the full column; clicking the row-number gutter selects the full row.</td>
+                <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>Cursor</td>
+                <td>NxGridCursor</td>
+                <td>Default</td>
+                <td>CSS cursor applied to body cells: <code>Default</code>, <code>Cell</code>, or <code>Pointer</code>.</td>
+                <td><a href="/layout">Layout</a></td>
+            </tr>
+            <tr>
+                <td>SelectionMode</td>
+                <td>NxGridSelectionMode</td>
+                <td>Cell</td>
+                <td><code>Cell</code> — rectangular range; <code>Row</code> — entire row selected on any cell click; <code>None</code> — no selection.</td>
+                <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>StateKey</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>When set, saves column widths, sort state, and filter state to localStorage and restores on next visit.</td>
+                <td><a href="/state-persistence">State Persistence</a></td>
+            </tr>
+            <tr>
+                <td>AutoSizeColumns</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, columns without <code>MaxWidth</code> use flex-grow to fill available space. Set false to start in manual (fixed-width) mode immediately.</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Virtualize</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, renders only visible rows via Blazor's Virtualize component. Set false for small grids where Ctrl+F or print need all rows in the DOM.</td>
+                <td><a href="/large-data">Large Data</a></td>
+            </tr>
+            <tr>
+                <td>EnableSelectionMath</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>Shows a Sum / Avg / Count status bar below the grid body for the current selection.</td>
+                <td><a href="/selection-math">Selection Math</a></td>
+            </tr>
+            <tr>
+                <td>GroupBy</td>
+                <td>Func&lt;T, object?&gt;?</td>
+                <td>—</td>
+                <td>Groups rows by this function's return value after filtering. Disables virtualization.</td>
+                <td><a href="/grouping">Row Grouping</a></td>
+            </tr>
+            <tr>
+                <td>GroupHeaderTemplate</td>
+                <td>RenderFragment&lt;NxGridGroupHeaderArgs&lt;T&gt;&gt;?</td>
+                <td>—</td>
+                <td>Custom markup for each group header row. When omitted renders "{GroupValue} ({Count})".</td>
+                <td><a href="/grouping">Row Grouping</a></td>
+            </tr>
+            <tr>
+                <td>GroupsCollapsible</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, clicking a group header collapses or expands that group.</td>
+                <td><a href="/grouping">Row Grouping</a></td>
+            </tr>
+            <tr>
+                <td>GroupCollapsedWhen</td>
+                <td>Func&lt;object?, bool&gt;?</td>
+                <td>—</td>
+                <td>Called once per group at first render to set the initial collapsed state.</td>
+                <td><a href="/grouping">Row Grouping</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Content</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>ChildContent</td>
+                <td>RenderFragment?</td>
+                <td>—</td>
+                <td>Where <code>NxGridColumn</code> declarations go. When omitted, columns are auto-generated from T's public readable properties.</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>EmptyTemplate</td>
+                <td>RenderFragment?</td>
+                <td>—</td>
+                <td>Rendered centered in the grid body when there are no rows and <code>IsLoading</code> is false.</td>
+                <td><a href="/empty-state">Empty &amp; Loading State</a></td>
+            </tr>
+            <tr>
+                <td>LoadingTemplate</td>
+                <td>RenderFragment?</td>
+                <td>—</td>
+                <td>Rendered centered in the grid body when <code>IsLoading</code> is true and there are no rows.</td>
+                <td><a href="/empty-state">Empty &amp; Loading State</a></td>
+            </tr>
+            <tr>
+                <td>IsLoading</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>When true, shows <code>LoadingTemplate</code> instead of <code>EmptyTemplate</code>. Set while an async fetch is in-flight to prevent an empty-state flash.</td>
+                <td><a href="/empty-state">Empty &amp; Loading State</a></td>
+            </tr>
+            <tr>
+                <td>Overlays</td>
+                <td>RenderFragment?</td>
+                <td>—</td>
+                <td>Rendered in an absolute-positioned, pointer-events-none layer above the grid — useful for custom row highlights.</td>
+                <td><a href="/layout">Layout</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Tooltips</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>CellTooltip</td>
+                <td>Func&lt;T, NxGridColumn&lt;T&gt;, Task&lt;object?&gt;&gt;?</td>
+                <td>—</td>
+                <td>Called after a 500 ms hover delay on body cells. Return any value to show a tooltip, or null to suppress.</td>
+                <td><a href="/tooltips">Tooltips</a></td>
+            </tr>
+            <tr>
+                <td>TooltipTemplate</td>
+                <td>RenderFragment&lt;NxGridTooltipContext&lt;T&gt;&gt;?</td>
+                <td>—</td>
+                <td>Custom markup for body-cell tooltips; <code>ctx.Data</code> holds whatever <code>CellTooltip</code> returned.</td>
+                <td><a href="/tooltips">Tooltips</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Events</h2>
+    <table class="doc-table">
+        <thead><tr><th>Event</th><th>Arg Type</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>OnSelectionChanged</td>
+                <td>EventCallback&lt;NxGridSelectionArgs&lt;T&gt;&gt;</td>
+                <td>Fires on every selection change — mouse, keyboard, or programmatic.</td>
+                <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>OnKeyPressed</td>
+                <td>EventCallback&lt;NxGridKeyPressedArgs&gt;</td>
+                <td>Fires for keyboard events the grid does not handle internally, letting the host page react to custom hotkeys.</td>
+                <td><a href="/keyboard">Keyboard</a></td>
+            </tr>
+            <tr>
+                <td>OnColumnResized</td>
+                <td>EventCallback&lt;NxGridColumnResizedArgs&gt;</td>
+                <td>Fires when the user drags a resize grip, passing <code>ColumnIndex</code> and <code>NewWidth</code>.</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>OnCellDoubleClicked</td>
+                <td>EventCallback&lt;NxGridCellDoubleClickedArgs&lt;T&gt;&gt;</td>
+                <td>Fires on double-click for non-editable columns, passing <code>Row</code> and <code>Column</code>.</td>
+                <td><a href="/editing">Editing</a></td>
+            </tr>
+            <tr>
+                <td>OnContextMenuShowing</td>
+                <td>Action&lt;NxGridContextMenuArgs&lt;T&gt;&gt;?</td>
+                <td>Called synchronously before the context menu opens; append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code> to add custom items.</td>
+                <td><a href="/context-menu">Context Menu</a></td>
+            </tr>
+            <tr>
+                <td>OnContextMenuItemClicked</td>
+                <td>EventCallback&lt;NxGridContextMenuItemArgs&lt;T&gt;&gt;</td>
+                <td>Fires when the user selects a custom context menu item.</td>
+                <td><a href="/context-menu">Context Menu</a></td>
+            </tr>
+            <tr>
+                <td>OnRowDrop</td>
+                <td>EventCallback&lt;NxGridRowDropArgs&lt;T&gt;&gt;</td>
+                <td>Fires after a successful row drag. The host must reorder <code>Data</code> in this handler.</td>
+                <td><a href="/row-drag-drop">Row Drag &amp; Drop</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Styling</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>CellStyle</td>
+                <td>Func&lt;T, NxGridColumn&lt;T&gt;, string?&gt;?</td>
+                <td>—</td>
+                <td>Return an inline style string per cell. Applied before selection blending so custom background colors mix correctly with the highlight.</td>
+                <td><a href="/theming">Theming</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Editing</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Editable</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>Default editability for all columns. Individual columns can override with their own <code>Editable</code> parameter. Requires <code>OnUpdate</code>.</td>
+                <td><a href="/editing">Editing</a></td>
+            </tr>
+            <tr>
+                <td>CellEditableGetter</td>
+                <td>Func&lt;T, NxGridColumn&lt;T&gt;, bool&gt;?</td>
+                <td>—</td>
+                <td>Per-cell editability guard evaluated after column-level <code>Editable</code>. Returning false blocks direct edits (fires <code>OnEditBlocked</code>) and silently skips bulk operations.</td>
+                <td><a href="/editing">Editing</a></td>
+            </tr>
+            <tr>
+                <td>OnEditing</td>
+                <td>EventCallback&lt;NxGridEditingArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires just before a cell enters edit mode; set <code>args.Cancel = true</code> to prevent the editor from opening.</td>
+                <td><a href="/editing">Editing</a></td>
+            </tr>
+            <tr>
+                <td>OnEditBlocked</td>
+                <td>EventCallback&lt;NxGridEditBlockedArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires when a user directly tries to edit a cell blocked by <code>CellEditableGetter</code>. Does not fire for bulk operations.</td>
+                <td><a href="/editing">Editing</a></td>
+            </tr>
+            <tr>
+                <td>TransformPastedValue</td>
+                <td>Func&lt;string, int, int, string&gt;?</td>
+                <td>—</td>
+                <td>(rawValue, rowDelta, colDelta) — rewrites pasted text before it is committed, e.g. for formula-style adjustments.</td>
+                <td><a href="/editing">Editing</a></td>
+            </tr>
+            <tr>
+                <td>OnUpdate</td>
+                <td>EventCallback&lt;NxGridUpdateArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires after any edit — single-cell commit, paste, or delete. Required for editing to be enabled.</td>
+                <td><a href="/editing">Editing</a><br /><a href="/batch-update">Batch Update</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>Methods</h2>
+    <table class="doc-table">
+        <thead><tr><th>Signature</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>void ForceRerender()</td>
+                <td>Re-runs the filter/sort pipeline and forces every visible row to re-render. Use after externally mutating properties on rows in <code>Data</code>.</td>
+                <td><a href="/large-data">Large Data</a></td>
+            </tr>
+            <tr>
+                <td>Task ScrollToEnd()</td>
+                <td>Scrolls to the last row without changing the selection. Safe to call immediately after adding a row.</td>
+                <td><a href="/large-data">Large Data</a></td>
+            </tr>
+            <tr>
+                <td>Task SelectRow(T row)</td>
+                <td>Programmatically selects a row (all columns), fires <code>OnSelectionChanged</code>, and scrolls it into view. No-op if the row is filtered out.</td>
+                <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>Task ClearSavedState()</td>
+                <td>Removes the localStorage entry for <code>StateKey</code> and resets all column state to declared defaults immediately — no page reload required.</td>
+                <td><a href="/state-persistence">State Persistence</a></td>
+            </tr>
+            <tr>
+                <td>void SetColumnHidden(string columnId, bool hidden)</td>
+                <td>Shows or hides a column by <code>Id</code> (falling back to <code>Title</code>). Takes effect immediately and persists when <code>StateKey</code> is set.</td>
+                <td><a href="/hidden-columns">Hidden Columns</a></td>
+            </tr>
+            <tr>
+                <td>Task PrintAsync(string? title = null)</td>
+                <td>Opens the print dialog with a filtered/sorted table preview. Offers Print everything or Print selection.</td>
+                <td><a href="/print">Print</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>

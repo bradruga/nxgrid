@@ -912,4 +912,26 @@ private async Task OnPrintClick()
 // Long day name:
 <NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" DateFormat="MMMM d, yyyy" />
 """;
+
+    public static readonly string GettingStartedEditable = """
+<NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
+    <NxGridColumn Property="@(x => x.LastName)"  Width="140" />
+    <NxGridColumn Property="@(x => x.Age)"       Width="80"
+                  Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.Department)"
+                  ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+</NxGrid>
+
+@code {
+    List<Person> people = [ /* ... */ ];
+
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);  // writes the typed value back to the model
+    }
+}
+""";
 }
