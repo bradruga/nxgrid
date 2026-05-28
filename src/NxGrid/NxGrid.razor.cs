@@ -35,6 +35,8 @@ public partial class NxGrid<T>
     [Parameter] public bool HeaderClickSelects { get; set; }
     [Parameter] public bool HasColumnMenu { get; set; } = true;
     [Parameter] public Func<string, int, int, string>? TransformPastedValue { get; set; }
+    [Parameter] public EventCallback<NxGridCopiedArgs<T>> OnCopied { get; set; }
+    [Parameter] public EventCallback<NxGridPastedArgs<T>> OnPasted { get; set; }
     [Parameter] public EventCallback<NxGridCellDoubleClickedArgs<T>> OnCellDoubleClicked { get; set; }
     [Parameter] public EventCallback<NxGridUpdateArgs<T>> OnUpdate { get; set; }
     [Parameter] public bool Editable { get; set; }

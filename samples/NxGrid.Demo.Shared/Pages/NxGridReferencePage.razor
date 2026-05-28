@@ -335,6 +335,20 @@
                 <td><a href="/editing">Editing</a></td>
             </tr>
             <tr>
+                <td>OnCopied</td>
+                <td>EventCallback&lt;NxGridCopiedArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires after the selection is written to the clipboard. <code>args</code> exposes <code>MinRow</code>, <code>MaxRow</code>, <code>MinCol</code>, <code>MaxCol</code> — the bounding box of the copied range. Use to capture side-channel data (e.g. cell styles) alongside the OS clipboard text.</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
+            </tr>
+            <tr>
+                <td>OnPasted</td>
+                <td>EventCallback&lt;NxGridPastedArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires after a paste completes (after <code>OnUpdate</code>). <code>args</code> exposes <code>OriginRow</code>/<code>OriginCol</code> (top-left of the paste destination), <code>SelectionEndRow</code>/<code>SelectionEndCol</code> (for single-cell fill extent), and <code>ClipboardRows</code>/<code>ClipboardCols</code> (clipboard dimensions). Use alongside <code>OnCopied</code> to apply side-channel data to the paste destination.</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
+            </tr>
+            <tr>
                 <td>OnUpdate</td>
                 <td>EventCallback&lt;NxGridUpdateArgs&lt;T&gt;&gt;</td>
                 <td>—</td>

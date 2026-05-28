@@ -26,8 +26,15 @@
                 <td>Display</td>
                 <td>Func&lt;T, object?&gt;?</td>
                 <td>—</td>
-                <td>Display value override — takes priority over <code>Property</code> for rendering and clipboard copy. <code>Property</code> is still used for sort/filter when <code>Display</code> is set.</td>
+                <td>Display value override — takes priority over <code>Property</code> for rendering. <code>Property</code> is still used for sort/filter when <code>Display</code> is set. Clipboard copy uses this value unless <code>CopyGetter</code> is also set.</td>
                 <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>CopyGetter</td>
+                <td>Func&lt;T, object?&gt;?</td>
+                <td>—</td>
+                <td>Override for the value placed on the clipboard during copy. Takes priority over <code>Display</code> and <code>Property</code> for copy only. Use when the rendered display differs from what should be pasted (e.g. copy a raw formula while displaying the evaluated result).</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>Editable</td>

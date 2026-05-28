@@ -523,6 +523,17 @@ public partial class NxGrid<T>
                 await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
         }
 
+        if (OnPasted.HasDelegate)
+            await OnPasted.InvokeAsync(new NxGridPastedArgs<T>
+            {
+                OriginRow       = originRow,
+                OriginCol       = originCol,
+                SelectionEndRow = selEndRow,
+                SelectionEndCol = selEndCol,
+                ClipboardRows   = clipRows.Length,
+                ClipboardCols   = clipCols.Length
+            });
+
         renderToken++;
         StateHasChanged();
     }

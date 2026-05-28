@@ -120,6 +120,8 @@ If writing that felt painful, the API is wrong. It doesn't.
 | `OnEditing` | `EventCallback<NxGridEditingArgs<T>>` | Fires just before a cell enters edit mode (after all editability checks pass). Set `args.Cancel = true` to prevent the editor from opening. |
 | `OnEditBlocked` | `EventCallback<NxGridEditBlockedArgs<T>>` | Fires when a user directly tries to edit a cell blocked by `CellEditableGetter`. Receives `args.Row` and `args.Column`. Does **not** fire for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells. |
 | `TransformPastedValue` | `Func<string, int, int, string>?` | `(rawValue, rowDelta, colDelta)` — lets the host rewrite pasted text before it is committed (e.g. formula adjustment). |
+| `OnCopied` | `EventCallback<NxGridCopiedArgs<T>>` | Fires after the selection is written to the clipboard. `args` exposes `MinRow`, `MaxRow`, `MinCol`, `MaxCol` — the bounding box of the copied range. Use to capture side-channel data (e.g. cell styles) alongside the OS clipboard text. |
+| `OnPasted` | `EventCallback<NxGridPastedArgs<T>>` | Fires after a paste completes (after `OnUpdate`). `args` exposes `OriginRow`/`OriginCol` (top-left of the paste destination), `SelectionEndRow`/`SelectionEndCol` (bottom-right of the active selection, for single-cell fill), and `ClipboardRows`/`ClipboardCols` (dimensions of the parsed clipboard). Use alongside `OnCopied` to apply side-channel data (e.g. cell styles) to the paste destination. |
 | `OnUpdate` | `EventCallback<NxGridUpdateArgs<T>>` | Fires after any edit — single-cell commit, paste, or delete. `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with the full list of cell changes. The host is responsible for applying changes to the model and persisting them. Required for editing to be enabled. |
 
 ### Public methods
@@ -151,7 +153,8 @@ Columns self-register with their parent grid on initialization and deregister on
 | Parameter | Type | Notes |
 |---|---|---|
 | `Property` | `Expression<Func<T, object?>>?` | Captures a member expression (e.g. `x => x.Age`). Used for display, sort/filter, and as the target for `change.Apply(row)`. When the member has a setter, `Apply` writes the correctly-parsed value back to the model. Get-only properties and read-only computed expressions are fully supported for display, sort, and filter — they are simply not editable (the column behaves as read-only regardless of the `Editable` setting). |
-| `Display` | `Func<T, object?>?` | Display value override. Takes priority over `Property` for rendering. Use when you need formatted output (e.g. `x => x.Age + " yrs"`). `Property` is still used for sort/filter when `Display` is set. |
+| `Display` | `Func<T, object?>?` | Display value override. Takes priority over `Property` for rendering. Use when you need formatted output (e.g. `x => x.Age + " yrs"`). `Property` is still used for sort/filter when `Display` is set. Clipboard copy falls back to this when `CopyGetter` is not set. |
+| `CopyGetter` | `Func<T, object?>?` | Override for the value placed on the clipboard during copy. Takes priority over `Display` and `Property` for copy only. Use when the rendered display value differs from what should be pasted (e.g. copy a raw formula string while displaying the evaluated result). |
 | `Editable` | `bool?` | Makes the column editable. When not set, falls back to the grid-level `Editable`. Requires `OnUpdate` on the grid. |
 
 ### Identity

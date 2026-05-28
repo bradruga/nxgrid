@@ -334,7 +334,9 @@
                     CellEditableGetter="@((row, col) => !sheet[row.RowIndex, col.Title![0] - 'A'].IsCheckBox)"
                     OnSelectionChanged="@OnSelectionChanged"
                     OnKeyPressed="@OnKeyPressed"
-                    TransformPastedValue="@AdjustFormulaCellRefs">
+                    TransformPastedValue="@AdjustFormulaCellRefs"
+                    OnCopied="@OnSsCopied"
+                    OnPasted="@OnSsPasted">
                 <ChildContent>
                     @for (var i = 0; i < ColCount; i++)
                     {
@@ -344,6 +346,7 @@
                                       Title="@letter"
                                       Property="@(x => x.EditValue)"
                                       Display="@(x => FormatDisplay(sheet[x.RowIndex, ci]))"
+                                      CopyGetter="@(x => sheet[x.RowIndex, ci].Value)"
                                       MinWidth="@ColWidth(ci)"
                                       MaxWidth="@ColWidth(ci)">
                             <Template Context="ssRow">
@@ -617,6 +620,9 @@
     string formulaBarValue      = "";
     string formulaBarBaseValue  = "";
     string anchorRef            = "";
+
+    // style clipboard (in-memory, separate from OS clipboard text)
+    Cell?[,]? copiedStyleClipboard;
 
     string? selectedFill        = "#FFFF00";
     string? selectedTextColor   = "#000000";
@@ -1083,6 +1089,79 @@
         chartDataVersion++;
         grid?.ForceRerender();
         TriggerSave();
+    }
+
+    void OnSsCopied(NxGridCopiedArgs<SsRow> args)
+    {
+        var rows = args.MaxRow - args.MinRow + 1;
+        var cols = args.MaxCol - args.MinCol + 1;
+        copiedStyleClipboard = new Cell?[rows, cols];
+        for (var r = 0; r < rows; r++)
+            for (var c = 0; c < cols; c++)
+                copiedStyleClipboard[r, c] = CloneStyle(sheet[args.MinRow + r, args.MinCol + c]);
+    }
+
+    void OnSsPasted(NxGridPastedArgs<SsRow> args)
+    {
+        if (copiedStyleClipboard == null) return;
+        var clipRows = copiedStyleClipboard.GetLength(0);
+        var clipCols = copiedStyleClipboard.GetLength(1);
+
+        if (clipRows == 1 && clipCols == 1)
+        {
+            var src = copiedStyleClipboard[0, 0];
+            var minRow = Math.Min(args.OriginRow, args.SelectionEndRow);
+            var maxRow = Math.Max(args.OriginRow, args.SelectionEndRow);
+            var minCol = Math.Min(args.OriginCol, args.SelectionEndCol);
+            var maxCol = Math.Max(args.OriginCol, args.SelectionEndCol);
+            for (var r = minRow; r <= maxRow; r++)
+                for (var c = minCol; c <= maxCol; c++)
+                    ApplyStyle(src, sheet[r, c]);
+        }
+        else
+        {
+            for (var r = 0; r < clipRows; r++)
+                for (var c = 0; c < clipCols; c++)
+                {
+                    var targetRow = args.OriginRow + r;
+                    var targetCol = args.OriginCol + c;
+                    if (targetRow >= RowCount || targetCol >= ColCount) continue;
+                    ApplyStyle(copiedStyleClipboard[r, c], sheet[targetRow, targetCol]);
+                }
+        }
+    }
+
+    static Cell CloneStyle(Cell src) => new Cell
+    {
+        Bold         = src.Bold,
+        Italic       = src.Italic,
+        Underline    = src.Underline,
+        Strike       = src.Strike,
+        Fill         = src.Fill,
+        Color        = src.Color,
+        Align        = src.Align,
+        DecimalPlaces = src.DecimalPlaces,
+        BorderTop    = src.BorderTop,
+        BorderRight  = src.BorderRight,
+        BorderBottom = src.BorderBottom,
+        BorderLeft   = src.BorderLeft,
+    };
+
+    static void ApplyStyle(Cell? src, Cell dst)
+    {
+        if (src == null) return;
+        dst.Bold         = src.Bold;
+        dst.Italic       = src.Italic;
+        dst.Underline    = src.Underline;
+        dst.Strike       = src.Strike;
+        dst.Fill         = src.Fill;
+        dst.Color        = src.Color;
+        dst.Align        = src.Align;
+        dst.DecimalPlaces = src.DecimalPlaces;
+        dst.BorderTop    = src.BorderTop;
+        dst.BorderRight  = src.BorderRight;
+        dst.BorderBottom = src.BorderBottom;
+        dst.BorderLeft   = src.BorderLeft;
     }
 
     void OnSelectionChanged(NxGridSelectionArgs<SsRow> args)

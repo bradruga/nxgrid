@@ -115,7 +115,7 @@ public partial class NxGrid<T>
             {
                 if (selectedRanges.Any(range => range.IsCellInRange(r, c)))
                 {
-                    var getter = visibleColumns[c].EffectiveGetter;
+                    var getter = visibleColumns[c].EffectiveCopyGetter;
                     cells.Add(getter != null ? getter(filteredData[r])?.ToString() ?? "" : "");
                 }
                 else
@@ -127,6 +127,9 @@ public partial class NxGrid<T>
         }
 
         await jsInterop.SetClipboardText(string.Join("\n", rows));
+
+        if (OnCopied.HasDelegate)
+            await OnCopied.InvokeAsync(new NxGridCopiedArgs<T> { MinRow = minRow, MaxRow = maxRow, MinCol = minCol, MaxCol = maxCol });
     }
 
     //
