@@ -2,31 +2,10 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
-    private async Task OnSortAscendingClick()
+    private async Task ApplySortState(int state)
     {
-        openColumn!.SortState = 1;
+        openColumn!.SortState = state;
         SortColumn(openColumn);
-
-        openColumn = null;
-        StateHasChanged();
-        await SaveStateAsync();
-    }
-
-    private async Task OnSortDescendingClick()
-    {
-        openColumn!.SortState = 2;
-        SortColumn(openColumn);
-
-        openColumn = null;
-        StateHasChanged();
-        await SaveStateAsync();
-    }
-
-    private async Task OnClearSortClick()
-    {
-        openColumn!.SortState = 0;
-        SortColumn(openColumn);
-
         openColumn = null;
         StateHasChanged();
         await SaveStateAsync();

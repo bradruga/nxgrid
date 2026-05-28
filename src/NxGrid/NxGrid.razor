@@ -129,42 +129,7 @@
                 {
                     @foreach (var rowIndex in Enumerable.Range(group.StartIndex, group.Count))
                     {
-                        <NxGridRow T="T"
-                                       @key="rowIndex"
-                                       Row="@filteredData[rowIndex]"
-                                       RowIndex="@rowIndex"
-                                       Columns="@visibleColumns"
-                                       RowStyle="@rowStyle"
-                                       SelectedRange="@ActiveRange"
-                                       AdditionalRanges="@selectedRanges"
-                                       RowGutter="@EffectiveRowGutter"
-                                       IsEditing="@isEditing"
-                                       EditRow="@editRow"
-                                       EditCol="@editCol"
-                                       EditValue="@editValue"
-                                       CellStyleFunc="@GetCellStyle"
-                                       OnMouseDown="@OnCellMouseDown"
-                                       OnMouseEnter="@OnCellMouseEnter"
-                                       OnMouseUp="@OnCellMouseUp"
-                                       OnMouseLeave="@OnCellMouseLeaveForTooltip"
-                                       OnContextMenu="@OnCellContextMenu"
-                                       OnDoubleClick="@OnCellDoubleClick"
-                                       OnEditInput="@OnEditInputChange"
-                                       OnEditKeyDown="@OnEditInputKeyDown"
-                                       OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
-                                       OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
-                                       OnDragHandleMouseDown="@OnDragHandleMouseDown"
-                                       OnComboButtonClick="@OnComboButtonClick"
-                                       OnDatePickerButtonClick="@OnDatePickerButtonClick"
-                                       OnCheckboxToggle="@OnCheckboxToggleCell"
-                                       Cursor="@Cursor"
-                                       RenderToken="@renderToken"
-                                       GridEditable="@Editable"
-                                       CellEditableGetter="@CellEditableGetter"
-                                       SelectionMode="@SelectionMode"
-                                       FocusCellEnabled="@(focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
-                                       FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
-                                       FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
+                        @RowTemplate(rowIndex)
                     }
                 }
             }
@@ -173,84 +138,14 @@
         {
             @foreach (var context in rowIndices)
             {
-                <NxGridRow T="T"
-                               @key="context"
-                               Row="@filteredData[context]"
-                               RowIndex="@context"
-                               Columns="@visibleColumns"
-                               RowStyle="@rowStyle"
-                               SelectedRange="@ActiveRange"
-                               AdditionalRanges="@selectedRanges"
-                               RowGutter="@EffectiveRowGutter"
-                               IsEditing="@isEditing"
-                               EditRow="@editRow"
-                               EditCol="@editCol"
-                               EditValue="@editValue"
-                               CellStyleFunc="@GetCellStyle"
-                               OnMouseDown="@OnCellMouseDown"
-                               OnMouseEnter="@OnCellMouseEnter"
-                               OnMouseUp="@OnCellMouseUp"
-                               OnMouseLeave="@OnCellMouseLeaveForTooltip"
-                               OnContextMenu="@OnCellContextMenu"
-                               OnDoubleClick="@OnCellDoubleClick"
-                               OnEditInput="@OnEditInputChange"
-                               OnEditKeyDown="@OnEditInputKeyDown"
-                               OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
-                               OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
-                               OnDragHandleMouseDown="@OnDragHandleMouseDown"
-                               OnComboButtonClick="@OnComboButtonClick"
-                               OnDatePickerButtonClick="@OnDatePickerButtonClick"
-                               OnCheckboxToggle="@OnCheckboxToggleCell"
-                               Cursor="@Cursor"
-                               RenderToken="@renderToken"
-                               GridEditable="@Editable"
-                               CellEditableGetter="@CellEditableGetter"
-                               SelectionMode="@SelectionMode"
-                               FocusCellEnabled="@(focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
-                               FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
-                               FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
+                @RowTemplate(context)
             }
         }
     }
     else
     {
         <Virtualize Items="@rowIndices" ItemSize="@((float)RowHeight)" OverscanCount="12">
-            <NxGridRow T="T"
-                           @key="context"
-                           Row="@filteredData[context]"
-                           RowIndex="@context"
-                           Columns="@visibleColumns"
-                           RowStyle="@rowStyle"
-                           SelectedRange="@ActiveRange"
-                           AdditionalRanges="@selectedRanges"
-                           RowGutter="@EffectiveRowGutter"
-                           IsEditing="@isEditing"
-                           EditRow="@editRow"
-                           EditCol="@editCol"
-                           EditValue="@editValue"
-                           CellStyleFunc="@GetCellStyle"
-                           OnMouseDown="@OnCellMouseDown"
-                           OnMouseEnter="@OnCellMouseEnter"
-                           OnMouseUp="@OnCellMouseUp"
-                           OnMouseLeave="@OnCellMouseLeaveForTooltip"
-                           OnContextMenu="@OnCellContextMenu"
-                           OnDoubleClick="@OnCellDoubleClick"
-                           OnEditInput="@OnEditInputChange"
-                           OnEditKeyDown="@OnEditInputKeyDown"
-                           OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
-                           OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
-                           OnDragHandleMouseDown="@OnDragHandleMouseDown"
-                           OnComboButtonClick="@OnComboButtonClick"
-                           OnDatePickerButtonClick="@OnDatePickerButtonClick"
-                           OnCheckboxToggle="@OnCheckboxToggleCell"
-                           Cursor="@Cursor"
-                           RenderToken="@renderToken"
-                           GridEditable="@Editable"
-                           CellEditableGetter="@CellEditableGetter"
-                           SelectionMode="@SelectionMode"
-                           FocusCellEnabled="@(focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
-                           FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
-                           FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />
+            @RowTemplate(context)
         </Virtualize>
     }
 
@@ -271,7 +166,7 @@
     {
         <div class="nx-grid-column-menu" style="top:@(menuTop)px;left:@(menuLeft)px;@(menuNeedsPositioning ? "visibility:hidden;" : "")">
             <button type="button" class="nx-grid-menu-item"
-                    @onclick="@OnSortAscendingClick">
+                    @onclick="@(() => ApplySortState(1))">
                 <span class="nx-grid-menu-item-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
                         <path fill="currentColor" d="M412.6 49.7C407.2 38.8 396.1 32 384 32s-23.2 6.8-28.6 17.7c-50.7 101.3-77.3 154.7-80 160c-7.9 15.8-1.5 35 14.3 42.9s35 1.5 42.9-14.3l7.2-14.3h88.4l7.2 14.3c7.9 15.8 27.1 22.2 42.9 14.3s22.2-27.1 14.3-42.9c-2.7-5.3-29.3-58.7-80-160M384 135.6l20.2 40.4h-40.4zM288 320c0 17.7 14.3 32 32 32h50.7l-73.4 73.4c-9.2 9.2-11.9 22.9-6.9 34.9S307.1 480 320 480h128c17.7 0 32-14.3 32-32s-14.3-32-32-32h-50.7l73.4-73.4c9.2-9.2 11.9-22.9 6.9-34.9S460.9 288 448 288H320c-17.7 0-32 14.3-32 32M150.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-80 80c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L96 141.3V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.3l25.4 25.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-80-80z"/>
@@ -280,7 +175,7 @@
                 Sort Ascending
             </button>
             <button type="button" class="nx-grid-menu-item"
-                    @onclick="@OnSortDescendingClick">
+                    @onclick="@(() => ApplySortState(2))">
                 <span class="nx-grid-menu-item-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
                         <path fill="currentColor" d="m230.6 390.6l-80 80c-12.5 12.5-32.8 12.5-45.3 0l-80-80c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L96 370.7V64c0-17.7 14.3-32 32-32s32 14.3 32 32v306.7l25.4-25.4c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3zm182-340.9c50.7 101.3 77.3 154.7 80 160c7.9 15.8 1.5 35-14.3 42.9s-35 1.5-42.9-14.3l-7.2-14.3h-88.4l-7.2 14.3c-7.9 15.8-27.1 22.2-42.9 14.3s-22.2-27.1-14.3-42.9c2.7-5.3 29.3-58.7 80-160C360.8 38.9 371.9 32 384 32s23.2 6.8 28.6 17.7M384 135.6L363.8 176h40.4zM288 320c0-17.7 14.3-32 32-32h128c12.9 0 24.6 7.8 29.6 19.8s2.2 25.7-6.9 34.9L397.3 416H448c17.7 0 32 14.3 32 32s-14.3 32-32 32H320c-12.9 0-24.6-7.8-29.6-19.8s-2.2-25.7 6.9-34.9l73.4-73.4H320c-17.7 0-32-14.3-32-32z"/>
@@ -289,7 +184,7 @@
                 Sort Descending
             </button>
             <button type="button" class="nx-grid-menu-item"
-                    @onclick="@OnClearSortClick">
+                    @onclick="@(() => ApplySortState(0))">
                 <span class="nx-grid-menu-item-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
                         <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9l9-7l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -635,4 +530,43 @@
         </div>
     }
 </div>
+
+@code {
+    private RenderFragment<int> RowTemplate => rowIndex => @<NxGridRow T="T"
+        @key="rowIndex"
+        Row="@filteredData[rowIndex]"
+        RowIndex="@rowIndex"
+        Columns="@visibleColumns"
+        RowStyle="@rowStyle"
+        SelectedRange="@ActiveRange"
+        AdditionalRanges="@selectedRanges"
+        RowGutter="@EffectiveRowGutter"
+        IsEditing="@isEditing"
+        EditRow="@editRow"
+        EditCol="@editCol"
+        EditValue="@editValue"
+        CellStyleFunc="@GetCellStyle"
+        OnMouseDown="@OnCellMouseDown"
+        OnMouseEnter="@OnCellMouseEnter"
+        OnMouseUp="@OnCellMouseUp"
+        OnMouseLeave="@OnCellMouseLeaveForTooltip"
+        OnContextMenu="@OnCellContextMenu"
+        OnDoubleClick="@OnCellDoubleClick"
+        OnEditInput="@OnEditInputChange"
+        OnEditKeyDown="@OnEditInputKeyDown"
+        OnRowNumberMouseDown="@(HeaderClickSelects ? OnRowNumberMouseDown : null)"
+        OnRowNumberMouseEnter="@(HeaderClickSelects ? OnRowNumberMouseEnter : null)"
+        OnDragHandleMouseDown="@OnDragHandleMouseDown"
+        OnComboButtonClick="@OnComboButtonClick"
+        OnDatePickerButtonClick="@OnDatePickerButtonClick"
+        OnCheckboxToggle="@OnCheckboxToggleCell"
+        Cursor="@Cursor"
+        RenderToken="@renderToken"
+        GridEditable="@Editable"
+        CellEditableGetter="@CellEditableGetter"
+        SelectionMode="@SelectionMode"
+        FocusCellEnabled="@(focusCellEnabled && AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)"
+        FocusCellAnchorRow="@(ActiveRange?.StartRow ?? -1)"
+        FocusCellAnchorCol="@(ActiveRange?.StartCol ?? -1)" />;
+}
 

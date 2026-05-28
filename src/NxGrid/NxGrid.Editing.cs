@@ -89,15 +89,7 @@ public partial class NxGrid<T>
             });
         }
 
-        isComboOpen = false;
-        comboHighlightIndex = -1;
-        comboAllItems = [];
-        comboFilteredOptions = [];
-        isDatePickerOpen = false;
-        datePickerHighlightDate = null;
-        isEditing = false;
-        editRow = -1;
-        editCol = -1;
+        ClearEditState();
 
         // Compute the post-commit selection before rendering so that editing-end
         // and selection-move land in a single render frame, preventing a flash
@@ -140,15 +132,7 @@ public partial class NxGrid<T>
     private async Task CancelEdit()
     {
         if (!isEditing) return;
-        isComboOpen = false;
-        comboHighlightIndex = -1;
-        comboAllItems = [];
-        comboFilteredOptions = [];
-        isDatePickerOpen = false;
-        datePickerHighlightDate = null;
-        isEditing = false;
-        editRow = -1;
-        editCol = -1;
+        ClearEditState();
         StateHasChanged();
         if (jsInterop != null) await jsInterop.FocusGrid();
     }
@@ -221,15 +205,7 @@ public partial class NxGrid<T>
             }
         }
 
-        isComboOpen = false;
-        comboHighlightIndex = -1;
-        comboAllItems = [];
-        comboFilteredOptions = [];
-        isDatePickerOpen = false;
-        datePickerHighlightDate = null;
-        isEditing = false;
-        editRow = -1;
-        editCol = -1;
+        ClearEditState();
         renderToken++;
         StateHasChanged();
 
@@ -366,6 +342,19 @@ public partial class NxGrid<T>
                 }
                 break;
         }
+    }
+
+    private void ClearEditState()
+    {
+        isComboOpen = false;
+        comboHighlightIndex = -1;
+        comboAllItems = [];
+        comboFilteredOptions = [];
+        isDatePickerOpen = false;
+        datePickerHighlightDate = null;
+        isEditing = false;
+        editRow = -1;
+        editCol = -1;
     }
 
     private void SelectComboOption(int index)

@@ -17,19 +17,6 @@ public partial class NxGrid<T>
 
     private static List<NxGridColumn<T>> BuildAutoColumns()
     {
-        static string SplitPascalCase(string name)
-        {
-            if (string.IsNullOrEmpty(name)) return name;
-            var sb = new System.Text.StringBuilder();
-            for (var i = 0; i < name.Length; i++)
-            {
-                if (i > 0 && char.IsUpper(name[i]) && char.IsLower(name[i - 1]))
-                    sb.Append(' ');
-                sb.Append(i == 0 ? char.ToUpper(name[i]) : name[i]);
-            }
-            return sb.ToString();
-        }
-
         static bool IsNumeric(Type t) =>
             t == typeof(int)    || t == typeof(long)   || t == typeof(short)  ||
             t == typeof(uint)   || t == typeof(ulong)  || t == typeof(ushort) ||
@@ -43,7 +30,7 @@ public partial class NxGrid<T>
             {
                 var underlying = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
                 var title = prop.GetCustomAttribute<DisplayAttribute>()?.GetName()
-                            ?? SplitPascalCase(prop.Name);
+                            ?? NxGridColumn<T>.SplitPascalCase(prop.Name);
 #pragma warning disable BL0005
                 var col = new NxGridColumn<T>
                 {
