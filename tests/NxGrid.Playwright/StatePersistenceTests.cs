@@ -36,10 +36,10 @@ public class StatePersistenceTests : PageTest
 
     private async Task NavigateAwayAndBack()
     {
-        await Page.Locator("nav a[href='/editing']").ClickAsync();
+        await Page.GotoAsync(_baseUrl + "/editing");
         await Expect(Page).ToHaveURLAsync(new Regex(".*/editing$"));
 
-        await Page.Locator("nav a[href='/state-persistence']").ClickAsync();
+        await Page.GotoAsync(_baseUrl + PersistencePage);
         await Expect(Page).ToHaveURLAsync(new Regex(".*/state-persistence$"));
         await Expect(Page.Locator(".nx-grid-header-row")).ToBeVisibleAsync();
     }

@@ -12,22 +12,23 @@ public class SelectionTests : PageTest
 
     private const string SelectionPage = "/selection";
 
-    // The selection page has four grids; target by index.
-    // 0 = Cell mode, 1 = Row mode, 2 = Multi-range, 3 = None mode
+    // Grid order on the selection page:
+    // 0 = OnCellClicked demo (Row mode), 1 = Cell mode, 2 = Row mode (master-detail),
+    // 3 = Multi-range, 4 = None mode, 5 = @bind-SelectedItems, 6-7 = KeyProperty, 8 = SelectRowByKey
 
     private Microsoft.Playwright.ILocator CellModeGrid
-        => Page.Locator(".nx-grid").First;
-
-    private Microsoft.Playwright.ILocator RowModeGrid
         => Page.Locator(".nx-grid").Nth(1);
 
+    private Microsoft.Playwright.ILocator RowModeGrid
+        => Page.Locator(".nx-grid").Nth(2);
+
     private Microsoft.Playwright.ILocator NoneModeGrid
-        => Page.Locator(".nx-grid").Nth(3);
+        => Page.Locator(".nx-grid").Nth(4);
 
     private async Task GoToSelectionPage()
     {
         await Page.GotoAsync(_baseUrl + SelectionPage);
-        await Expect(CellModeGrid).ToBeVisibleAsync();
+        await Expect(Page.Locator(".nx-grid").First).ToBeVisibleAsync();
     }
 
     // ── Cell mode selection ───────────────────────────────────────────────────
@@ -57,7 +58,7 @@ public class SelectionTests : PageTest
         await fifthCell.ClickAsync(new() { Modifiers = [Microsoft.Playwright.KeyboardModifier.Shift] });
 
         // The selection output area should mention a multi-row selection
-        var output = Page.Locator(".doc-output").First;
+        var output = Page.Locator(".doc-output").Nth(1);
         await Expect(output).ToContainTextAsync("row");
     }
 
@@ -69,7 +70,7 @@ public class SelectionTests : PageTest
         var firstCell = CellModeGrid.Locator(".nx-grid-row .nx-grid-cell").First;
         await firstCell.ClickAsync();
 
-        var output = Page.Locator(".doc-output").First;
+        var output = Page.Locator(".doc-output").Nth(1);
         await Expect(output).ToContainTextAsync("1 row");
     }
 
@@ -128,7 +129,7 @@ public class SelectionTests : PageTest
         await GoToSelectionPage();
 
         // The @bind-SelectedItems grid is the one after the None mode grid
-        var bindGrid = Page.Locator(".nx-grid").Nth(4);
+        var bindGrid = Page.Locator(".nx-grid").Nth(5);
         await Expect(bindGrid).ToBeVisibleAsync();
 
         // Initially no selection
@@ -150,11 +151,11 @@ public class SelectionTests : PageTest
         await GoToSelectionPage();
 
         // The "SelectRow(alice)" button is in the doc-controls
-        var selectAliceBtn = Page.Locator(".doc-btn").Filter(new() { HasText = "SelectRow" });
+        var selectAliceBtn = Page.Locator(".doc-btn").Filter(new() { HasText = "SelectRow(alice)" });
         await selectAliceBtn.ClickAsync();
 
-        // The output should show a selection for Alice
-        var output = Page.Locator(".doc-output").First;
+        // The output should show a selection for Alice (cell-mode output, index 1)
+        var output = Page.Locator(".doc-output").Nth(1);
         await Expect(output).ToContainTextAsync("Alice");
     }
 }
