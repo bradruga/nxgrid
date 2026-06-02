@@ -258,6 +258,23 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridColumnResizedArgs> OnColumnResized { get; set; }
 
     /// <summary>
+    /// Fires after any column's filter state changes and <c>ApplyFilterAndSort</c> has run.
+    /// <see cref="NxGridFilterChangedArgs{T}.Column"/> is <c>null</c> when all filters are
+    /// cleared at once (e.g. <see cref="ClearSavedState"/>). Does not fire when <see cref="Data"/>
+    /// is replaced externally.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridFilterChangedArgs<T>> OnFilterChanged { get; set; }
+
+    /// <summary>
+    /// Fires after the sort column or direction changes and <c>ApplyFilterAndSort</c> has run.
+    /// <see cref="NxGridSortChangedArgs{T}.Column"/> is <c>null</c> and
+    /// <see cref="NxGridSortChangedArgs{T}.Direction"/> is <c>0</c> when sort is cleared.
+    /// Does not fire when only filter state changes, or when state is restored from
+    /// <c>localStorage</c> on first render.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridSortChangedArgs<T>> OnSortChanged { get; set; }
+
+    /// <summary>
     /// Fires after a clean left-click on a body cell — mousedown and mouseup on the same cell
     /// without a drag-select. Fires for all cells regardless of editability.
     /// Does not fire on right-click, drag-select, header click, row-number gutter click,

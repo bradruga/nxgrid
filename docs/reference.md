@@ -117,6 +117,8 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `SelectedItems` | `List<T>?` | Two-way bindable list of the currently selected row objects (all ranges combined, deduplicated). Use `@bind-SelectedItems="@myList"` as a shorthand for `OnSelectionChanged`. `SelectedItemsChanged` fires in sync with `OnSelectionChanged`. Setting this from outside (e.g. `myList = []`) also updates the visual selection in the grid. |
 | `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. |
 | `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip. `args.ColumnIndex` and `args.NewWidth` (px). |
+| `OnFilterChanged` | `EventCallback<NxGridFilterChangedArgs<T>>` | Fires after any column's filter state changes and `ApplyFilterAndSort` has run. `args.Column` is `null` when all filters are cleared at once (e.g. `ClearSavedState()`). Does not fire when `Data` is replaced externally. |
+| `OnSortChanged` | `EventCallback<NxGridSortChangedArgs<T>>` | Fires after the sort column or direction changes and `ApplyFilterAndSort` has run. `args.Column` is `null` and `args.Direction` is `0` when sort is cleared. Does not fire when only filter state changes, or when state is restored from `localStorage` on first render. |
 | `OnCellClicked` | `EventCallback<NxGridCellClickEventArgs<T>>` | Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Fires for all cells regardless of editability. Does not fire on right-click, drag-select, header click, row-number gutter click, keyboard navigation, or `SelectRow()`. Fires after `OnSelectionChanged`. |
 | `OnCellDoubleClicked` | `EventCallback<NxGridCellClickEventArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |
 | `OnContextMenuShowing` | `Action<NxGridContextMenuArgs<T>>?` | Called synchronously just before the context menu opens. The handler receives the right-clicked `Row` and `Column`, and a mutable `Items` list. Append `NxGridContextMenuItem` entries to add custom items after the built-in items. Built-in items: **Copy** (always), **Copy with headers** (always), **Paste** (only when the right-clicked cell is editable), **Focus Cell** checkbox (only when `SelectionMode` is `Cell` and `AllowFocusCellMode` is `true`). |
@@ -516,6 +518,27 @@ public sealed class NxGridContextMenuItemArgs<T>
     public NxGridContextMenuItem Item { get; init; }
     public T Row { get; init; }
     public NxGridColumn<T> Column { get; init; }
+}
+
+public sealed class NxGridFilterChangedArgs<T>
+{
+    // The column whose filter changed. Null when all filters are cleared (e.g. ClearSavedState()).
+    public NxGridColumn<T>? Column { get; init; }
+
+    // Post-filter, post-sort snapshot of currently visible rows. Not mutated after creation.
+    public IReadOnlyList<T> VisibleItems { get; init; }
+}
+
+public sealed class NxGridSortChangedArgs<T>
+{
+    // The column now sorted. Null when sort is cleared (e.g. ClearSavedState()).
+    public NxGridColumn<T>? Column { get; init; }
+
+    // 1 = ascending, 2 = descending, 0 = cleared.
+    public int Direction { get; init; }
+
+    // Post-filter, post-sort snapshot of currently visible rows. Not mutated after creation.
+    public IReadOnlyList<T> VisibleItems { get; init; }
 }
 ```
 

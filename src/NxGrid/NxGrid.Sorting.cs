@@ -4,11 +4,13 @@ public partial class NxGrid<T>
 {
     private async Task ApplySortState(int state)
     {
-        openColumn!.SortState = state;
-        SortColumn(openColumn);
+        var col = openColumn!;
+        col.SortState = state;
+        SortColumn(col);
         openColumn = null;
         StateHasChanged();
         await SaveStateAsync();
+        await RaiseSortChanged(col);
     }
 
     private async Task OnClearAllFiltersClick()
@@ -20,17 +22,20 @@ public partial class NxGrid<T>
         ApplyFilterAndSort();
         StateHasChanged();
         await SaveStateAsync();
+        await RaiseFilterChanged(null);
     }
 
     private async Task OnFilterOk(List<object?> values)
     {
-        openColumn!.FilterState = values;
+        var col = openColumn!;
+        col.FilterState = values;
 
         openColumn = null;
         StateHasChanged();
 
         ApplyFilterAndSort();
         await SaveStateAsync();
+        await RaiseFilterChanged(col);
     }
 
     private void OnFilterCancel()
@@ -48,6 +53,28 @@ public partial class NxGrid<T>
 
         SortColumn(column);
         await SaveStateAsync();
+        await RaiseSortChanged(column);
+    }
+
+    private async Task RaiseFilterChanged(NxGridColumn<T>? column)
+    {
+        if (!OnFilterChanged.HasDelegate) return;
+        await OnFilterChanged.InvokeAsync(new NxGridFilterChangedArgs<T>
+        {
+            Column = column,
+            VisibleItems = filteredData.AsReadOnly(),
+        });
+    }
+
+    private async Task RaiseSortChanged(NxGridColumn<T>? column)
+    {
+        if (!OnSortChanged.HasDelegate) return;
+        await OnSortChanged.InvokeAsync(new NxGridSortChangedArgs<T>
+        {
+            Column = column,
+            Direction = column?.SortState ?? 0,
+            VisibleItems = filteredData.AsReadOnly(),
+        });
     }
 
     private void SortColumn(NxGridColumn<T> column)

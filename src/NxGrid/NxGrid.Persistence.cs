@@ -158,5 +158,7 @@ public partial class NxGrid<T>
         ApplyFilterAndSort();
         renderToken++;
         StateHasChanged();
+        await RaiseFilterChanged(null);
+        await RaiseSortChanged(null);
     }
 }

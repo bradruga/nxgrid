@@ -1,0 +1,180 @@
+@page "/filter-sort-events"
+
+<PageTitle>Filter &amp; Sort Events — NxGrid</PageTitle>
+
+<h1>Filter &amp; Sort Events</h1>
+<p class="doc-intro">
+    <code>OnFilterChanged</code> fires whenever a column filter changes, carrying
+    the post-filter, post-sort visible rows. <code>OnSortChanged</code> fires when the
+    sort column or direction changes. Use them to update summary panels, row counts,
+    aggregates, or export state — without polling or coupling to internal grid state.
+</p>
+
+<div class="doc-section">
+    <h2>OnFilterChanged — "Showing X of Y" + aggregate</h2>
+    <p class="doc-para">
+        Filter by <strong>Department</strong> or <strong>Age</strong> using the ▾ column menus.
+        The summary row below the grid updates immediately from <code>args.VisibleItems</code>.
+    </p>
+    <div class="doc-stats-bar">
+        <span>Showing <strong>@visibleCount</strong> of <strong>@people.Count</strong> employees</span>
+        <span>Avg age: <strong>@(visibleCount > 0 ? avgAge.ToString("F1") : "—")</strong></span>
+        <span>Departments: <strong>@deptCount</strong></span>
+    </div>
+    <NxGrid T="Person" Data="@people"
+            OnFilterChanged="@OnFilter"
+            Style="height:340px">
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code">@filterCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>OnSortChanged — React to sort changes</h2>
+    <p class="doc-para">
+        Click any column header (or use the ▾ menu) to sort. The panel below shows the
+        active sort at all times via <code>OnSortChanged</code>.
+    </p>
+    <div class="doc-stats-bar">
+        @if (sortColumn == null)
+        {
+            <span>No active sort</span>
+        }
+        else
+        {
+            <span>
+                Sorted by <strong>@sortColumn.EffectiveTitle</strong> —
+                <strong>@(sortDirection == 1 ? "Ascending" : "Descending")</strong>
+            </span>
+        }
+    </div>
+    <NxGrid T="Person" Data="@peopleCopy"
+            OnSortChanged="@OnSort"
+            Style="height:340px">
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code">@sortCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Both events together</h2>
+    <p class="doc-para">
+        Both callbacks coexist on the same grid. The status bar here is updated by whichever
+        event fires — filtering updates the count and sort shows the active column.
+    </p>
+    <div class="doc-stats-bar">
+        <span>
+            @comboCount of @peopleCopy2.Count shown
+            @if (comboSortColumn != null)
+            {
+                <text> · sorted by <strong>@comboSortColumn.EffectiveTitle</strong> (@(comboSortDir == 1 ? "↑" : "↓"))</text>
+            }
+        </span>
+    </div>
+    <NxGrid T="Person" Data="@peopleCopy2"
+            OnFilterChanged="@(args => { comboCount = args.VisibleItems.Count; })"
+            OnSortChanged="@(args => { comboSortColumn = args.Column; comboSortDir = args.Direction; })"
+            Style="height:340px">
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code">@bothCode</pre>
+</div>
+
+@code {
+    List<Person> people    = SampleData.GeneratePeople(40);
+    List<Person> peopleCopy  = SampleData.GeneratePeople(40);
+    List<Person> peopleCopy2 = SampleData.GeneratePeople(40);
+
+    // OnFilterChanged state
+    int visibleCount;
+    double avgAge;
+    int deptCount;
+
+    // OnSortChanged state
+    NxGridColumn<Person>? sortColumn;
+    int sortDirection;
+
+    // Combined state
+    int comboCount;
+    NxGridColumn<Person>? comboSortColumn;
+    int comboSortDir;
+
+    protected override void OnInitialized()
+    {
+        visibleCount = people.Count;
+        avgAge       = people.Average(p => p.Age);
+        deptCount    = people.Select(p => p.Department).Distinct().Count();
+        comboCount   = peopleCopy2.Count;
+    }
+
+    void OnFilter(NxGridFilterChangedArgs<Person> args)
+    {
+        visibleCount = args.VisibleItems.Count;
+        avgAge       = visibleCount > 0 ? args.VisibleItems.Average(p => p.Age) : 0;
+        deptCount    = args.VisibleItems.Select(p => p.Department).Distinct().Count();
+    }
+
+    void OnSort(NxGridSortChangedArgs<Person> args)
+    {
+        sortColumn    = args.Column;
+        sortDirection = args.Direction;
+    }
+
+    string filterCode = """
+        <NxGrid T="Person" Data="@people" OnFilterChanged="@OnFilter">
+            ...
+        </NxGrid>
+
+        @code {
+            int visibleCount;
+            double avgAge;
+
+            protected override void OnInitialized()
+            {
+                visibleCount = people.Count;
+                avgAge = people.Average(p => p.Age);
+            }
+
+            void OnFilter(NxGridFilterChangedArgs<Person> args)
+            {
+                visibleCount = args.VisibleItems.Count;
+                avgAge = visibleCount > 0 ? args.VisibleItems.Average(p => p.Age) : 0;
+            }
+        }
+        """;
+
+    string sortCode = """
+        <NxGrid T="Person" Data="@people" OnSortChanged="@OnSort">
+            ...
+        </NxGrid>
+
+        @code {
+            NxGridColumn<Person>? sortColumn;
+            int sortDirection;
+
+            void OnSort(NxGridSortChangedArgs<Person> args)
+            {
+                sortColumn    = args.Column;
+                sortDirection = args.Direction;
+                // 0 = cleared, 1 = ascending, 2 = descending
+            }
+        }
+        """;
+
+    string bothCode = """
+        <NxGrid T="Person" Data="@people"
+                OnFilterChanged="@(args => { count = args.VisibleItems.Count; })"
+                OnSortChanged="@(args => { sortCol = args.Column; sortDir = args.Direction; })">
+            ...
+        </NxGrid>
+        """;
+}
