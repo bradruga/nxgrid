@@ -5,71 +5,298 @@
 @implements IDisposable
 
 @code {
-    // Cascading Parameters
+    // ── Cascading Parameters ──────────────────────────────────────────────────
+
     [CascadingParameter] public NxGrid<T>? Parent { get; set; }
 
-    // Parameters
-    [Parameter] public string? Id { get; set; }
-    [Parameter] public Expression<Func<T, object?>>? Property { get; set; }
-    [Parameter] public Func<T, object?>? Display { get; set; }
-    [Parameter] public Func<T, object?>? CopyGetter { get; set; }
-    [Parameter] public bool? Editable { get; set; }
-    [Parameter] public string? Title { get; set; }
-    [Parameter] public int Width { get; set; } = 100;
-    [Parameter] public int? MinWidth { get; set; }
-    [Parameter] public int? MaxWidth { get; set; }
-    [Parameter] public NxGridColumnAlignment Alignment { get; set; }
-    [Parameter] public bool Nullable { get; set; }
-    [Parameter] public RenderFragment<T>? Template { get; set; }
-    [Parameter] public RenderFragment? HeaderTemplate { get; set; }
+    // ── Identity ──────────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Turns the column into a combo-box editor. The function receives the row object so the
-    /// list can vary per row. It is called fresh each time the dropdown opens; results are not cached.
-    /// Use <see cref="NxGridComboItem.From{TItem}"/> to project any typed collection:
-    /// <code>ComboBoxItems="@(_ => NxGridComboItem.From(accounts, a => a.Name, a => a.Name))"</code>
+    /// Stable identity used for state persistence via <see cref="NxGrid{T}.StateKey"/>.
+    /// Falls back to <see cref="Title"/> when not set. Columns with neither <c>Id</c>
+    /// nor <c>Title</c> are excluded from persistence.
     /// </summary>
-    [Parameter] public Func<T, IEnumerable<NxGridComboItem>>? ComboBoxItems { get; set; }
+    [Parameter] public string? Id { get; set; }
+
+    // ── Data binding ──────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Custom markup for each dropdown item. When set, replaces the plain Display string in the list.
+    /// Member expression that binds the column to a property of <typeparamref name="T"/>
+    /// (e.g. <c>x =&gt; x.Age</c>). Used for display, sort/filter, and as the write target
+    /// for <see cref="NxGridCellChange{T}.Apply"/>. Get-only and computed expressions are fully
+    /// supported for display, sort, and filter — they simply make the column non-editable.
+    /// </summary>
+    [Parameter] public Expression<Func<T, object?>>? Property { get; set; }
+
+    /// <summary>
+    /// Display value override. Takes priority over <see cref="Property"/> for cell rendering.
+    /// Use when you need formatted output (e.g. <c>x =&gt; x.Age + " yrs"</c>).
+    /// <see cref="Property"/> is still used for sort/filter when <c>Display</c> is set.
+    /// Clipboard copy falls back to this when <see cref="CopyGetter"/> is not set.
+    /// </summary>
+    [Parameter] public Func<T, object?>? Display { get; set; }
+
+    /// <summary>
+    /// Override for the value placed on the clipboard during copy. Takes priority over
+    /// <see cref="Display"/> and <see cref="Property"/> for copy only. Use when the rendered
+    /// display value differs from what should be pasted (e.g. copy a raw formula while
+    /// displaying the evaluated result).
+    /// </summary>
+    [Parameter] public Func<T, object?>? CopyGetter { get; set; }
+
+    /// <summary>
+    /// Makes this column editable. When not set, falls back to the grid-level
+    /// <see cref="NxGrid{T}.Editable"/>. Requires <see cref="NxGrid{T}.OnUpdate"/> on the grid.
+    /// </summary>
+    [Parameter] public bool? Editable { get; set; }
+
+    // ── Display ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Column header text. When omitted, falls back to a <c>[Display(Name = "...")]</c>
+    /// attribute on the property, then to the property name split on PascalCase word
+    /// boundaries (e.g. <c>FirstName</c> → <c>"First Name"</c>). Explicit <c>Title</c> always wins.
+    /// </summary>
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>
+    /// Preferred column width in pixels. Used as the initial CSS <c>width</c>.
+    /// Not a minimum — without <see cref="MinWidth"/> the column can be dragged narrower.
+    /// Default: <c>100</c>.
+    /// </summary>
+    [Parameter] public int Width { get; set; } = 100;
+
+    /// <summary>
+    /// Hard minimum width in pixels. Enforced both in auto-size mode (CSS <c>min-width</c>)
+    /// and during user drag. Remains active even after <see cref="UserWidth"/> is set.
+    /// </summary>
+    [Parameter] public int? MinWidth { get; set; }
+
+    /// <summary>
+    /// Hard maximum width in pixels. Enforced both in auto-size mode (CSS <c>max-width</c>)
+    /// and during user drag. When <c>null</c>, the column uses <c>flex-grow: {Width}</c>
+    /// in auto mode so extra space is distributed proportionally to declared widths.
+    /// Remains active even after <see cref="UserWidth"/> is set.
+    /// </summary>
+    [Parameter] public int? MaxWidth { get; set; }
+
+    /// <summary>Horizontal text alignment. Default: <see cref="NxGridColumnAlignment.Left"/>.</summary>
+    [Parameter] public NxGridColumnAlignment Alignment { get; set; }
+
+    /// <summary>
+    /// Pins this column to the left of the scroll area using <c>position: sticky</c>.
+    /// Multiple frozen columns stack left-to-right in declaration order, always before
+    /// unfrozen columns. Freezing a column at runtime via the column menu clears the active selection.
+    /// Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool Frozen { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, the column menu shows a "Freeze / Unfreeze" toggle.
+    /// Set to <c>false</c> to prevent the user from changing the frozen state.
+    /// The user-toggled state is included in <see cref="NxGrid{T}.StateKey"/> persistence.
+    /// Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool Freezable { get; set; } = true;
+
+    /// <summary>
+    /// Excludes the column from rendering. A hidden column still participates in sort and filter
+    /// if it has a <see cref="Property"/> or <see cref="Display"/>, but it is never rendered
+    /// and cannot be selected. Useful for including a field in sort/filter without showing it.
+    /// Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool Hidden { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, the column menu shows a "Hide column" entry and a "Manage columns…"
+    /// entry appears (when at least one column is hideable). Set to <c>false</c> to prevent
+    /// the user from hiding this column. The user-toggled state is included in
+    /// <see cref="NxGrid{T}.StateKey"/> persistence. Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool Hideable { get; set; } = true;
+
+    /// <summary>
+    /// Custom cell renderer. The cell container (padding, selection highlight) is still rendered
+    /// by the grid; the template fills the inner content. When both <c>Template</c> and
+    /// <see cref="CheckBox"/> are set, <c>Template</c> takes priority.
+    /// </summary>
+    [Parameter] public RenderFragment<T>? Template { get; set; }
+
+    /// <summary>
+    /// Custom markup rendered inside the column header cell instead of <see cref="Title"/>.
+    /// Sort/filter icons and the menu button still appear. Interactive elements inside the
+    /// template should include <c>@onmousedown:stopPropagation</c> and
+    /// <c>@onclick:stopPropagation</c> to prevent unintended selection/menu interactions.
+    /// </summary>
+    [Parameter] public RenderFragment? HeaderTemplate { get; set; }
+
+    /// <summary>Static tooltip text shown immediately on hovering the column header.</summary>
+    [Parameter] public string? HeaderTooltip { get; set; }
+
+    /// <summary>
+    /// Custom tooltip markup for the column header. Takes priority over <see cref="HeaderTooltip"/>.
+    /// </summary>
+    [Parameter] public RenderFragment? HeaderTooltipTemplate { get; set; }
+
+    // ── Editing ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// When <c>true</c>, pressing Delete clears the cell to <c>null</c> rather than
+    /// <c>0</c> / <c>""</c>. Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool Nullable { get; set; }
+
+    /// <summary>
+    /// When <c>true</c> and the column is editable, the raw input string is evaluated as an
+    /// arithmetic expression (<c>+</c>, <c>-</c>, <c>*</c>, <c>/</c>, parentheses, unary
+    /// negation, decimal literals) before being passed to <see cref="NxGrid{T}.OnUpdate"/>.
+    /// If evaluation fails, the raw string is passed unchanged. Applies to typed commits,
+    /// Ctrl+Enter fill, and paste (after <see cref="NxGrid{T}.TransformPastedValue"/> runs).
+    /// </summary>
+    [Parameter] public bool MathExpression { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, cells render with <c>white-space: pre-wrap</c> and the inline editor
+    /// is a <c>&lt;textarea&gt;</c> that grows with content. Shift+Enter inserts a newline;
+    /// Enter commits. When any visible column has <c>MultiLine = true</c>, row virtualization
+    /// is disabled for the entire grid and all editable columns use a textarea editor.
+    /// Silently ignored when <see cref="ComboBoxItems"/> is also set.
+    /// </summary>
+    [Parameter] public bool MultiLine { get; set; }
+
+    /// <summary>
+    /// Renders every body cell as a checkbox. <see cref="Property"/> must resolve to
+    /// <c>bool</c> or <c>bool?</c>. Clicking or pressing Space toggles the value immediately
+    /// and fires <see cref="NxGrid{T}.OnUpdate"/> — no F2 or double-click required.
+    /// When the column is not editable, the checkbox is rendered as read-only. Delete has no
+    /// effect on <c>bool</c> columns; for <c>bool?</c> it clears to <c>null</c>.
+    /// Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool CheckBox { get; set; }
+
+    /// <summary>
+    /// Turns the inline editor into a combo-box dropdown. The function receives the row object
+    /// so the list can vary per row. It is called fresh each time the dropdown opens; results
+    /// are not cached. The selected item's <see cref="NxGridComboItem.Value"/> is committed via
+    /// <see cref="Property"/>; <see cref="NxGridComboItem.Display"/> is shown in the dropdown
+    /// and in the non-editing cell. Use <see cref="NxGridComboItem.From{TItem}"/> to project
+    /// any typed collection.
+    /// </summary>
+    /// <example>
+    /// <code>ComboBoxItems="@(_ => NxGridComboItem.From(statuses, s => s.Code, s => s.Label))"</code>
+    /// </example>
+    [Parameter] public Func<T, IEnumerable<NxGridComboItem>>? ComboBoxItems { get; set; }
+
+    /// <summary>
+    /// Custom markup for each combo-box dropdown item. When set, replaces the plain
+    /// <see cref="NxGridComboItem.Display"/> string in the dropdown list.
     /// </summary>
     [Parameter] public RenderFragment<NxGridComboItem>? ComboBoxItemTemplate { get; set; }
-    [Parameter] public bool MathExpression { get; set; }
-    [Parameter] public bool MultiLine { get; set; }
-    [Parameter] public bool CheckBox { get; set; }
-    [Parameter] public bool Frozen { get; set; }
-    [Parameter] public bool Freezable { get; set; } = true;
-    [Parameter] public bool Hidden { get; set; }
-    [Parameter] public bool Hideable { get; set; } = true;
-    [Parameter] public string? HeaderTooltip { get; set; }
-    [Parameter] public RenderFragment? HeaderTooltipTemplate { get; set; }
+
+    /// <summary>
+    /// When <c>true</c> and the column is editable, the inline editor renders a free-text
+    /// input alongside a calendar button that opens a month-view date picker popup.
+    /// <see cref="Property"/> should resolve to <c>DateTime</c> or <c>DateTime?</c>.
+    /// Default: <c>false</c>.
+    /// </summary>
     [Parameter] public bool DatePicker { get; set; }
+
+    /// <summary>
+    /// Format string used both to display the date in the non-editing cell and to pre-populate
+    /// the editor on F2 / double-click (e.g. <c>"MM/dd/yyyy"</c>). Also used as the first
+    /// parse format on commit before falling back to <c>DateTime.TryParse</c>. Defaults to the
+    /// thread's current culture short-date pattern when not set.
+    /// </summary>
     [Parameter] public string? DateFormat { get; set; }
 
-    // Public Properties
+    // ── Runtime state ─────────────────────────────────────────────────────────
+
+    /// <summary>Pre-computed CSS for the header cell (width, sticky offset). Rebuilt on each parameter set.</summary>
     public string HeaderCellStyle { get; private set; } = "";
+
+    /// <summary>Pre-computed CSS for body cells (width, alignment, sticky offset). Rebuilt on each parameter set.</summary>
     public string CellStyle { get; private set; } = "";
+
+    /// <summary>Current sort state: <c>0</c> = unsorted, <c>1</c> = ascending, <c>2</c> = descending.</summary>
     public int SortState { get; set; }
+
+    /// <summary>
+    /// The set of values currently included by the column filter. An empty list means
+    /// no filter is active (all rows pass). Each entry is the normalized string form of the
+    /// property value as shown in the filter panel.
+    /// </summary>
     public List<object?> FilterState { get; set; } = [];
+
+    /// <summary>
+    /// Width set by the user via drag. When set, the column is in manual mode and
+    /// <c>flex-grow</c> is suppressed. <c>null</c> means the declared <see cref="Width"/> is in use.
+    /// </summary>
     public int? UserWidth { get; set; }
+
+    /// <summary>
+    /// Frozen state overridden at runtime via the column menu. <c>null</c> means the user has
+    /// not changed the declared <see cref="Frozen"/> value. Read <see cref="IsFrozen"/> for
+    /// the effective state.
+    /// </summary>
     public bool? UserFrozen { get; set; }
+
+    /// <summary>Effective frozen state: <c>UserFrozen ?? Frozen</c>.</summary>
     public bool IsFrozen => UserFrozen ?? Frozen;
+
+    /// <summary>
+    /// Hidden state overridden at runtime via the column menu. <c>null</c> means the user has
+    /// not changed the declared <see cref="Hidden"/> value. Read <see cref="IsHidden"/> for
+    /// the effective state.
+    /// </summary>
     public bool? UserHidden { get; set; }
+
+    /// <summary>Effective hidden state: <c>UserHidden ?? Hidden</c>. Hidden columns are excluded from all rendering and selection.</summary>
     public bool IsHidden => UserHidden ?? Hidden;
+
+    /// <summary>CSS <c>left</c> offset in pixels when the column is sticky-frozen. <c>null</c> for unfrozen columns.</summary>
     public int? StickyLeft { get; set; }
+
+    /// <summary>CSS <c>right</c> offset in pixels when the column is sticky-frozen from the right. <c>null</c> in normal use.</summary>
     public int? StickyRight { get; set; }
+
+    /// <summary><c>true</c> when this is the rightmost frozen column (receives the sticky-shadow visual separator).</summary>
     public bool IsLastFrozen { get; set; }
 
+    /// <summary><c>true</c> when <see cref="ComboBoxItems"/> is set.</summary>
     public bool IsComboColumn => ComboBoxItems != null;
+
+    /// <summary><c>true</c> when <see cref="CheckBox"/> is set.</summary>
     public bool IsCheckboxColumn => CheckBox;
+
+    /// <summary><c>true</c> when <see cref="MultiLine"/> is set and <see cref="ComboBoxItems"/> is not (combo overrides multi-line).</summary>
     public bool IsMultiLineColumn => MultiLine && !IsComboColumn;
+
+    /// <summary><c>true</c> when <see cref="DatePicker"/> is set.</summary>
     public bool IsDatePickerColumn => DatePicker;
 
-    // Effective getters: explicit parameters take priority, then compiled Property getter
+    /// <summary>
+    /// The effective display getter: <see cref="Display"/> takes priority, then the compiled
+    /// <see cref="Property"/> getter. Used for rendering and clipboard copy fallback.
+    /// </summary>
     public Func<T, object?>? EffectiveGetter => Display ?? compiledPropertyGetter;
+
+    /// <summary>
+    /// The effective copy getter: <see cref="CopyGetter"/> takes priority, then
+    /// <see cref="EffectiveGetter"/>. Used exclusively for clipboard copy.
+    /// </summary>
     public Func<T, object?>? EffectiveCopyGetter => CopyGetter ?? EffectiveGetter;
+
+    /// <summary>
+    /// The effective value getter for sort/filter: compiled <see cref="Property"/> getter takes
+    /// priority, then <see cref="Display"/>. Ensures sort/filter use the raw property value
+    /// even when <see cref="Display"/> is set for formatted rendering.
+    /// </summary>
     public Func<T, object?>? EffectiveValueGetter => compiledPropertyGetter ?? Display;
 
-    // Title resolution: explicit Title > [Display] attribute > PascalCase-split property name
+    /// <summary>
+    /// Resolved column header title following the fallback chain:
+    /// explicit <see cref="Title"/> → <c>[Display(Name)]</c> attribute → PascalCase-split property name → empty string.
+    /// </summary>
     public string EffectiveTitle => Title ?? displayName ?? inferredName ?? "";
 
     private Func<T, object?>? compiledPropertyGetter;

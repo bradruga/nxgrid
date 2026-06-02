@@ -1,4 +1,5 @@
-﻿namespace NxGrid;
+﻿#pragma warning disable CS1591
+namespace NxGrid;
 
 public class NxGridRange
 {

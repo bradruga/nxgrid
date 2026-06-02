@@ -135,6 +135,7 @@ public partial class NxGrid<T>
     //
     // JS Invokable Methods
     //
+    /// <summary>Called by JavaScript when the column header dropdown menu loses focus. Closes the open menu.</summary>
     [JSInvokable]
     public void OnColumnMenuLostFocus()
     {
@@ -143,6 +144,7 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
+    /// <summary>Called by JavaScript when the right-click context menu loses focus. Closes the open menu.</summary>
     [JSInvokable]
     public void OnContextMenuLostFocus()
     {

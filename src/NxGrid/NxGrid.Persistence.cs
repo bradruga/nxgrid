@@ -132,6 +132,11 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Removes the <c>localStorage</c> entry for <see cref="StateKey"/> and immediately resets
+    /// all columns to their declared defaults (widths, sort, filter, frozen/hidden state).
+    /// No-op when <see cref="StateKey"/> is not set.
+    /// </summary>
     public async Task ClearSavedState()
     {
         if (string.IsNullOrEmpty(StateKey)) return;

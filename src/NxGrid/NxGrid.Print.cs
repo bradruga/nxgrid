@@ -6,6 +6,14 @@ public partial class NxGrid<T>
     private string? printTitle;
     private bool printAll = true;
 
+    /// <summary>
+    /// Opens a print preview dialog showing the current filtered/sorted data as a plain table.
+    /// The dialog offers <b>Print everything</b> (all rows and visible columns) or
+    /// <b>Print selection</b> (rows and columns intersected by the current selection).
+    /// Clicking Print in the dialog triggers the browser print dialog.
+    /// The output is isolated from the host app's CSS.
+    /// </summary>
+    /// <param name="title">Optional title rendered as an <c>&lt;h1&gt;</c> above the table in the print output.</param>
     public Task PrintAsync(string? title = null)
     {
         printTitle = title;

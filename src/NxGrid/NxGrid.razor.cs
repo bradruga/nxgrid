@@ -14,57 +14,343 @@ using Microsoft.AspNetCore.Components.Web;
 
 namespace NxGrid;
 
+/// <summary>
+/// A high-performance virtualized data grid for Blazor. Renders large datasets efficiently
+/// via Blazor's <c>&lt;Virtualize&gt;</c> component. Supports sorting, filtering,
+/// multi-cell selection, inline editing, copy/paste, keyboard navigation, grouping,
+/// column freezing/hiding, and row drag-and-drop.
+/// </summary>
+/// <typeparam name="T">The row data type. Inferred from <see cref="Data"/> when not specified.</typeparam>
+/// <example>
+/// Minimal usage — columns auto-generated from <typeparamref name="T"/>'s public properties:
+/// <code>
+/// &lt;NxGrid Data="@people" /&gt;
+/// </code>
+/// With explicit columns and selection:
+/// <code>
+/// &lt;NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged"&gt;
+///     &lt;NxGridColumn Property="@(x => x.Name)" Width="200" /&gt;
+///     &lt;NxGridColumn Property="@(x => x.Age)"  Alignment="NxGridColumnAlignment.Right" /&gt;
+/// &lt;/NxGrid&gt;
+/// </code>
+/// </example>
 public partial class NxGrid<T>
 {
+    // ── Data ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The full client-side data set. Sorting and filtering operate on this list.
+    /// Assign a new list or call <see cref="ForceRerender"/> after mutating elements externally.
+    /// </summary>
     [Parameter] public List<T> Data { get; set; } = [];
+
+    // ── Layout ────────────────────────────────────────────────────────────────
+
+    /// <summary>Extra CSS class applied to the outermost grid container element.</summary>
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>Extra inline style applied to the outermost grid container element.</summary>
     [Parameter] public string? Style { get; set; }
-    [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public RenderFragment? EmptyTemplate { get; set; }
-    [Parameter] public RenderFragment? LoadingTemplate { get; set; }
-    [Parameter] public bool IsLoading { get; set; }
-    [Parameter] public RenderFragment? Overlays { get; set; }
+
+    /// <summary>
+    /// Row height in pixels. Passed to Blazor's <c>&lt;Virtualize&gt;</c> as the uniform item size.
+    /// Also sets the minimum row height when <c>MultiLine</c> columns are present.
+    /// Default: <c>28</c>.
+    /// </summary>
     [Parameter] public int RowHeight { get; set; } = 28;
-    [Parameter] public EventCallback<NxGridSelectionArgs<T>> OnSelectionChanged { get; set; }
-    [Parameter] public List<T>? SelectedItems { get; set; }
-    [Parameter] public EventCallback<List<T>> SelectedItemsChanged { get; set; }
-    [Parameter] public EventCallback<NxGridKeyPressedArgs> OnKeyPressed { get; set; }
-    [Parameter] public Func<T, NxGridColumn<T>, NxGridCellStyle?>? CellStyle { get; set; }
+
+    /// <summary>
+    /// When <c>false</c>, the column header row is not rendered.
+    /// Sort, filter, column resize, and <see cref="HasColumnMenu"/> are unavailable without headers.
+    /// Default: <c>true</c>.
+    /// </summary>
     [Parameter] public bool ShowHeader { get; set; } = true;
+
+    /// <summary>
+    /// Controls the fixed leftmost gutter column.
+    /// <list type="bullet">
+    ///   <item><see cref="NxGridRowGutter.Blank"/> — 32 px blank gutter (default).</item>
+    ///   <item><see cref="NxGridRowGutter.Hidden"/> — gutter not rendered.</item>
+    ///   <item><see cref="NxGridRowGutter.Numbers"/> — 1-based row numbers.</item>
+    ///   <item><see cref="NxGridRowGutter.DragHandle"/> — drag handles; requires <see cref="OnRowDrop"/>.</item>
+    /// </list>
+    /// </summary>
     [Parameter] public NxGridRowGutter RowGutter { get; set; } = NxGridRowGutter.Blank;
+
+    /// <summary>
+    /// When <c>true</c>, alternates even/odd row background colors using
+    /// <c>--nx-grid-row-even-bg</c> and <c>--nx-grid-row-odd-bg</c>. Default: <c>true</c>.
+    /// </summary>
     [Parameter] public bool RowBanding { get; set; } = true;
-    [Parameter] public EventCallback<NxGridColumnResizedArgs> OnColumnResized { get; set; }
-    [Parameter] public bool HeaderClickSelects { get; set; }
+
+    /// <summary>
+    /// Shows the ▾ menu button in each column header for sort and filter controls.
+    /// Default: <c>true</c>.
+    /// </summary>
     [Parameter] public bool HasColumnMenu { get; set; } = true;
-    [Parameter] public Func<string, int, int, string>? TransformPastedValue { get; set; }
-    [Parameter] public EventCallback<NxGridCopiedArgs<T>> OnCopied { get; set; }
-    [Parameter] public EventCallback<NxGridPastedArgs<T>> OnPasted { get; set; }
-    [Parameter] public EventCallback<NxGridCellDoubleClickedArgs<T>> OnCellDoubleClicked { get; set; }
-    [Parameter] public EventCallback<NxGridUpdateArgs<T>> OnUpdate { get; set; }
-    [Parameter] public bool Editable { get; set; }
-    [Parameter] public Func<T, NxGridColumn<T>, bool>? CellEditableGetter { get; set; }
-    [Parameter] public EventCallback<NxGridEditingArgs<T>> OnEditing { get; set; }
-    [Parameter] public EventCallback<NxGridEditBlockedArgs<T>> OnEditBlocked { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, clicking a column header selects the full column and clicking the
+    /// row-number gutter selects the full row. Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool HeaderClickSelects { get; set; }
+
+    /// <summary>
+    /// CSS cursor applied to body cells (not headers). Default: <see cref="NxGridCursor.Default"/>.
+    /// </summary>
+    [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
+
+    /// <summary>
+    /// Controls how the grid handles mouse and keyboard selection.
+    /// <list type="bullet">
+    ///   <item><see cref="NxGridSelectionMode.Cell"/> — rectangular cell-range selection (default).</item>
+    ///   <item><see cref="NxGridSelectionMode.Row"/> — whole-row selection; left/right arrows are no-ops.</item>
+    ///   <item><see cref="NxGridSelectionMode.None"/> — selection disabled; incompatible with <see cref="Editable"/>.</item>
+    /// </list>
+    /// </summary>
+    [Parameter] public NxGridSelectionMode SelectionMode { get; set; } = NxGridSelectionMode.Cell;
+
+    /// <summary>
+    /// When <c>true</c> and <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.Cell"/>,
+    /// the context menu exposes a <b>Focus Cell</b> toggle that highlights the row and column of
+    /// the selection anchor. The on/off state persists in <c>localStorage</c> under
+    /// <c>nx-grid-focus-cell</c> and is shared across all NxGrid instances on the page.
+    /// Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool AllowFocusCellMode { get; set; } = true;
+
+    /// <summary>
+    /// When set, column widths, sort state, and filter state are saved to <c>localStorage</c>
+    /// under this key after every user change and restored on first render.
+    /// Use a unique key per grid instance on a page.
+    /// </summary>
+    [Parameter] public string? StateKey { get; set; }
+
+    /// <summary>
+    /// When <c>true</c> (default), columns without a <see cref="NxGridColumn{T}.MaxWidth"/> use
+    /// <c>flex-grow</c> to fill available space. Set to <c>false</c> to immediately start in
+    /// manual mode — all columns render at their declared <see cref="NxGridColumn{T}.Width"/>.
+    /// </summary>
+    [Parameter] public bool AutoSizeColumns { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c> (default), rows are rendered with Blazor's <c>&lt;Virtualize&gt;</c>
+    /// so only visible rows are in the DOM. Set to <c>false</c> to render all rows — useful for
+    /// small grids, browser Ctrl+F search, accessibility tools, or print.
+    /// Automatically overridden to <c>false</c> when any column has
+    /// <see cref="NxGridColumn{T}.MultiLine"/> = <c>true</c>.
+    /// </summary>
+    [Parameter] public bool Virtualize { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, a sticky status bar below the grid body shows <b>Sum</b>, <b>Avg</b>,
+    /// and <b>Count</b> for the current selection. Non-numeric cells contribute to Count only.
+    /// The bar is hidden when there is no active selection. Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool EnableSelectionMath { get; set; }
+
+    /// <summary>
+    /// When set, rows are grouped by the value of this function after filtering.
+    /// Group order follows first-appearance in the filtered result. Sort operates within groups —
+    /// it does not reorder groups. Grouping disables row virtualization regardless of
+    /// <see cref="Virtualize"/>.
+    /// </summary>
+    [Parameter] public Func<T, object?>? GroupBy { get; set; }
+
+    /// <summary>
+    /// Custom markup rendered for each group header row. When omitted the header shows
+    /// <c>"{GroupValue} ({Count})"</c>. When used alongside <c>ChildContent</c>, wrap column
+    /// declarations in explicit <c>&lt;ChildContent&gt;</c> tags (Blazor requirement for
+    /// components with multiple named render fragments).
+    /// </summary>
+    [Parameter] public RenderFragment<NxGridGroupHeaderArgs<T>>? GroupHeaderTemplate { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, clicking a group header row collapses or expands that group.
+    /// Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool GroupsCollapsible { get; set; } = true;
+
+    /// <summary>
+    /// Called once per group at first render with the group's value to determine its initial
+    /// collapsed state. When <c>null</c>, all groups start expanded. Pass <c>_ =&gt; true</c>
+    /// to start all groups collapsed, or a predicate for per-group control.
+    /// Has no effect when <see cref="GroupsCollapsible"/> is <c>false</c>.
+    /// </summary>
+    [Parameter] public Func<object?, bool>? GroupCollapsedWhen { get; set; }
+
+    // ── Content ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Where <c>&lt;NxGridColumn&gt;</c> declarations go. When omitted, columns are
+    /// auto-generated from <typeparamref name="T"/>'s public readable properties.
+    /// </summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Rendered centered in the grid body when the filtered data is empty and
+    /// <see cref="IsLoading"/> is <c>false</c>. Column headers remain visible.
+    /// When not set the body is blank.
+    /// </summary>
+    [Parameter] public RenderFragment? EmptyTemplate { get; set; }
+
+    /// <summary>
+    /// Rendered centered in the grid body when <see cref="IsLoading"/> is <c>true</c> and
+    /// there are no rows. When not set the body is blank while loading.
+    /// </summary>
+    [Parameter] public RenderFragment? LoadingTemplate { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, suppresses <see cref="EmptyTemplate"/> and shows
+    /// <see cref="LoadingTemplate"/> instead. Set this while your async data fetch is in-flight
+    /// to prevent a premature empty-state flash. Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool IsLoading { get; set; }
+
+    /// <summary>
+    /// Rendered in an absolute-positioned, pointer-events-none layer above the grid body.
+    /// Useful for custom cell highlight overlays.
+    /// </summary>
+    [Parameter] public RenderFragment? Overlays { get; set; }
+
+    // ── Tooltips ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called after a 500 ms hover delay on body cells. Return any value to show a tooltip,
+    /// or <c>null</c> to suppress. The return value is passed to <see cref="TooltipTemplate"/>
+    /// as <see cref="NxGridTooltipContext{T}.Data"/>.
+    /// </summary>
     [Parameter] public Func<T, NxGridColumn<T>, Task<object?>>? CellTooltip { get; set; }
+
+    /// <summary>
+    /// Custom markup for body-cell tooltips. When set, replaces the default tooltip rendering.
+    /// <see cref="CellTooltip"/> still runs to load data; return <c>null</c> from
+    /// <see cref="CellTooltip"/> to suppress the tooltip even when a template is set.
+    /// </summary>
     [Parameter] public RenderFragment<NxGridTooltipContext<T>>? TooltipTemplate { get; set; }
+
+    // ── Events ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Fires on every selection change (mouse, keyboard, or programmatic).
+    /// <see cref="NxGridSelectionArgs{T}.Ranges"/> contains one entry per active range.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridSelectionArgs<T>> OnSelectionChanged { get; set; }
+
+    /// <summary>
+    /// Two-way bindable list of all currently selected row objects (all ranges combined,
+    /// deduplicated). Use <c>@bind-SelectedItems="@myList"</c> as a shorthand for
+    /// <see cref="OnSelectionChanged"/>. Setting this externally (e.g. <c>myList = []</c>)
+    /// also updates the visual selection in the grid.
+    /// </summary>
+    [Parameter] public List<T>? SelectedItems { get; set; }
+
+    /// <summary>Fires in sync with <see cref="OnSelectionChanged"/> to support two-way binding via <c>@bind-SelectedItems</c>.</summary>
+    [Parameter] public EventCallback<List<T>> SelectedItemsChanged { get; set; }
+
+    /// <summary>
+    /// Fires for keyboard events the grid does not handle internally, allowing the host page
+    /// to react to custom hotkeys without capturing keyboard events separately.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridKeyPressedArgs> OnKeyPressed { get; set; }
+
+    /// <summary>Fires when the user drags a column resize grip. Provides the column index and new width in pixels.</summary>
+    [Parameter] public EventCallback<NxGridColumnResizedArgs> OnColumnResized { get; set; }
+
+    /// <summary>
+    /// Fires on double-click for columns that are <b>not</b> editable.
+    /// Editable columns open the inline editor on double-click instead.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridCellDoubleClickedArgs<T>> OnCellDoubleClicked { get; set; }
+
+    /// <summary>
+    /// Called synchronously just before the right-click context menu opens. Append
+    /// <see cref="NxGridContextMenuItem"/> entries to <see cref="NxGridContextMenuArgs{T}.Items"/>
+    /// to add custom items after the built-in ones (Copy, Copy with headers, Paste, Focus Cell).
+    /// </summary>
     [Parameter] public Action<NxGridContextMenuArgs<T>>? OnContextMenuShowing { get; set; }
+
+    /// <summary>Fires when the user selects a custom context menu item added via <see cref="OnContextMenuShowing"/>.</summary>
     [Parameter] public EventCallback<NxGridContextMenuItemArgs<T>> OnContextMenuItemClicked { get; set; }
 
-    private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
-    private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
-    private bool IsVirtualized => Virtualize && !HasMultiLineColumns && !IsGrouped;
-    [Parameter] public NxGridCursor Cursor { get; set; } = NxGridCursor.Default;
-    [Parameter] public NxGridSelectionMode SelectionMode { get; set; } = NxGridSelectionMode.Cell;
-    [Parameter] public bool AllowFocusCellMode { get; set; } = true;
-    [Parameter] public string? StateKey { get; set; }
-    [Parameter] public bool AutoSizeColumns { get; set; } = true;
-    [Parameter] public bool Virtualize { get; set; } = true;
-    [Parameter] public bool EnableSelectionMath { get; set; }
-    [Parameter] public Func<T, object?>? GroupBy { get; set; }
-    [Parameter] public RenderFragment<NxGridGroupHeaderArgs<T>>? GroupHeaderTemplate { get; set; }
-    [Parameter] public bool GroupsCollapsible { get; set; } = true;
-    [Parameter] public Func<object?, bool>? GroupCollapsedWhen { get; set; }
+    // ── Styling ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Return per-cell style overrides. Border properties follow CSS shorthand-then-specific
+    /// order (<see cref="NxGridCellStyle.Border"/> first, then individual sides).
+    /// <see cref="NxGridCellStyle.Style"/> is applied before border properties.
+    /// Selection blending still applies to any <c>background-color</c> set in
+    /// <see cref="NxGridCellStyle.Style"/>.
+    /// </summary>
+    [Parameter] public Func<T, NxGridColumn<T>, NxGridCellStyle?>? CellStyle { get; set; }
+
+    // ── Clipboard / Editing ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Default editability for all columns. Individual columns can override this with their own
+    /// <see cref="NxGridColumn{T}.Editable"/> parameter. Has no effect without <see cref="OnUpdate"/>.
+    /// Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool Editable { get; set; }
+
+    /// <summary>
+    /// Grid-level per-cell editability guard. When supplied, cells where this returns <c>false</c>
+    /// cannot enter edit mode regardless of column-level <see cref="NxGridColumn{T}.Editable"/>.
+    /// Direct edit attempts on a blocked cell fire <see cref="OnEditBlocked"/>; bulk operations
+    /// (paste, delete, Ctrl+Enter) silently skip blocked cells.
+    /// </summary>
+    [Parameter] public Func<T, NxGridColumn<T>, bool>? CellEditableGetter { get; set; }
+
+    /// <summary>
+    /// Fires just before a cell enters edit mode (after all editability checks pass).
+    /// Set <see cref="NxGridEditingArgs{T}.Cancel"/> to <c>true</c> to prevent the editor opening.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridEditingArgs<T>> OnEditing { get; set; }
+
+    /// <summary>
+    /// Fires when the user directly tries to edit a cell blocked by <see cref="CellEditableGetter"/>.
+    /// Not fired for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridEditBlockedArgs<T>> OnEditBlocked { get; set; }
+
+    /// <summary>
+    /// <c>(rawValue, rowDelta, colDelta)</c> — lets the host rewrite pasted text before it is
+    /// committed, e.g. to adjust relative formulas. Runs after clipboard parsing and before
+    /// <see cref="OnUpdate"/>.
+    /// </summary>
+    [Parameter] public Func<string, int, int, string>? TransformPastedValue { get; set; }
+
+    /// <summary>
+    /// Fires after the selection is written to the clipboard. Use the bounding-box indices to
+    /// capture side-channel data (e.g. cell styles) alongside the OS clipboard text.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridCopiedArgs<T>> OnCopied { get; set; }
+
+    /// <summary>
+    /// Fires after a paste completes (after <see cref="OnUpdate"/>). Use alongside
+    /// <see cref="OnCopied"/> to apply side-channel data to the paste destination.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridPastedArgs<T>> OnPasted { get; set; }
+
+    /// <summary>
+    /// Fires after any edit — single-cell commit, paste, delete, Ctrl+Enter fill, or drag-fill.
+    /// <see cref="NxGridUpdateArgs{T}.Rows"/> contains one <see cref="NxGridRowChange{T}"/> per
+    /// affected row. The host is responsible for applying changes to the model and persisting them.
+    /// <b>Required for editing to be enabled.</b>
+    /// </summary>
+    [Parameter] public EventCallback<NxGridUpdateArgs<T>> OnUpdate { get; set; }
+
+    /// <summary>
+    /// Enables the fill handle — a small square at the bottom-right corner of the active selection.
+    /// Drag it in any direction to fill adjacent editable cells. Numeric cells increment by 1 per
+    /// step (or detect a series); dates increment by one calendar day; all other types copy.
+    /// Auto-disabled when <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.Row"/> or
+    /// <see cref="NxGridSelectionMode.None"/>. Only visible when exactly one range is active and
+    /// <see cref="OnUpdate"/> is set. Default: <c>true</c>.
+    /// </summary>
     [Parameter] public bool EnableDragFill { get; set; } = true;
+
+    // ── Private fields ────────────────────────────────────────────────────────
 
     private const string FocusCellStorageKey = "nx-grid-focus-cell";
     private bool focusCellEnabled;
@@ -142,6 +428,12 @@ public partial class NxGrid<T>
     private NxGridColumn<T>? contextMenuColumn;
     private List<NxGridContextMenuItem> contextMenuItems = [];
 
+    // ── Public methods ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Forces a full re-render after external mutation of <see cref="Data"/> elements.
+    /// Re-applies the active filter and sort before re-rendering.
+    /// </summary>
     public void ForceRerender()
     {
         ApplyFilterAndSort();
@@ -149,6 +441,7 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
+    /// <summary>Scrolls the grid to the last row in the filtered data set.</summary>
     public async Task ScrollToEnd()
     {
         while (jsInterop == null) await Task.Delay(20);
@@ -157,6 +450,11 @@ public partial class NxGrid<T>
             await ScrollCellIntoView(lastRow, 0);
     }
 
+    /// <summary>
+    /// Programmatically selects <paramref name="row"/> and scrolls it into view.
+    /// No-op when <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.None"/>
+    /// or when <paramref name="row"/> is not in the current filtered data.
+    /// </summary>
     public async Task SelectRow(T row)
     {
         if (SelectionMode == NxGridSelectionMode.None) return;
@@ -168,7 +466,11 @@ public partial class NxGrid<T>
         await ScrollCellIntoView(rowIndex, 0);
     }
 
+    private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
+    private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
+    private bool IsVirtualized => Virtualize && !HasMultiLineColumns && !IsGrouped;
 
+    /// <inheritdoc/>
     protected override void OnParametersSet()
     {
         if (SelectionMode == NxGridSelectionMode.None && Editable)
@@ -192,6 +494,7 @@ public partial class NxGrid<T>
         }
     }
 
+    /// <summary>Registers a column with this grid. Called automatically by <see cref="NxGridColumn{T}"/> on initialization.</summary>
     public void AddColumn(NxGridColumn<T> column)
     {
         if (!columns.Contains(column))
@@ -201,12 +504,14 @@ public partial class NxGrid<T>
         }
     }
 
+    /// <summary>Removes a column from this grid. Called automatically by <see cref="NxGridColumn{T}"/> on disposal.</summary>
     public void RemoveColumn(NxGridColumn<T> column)
     {
         if (columns.Remove(column))
             ComputeFrozenOffsets();
     }
 
+    /// <inheritdoc/>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)

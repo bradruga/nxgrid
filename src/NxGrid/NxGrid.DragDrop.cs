@@ -5,6 +5,11 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
+    /// <summary>
+    /// Fires after a successful row drag-and-drop. The host must reorder <see cref="Data"/>
+    /// in this handler; the grid then calls <c>ApplyFilterAndSort()</c> and
+    /// <c>StateHasChanged()</c> automatically. The active selection is cleared on drop.
+    /// </summary>
     [Parameter] public EventCallback<NxGridRowDropArgs<T>> OnRowDrop { get; set; }
 
     private bool HasActiveSortOrFilter =>
