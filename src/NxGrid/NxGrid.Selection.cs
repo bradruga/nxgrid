@@ -334,6 +334,11 @@ public partial class NxGrid<T>
         foreach (var item in items)
         {
             var rowIndex = filteredData.IndexOf(item);
+            if (rowIndex < 0 && KeyProperty != null)
+            {
+                var key = KeyProperty(item);
+                rowIndex = filteredData.FindIndex(r => Equals(KeyProperty(r), key));
+            }
             if (rowIndex < 0) continue;
             newRanges.Add(new NxGridRange
             {
@@ -341,6 +346,37 @@ public partial class NxGrid<T>
                 StartCol = 0,
                 EndRow = rowIndex,
                 EndCol = visibleColumns.Count > 0 ? visibleColumns.Count - 1 : 0
+            });
+        }
+        selectedRanges = newRanges;
+    }
+
+    private HashSet<object?> CaptureSelectedKeys()
+    {
+        var keys = new HashSet<object?>();
+        foreach (var range in selectedRanges)
+        {
+            var start = Math.Min(range.StartRow, range.EndRow);
+            var end   = Math.Max(range.StartRow, range.EndRow);
+            for (var i = start; i <= end; i++)
+            {
+                if (i >= 0 && i < filteredData.Count)
+                    keys.Add(KeyProperty!(filteredData[i]));
+            }
+        }
+        return keys;
+    }
+
+    private void RestoreSelectionByKeys(ICollection<object?> keys)
+    {
+        var newRanges = new List<NxGridRange>();
+        for (var i = 0; i < filteredData.Count; i++)
+        {
+            if (!keys.Contains(KeyProperty!(filteredData[i]))) continue;
+            newRanges.Add(new NxGridRange
+            {
+                StartRow = i, EndRow = i,
+                StartCol = 0, EndCol = visibleColumns.Count > 0 ? visibleColumns.Count - 1 : 0
             });
         }
         selectedRanges = newRanges;

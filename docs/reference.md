@@ -66,6 +66,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
 | `Data` | `List<T>` | required | Client-side data. Sorting and filtering operate on this list in place. |
+| `KeyProperty` | `Func<T, object?>?` | — | Row identity function. When set, selection is preserved when `Data` is replaced by matching rows on key value instead of reference equality. See [Selection stability (KeyProperty)](#selection-stability-keyproperty). |
 | `RowHeight` | `int` | `28` | Row height in pixels. Passed to the virtualizer. |
 
 ### Layout
@@ -150,7 +151,8 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 ```csharp
 void  ForceRerender()                              // force a re-render after external data mutation
 Task  ScrollToEnd()                                // scroll to the last row
-Task  SelectRow(T row)                             // programmatically select a row and scroll it into view
+Task  SelectRow(T row)                             // programmatically select a row and scroll it into view; when KeyProperty is set, falls back to key-value match if reference is not found
+Task  SelectRowByKey(object? keyValue)             // select and scroll to the first row whose KeyProperty value equals keyValue; logs a warning and is a no-op when KeyProperty is not set or no match is found
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
@@ -274,6 +276,70 @@ var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
 // Total count of ranges (> 1 when Ctrl+click multi-select is active)
 var rangeCount = args.Ranges.Count;
 ```
+
+---
+
+## Selection stability (KeyProperty)
+
+By default NxGrid identifies rows by object reference. When `Data` is replaced with a new list — the most common result of an API reload — the selection is lost even if the underlying records are identical.
+
+`KeyProperty` solves this by specifying a function that extracts a stable identity value from each row:
+
+```razor
+<NxGrid T="ProjectDto" @ref="grid" Data="@projects"
+        KeyProperty="@(x => x.ProjectId)"
+        @bind-SelectedItems="selectedProjects">
+    <NxGridColumn Property="@(x => x.ProjectNumber)" Width="100" />
+    <NxGridColumn Property="@(x => x.ProjectName)"   Width="260" />
+</NxGrid>
+
+@code {
+    NxGrid<ProjectDto>? grid;
+    List<ProjectDto> projects = [];
+    List<ProjectDto> selectedProjects = [];
+
+    async Task OnSave()
+    {
+        await api.SaveAsync(selectedProjects.First());
+        projects = await api.GetProjectsAsync();  // new list, new object references
+        // Selection is automatically restored to the same project by key.
+        // selectedProjects is updated to the new reference via @bind-SelectedItems.
+    }
+}
+```
+
+### Selection preservation on `Data` replacement
+
+When `KeyProperty` is set and `Data` changes, the grid captures the key values of all currently selected rows before the swap, then restores the selection against the new list by matching on those values. Rows whose key is not found in the new data (deleted rows) are silently dropped from the selection. `OnSelectionChanged` and `SelectedItemsChanged` fire after restoration so the host's bound list is updated to the new references.
+
+Without `KeyProperty`, behavior is unchanged: a new `Data` reference always leaves the selection pointing at whatever is now at the same row indices.
+
+### `SelectRow(T row)` key fallback
+
+When `KeyProperty` is set and `SelectRow(row)` cannot find the row by reference (the caller holds a pre-refresh reference), the grid falls back to key-value matching in the current filtered data. If a match is found it is selected and scrolled into view; otherwise the call is a no-op.
+
+### `SelectRowByKey(object? keyValue)`
+
+Selects the first row in the current filtered data whose `KeyProperty` value equals `keyValue`. Useful after creating a new row or navigating from a URL parameter where only the ID is known.
+
+```csharp
+// After creating a new row, select it by its new database ID
+int newId = await api.CreateAsync(newProject);
+projects = await api.GetProjectsAsync();
+await grid!.SelectRowByKey(newId);
+```
+
+Keys are compared with `object.Equals`, so `int`, `Guid`, `string`, and any type with value equality work correctly. Calling `SelectRowByKey` without `KeyProperty` configured logs a warning and is a no-op.
+
+### `@bind-SelectedItems` reconciliation
+
+When `KeyProperty` is set and `Data` changes, `SelectedItemsChanged` fires with a rebuilt list using the new references. The host's bound list is automatically updated — no manual `SelectRow` call is needed.
+
+When `KeyProperty` is set and `SelectedItems` is set externally with stale references (from before a reload), the grid falls back to key-value matching when syncing the visual selection.
+
+### Key equality
+
+Keys are compared with `object.Equals`. Duplicate key values in `Data` produce undefined behavior; the first match wins. Composite keys are not directly supported — expose a computed property (e.g. a value tuple with value equality, or a concatenated string) and point `KeyProperty` at that.
 
 ---
 

@@ -212,6 +212,98 @@
 </div>
 
 <div class="doc-section">
+    <h2>Key Property — Stable Selection Across Data Refresh</h2>
+    <p class="doc-para">
+        By default, replacing <code>Data</code> with a new list loses the selection because the old
+        object references are gone. <code>KeyProperty</code> tells the grid how to identify rows by
+        value — so after an API reload the selection is automatically restored to the matching row in
+        the new list.
+    </p>
+    <p class="doc-para">
+        Click a row in each grid, then press <strong>Refresh Data</strong>. The left grid (no key)
+        loses its selection; the right grid restores it by matching on <code>Id</code>.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn" @onclick="RefreshKeyData" disabled="@keyRefreshing">
+            @(keyRefreshing ? "Refreshing…" : "Refresh Data")
+        </button>
+        <span style="font-size:13px;color:#555">@keyStatusMessage</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#666">Without KeyProperty</div>
+            <NxGrid T="Person" Data="@keyPeopleNoKey"
+                    SelectionMode="NxGridSelectionMode.Row"
+                    @bind-SelectedItems="keySelectedNoKey"
+                    Cursor="NxGridCursor.Pointer"
+                    Style="height:220px">
+                <NxGridColumn Property="@(x => x.Id)"        Width="50" MaxWidth="50" />
+                <NxGridColumn Property="@(x => x.FirstName)" Width="120" />
+                <NxGridColumn Property="@(x => x.LastName)"  Width="120" />
+                <NxGridColumn Property="@(x => x.Department)" />
+            </NxGrid>
+            <div class="doc-output" style="min-height:24px">
+                @(keySelectedNoKey.Count > 0
+                    ? $"Selected: {keySelectedNoKey[0].FirstName} {keySelectedNoKey[0].LastName}"
+                    : "No selection")
+            </div>
+        </div>
+        <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#666">With KeyProperty="@@(x => x.Id)"</div>
+            <NxGrid T="Person" Data="@keyPeopleWithKey"
+                    KeyProperty="@(x => x.Id)"
+                    SelectionMode="NxGridSelectionMode.Row"
+                    @bind-SelectedItems="keySelectedWithKey"
+                    Cursor="NxGridCursor.Pointer"
+                    Style="height:220px">
+                <NxGridColumn Property="@(x => x.Id)"        Width="50" MaxWidth="50" />
+                <NxGridColumn Property="@(x => x.FirstName)" Width="120" />
+                <NxGridColumn Property="@(x => x.LastName)"  Width="120" />
+                <NxGridColumn Property="@(x => x.Department)" />
+            </NxGrid>
+            <div class="doc-output" style="min-height:24px">
+                @(keySelectedWithKey.Count > 0
+                    ? $"Selected: {keySelectedWithKey[0].FirstName} {keySelectedWithKey[0].LastName}"
+                    : "No selection")
+            </div>
+        </div>
+    </div>
+    <pre class="doc-code" style="margin-top:24px">@keyPropertySaveRefreshCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>SelectRowByKey — Navigate to a Row by ID</h2>
+    <p class="doc-para">
+        <code>SelectRowByKey(keyValue)</code> selects the row whose <code>KeyProperty</code> value
+        matches — without needing a reference to the row object. Useful after creating a new record
+        or deep-linking from a URL parameter.
+    </p>
+    <div class="doc-controls">
+        <label style="font-size:13px">Jump to ID:
+            <input type="number" min="1" max="8" @bind="jumpToId" style="width:60px;margin-left:6px" />
+        </label>
+        <button class="doc-btn" @onclick="JumpToId">SelectRowByKey(@jumpToId)</button>
+    </div>
+    <NxGrid T="Person" @ref="keyNavGrid" Data="@keyNavPeople"
+            KeyProperty="@(x => x.Id)"
+            SelectionMode="NxGridSelectionMode.Row"
+            @bind-SelectedItems="keyNavSelected"
+            Cursor="NxGridCursor.Pointer"
+            Style="height:240px">
+        <NxGridColumn Property="@(x => x.Id)"        Width="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <div class="doc-output">
+        @(keyNavSelected.Count > 0
+            ? $"Selected: Id={keyNavSelected[0].Id} — {keyNavSelected[0].FirstName} {keyNavSelected[0].LastName}"
+            : "No selection — enter an ID (1–8) and click the button")
+    </div>
+    <pre class="doc-code" style="margin-top:24px">@selectRowByKeyCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>OnSelectionChanged</h2>
     <pre class="doc-code">@selectionCode</pre>
 </div>
@@ -320,6 +412,39 @@
                    $"{totalRows} unique row{(totalRows == 1 ? "" : "s")}" +
                    "\n" + string.Join("\n", parts);
     }
+
+    // KeyProperty — stable selection demo
+    List<Person> keyPeopleNoKey    = SampleData.GetPeopleCopy();
+    List<Person> keyPeopleWithKey  = SampleData.GetPeopleCopy();
+    List<Person> keySelectedNoKey  = [];
+    List<Person> keySelectedWithKey = [];
+    bool keyRefreshing;
+    string keyStatusMessage = "Select a row in either grid, then click Refresh Data.";
+
+    async Task RefreshKeyData()
+    {
+        keyRefreshing = true;
+        keyStatusMessage = "Refreshing…";
+        await Task.Delay(400);
+        keyPeopleNoKey   = SampleData.GetPeopleCopy();
+        keyPeopleWithKey = SampleData.GetPeopleCopy();
+        keyRefreshing = false;
+        keyStatusMessage = "Refreshed — check whether each grid preserved its selection.";
+    }
+
+    // SelectRowByKey demo
+    NxGrid<Person> keyNavGrid = null!;
+    List<Person> keyNavPeople   = SampleData.GetPeopleCopy();
+    List<Person> keyNavSelected = [];
+    int jumpToId = 1;
+
+    async Task JumpToId()
+    {
+        await keyNavGrid.SelectRowByKey(jumpToId);
+    }
+
+    string keyPropertySaveRefreshCode = DemoCodeSamples.KeyPropertySaveRefresh;
+    string selectRowByKeyCode         = DemoCodeSamples.SelectRowByKeyCode;
 
     string bindSelectedItemsCode = DemoCodeSamples.BindSelectedItems;
     string selectionCode        = DemoCodeSamples.Selection;

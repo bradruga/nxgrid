@@ -44,6 +44,14 @@ public partial class NxGrid<T>
     /// </summary>
     [Parameter] public List<T> Data { get; set; } = [];
 
+    /// <summary>
+    /// Row identity function for key-value–based selection stability. When set, row identity uses
+    /// value equality (<c>object.Equals</c>) instead of reference equality for selection preservation
+    /// on <see cref="Data"/> replacement, <see cref="SelectRow"/> fallback,
+    /// <see cref="SelectRowByKey"/>, and <c>@bind-SelectedItems</c> reconciliation.
+    /// </summary>
+    [Parameter] public Func<T, object?>? KeyProperty { get; set; }
+
     // ── Layout ────────────────────────────────────────────────────────────────
 
     /// <summary>Extra CSS class applied to the outermost grid container element.</summary>
@@ -407,6 +415,7 @@ public partial class NxGrid<T>
     private List<NxGridRange> selectedRanges = [];
     private NxGridRange? ActiveRange => selectedRanges.Count > 0 ? selectedRanges[^1] : null;
     private bool leftMouseDown;
+    private bool pendingKeyRestorationChanged;
 
     private List<T>? lastRaisedSelectedItems;
 
@@ -477,6 +486,8 @@ public partial class NxGrid<T>
 
     /// <summary>
     /// Programmatically selects <paramref name="row"/> and scrolls it into view.
+    /// When <see cref="KeyProperty"/> is set and the reference is not found, falls back to
+    /// key-value matching in the current filtered data.
     /// No-op when <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.None"/>
     /// or when <paramref name="row"/> is not in the current filtered data.
     /// </summary>
@@ -484,6 +495,34 @@ public partial class NxGrid<T>
     {
         if (SelectionMode == NxGridSelectionMode.None) return;
         var rowIndex = filteredData.IndexOf(row);
+        if (rowIndex < 0 && KeyProperty != null)
+        {
+            var key = KeyProperty(row);
+            rowIndex = filteredData.FindIndex(r => Equals(KeyProperty(r), key));
+        }
+        if (rowIndex < 0) return;
+        selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
+        StateHasChanged();
+        await RaiseSelectionChanged();
+        await ScrollCellIntoView(rowIndex, 0);
+    }
+
+    /// <summary>
+    /// Selects the first row in the current filtered data whose <see cref="KeyProperty"/> value
+    /// equals <paramref name="keyValue"/> and scrolls it into view. Fires
+    /// <see cref="OnSelectionChanged"/>. No-op when <see cref="KeyProperty"/> is not configured,
+    /// when <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.None"/>, or when no
+    /// matching row is found in the current filtered data.
+    /// </summary>
+    public async Task SelectRowByKey(object? keyValue)
+    {
+        if (KeyProperty == null)
+        {
+            Console.Error.WriteLine("[NxGrid] Warning: SelectRowByKey called without KeyProperty configured — call is a no-op.");
+            return;
+        }
+        if (SelectionMode == NxGridSelectionMode.None) return;
+        var rowIndex = filteredData.FindIndex(r => Equals(KeyProperty(r), keyValue));
         if (rowIndex < 0) return;
         selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
         StateHasChanged();
@@ -507,9 +546,19 @@ public partial class NxGrid<T>
 
         if (Data.Count != loadedDataCount || !ReferenceEquals(Data, loadedData))
         {
+            HashSet<object?>? selectedKeys = null;
+            if (KeyProperty != null && selectedRanges.Count > 0)
+                selectedKeys = CaptureSelectedKeys();
+
             loadedDataCount = Data.Count;
             loadedData = Data;
             ApplyFilterAndSort();
+
+            if (selectedKeys != null && selectedKeys.Count > 0)
+            {
+                RestoreSelectionByKeys(selectedKeys);
+                pendingKeyRestorationChanged = true;
+            }
         }
 
         if (!ReferenceEquals(SelectedItems, lastRaisedSelectedItems))
@@ -602,6 +651,12 @@ public partial class NxGrid<T>
             fillHandleNeedsPositioning = false;
             await PositionFillHandleAsync();
             StateHasChanged();
+        }
+
+        if (pendingKeyRestorationChanged)
+        {
+            pendingKeyRestorationChanged = false;
+            await RaiseSelectionChanged();
         }
     }
 

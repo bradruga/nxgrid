@@ -943,6 +943,52 @@ private async Task OnPrintClick()
               DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
 """;
 
+    public static readonly string KeyPropertySaveRefresh = """
+// KeyProperty identifies rows by value instead of reference.
+// When Data is replaced (e.g. after an API reload), selection is automatically
+// restored to the matching row in the new list — no manual SelectRow call needed.
+<NxGrid T="ProjectDto" @ref="grid" Data="@projects"
+        KeyProperty="@(x => x.ProjectId)"
+        @bind-SelectedItems="selectedProjects">
+    <NxGridColumn Property="@(x => x.ProjectNumber)" Width="100" />
+    <NxGridColumn Property="@(x => x.ProjectName)"   Width="260" />
+</NxGrid>
+
+@code {
+    NxGrid<ProjectDto>? grid;
+    List<ProjectDto> projects = [];
+    List<ProjectDto> selectedProjects = [];
+
+    async Task OnSave()
+    {
+        await api.SaveAsync(selectedProjects.First());
+        projects = await api.GetProjectsAsync();  // new list, new object references
+        // Selection is automatically restored to the same project by key.
+        // selectedProjects is updated to the new reference via @bind-SelectedItems.
+    }
+}
+""";
+
+    public static readonly string SelectRowByKeyCode = """
+// SelectRowByKey selects a row by its key value — no object reference needed.
+// Use after creating a new row or navigating from a URL parameter (e.g. ?projectId=42).
+@code {
+    async Task OnCreateProject(string name)
+    {
+        int newId = await api.CreateAsync(new ProjectDto { ProjectName = name });
+        projects = await api.GetProjectsAsync();  // new list
+        await grid!.SelectRowByKey(newId);        // select the new row by its ID
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        projects = await api.GetProjectsAsync();
+        if (int.TryParse(QueryString["projectId"], out int id))
+            await grid!.SelectRowByKey(id);
+    }
+}
+""";
+
     public static readonly string DatePickerCustomFormat = """
 // DateFormat controls display, editor pre-population, and commit parsing.
 // The grid tries TryParseExact first, then falls back to DateTime.TryParse.
