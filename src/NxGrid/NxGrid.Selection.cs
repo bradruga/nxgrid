@@ -211,7 +211,7 @@ public partial class NxGrid<T>
             var rowIndex = filteredData.IndexOf(row);
             var colIndex = visibleColumns.IndexOf(column);
             if (rowIndex == clickDownRow && colIndex == clickDownCol)
-                await OnCellClicked.InvokeAsync(new NxGridCellClickEventArgs<T> { Row = row, Column = column });
+                await OnCellClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = row, Column = column });
         }
 
         clickDownRow = -1;

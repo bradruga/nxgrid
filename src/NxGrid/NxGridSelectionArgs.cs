@@ -4,7 +4,7 @@ namespace NxGrid;
 /// Arguments passed to <see cref="NxGrid{T}.OnSelectionChanged"/> whenever the selection changes
 /// (mouse click, keyboard navigation, or a programmatic <see cref="NxGrid{T}.SelectRow"/> call).
 /// </summary>
-public class NxGridSelectionArgs<T>
+public sealed class NxGridSelectionArgs<T>
 {
     /// <summary>
     /// All active selection ranges, in the order they were created.
@@ -16,5 +16,5 @@ public class NxGridSelectionArgs<T>
     /// Collect all selected row objects across every range:
     /// <code>var rows = args.Ranges.SelectMany(r => r.Items).Distinct().ToList();</code>
     /// </example>
-    public List<NxGridSelectionRange<T>> Ranges { get; set; } = [];
+    public List<NxGridSelectionRange<T>> Ranges { get; init; } = [];
 }

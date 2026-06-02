@@ -46,7 +46,7 @@
     void HandleDrop(NxGridRowDropArgs<Step> args)
     {
         steps.RemoveAt(args.OldIndex);
-        steps.Insert(args.NewIndex, args.Item);
+        steps.Insert(args.NewIndex, args.Row);
 
         for (var i = 0; i < steps.Count; i++)
             steps[i] = steps[i] with { Order = i + 1 };
@@ -61,7 +61,7 @@
         void HandleDrop(NxGridRowDropArgs<Step> args)
         {
             steps.RemoveAt(args.OldIndex);
-            steps.Insert(args.NewIndex, args.Item);
+            steps.Insert(args.NewIndex, args.Row);
         }
         """;
 }

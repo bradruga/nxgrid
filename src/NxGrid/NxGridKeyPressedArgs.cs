@@ -7,11 +7,11 @@ namespace NxGrid;
 /// does not handle internally. Use this to react to custom hotkeys without the host needing to
 /// capture keyboard events separately.
 /// </summary>
-public class NxGridKeyPressedArgs
+public sealed class NxGridKeyPressedArgs
 {
     /// <summary>The underlying Blazor keyboard event, including <c>Key</c>, <c>Code</c>, and modifier flags.</summary>
-    public KeyboardEventArgs KeyboardEvent { get; init; } = null!;
+    public required KeyboardEventArgs KeyboardEvent { get; init; }
 
     /// <summary><c>true</c> when Ctrl (Windows/Linux) or ⌘ (Mac) was held when the key was pressed.</summary>
-    public bool ModifierPressed { get; init; }
+    public required bool ModifierPressed { get; init; }
 }

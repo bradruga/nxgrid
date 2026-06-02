@@ -343,7 +343,7 @@
     Person? clickedPerson;
     string? clickLog;
 
-    void OnPersonClicked(NxGridCellClickEventArgs<Person> args)
+    void OnPersonClicked(NxGridCellClickArgs<Person> args)
     {
         clickedPerson = args.Row;
         clickLog = $"Clicked: {args.Row.FirstName} {args.Row.LastName} — column \"{args.Column.EffectiveTitle}\"";

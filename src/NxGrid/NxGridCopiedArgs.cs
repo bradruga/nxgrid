@@ -7,17 +7,17 @@ namespace NxGrid;
 /// <see cref="NxGrid{T}.OnPasted"/>.
 /// All indices are zero-based into the filtered data / visible columns.
 /// </summary>
-public class NxGridCopiedArgs<T>
+public sealed class NxGridCopiedArgs<T>
 {
     /// <summary>Zero-based row index of the top edge of the copied bounding box.</summary>
-    public int MinRow { get; set; }
+    public required int MinRow { get; init; }
 
     /// <summary>Zero-based row index of the bottom edge of the copied bounding box.</summary>
-    public int MaxRow { get; set; }
+    public required int MaxRow { get; init; }
 
     /// <summary>Zero-based column index of the left edge of the copied bounding box.</summary>
-    public int MinCol { get; set; }
+    public required int MinCol { get; init; }
 
     /// <summary>Zero-based column index of the right edge of the copied bounding box.</summary>
-    public int MaxCol { get; set; }
+    public required int MaxCol { get; init; }
 }

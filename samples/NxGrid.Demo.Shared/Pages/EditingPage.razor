@@ -132,7 +132,7 @@
     string doubleClickLog = "none";
     string cellEditBlockedLog = "none";
 
-    void OnCellDoubleClicked(NxGridCellClickEventArgs<Person> args)
+    void OnCellDoubleClicked(NxGridCellClickArgs<Person> args)
     {
         doubleClickLog = $"{args.Row.FirstName} {args.Row.LastName} — {args.Column.EffectiveTitle}";
     }

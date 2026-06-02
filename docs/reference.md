@@ -120,8 +120,8 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip. `args.ColumnIndex` and `args.NewWidth` (px). |
 | `OnFilterChanged` | `EventCallback<NxGridFilterChangedArgs<T>>` | Fires after any column's filter state changes and `ApplyFilterAndSort` has run. `args.Column` is `null` when all filters are cleared at once (e.g. `ClearSavedState()`). Does not fire when `Data` is replaced externally. |
 | `OnSortChanged` | `EventCallback<NxGridSortChangedArgs<T>>` | Fires after the sort column or direction changes and `ApplyFilterAndSort` has run. `args.Column` is `null` and `args.Direction` is `0` when sort is cleared. Does not fire when only filter state changes, or when state is restored from `localStorage` on first render. |
-| `OnCellClicked` | `EventCallback<NxGridCellClickEventArgs<T>>` | Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Fires for all cells regardless of editability. Does not fire on right-click, drag-select, header click, row-number gutter click, keyboard navigation, or `SelectRow()`. Fires after `OnSelectionChanged`. |
-| `OnCellDoubleClicked` | `EventCallback<NxGridCellClickEventArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |
+| `OnCellClicked` | `EventCallback<NxGridCellClickArgs<T>>` | Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Fires for all cells regardless of editability. Does not fire on right-click, drag-select, header click, row-number gutter click, keyboard navigation, or `SelectRow()`. Fires after `OnSelectionChanged`. |
+| `OnCellDoubleClicked` | `EventCallback<NxGridCellClickArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |
 | `OnContextMenuShowing` | `Action<NxGridContextMenuArgs<T>>?` | Called synchronously just before the context menu opens. The handler receives the right-clicked `Row` and `Column`, and a mutable `Items` list. Append `NxGridContextMenuItem` entries to add custom items after the built-in items. Built-in items: **Copy** (always), **Copy with headers** (always), **Paste** (only when the right-clicked cell is editable), **Focus Cell** checkbox (only when `SelectionMode` is `Cell` and `AllowFocusCellMode` is `true`). |
 | `OnContextMenuItemClicked` | `EventCallback<NxGridContextMenuItemArgs<T>>` | Fires when the user selects a custom context menu item. Receives the clicked `Item` plus the `Row` and `Column` that were right-clicked. |
 | `OnRowDrop` | `EventCallback<NxGridRowDropArgs<T>>` | Fires after a successful row drag. The host must reorder `Data` in this handler. After the callback returns the grid calls `ApplyFilterAndSort()` and `StateHasChanged()` automatically. The active selection is cleared on drop. |
@@ -247,9 +247,9 @@ Arrow keys, Tab, Enter, and Ctrl+A always collapse to a single range. Editing (F
 In `Row` mode the range always spans all visible columns, so `StartCol = 0` and `EndCol = visibleColumns.Count - 1`. Use `args.Ranges[0].Items` to get the selected row objects — the `Columns` list will contain every visible column.
 
 ```csharp
-public class NxGridSelectionArgs<T>
+public sealed class NxGridSelectionArgs<T>
 {
-    public List<NxGridSelectionRange<T>> Ranges { get; set; }
+    public List<NxGridSelectionRange<T>> Ranges { get; init; }
 }
 
 public class NxGridSelectionRange<T>
@@ -552,7 +552,7 @@ public sealed class NxGridEditBlockedArgs<T>
     public NxGridColumn<T> Column { get; init; }
 }
 
-public sealed class NxGridCellClickEventArgs<T>
+public sealed class NxGridCellClickArgs<T>
 {
     public T Row { get; init; }
     public NxGridColumn<T> Column { get; init; }
@@ -615,7 +615,7 @@ public sealed class NxGridSortChangedArgs<T>
 ```csharp
 public sealed class NxGridRowDropArgs<T>
 {
-    public T   Item     { get; init; }  // the dragged row
+    public T   Row      { get; init; }  // the dragged row
     public int OldIndex { get; init; }  // index in Data before the drag
     public int NewIndex { get; init; }  // insertion index into Data after removal from OldIndex
 }
@@ -627,7 +627,7 @@ public sealed class NxGridRowDropArgs<T>
 void HandleDrop(NxGridRowDropArgs<RequisitionLineDto> args)
 {
     lines.RemoveAt(args.OldIndex);
-    lines.Insert(args.NewIndex, args.Item);
+    lines.Insert(args.NewIndex, args.Row);
 }
 ```
 

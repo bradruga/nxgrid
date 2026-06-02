@@ -37,7 +37,7 @@ public partial class NxGrid<T>
 
         await OnRowDrop.InvokeAsync(new NxGridRowDropArgs<T>
         {
-            Item     = filteredData[rowIndex],
+            Row      = filteredData[rowIndex],
             OldIndex = rowIndex,
             NewIndex = newIndex
         });

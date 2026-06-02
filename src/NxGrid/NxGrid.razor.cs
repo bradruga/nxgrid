@@ -288,13 +288,13 @@ public partial class NxGrid<T>
     /// Does not fire on right-click, drag-select, header click, row-number gutter click,
     /// keyboard navigation, or <see cref="SelectRow"/>. Fires after <see cref="OnSelectionChanged"/>.
     /// </summary>
-    [Parameter] public EventCallback<NxGridCellClickEventArgs<T>> OnCellClicked { get; set; }
+    [Parameter] public EventCallback<NxGridCellClickArgs<T>> OnCellClicked { get; set; }
 
     /// <summary>
     /// Fires on double-click for columns that are <b>not</b> editable.
     /// Editable columns open the inline editor on double-click instead.
     /// </summary>
-    [Parameter] public EventCallback<NxGridCellClickEventArgs<T>> OnCellDoubleClicked { get; set; }
+    [Parameter] public EventCallback<NxGridCellClickArgs<T>> OnCellDoubleClicked { get; set; }
 
     /// <summary>
     /// Called synchronously just before the right-click context menu opens. Append
