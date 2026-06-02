@@ -486,13 +486,13 @@ public class NxGridKeyboardTests : BunitContext
     public async Task OnCellDoubleClicked_FiresForNonEditableColumn()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
-        NxGridCellDoubleClickedArgs<EditRow>? clicked = null;
+        NxGridCellClickEventArgs<EditRow>? clicked = null;
         var rows = new List<EditRow> { new() { Name = "Alice" } };
 
         var cut = Render<NxGrid<EditRow>>(p => p
             .Add(x => x.Data, rows)
             .Add(x => x.OnCellDoubleClicked,
-                EventCallback.Factory.Create<NxGridCellDoubleClickedArgs<EditRow>>(this, args => clicked = args))
+                EventCallback.Factory.Create<NxGridCellClickEventArgs<EditRow>>(this, args => clicked = args))
             .AddChildContent<NxGridColumn<EditRow>>(col => col
                 .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Name))
                 .Add(x => x.Editable, (bool?)false)));

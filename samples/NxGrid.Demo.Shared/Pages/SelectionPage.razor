@@ -11,6 +11,46 @@
 </p>
 
 <div class="doc-section">
+    <h2>OnCellClicked — Single-Click Event</h2>
+    <p class="doc-para">
+        <code>OnCellClicked</code> fires when the user cleanly left-clicks a body cell (mousedown and mouseup
+        on the same cell, no drag). It fires for all cells regardless of editability, and fires after
+        <code>OnSelectionChanged</code>. Use it to load a detail panel, open a form, or navigate — without
+        conflating click intent with keyboard navigation.
+    </p>
+    <div class="doc-demo-row">
+        <div class="doc-demo-grid">
+            <NxGrid T="Person" Data="@clickPeople"
+                    SelectionMode="NxGridSelectionMode.Row"
+                    OnCellClicked="@OnPersonClicked"
+                    Cursor="NxGridCursor.Pointer"
+                    Style="height:260px">
+                <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+                <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+                <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+                <NxGridColumn Property="@(x => x.Department)" />
+            </NxGrid>
+        </div>
+        <div class="doc-detail-panel">
+            @if (clickedPerson != null)
+            {
+                <div class="doc-detail-card">
+                    <div class="doc-detail-name">@clickedPerson.FirstName @clickedPerson.LastName</div>
+                    <div class="doc-detail-row"><span>ID</span><span>@clickedPerson.Id</span></div>
+                    <div class="doc-detail-row"><span>Age</span><span>@clickedPerson.Age</span></div>
+                    <div class="doc-detail-row"><span>Department</span><span>@clickedPerson.Department</span></div>
+                </div>
+            }
+            else
+            {
+                <div class="doc-detail-empty">← Click a row</div>
+            }
+        </div>
+    </div>
+    <div class="doc-output">@(clickLog ?? "Click a cell…")</div>
+</div>
+
+<div class="doc-section">
     <h2>SelectionMode.Cell — Rectangular Range</h2>
     <p class="doc-para">
         Click to anchor, <kbd class="doc-kbd">Shift+click</kbd> or <kbd class="doc-kbd">Shift+Arrow</kbd> to extend.
@@ -207,6 +247,16 @@
 </div>
 
 @code {
+    List<Person> clickPeople = SampleData.GetPeopleCopy();
+    Person? clickedPerson;
+    string? clickLog;
+
+    void OnPersonClicked(NxGridCellClickEventArgs<Person> args)
+    {
+        clickedPerson = args.Row;
+        clickLog = $"Clicked: {args.Row.FirstName} {args.Row.LastName} — column \"{args.Column.EffectiveTitle}\"";
+    }
+
     List<Person> cellPeople  = SampleData.GetPeopleCopy();
     List<Person> rowPeople   = SampleData.GetPeopleCopy();
     List<Person> nonePeople  = SampleData.GetPeopleCopy();

@@ -10,6 +10,10 @@ public partial class NxGrid<T>
 
     private bool isResizing;
 
+    private int clickDownRow = -1;
+    private int clickDownCol = -1;
+    private bool clickWasDragged;
+
     private async Task OnCellMouseDown(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
         DismissTooltip();
@@ -35,6 +39,10 @@ public partial class NxGrid<T>
         }
 
         if (args.Button != MouseButtonLeft) return;
+
+        clickDownRow = rowIndex;
+        clickDownCol = colIndex;
+        clickWasDragged = false;
 
         if (isEditing) await CommitEdit();
 
@@ -131,6 +139,8 @@ public partial class NxGrid<T>
         if (ActiveRange != null && leftMouseDown && SelectionMode != NxGridSelectionMode.None)
         {
             var rowIndex = filteredData.IndexOf(row);
+            if (rowIndex != clickDownRow || visibleColumns.IndexOf(column) != clickDownCol)
+                clickWasDragged = true;
 
             ActiveRange.EndRow = rowIndex;
             if (SelectionMode == NxGridSelectionMode.Row)
@@ -192,9 +202,20 @@ public partial class NxGrid<T>
         }
     }
 
-    private void OnCellMouseUp(T row, NxGridColumn<T> column)
+    private async Task OnCellMouseUp(T row, NxGridColumn<T> column)
     {
         leftMouseDown = false;
+
+        if (!clickWasDragged && OnCellClicked.HasDelegate && clickDownRow >= 0)
+        {
+            var rowIndex = filteredData.IndexOf(row);
+            var colIndex = visibleColumns.IndexOf(column);
+            if (rowIndex == clickDownRow && colIndex == clickDownCol)
+                await OnCellClicked.InvokeAsync(new NxGridCellClickEventArgs<T> { Row = row, Column = column });
+        }
+
+        clickDownRow = -1;
+        clickDownCol = -1;
         StateHasChanged();
     }
 

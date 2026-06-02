@@ -618,7 +618,7 @@ public partial class NxGrid<T>
         if (!IsColumnEditable(column))
         {
             if (OnCellDoubleClicked.HasDelegate)
-                await OnCellDoubleClicked.InvokeAsync(new NxGridCellDoubleClickedArgs<T> { Row = row, Column = column });
+                await OnCellDoubleClicked.InvokeAsync(new NxGridCellClickEventArgs<T> { Row = row, Column = column });
             return;
         }
         var rowIndex = filteredData.IndexOf(row);

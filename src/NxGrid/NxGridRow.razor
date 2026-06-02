@@ -56,7 +56,7 @@
              @onmousedown="@(args => HandleMouseDown(args, col))"
              @onmouseenter="@(args => HandleMouseEnter(args, col))"
              @onmouseleave="@(() => OnMouseLeave?.Invoke(Row, col))"
-             @onmouseup="@(() => OnMouseUp?.Invoke(Row, col))"
+             @onmouseup="@(() => OnMouseUp?.Invoke(Row, col) ?? Task.CompletedTask)"
              @oncontextmenu="@(args => OnContextMenu?.Invoke(args, Row, col))"
              @oncontextmenu:preventDefault
              @ondblclick="@(() => OnDoubleClick?.Invoke(Row, col) ?? Task.CompletedTask)">
@@ -240,7 +240,7 @@
     [Parameter] public Func<T, NxGridColumn<T>, bool, string>? CellStyleFunc { get; set; }
     [Parameter] public Func<MouseEventArgs, T, NxGridColumn<T>, Task>? OnMouseDown { get; set; }
     [Parameter] public Func<MouseEventArgs, T, NxGridColumn<T>, Task>? OnMouseEnter { get; set; }
-    [Parameter] public Action<T, NxGridColumn<T>>? OnMouseUp { get; set; }
+    [Parameter] public Func<T, NxGridColumn<T>, Task>? OnMouseUp { get; set; }
     [Parameter] public Action<T, NxGridColumn<T>>? OnMouseLeave { get; set; }
     [Parameter] public Action<MouseEventArgs, T, NxGridColumn<T>>? OnContextMenu { get; set; }
     [Parameter] public Func<T, NxGridColumn<T>, Task>? OnDoubleClick { get; set; }
