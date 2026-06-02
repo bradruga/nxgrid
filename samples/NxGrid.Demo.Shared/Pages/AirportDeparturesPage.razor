@@ -1,0 +1,537 @@
+@page "/airport-departures"
+@implements IDisposable
+@using System.Threading
+@using NxGrid
+
+<PageTitle>Airport Departures — NxGrid</PageTitle>
+
+<h1>Airport Departures Board</h1>
+<p class="doc-intro">
+    A live departures board with the classic split-flap mechanical flip animation on every value
+    change. Status pills flow through a real workflow (On Time → Boarding → Departed), gate
+    reassignments flash amber, and the toolbar lets you delay, board, or reroute any flight.
+    Demonstrates per-cell animated <code>Template</code> columns via <code>@@key</code>-triggered
+    element recreation, status-driven <code>CellStyle</code>, and <code>ForceRerender()</code>
+    for real-time updates.
+</p>
+
+<div class="ab-board" style="border-radius:8px; overflow:hidden; margin-bottom:8px;">
+
+    @* ── Header ── *@
+    <div class="ab-header">
+        <div class="ab-header-left">
+            <span class="ab-plane">✈</span>
+            <span class="ab-airport-name">KORD — CHICAGO O'HARE</span>
+            <span class="ab-divider">|</span>
+            <span class="ab-label">DEPARTURES</span>
+        </div>
+        <div class="ab-header-right">
+            <div class="@LiveBadgeClass">
+                @if (isLive) { <span class="ab-pulse-dot"></span> }
+                @(isLive ? "LIVE" : "PAUSED")
+            </div>
+            <span class="ab-clock">@clockDisplay</span>
+        </div>
+    </div>
+
+    @* ── Toolbar ── *@
+    <div class="ab-toolbar">
+        <button class="ab-btn" @onclick="ToggleLive">
+            @(isLive ? "⏸ Pause" : "▶ Resume")
+        </button>
+        <div class="ab-sep-v"></div>
+        <button class="ab-btn ab-btn-delay"   @onclick="DelaySelectedFlight"   disabled="@(!CanDelay)">⏱ Delay 30 min</button>
+        <button class="ab-btn ab-btn-board"   @onclick="BoardSelectedFlight"   disabled="@(!CanBoard)">🚪 Board Now</button>
+        <button class="ab-btn ab-btn-ontime"  @onclick="MarkSelectedOnTime"    disabled="@(!CanMarkOnTime)">✓ Back On Time</button>
+        <button class="ab-btn ab-btn-gate"    @onclick="ReassignSelectedGate"  disabled="@(selectedFlight == null || selectedFlight.Status == FlightStatus.Departed)">🚧 Reassign Gate</button>
+        <div class="ab-sep-v"></div>
+        <span class="ab-stat"><strong class="ab-stat-val">@onTimeCount</strong> on time</span>
+        <span class="ab-stat"><strong class="ab-stat-val ab-col-board">@boardingCount</strong> boarding</span>
+        <span class="ab-stat"><strong class="ab-stat-val ab-col-delay">@delayedCount</strong> delayed</span>
+        <span class="ab-stat"><strong class="ab-stat-val ab-col-gone">@departedCount</strong> departed</span>
+    </div>
+
+    @* ── Grid ── *@
+    <NxGrid T="FlightRow"
+            @ref="grid"
+            Data="@flights"
+            Style="height:690px"
+            RowHeight="38"
+            SelectionMode="NxGridSelectionMode.Row"
+            OnSelectionChanged="HandleSelection"
+            CellStyle="@GetCellStyle">
+
+        <NxGridColumn T="FlightRow" Title="Flight" Width="86" MinWidth="80"
+                      Property="@(x => x.FlightNum)" Frozen="true">
+            <Template Context="f">
+                <span @key="@($"{f.FlightNum}:fn")" class="ab-flap ab-mono ab-bold">@f.FlightNum</span>
+            </Template>
+        </NxGridColumn>
+
+        <NxGridColumn T="FlightRow" Title="Airline" Width="148" MinWidth="120"
+                      Property="@(x => x.Airline)">
+            <Template Context="f">
+                <span @key="@($"{f.FlightNum}:al:{f.Airline}")" class="ab-flap">@f.Airline</span>
+            </Template>
+        </NxGridColumn>
+
+        <NxGridColumn T="FlightRow" Title="Destination" Width="182" MinWidth="140"
+                      Property="@(x => x.Destination)" Frozen="true">
+            <Template Context="f">
+                <span @key="@($"{f.FlightNum}:dst:{f.Destination}")" class="ab-flap">@f.Destination</span>
+            </Template>
+        </NxGridColumn>
+
+        <NxGridColumn T="FlightRow" Title="Sched." Width="72"
+                      Property="@(x => x.Scheduled)"
+                      Alignment="NxGridColumnAlignment.Center" />
+
+        <NxGridColumn T="FlightRow" Title="Estimated" Width="80"
+                      Alignment="NxGridColumnAlignment.Center">
+            <Template Context="f">
+                <span @key="@($"{f.FlightNum}:est:{f.Estimated}")"
+                      class="ab-flap ab-mono @(f.IsDelayed ? "ab-time-delay" : "")">@f.Estimated</span>
+            </Template>
+        </NxGridColumn>
+
+        <NxGridColumn T="FlightRow" Title="Gate" Width="64"
+                      Alignment="NxGridColumnAlignment.Center">
+            <Template Context="f">
+                <span @key="@($"{f.FlightNum}:gate:{f.Gate}")"
+                      class="ab-flap ab-mono ab-gate-txt @(flashGates.Contains(f.FlightNum) ? "ab-gate-flash" : "")">@f.Gate</span>
+            </Template>
+        </NxGridColumn>
+
+        <NxGridColumn T="FlightRow" Title="Terminal" Width="78"
+                      Property="@(x => x.Terminal)"
+                      Alignment="NxGridColumnAlignment.Center" />
+
+        <NxGridColumn T="FlightRow" Title="Status" Width="124"
+                      Alignment="NxGridColumnAlignment.Center">
+            <Template Context="f">
+                <span @key="@($"{f.FlightNum}:st:{f.Status}")"
+                      class="ab-flap ab-pill ab-pill-@StatusCss(f.Status)">@StatusLabel(f.Status)</span>
+            </Template>
+        </NxGridColumn>
+
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>How it works</h2>
+    <p class="doc-note">
+        Every animated cell wraps its value in a <code>&lt;span @@key="unique-value-key"&gt;</code>.
+        When the value changes, Blazor's diff sees a new key at that position and <em>recreates</em>
+        the DOM element rather than patching it — so the CSS <code>animation</code> declared on
+        <code>.ab-flap</code> automatically restarts from frame zero, producing the split-flap
+        flip. Gate reassignments add a second <code>ab-gate-flash</code> animation that overrides
+        with an amber glow. A <code>System.Threading.Timer</code> advances flight statuses every
+        few seconds; <code>ForceRerender()</code> keeps the grid in sync without triggering a
+        full Blazor component re-render. <code>CellStyle</code> applies per-status row tinting.
+    </p>
+    <pre class="doc-code">@codeSnippet</pre>
+</div>
+
+<style>
+    /* ── Board light theme ── */
+    .ab-board {
+        background: #f5f7fb;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* ── Header ── */
+    .ab-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 16px;
+        background: #1a2e5a;
+        border-bottom: 1px solid #14244a;
+    }
+    .ab-header-left  { display: flex; align-items: center; gap: 10px; }
+    .ab-header-right { display: flex; align-items: center; gap: 10px; }
+    .ab-plane        { font-size: 20px; }
+    .ab-airport-name { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: #ffffff; }
+    .ab-label        { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; color: #7a9cd0; text-transform: uppercase; }
+    .ab-divider      { color: #2e4a80; }
+    .ab-clock        { font-size: 13px; font-family: 'Courier New', monospace; color: #a0bce0; letter-spacing: 1px; }
+
+    /* ── Live badge ── */
+    .ab-live-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 2px 10px; border-radius: 10px;
+        font-size: 10px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase;
+    }
+    .ab-badge-live   { background: rgba(255,255,255,0.12); color: #86efac; }
+    .ab-badge-paused { background: rgba(255,255,255,0.10); color: #fcd34d; }
+    .ab-pulse-dot {
+        width: 7px; height: 7px; border-radius: 50%; background: #86efac;
+        animation: ab-pulse 1.4s ease-in-out infinite;
+        flex-shrink: 0;
+    }
+    @@keyframes ab-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%       { opacity: 0.3; transform: scale(0.7); }
+    }
+
+    /* ── Toolbar ── */
+    .ab-toolbar {
+        display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+        padding: 7px 10px;
+        background: #ffffff;
+        border-bottom: 1px solid #dde3ef;
+    }
+    .ab-sep-v { width: 1px; height: 20px; background: #dde3ef; margin: 0 3px; }
+
+    .ab-btn {
+        display: inline-flex; align-items: center; gap: 4px;
+        height: 26px; padding: 0 10px;
+        border: 1px solid #cdd5e4; border-radius: 4px;
+        background: #ffffff; color: #374151;
+        font-size: 12px; cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .ab-btn:hover:not(:disabled)         { background: #f0f4fb; border-color: #94a3b8; }
+    .ab-btn:disabled                      { opacity: 0.35; cursor: not-allowed; }
+    .ab-btn-delay:hover:not(:disabled)   { background: #fff7ed; border-color: #d97706; color: #92400e; }
+    .ab-btn-board:hover:not(:disabled)   { background: #f0fdf4; border-color: #16a34a; color: #15803d; }
+    .ab-btn-ontime:hover:not(:disabled)  { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
+    .ab-btn-gate:hover:not(:disabled)    { background: #faf5ff; border-color: #9333ea; color: #7e22ce; }
+
+    /* ── Stats ── */
+    .ab-stat      { font-size: 12px; padding: 0 4px; color: #6b7280; }
+    .ab-stat-val  { color: #111827; }
+    .ab-col-board { color: #1d4ed8; }
+    .ab-col-delay { color: #d97706; }
+    .ab-col-gone  { color: #9ca3af; }
+
+    /* ─────────────────────────────────────────────
+       Split-flap animation
+       The @@key directive forces DOM element recreation
+       whenever the value changes, which restarts the
+       CSS animation automatically.
+    ───────────────────────────────────────────── */
+    .ab-flap {
+        display: inline-block;
+        animation: ab-flap-in 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    @@keyframes ab-flap-in {
+        0%   { transform: perspective(220px) rotateX(-85deg); opacity: 0.05; }
+        55%  { transform: perspective(220px) rotateX(6deg);   opacity: 0.9; }
+        100% { transform: none; opacity: 1; }
+    }
+
+    /* Gate reassignment: flip-in + amber glow simultaneously */
+    .ab-gate-flash {
+        animation: ab-flap-in 0.3s cubic-bezier(0.23, 1, 0.32, 1),
+                   ab-gate-glow 0.65s ease-out;
+    }
+    @@keyframes ab-gate-glow {
+        0%   { color: #b45309; text-shadow: 0 0 8px rgba(217,119,6,0.6), 0 0 18px rgba(217,119,6,0.3); }
+        70%  { color: #d97706; text-shadow: 0 0 4px rgba(217,119,6,0.3); }
+        100% { color: inherit; text-shadow: none; }
+    }
+
+    /* ── Cell text helpers ── */
+    .ab-mono     { font-family: 'Courier New', Courier, monospace; }
+    .ab-bold     { font-weight: 700; }
+    .ab-gate-txt { font-weight: 700; letter-spacing: 1px; }
+    .ab-time-delay { color: #d97706; }
+
+    /* ── Status pills ── */
+    .ab-pill {
+        display: inline-block;
+        padding: 2px 10px; border-radius: 10px;
+        font-size: 11px; font-weight: 700;
+        letter-spacing: 0.6px; text-transform: uppercase;
+        border: 1px solid transparent;
+    }
+    .ab-pill-ontime    { background: #dcfce7; color: #15803d; border-color: #86efac; }
+    .ab-pill-boarding  { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+    .ab-pill-delayed   { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+    .ab-pill-departed  { background: #f3f4f6; color: #9ca3af; border-color: #d1d5db; }
+    .ab-pill-cancelled { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+</style>
+
+@code {
+    const int TickMs  = 2600;
+    const int FlashMs = 700;
+
+    enum FlightStatus { OnTime, Boarding, Delayed, Departed, Cancelled }
+
+    class FlightRow
+    {
+        public string       FlightNum       { get; set; } = "";
+        public string       Airline         { get; set; } = "";
+        public string       Destination     { get; set; } = "";
+        public string       Scheduled       { get; set; } = "";
+        public string       Estimated       { get; set; } = "";
+        public string       Gate            { get; set; } = "";
+        public string       Terminal        { get; set; } = "";
+        public FlightStatus Status          { get; set; }
+        public int          SchedMins       { get; set; }
+        public bool         IsDelayed       => Estimated != Scheduled;
+    }
+
+    NxGrid<FlightRow>?    grid;
+    List<FlightRow>       flights       = [];
+    FlightRow?            selectedFlight;
+    HashSet<string>       flashGates    = [];
+    Timer?                liveTimer;
+    Timer?                flashTimer;
+    bool                  isLive        = true;
+    string                clockDisplay  = "--:--:--";
+    readonly Random       rng           = new(42);
+
+    int onTimeCount;
+    int delayedCount;
+    int boardingCount;
+    int departedCount;
+
+    bool CanDelay      => selectedFlight is { Status: FlightStatus.OnTime or FlightStatus.Boarding };
+    bool CanBoard      => selectedFlight is { Status: FlightStatus.OnTime or FlightStatus.Delayed };
+    bool CanMarkOnTime => selectedFlight is { Status: FlightStatus.Delayed };
+
+    string LiveBadgeClass => $"ab-live-badge {(isLive ? "ab-badge-live" : "ab-badge-paused")}";
+
+    protected override void OnInitialized()
+    {
+        InitFlights();
+        UpdateStats();
+        liveTimer = new Timer(OnTimerTick, null, TickMs, TickMs);
+    }
+
+    public void Dispose()
+    {
+        liveTimer?.Dispose();
+        flashTimer?.Dispose();
+    }
+
+    void ToggleLive()
+    {
+        isLive = !isLive;
+        liveTimer?.Change(isLive ? TickMs : Timeout.Infinite, isLive ? TickMs : Timeout.Infinite);
+    }
+
+    void OnTimerTick(object? _) => InvokeAsync(Tick);
+
+    void Tick()
+    {
+        clockDisplay = DateTime.Now.ToString("HH:mm:ss");
+
+        // Boarding → Departed (occasional)
+        var boarding = flights.Where(f => f.Status == FlightStatus.Boarding).ToList();
+        if (boarding.Count > 0 && rng.NextDouble() < 0.35)
+            boarding[rng.Next(boarding.Count)].Status = FlightStatus.Departed;
+
+        // OnTime → Boarding (occasional, pick earliest)
+        var ontime = flights.Where(f => f.Status == FlightStatus.OnTime).ToList();
+        if (ontime.Count > 0 && rng.NextDouble() < 0.4)
+            ontime.MinBy(f => f.SchedMins)!.Status = FlightStatus.Boarding;
+
+        // OnTime → Delayed (rare)
+        var candidates = flights.Where(f => f.Status == FlightStatus.OnTime).ToList();
+        if (candidates.Count > 0 && rng.NextDouble() < 0.12)
+            DelayFlight(candidates[rng.Next(candidates.Count)], rng.Next(1, 4) * 15);
+
+        // Delayed → OnTime (occasional recovery)
+        var delayed = flights.Where(f => f.Status == FlightStatus.Delayed).ToList();
+        if (delayed.Count > 0 && rng.NextDouble() < 0.18)
+        {
+            var f = delayed[rng.Next(delayed.Count)];
+            f.Status    = FlightStatus.OnTime;
+            f.Estimated = f.Scheduled;
+        }
+
+        UpdateStats();
+        StateHasChanged();
+        grid?.ForceRerender();
+    }
+
+    void HandleSelection(NxGridSelectionArgs<FlightRow> args)
+    {
+        if (args.Ranges.Count == 0) { selectedFlight = null; return; }
+        var range = args.Ranges[0];
+        if (range.StartRow == range.EndRow)
+        {
+            var idx = range.StartRow;
+            selectedFlight = idx >= 0 && idx < flights.Count ? flights[idx] : null;
+        }
+        else
+        {
+            selectedFlight = null;
+        }
+    }
+
+    void DelaySelectedFlight()
+    {
+        if (selectedFlight == null) return;
+        DelayFlight(selectedFlight, 30);
+        UpdateStats(); StateHasChanged(); grid?.ForceRerender();
+    }
+
+    void BoardSelectedFlight()
+    {
+        if (selectedFlight == null) return;
+        selectedFlight.Status = FlightStatus.Boarding;
+        UpdateStats(); StateHasChanged(); grid?.ForceRerender();
+    }
+
+    void MarkSelectedOnTime()
+    {
+        if (selectedFlight == null) return;
+        selectedFlight.Status    = FlightStatus.OnTime;
+        selectedFlight.Estimated = selectedFlight.Scheduled;
+        UpdateStats(); StateHasChanged(); grid?.ForceRerender();
+    }
+
+    void ReassignSelectedGate()
+    {
+        if (selectedFlight == null) return;
+        string[] allGates = ["A1","A2","A3","A4","A5","B6","B9","B14","B18","B22","C4","C8","C22","C31","D2","D5","E6","E12","F3","F7","F11"];
+        string newGate;
+        do { newGate = allGates[rng.Next(allGates.Length)]; } while (newGate == selectedFlight.Gate);
+        selectedFlight.Gate = newGate;
+        var fn = selectedFlight.FlightNum;
+        flashGates.Add(fn);
+        StateHasChanged();
+        grid?.ForceRerender();
+        flashTimer?.Dispose();
+        flashTimer = new Timer(_ => InvokeAsync(() =>
+        {
+            flashGates.Remove(fn);
+            grid?.ForceRerender();
+        }), null, FlashMs, Timeout.Infinite);
+    }
+
+    static void DelayFlight(FlightRow f, int minutes)
+    {
+        f.Status    = FlightStatus.Delayed;
+        f.Estimated = AddMinutes(f.Estimated, minutes);
+    }
+
+    NxGridCellStyle? GetCellStyle(FlightRow f, NxGridColumn<FlightRow> col) =>
+        f.Status switch
+        {
+            FlightStatus.Departed  => new NxGridCellStyle { Style = "opacity:0.42; color:#9ca3af;" },
+            FlightStatus.Boarding  => new NxGridCellStyle { Style = "background:rgba(219,234,254,0.5);" },
+            FlightStatus.Delayed   => new NxGridCellStyle { Style = "background:rgba(254,243,199,0.6);" },
+            FlightStatus.Cancelled => new NxGridCellStyle { Style = "background:rgba(254,226,226,0.5);" },
+            _                      => null
+        };
+
+    void UpdateStats()
+    {
+        onTimeCount   = flights.Count(f => f.Status == FlightStatus.OnTime);
+        boardingCount = flights.Count(f => f.Status == FlightStatus.Boarding);
+        delayedCount  = flights.Count(f => f.Status == FlightStatus.Delayed);
+        departedCount = flights.Count(f => f.Status == FlightStatus.Departed);
+    }
+
+    static string StatusLabel(FlightStatus s) => s switch
+    {
+        FlightStatus.OnTime    => "On Time",
+        FlightStatus.Boarding  => "Boarding",
+        FlightStatus.Delayed   => "Delayed",
+        FlightStatus.Departed  => "Departed",
+        FlightStatus.Cancelled => "Cancelled",
+        _                      => s.ToString()
+    };
+
+    static string StatusCss(FlightStatus s) => s.ToString().ToLower();
+
+    static string AddMinutes(string time, int mins)
+    {
+        var p   = time.Split(':');
+        var tot = int.Parse(p[0]) * 60 + int.Parse(p[1]) + mins;
+        return $"{tot / 60 % 24:D2}:{tot % 60:D2}";
+    }
+
+    void InitFlights()
+    {
+        var defs = new (string Num, string Airline, string Dest, string Time, string Gate, string Term, FlightStatus Status)[]
+        {
+            ("AA 1204", "American Airlines",  "New York (JFK)",       "06:10", "B14", "3", FlightStatus.Departed),
+            ("UA 2881", "United Airlines",    "Los Angeles (LAX)",    "06:45", "C22", "1", FlightStatus.Departed),
+            ("DL 1337", "Delta Air Lines",    "Atlanta (ATL)",        "07:00", "A8",  "2", FlightStatus.Boarding),
+            ("WN 4421", "Southwest Airlines", "Denver (DEN)",         "07:15", "F3",  "5", FlightStatus.OnTime),
+            ("AA 788",  "American Airlines",  "Dallas (DFW)",         "07:30", "B22", "3", FlightStatus.Boarding),
+            ("UA 390",  "United Airlines",    "San Francisco (SFO)",  "07:45", "C8",  "1", FlightStatus.Delayed),
+            ("DL 2209", "Delta Air Lines",    "Boston (BOS)",         "08:00", "A5",  "2", FlightStatus.OnTime),
+            ("AA 1901", "American Airlines",  "Miami (MIA)",          "08:20", "B6",  "3", FlightStatus.OnTime),
+            ("WN 1122", "Southwest Airlines", "Las Vegas (LAS)",      "08:35", "F11", "5", FlightStatus.OnTime),
+            ("UA 1674", "United Airlines",    "Washington (IAD)",     "08:50", "C31", "1", FlightStatus.Delayed),
+            ("DL 5503", "Delta Air Lines",    "Seattle (SEA)",        "09:05", "A3",  "2", FlightStatus.OnTime),
+            ("AA 2240", "American Airlines",  "Phoenix (PHX)",        "09:20", "B18", "3", FlightStatus.OnTime),
+            ("BA 296",  "British Airways",    "London (LHR)",         "09:30", "E6",  "5", FlightStatus.OnTime),
+            ("LH 436",  "Lufthansa",          "Frankfurt (FRA)",      "09:50", "E12", "5", FlightStatus.Delayed),
+            ("UA 3310", "United Airlines",    "Houston (IAH)",        "10:05", "C4",  "1", FlightStatus.OnTime),
+            ("DL 804",  "Delta Air Lines",    "Minneapolis (MSP)",    "10:20", "A2",  "2", FlightStatus.OnTime),
+            ("AA 555",  "American Airlines",  "Charlotte (CLT)",      "10:35", "B9",  "3", FlightStatus.OnTime),
+            ("WN 3301", "Southwest Airlines", "Orlando (MCO)",        "10:50", "F7",  "5", FlightStatus.OnTime),
+        };
+
+        flights = defs.Select(d =>
+        {
+            var p    = d.Time.Split(':');
+            var mins = int.Parse(p[0]) * 60 + int.Parse(p[1]);
+            return new FlightRow
+            {
+                FlightNum  = d.Num,
+                Airline    = d.Airline,
+                Destination = d.Dest,
+                Scheduled  = d.Time,
+                Estimated  = d.Status == FlightStatus.Delayed
+                    ? AddMinutes(d.Time, rng.Next(1, 4) * 15)
+                    : d.Time,
+                Gate       = d.Gate,
+                Terminal   = d.Term,
+                Status     = d.Status,
+                SchedMins  = mins,
+            };
+        }).ToList();
+    }
+
+    const string codeSnippet =
+"""
+// 1. Each animated cell uses @key tied to its current value.
+//    When the value changes, Blazor recreates the element
+//    instead of patching it — restarting the CSS animation.
+
+<NxGridColumn T="FlightRow" Title="Gate" Width="64">
+    <Template Context="f">
+        <span @key="@($"{f.FlightNum}:gate:{f.Gate}")"
+              class="ab-flap @(flash.Contains(f.FlightNum) ? "ab-gate-flash" : "")">
+            @f.Gate
+        </span>
+    </Template>
+</NxGridColumn>
+
+// 2. CSS: ab-flap plays the flip-in; ab-gate-flash layers
+//    an amber glow on top for gate reassignments.
+
+.ab-flap {
+    animation: ab-flap-in 0.3s cubic-bezier(0.23,1,0.32,1) forwards;
+}
+@keyframes ab-flap-in {
+    0%   { transform: perspective(220px) rotateX(-85deg); opacity: 0.05; }
+    55%  { transform: perspective(220px) rotateX(6deg);   opacity: 0.9; }
+    100% { transform: perspective(220px) rotateX(0deg);   opacity: 1; }
+}
+.ab-gate-flash {
+    animation: ab-flap-in 0.3s cubic-bezier(0.23,1,0.32,1) forwards,
+               ab-gate-glow 0.65s ease-out forwards;
+}
+@keyframes ab-gate-glow {
+    0%   { color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,.9); }
+    100% { color: inherit; text-shadow: none; }
+}
+
+// 3. CellStyle applies per-status row tinting.
+NxGridCellStyle? GetCellStyle(FlightRow f, NxGridColumn<FlightRow> col) =>
+    f.Status switch {
+        FlightStatus.Departed => new() { Style = "opacity:0.38;" },
+        FlightStatus.Boarding => new() { Style = "background:rgba(29,78,216,0.12);" },
+        FlightStatus.Delayed  => new() { Style = "background:rgba(146,64,14,0.14);" },
+        _ => null
+    };
+""";
+}
