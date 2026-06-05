@@ -11,11 +11,11 @@
 </p>
 
 <div class="doc-section">
-    <h2>Loading state</h2>
+    <h2>Initial load (no data)</h2>
     <p class="doc-note">
         <code>IsLoading="true"</code> suppresses <code>EmptyTemplate</code> and shows
-        <code>LoadingTemplate</code> instead. Click <strong>Simulate load</strong> to replay
-        the fetch — the loading template appears for two seconds, then the data arrives.
+        <code>LoadingTemplate</code> in the body instead. Click <strong>Simulate load</strong>
+        to replay the fetch — the loading template appears for two seconds, then the data arrives.
     </p>
     <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
         <button class="doc-btn" @onclick="SimulateLoad" disabled="@isLoading">
@@ -42,6 +42,37 @@
         </ChildContent>
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@loadingCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Background refresh (data already loaded)</h2>
+    <p class="doc-note">
+        When <code>IsLoading="true"</code> and rows are already present, the rows stay visible
+        and <code>LoadingTemplate</code> is rendered as an overlay on top. Click
+        <strong>Simulate refresh</strong> to see the effect — the grid remains interactive
+        while the overlay is shown.
+    </p>
+    <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+        <button class="doc-btn" @onclick="SimulateRefresh" disabled="@isRefreshing">
+            @(isRefreshing ? "Refreshing…" : "Simulate refresh")
+        </button>
+    </div>
+    <NxGrid T="Person" Data="@refreshPeople" IsLoading="@isRefreshing" Style="height:260px">
+        <LoadingTemplate>
+            <span style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(255,255,255,0.85);border:1px solid var(--nx-grid-border);border-radius:4px;color:var(--nx-grid-muted-fg)">
+                <span class="nx-demo-spinner"></span>
+                Refreshing…
+            </span>
+        </LoadingTemplate>
+        <ChildContent>
+            <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" Width="130" />
+            <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name"  Width="130" />
+            <NxGridColumn Property="@(x => x.Department)" Width="140" />
+            <NxGridColumn Property="@(x => x.Age)"        Width="80"
+                          Alignment="NxGridColumnAlignment.Right" />
+        </ChildContent>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@refreshCode</pre>
 </div>
 
 <div class="doc-section">
@@ -96,8 +127,9 @@
                 <td>RenderFragment?</td>
                 <td>—</td>
                 <td>
-                    Rendered centered in the grid body when <code>IsLoading</code> is
-                    <code>true</code> and there are no rows. Body is blank while loading
+                    Rendered when <code>IsLoading</code> is <code>true</code>. With no rows it
+                    fills the grid body; with rows present it is shown as an overlay on top of
+                    the data (<code>pointer-events:none</code>). Body is blank while loading
                     when not set.
                 </td>
             </tr>
@@ -107,8 +139,9 @@
                 <td>false</td>
                 <td>
                     When <code>true</code>, suppresses <code>EmptyTemplate</code> and shows
-                    <code>LoadingTemplate</code> instead. Set this while your async data fetch
-                    is in-flight to prevent a premature empty-state flash.
+                    <code>LoadingTemplate</code> instead. If rows are already present (e.g. a
+                    background refresh), the rows remain visible and <code>LoadingTemplate</code>
+                    is overlaid on top of them.
                 </td>
             </tr>
         </tbody>
@@ -135,6 +168,9 @@
     List<Person> people = [];
     bool isLoading;
 
+    List<Person> refreshPeople = SampleData.GetPeopleCopy();
+    bool isRefreshing;
+
     List<Person> filteredPeople = SampleData.GetPeopleCopy();
     NxGrid<Person>? filterGrid;
 
@@ -157,10 +193,45 @@
         people = [];
     }
 
+    async Task SimulateRefresh()
+    {
+        isRefreshing = true;
+        await Task.Delay(2000);
+        refreshPeople = SampleData.GetPeopleCopy();
+        isRefreshing = false;
+    }
+
     void ClearFilterGridState()
     {
         filterGrid?.ClearSavedState();
     }
+
+    string refreshCode = """
+        <NxGrid T="Person" Data="@people" IsLoading="@isRefreshing">
+            <LoadingTemplate>
+                <span style="...backdrop styles...">
+                    <span class="spinner"></span>
+                    Refreshing…
+                </span>
+            </LoadingTemplate>
+            <ChildContent>
+                <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" />
+                ...
+            </ChildContent>
+        </NxGrid>
+
+        @code {
+            List<Person> people = SampleData.GetPeopleCopy();
+            bool isRefreshing;
+
+            async Task Refresh()
+            {
+                isRefreshing = true;
+                people = await api.GetPeopleAsync();
+                isRefreshing = false;
+            }
+        }
+        """;
 
     string loadingCode = """
         <NxGrid T="Person" Data="@people" IsLoading="@isLoading">

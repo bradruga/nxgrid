@@ -183,14 +183,14 @@
                 <td>LoadingTemplate</td>
                 <td>RenderFragment?</td>
                 <td>—</td>
-                <td>Rendered centered in the grid body when <code>IsLoading</code> is true and there are no rows.</td>
+                <td>Rendered when <code>IsLoading</code> is true. With no rows it fills the body; with rows present it is shown as an overlay on top of the data (<code>pointer-events:none</code>).</td>
                 <td><a href="/empty-state">Empty &amp; Loading State</a></td>
             </tr>
             <tr>
                 <td>IsLoading</td>
                 <td>bool</td>
                 <td>false</td>
-                <td>When true, shows <code>LoadingTemplate</code> instead of <code>EmptyTemplate</code>. Set while an async fetch is in-flight to prevent an empty-state flash.</td>
+                <td>When true, suppresses <code>EmptyTemplate</code> and shows <code>LoadingTemplate</code>. With rows already present the rows stay visible and <code>LoadingTemplate</code> overlays them. Set while an async fetch is in-flight to prevent an empty-state flash.</td>
                 <td><a href="/empty-state">Empty &amp; Loading State</a></td>
             </tr>
             <tr>

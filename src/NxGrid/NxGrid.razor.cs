@@ -203,15 +203,18 @@ public partial class NxGrid<T>
     [Parameter] public RenderFragment? EmptyTemplate { get; set; }
 
     /// <summary>
-    /// Rendered centered in the grid body when <see cref="IsLoading"/> is <c>true</c> and
-    /// there are no rows. When not set the body is blank while loading.
+    /// Rendered when <see cref="IsLoading"/> is <c>true</c>. When there are no rows it fills
+    /// the grid body; when rows are present it is rendered as an absolute-positioned overlay on
+    /// top of the data. When not set the body is blank while loading.
     /// </summary>
     [Parameter] public RenderFragment? LoadingTemplate { get; set; }
 
     /// <summary>
     /// When <c>true</c>, suppresses <see cref="EmptyTemplate"/> and shows
-    /// <see cref="LoadingTemplate"/> instead. Set this while your async data fetch is in-flight
-    /// to prevent a premature empty-state flash. Default: <c>false</c>.
+    /// <see cref="LoadingTemplate"/> instead. If rows are already present (e.g. a background
+    /// refresh while stale data is displayed), the rows remain visible and
+    /// <see cref="LoadingTemplate"/> is rendered as an overlay on top of them.
+    /// Default: <c>false</c>.
     /// </summary>
     [Parameter] public bool IsLoading { get; set; }
 

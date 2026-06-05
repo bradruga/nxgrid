@@ -402,6 +402,11 @@
         </div>
     }
 
+    @if (IsLoading && LoadingTemplate != null && filteredData.Count > 0)
+    {
+        <div class="nx-grid-loading-overlay">@LoadingTemplate</div>
+    }
+
     @if (showColumnChooser)
     {
         <div style="position:fixed;inset:0;z-index:999;" @onclick="CloseColumnChooser"></div>

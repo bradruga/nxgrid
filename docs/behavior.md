@@ -12,11 +12,12 @@ When the grid body has no rows to render, `EmptyTemplate` and `LoadingTemplate` 
 
 | State | Condition | Template shown |
 |---|---|---|
-| Loading | `IsLoading == true` and `filteredData.Count == 0` | `LoadingTemplate` (body is blank if not set) |
-| Empty | `IsLoading == false` and `filteredData.Count == 0` | `EmptyTemplate` (body is blank if not set) |
-| Has rows | `filteredData.Count > 0` | Normal row rendering (templates are not shown) |
+| Loading (no data) | `IsLoading == true` and `filteredData.Count == 0` | `LoadingTemplate` fills the body (blank if not set) |
+| Loading (with data) | `IsLoading == true` and `filteredData.Count > 0` | Rows render normally; `LoadingTemplate` is shown as an overlay on top |
+| Empty | `IsLoading == false` and `filteredData.Count == 0` | `EmptyTemplate` fills the body (blank if not set) |
+| Has rows | `IsLoading == false` and `filteredData.Count > 0` | Normal row rendering |
 
-`IsLoading` takes priority over `EmptyTemplate`. When `IsLoading` is `true` and there are existing rows (e.g. a background refresh while stale data is still displayed), the rows remain visible and neither template is shown — only the loading or empty template for the no-rows case is affected.
+`IsLoading` always takes priority over `EmptyTemplate`. When `IsLoading` is `true` and rows are already present (e.g. a background refresh while stale data is still displayed), the rows remain visible and `LoadingTemplate` is rendered as an absolute-positioned overlay on top of them. The overlay uses `pointer-events: none` so the grid remains interactive. To add a dimming backdrop, apply a semi-transparent background inside your `LoadingTemplate` content or override the `.nx-grid-loading-overlay` CSS class.
 
 ### Preventing the loading flash
 
@@ -43,7 +44,9 @@ protected override async Task OnInitializedAsync()
 </NxGrid>
 ```
 
-While the fetch is in-flight, `LoadingTemplate` is shown. Once it completes: if `projects` is non-empty, the rows render normally; if it is empty, `EmptyTemplate` is shown.
+While the fetch is in-flight, `LoadingTemplate` is shown in the body (no rows yet). Once it completes: if `projects` is non-empty, the rows render normally; if it is empty, `EmptyTemplate` is shown.
+
+For a **background refresh** (refreshing data that is already loaded), keep `IsLoading = true` while the new fetch runs. The stale rows remain visible and `LoadingTemplate` appears as an overlay on top until the new data arrives.
 
 ---
 

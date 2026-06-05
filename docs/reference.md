@@ -99,8 +99,8 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 |---|---|---|
 | `ChildContent` | `RenderFragment?` | Where `<NxGridColumn>` declarations go. When omitted, columns are auto-generated from `T`'s public readable properties (see [Auto-columns](#auto-columns)). |
 | `EmptyTemplate` | `RenderFragment?` | Rendered centered in the grid body when `filteredData` is empty and `IsLoading` is `false`. Column headers remain visible. When not set the body is blank. |
-| `LoadingTemplate` | `RenderFragment?` | Rendered centered in the grid body when `IsLoading` is `true` and there are no rows. When not set the body is blank while loading. |
-| `IsLoading` | `bool` | `false` | When `true`, suppresses `EmptyTemplate` and shows `LoadingTemplate` instead (if provided). Set this while your async data fetch is in-flight to prevent a premature empty-state flash. |
+| `LoadingTemplate` | `RenderFragment?` | Rendered when `IsLoading` is `true`. With no rows it fills the body; with rows present it is shown as an absolute-positioned overlay on top of the data (`pointer-events: none`). When not set the body is blank while loading. |
+| `IsLoading` | `bool` | `false` | When `true`, suppresses `EmptyTemplate` and shows `LoadingTemplate` instead (if provided). With rows already present, rows stay visible and `LoadingTemplate` overlays them. Set this while your async data fetch is in-flight to prevent a premature empty-state flash. |
 | `Overlays` | `RenderFragment?` | Rendered in an absolute-positioned, pointer-events-none layer above the grid. Useful for custom highlights. |
 
 ### Tooltips
