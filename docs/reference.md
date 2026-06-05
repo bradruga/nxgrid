@@ -646,14 +646,14 @@ When `ChildContent` is `null` (no `<NxGridColumn>` children), the grid reflects 
 | Title | `[Display(Name = "...")]` attribute if present, otherwise the property name split on PascalCase word boundaries (`FirstName` → `"First Name"`) |
 | Width | `150 px` with `flex-grow: 150` in auto mode (extra space distributed proportionally to `Width`); locked to `150 px` once manual mode is active |
 | Alignment | `Right` for numeric types (`int`, `long`, `short`, `uint`, `ulong`, `ushort`, `byte`, `double`, `float`, `decimal`); `Left` for everything else |
-| Sort / filter | Fully supported — clicking the column header cycles sort, column menu provides filter |
+| Sort / filter | Fully supported — clicking the column header cycles sort, column menu provides filter. State is persisted by `StateKey`. |
 | Editing | Not enabled (auto-columns have no setter path) |
 
 **No flash.** The discriminator is `ChildContent == null`. If you provide any `<NxGridColumn>` children, the grid uses those from the very first render and never generates auto-columns — there is no intermediate frame where auto-columns appear before real columns load.
 
 **Column order** follows `Type.GetProperties()` — public instance properties in declaration order.
 
-Auto-columns are cached for the lifetime of the component. They are never persisted by `StateKey`.
+Auto-columns are cached for the lifetime of the component. `StateKey` persistence is fully supported — sort, filter, and column widths are saved and restored using the column's title (derived from the property name) as the identity key.
 
 ---
 

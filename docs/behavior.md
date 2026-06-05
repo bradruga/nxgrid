@@ -82,7 +82,6 @@ When the grid has no `ChildContent` (no `<NxGridColumn>` children declared), it 
 
 **Limitations of auto-columns:**
 - Read-only: `Display` is set via `PropertyInfo.GetValue`, so there is no compiled setter path. Editing is not supported.
-- Not persisted: `SaveStateAsync` and `RestoreStateAsync` always operate on `columns` (the declared list). Auto-columns are not included in `StateKey` persistence.
 - Not customisable at runtime: width, alignment, title, and visibility are fixed at generation time. To change any of these, declare explicit `<NxGridColumn>` children.
 
 ---

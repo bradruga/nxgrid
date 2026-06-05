@@ -38,7 +38,7 @@ public partial class NxGrid<T>
     }
 
     private NxGridColumn<T>? FindColumn(string id)
-        => columns.FirstOrDefault(c => GetColumnId(c) == id);
+        => ActiveColumns.FirstOrDefault(c => GetColumnId(c) == id);
 
     private async Task SaveStateAsync()
     {
@@ -46,14 +46,14 @@ public partial class NxGrid<T>
 
         var state = new PersistedState();
 
-        foreach (var column in columns)
+        foreach (var column in ActiveColumns)
         {
             var id = GetColumnId(column);
             if (id == null) continue;
             state.Columns.Add(new PersistedColumnState { Id = id, Width = column.UserWidth, Frozen = column.UserFrozen, Hidden = column.UserHidden });
         }
 
-        var sortCol = columns.FirstOrDefault(c => c.SortState != 0);
+        var sortCol = ActiveColumns.FirstOrDefault(c => c.SortState != 0);
         if (sortCol != null)
         {
             var sortId = GetColumnId(sortCol);
@@ -61,7 +61,7 @@ public partial class NxGrid<T>
                 state.Sort = new PersistedSortState { ColumnId = sortId, Direction = sortCol.SortState };
         }
 
-        foreach (var column in columns)
+        foreach (var column in ActiveColumns)
         {
             var id = GetColumnId(column);
             if (id == null || column.FilterState.Count == 0) continue;
@@ -99,7 +99,7 @@ public partial class NxGrid<T>
             if (savedCol.Hidden != null) column.UserHidden = savedCol.Hidden;
         }
 
-        if (columns.Any(c => c.UserWidth.HasValue))
+        if (ActiveColumns.Any(c => c.UserWidth.HasValue))
             manualMode = true;
 
         ComputeFrozenOffsets();
@@ -145,7 +145,7 @@ public partial class NxGrid<T>
             await jsInterop.LocalStorageRemove(StateKey);
 
         manualMode = !AutoSizeColumns;
-        foreach (var column in columns)
+        foreach (var column in ActiveColumns)
         {
             column.UserWidth = null;
             column.UserFrozen = null;
