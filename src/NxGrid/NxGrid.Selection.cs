@@ -10,6 +10,9 @@ public partial class NxGrid<T>
 
     private bool isResizing;
 
+    private NxCharWidths? _charWidths;
+    private double _normalAvgWidth;
+
     private int clickDownRow = -1;
     private int clickDownCol = -1;
     private bool clickWasDragged;
@@ -440,5 +443,94 @@ public partial class NxGrid<T>
             StateHasChanged();
             await SaveStateAsync();
         }
+    }
+
+    private async Task OnResizeGripDoubleClick(NxGridColumn<T> column)
+    {
+        if (jsInterop == null) return;
+        var columnIndex = visibleColumns.IndexOf(column);
+        if (columnIndex < 0) return;
+
+        var columnsToResize = GetEntireColumnSelection(columnIndex)
+            .Where(i => visibleColumns[i].AutoSizable)
+            .ToList();
+        if (columnsToResize.Count == 0) return;
+
+        await EnsureCharWidthsAsync();
+        if (_charWidths == null) return;
+
+        // Snapshot current rendered widths so non-auto-sized columns keep their visual width
+        // when manualMode turns on (same as what drag-resize does for unresized columns).
+        var currentWidths = await jsInterop.GetColumnWidths();
+        var columnsToResizeSet = columnsToResize.ToHashSet();
+        for (var i = 0; i < visibleColumns.Count && i < currentWidths.Length; i++)
+        {
+            if (!columnsToResizeSet.Contains(i) && visibleColumns[i].UserWidth == null)
+                visibleColumns[i].UserWidth = (int)currentWidths[i];
+        }
+
+        // Measure actual header cell natural widths from the DOM (header is always rendered).
+        var headerMinWidths = await jsInterop.GetHeaderMinWidths();
+
+        foreach (var idx in columnsToResize)
+        {
+            var col = visibleColumns[idx];
+            double maxDataWidth = 0;
+
+            foreach (var row in filteredData)
+            {
+                var val = col.EffectiveGetter?.Invoke(row)?.ToString();
+                var w = EstimateStringWidth(val, _charWidths.Normal, _normalAvgWidth);
+                if (w > maxDataWidth) maxDataWidth = w;
+            }
+
+            const int cellPadding = 12;
+            var dataNeeded = (int)Math.Ceiling(maxDataWidth) + cellPadding;
+            var headerNeeded = idx < headerMinWidths.Length ? (int)Math.Ceiling(headerMinWidths[idx]) : 0;
+            var newWidth = Math.Max(dataNeeded, headerNeeded);
+
+            if (col.MinWidth.HasValue) newWidth = Math.Max(newWidth, col.MinWidth.Value);
+            if (col.MaxWidth.HasValue) newWidth = Math.Min(newWidth, col.MaxWidth.Value);
+
+            col.UserWidth = newWidth;
+            if (OnColumnResized.HasDelegate)
+                await OnColumnResized.InvokeAsync(new NxGridColumnResizedArgs { ColumnIndex = idx, NewWidth = newWidth });
+        }
+
+        manualMode = true;
+        ComputeFrozenOffsets();
+        renderToken++;
+        StateHasChanged();
+        await SaveStateAsync();
+    }
+
+    private async Task EnsureCharWidthsAsync()
+    {
+        if (_charWidths != null) return;
+        var result = await jsInterop!.MeasureCharWidths();
+        if (result == null) return;
+        _charWidths = result;
+        _normalAvgWidth = ComputeAverageWidth(_charWidths.Normal);
+    }
+
+    private static double ComputeAverageWidth(Dictionary<string, double> widths)
+    {
+        const string sample = "abcdefghijklmnopqrstuvwxyz";
+        double total = 0;
+        var count = 0;
+        foreach (var ch in sample)
+        {
+            if (widths.TryGetValue(ch.ToString(), out var w)) { total += w; count++; }
+        }
+        return count > 0 ? total / count : 8.0;
+    }
+
+    private static double EstimateStringWidth(string? s, Dictionary<string, double> widths, double avgWidth)
+    {
+        if (s is null or { Length: 0 }) return 0;
+        double total = 0;
+        foreach (var ch in s)
+            total += widths.TryGetValue(ch.ToString(), out var w) ? w : avgWidth;
+        return total;
     }
 }

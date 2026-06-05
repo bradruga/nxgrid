@@ -509,6 +509,22 @@ void OnSignalRRowReceived(Person newRow)
 }
 """;
 
+    public static readonly string AutoSize = """
+// Double-click a resize grip to auto-size the column to its widest content.
+// Works on the full dataset — even rows not currently in the DOM.
+<NxGrid T="Person" Data="@people">
+    <NxGridColumn Property="@(x => x.FirstName)"  Width="60" />
+    <NxGridColumn Property="@(x => x.LastName)"   Width="60" />
+    <NxGridColumn Property="@(x => x.Department)" Width="60" />
+
+    // AutoSizable="false" disables double-click auto-size on this column.
+    // Drag resize still works.
+    <NxGridColumn Property="@(x => x.Age)" Width="60"
+                  AutoSizable="false"
+                  Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+""";
+
     public static readonly string Alignment = """
 <NxGridColumn Property="@(x => x.Name)"
               Alignment="NxGridColumnAlignment.Left" />    // default

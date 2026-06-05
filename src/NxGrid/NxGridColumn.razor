@@ -116,6 +116,14 @@
     [Parameter] public bool Hideable { get; set; } = true;
 
     /// <summary>
+    /// When <c>true</c>, double-clicking the column's resize grip auto-sizes the column to fit
+    /// its widest content across the current filtered dataset. Obeys <see cref="MinWidth"/> and
+    /// <see cref="MaxWidth"/>. Set to <c>false</c> to disable double-click auto-size for this
+    /// column without affecting drag resize. Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool AutoSizable { get; set; } = true;
+
+    /// <summary>
     /// Custom cell renderer. The cell container (padding, selection highlight) is still rendered
     /// by the grid; the template fills the inner content. When both <c>Template</c> and
     /// <see cref="CheckBox"/> are set, <c>Template</c> takes priority.

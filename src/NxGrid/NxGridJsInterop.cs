@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 namespace NxGrid;
 
 public record NxComboDropdownPosition(double Top, double Left, double Width);
+public record NxCharWidths(Dictionary<string, double> Normal);
 public record NxMenuPosition(double Top, double Left);
 public record NxDatePickerPosition(double Top, double Left);
 public record NxFillHandlePosition(double Top, double Left);
@@ -61,6 +62,15 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     {
         return jsObject.InvokeVoidAsync("cleanupResizeStyle").AsTask();
     }
+
+    public Task<NxCharWidths?> MeasureCharWidths()
+        => jsObject.InvokeAsync<NxCharWidths?>("measureCharWidths").AsTask();
+
+    public Task<double[]> GetColumnWidths()
+        => jsObject.InvokeAsync<double[]>("getColumnWidths").AsTask();
+
+    public Task<double[]> GetHeaderMinWidths()
+        => jsObject.InvokeAsync<double[]>("getHeaderMinWidths").AsTask();
 
     public Task<int> GetPageRowCount(int rowHeight)
     {

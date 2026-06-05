@@ -85,7 +85,9 @@
                 <div class="nx-grid-resize-grip"
                      @onmousedown="@(args => OnResizeGripMouseDown(args, column))"
                      @onmousedown:stopPropagation
-                     onmousedown:preventDefault>
+                     onmousedown:preventDefault
+                     @ondblclick="@(() => OnResizeGripDoubleClick(column))"
+                     @ondblclick:stopPropagation>
                 </div>
             </div>
         }

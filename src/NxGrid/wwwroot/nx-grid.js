@@ -311,11 +311,19 @@
             document.addEventListener('mouseup', mouseUpHandler);
         });
 
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
+        // If the mouse barely moved (click without drag, or double-click's first pass),
+        // clean up immediately and return empty — signal no state change to C#.
+        if (Math.abs(currentWidth - initialWidths[columnIndex]) < 2) {
+            styleEl.remove();
+            return [];
+        }
+
         // Keep styleEl alive — Blazor hasn't re-rendered yet. C# will call
         // cleanupResizeStyle() from OnAfterRenderAsync once the new widths are in the DOM.
         this._resizeStyleEl = styleEl;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
 
         // Return all widths: initial for untouched columns, final for the resized one
         return initialWidths.map((w, i) => i === columnIndex ? currentWidth : w);
@@ -326,6 +334,65 @@
             this._resizeStyleEl.remove();
             this._resizeStyleEl = null;
         }
+    }
+
+    measureCharWidths() {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return null;
+
+        const computed = window.getComputedStyle(gridElement);
+        const fontSize = computed.fontSize;
+        const fontFamily = computed.fontFamily;
+        const fontWeight = computed.fontWeight;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.font = `${fontWeight} ${fontSize} ${fontFamily}`;
+
+        const widths = {};
+        for (let i = 32; i <= 126; i++) {
+            widths[String.fromCharCode(i)] = ctx.measureText(String.fromCharCode(i)).width;
+        }
+        for (const ch of 'àáâãäåæçèéêëìíîïðñòóôõöùúûüýþÿÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖÙÚÛÜÝÞŸ€£¥©®°±×÷…–—') {
+            widths[ch] = ctx.measureText(ch).width;
+        }
+
+        return { normal: widths };
+    }
+
+    getColumnWidths() {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return [];
+        const headerCells = gridElement.querySelectorAll('.nx-grid-header-row .nx-grid-cell');
+        return Array.from(headerCells).map(c => c.getBoundingClientRect().width);
+    }
+
+    getHeaderMinWidths() {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return [];
+
+        const headerRow = gridElement.querySelector('.nx-grid-header-row');
+        if (!headerRow) return [];
+
+        // Clone the header row, strip all inline width constraints, and measure the
+        // natural cell widths. The clone is never visible — no layout thrash or flicker.
+        const clone = headerRow.cloneNode(true);
+        clone.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;width:max-content;';
+
+        for (const cell of clone.querySelectorAll('.nx-grid-cell')) {
+            cell.style.width = '';
+            cell.style.minWidth = '';
+            cell.style.maxWidth = '';
+            cell.style.flexGrow = '';
+            cell.style.flexShrink = '0';
+        }
+
+        document.body.appendChild(clone);
+        const widths = Array.from(clone.querySelectorAll('.nx-grid-cell'))
+            .map(cell => cell.getBoundingClientRect().width);
+        clone.remove();
+
+        return widths;
     }
 
     getFillHandlePosition(maxRow, maxCol, rowHeight) {

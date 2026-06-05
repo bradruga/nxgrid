@@ -81,6 +81,27 @@
     </table>
 </div>
 
+<div class="doc-section">
+    <h2>Auto-size (Double-click)</h2>
+    <p class="doc-note">
+        Double-click any column's resize grip to auto-size it to fit its widest content.
+        Because the grid is virtualized, column widths are estimated via a character-width
+        prediction model built from the grid's font — accurate for the full dataset without
+        requiring off-screen rows to be in the DOM.
+    </p>
+    <p class="doc-note">
+        The columns below start narrow. Double-click a resize grip to fit them.
+        Set <code>AutoSizable="false"</code> to disable this on a specific column.
+    </p>
+    <NxGrid T="Person" Data="@autoSizeData" Cursor="@NxGridCursor.Cell" Style="height:260px">
+        <NxGridColumn Title="First Name"   Property="@(x => x.FirstName)"  Width="60" />
+        <NxGridColumn Title="Last Name"    Property="@(x => x.LastName)"   Width="60" />
+        <NxGridColumn Title="Department"   Property="@(x => x.Department)" Width="60" />
+        <NxGridColumn Title="Age (no auto-size)" Property="@(x => x.Age)"  Width="60" AutoSizable="false" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@autoSizeCode</pre>
+</div>
+
 @code {
     string GetDeptBadgeStyle(Person p) => p.Department switch
     {
@@ -92,7 +113,10 @@
         _             => "background:#f3f4f6;color:#374151;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;"
     };
 
+    List<Person> autoSizeData = SampleData.GeneratePeople(500);
+
     string alignmentCode   = DemoCodeSamples.Alignment;
     string templateCode    = DemoCodeSamples.Template;
     string valueGetterCode = DemoCodeSamples.FormattedDisplay;
+    string autoSizeCode    = DemoCodeSamples.AutoSize;
 }

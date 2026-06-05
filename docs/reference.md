@@ -117,7 +117,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `OnSelectionChanged` | `EventCallback<NxGridSelectionArgs<T>>` | Fires on every selection change (mouse, keyboard, programmatic). |
 | `SelectedItems` | `List<T>?` | Two-way bindable list of the currently selected row objects (all ranges combined, deduplicated). Use `@bind-SelectedItems="@myList"` as a shorthand for `OnSelectionChanged`. `SelectedItemsChanged` fires in sync with `OnSelectionChanged`. Setting this from outside (e.g. `myList = []`) also updates the visual selection in the grid. |
 | `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. |
-| `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip. `args.ColumnIndex` and `args.NewWidth` (px). |
+| `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip **or double-clicks it to auto-size**. `args.ColumnIndex` and `args.NewWidth` (px). |
 | `OnFilterChanged` | `EventCallback<NxGridFilterChangedArgs<T>>` | Fires after any column's filter state changes and `ApplyFilterAndSort` has run. `args.Column` is `null` when all filters are cleared at once (e.g. `ClearSavedState()`). Does not fire when `Data` is replaced externally. |
 | `OnSortChanged` | `EventCallback<NxGridSortChangedArgs<T>>` | Fires after the sort column or direction changes and `ApplyFilterAndSort` has run. `args.Column` is `null` and `args.Direction` is `0` when sort is cleared. Does not fire when only filter state changes, or when state is restored from `localStorage` on first render. |
 | `OnCellClicked` | `EventCallback<NxGridCellClickArgs<T>>` | Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Fires for all cells regardless of editability. Does not fire on right-click, drag-select, header click, row-number gutter click, keyboard navigation, or `SelectRow()`. Fires after `OnSelectionChanged`. |
@@ -199,6 +199,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | `Freezable` | `bool` | `true` | When `true`, the column menu shows a "Freeze column / Unfreeze column" toggle. Set to `false` to prevent the user from changing the frozen state. The user-toggled state is included in `StateKey` persistence. |
 | `Hidden` | `bool` | `false` | Excludes the column from rendering. A hidden column still participates in sort and filter if it has a `Property` or `Display`, but it is never rendered and cannot be selected. Useful for including a field in sort/filter without showing it in the grid. |
 | `Hideable` | `bool` | `true` | When `true`, the column menu shows a "Hide column" entry. A "Manage columns…" entry also appears (when at least one column is hideable) to let the user show hidden columns. Set to `false` to prevent the user from hiding a column. The user-toggled state is included in `StateKey` persistence. |
+| `AutoSizable` | `bool` | `true` | When `true`, double-clicking the column's resize grip auto-sizes the column to fit its widest content across the current filtered dataset. Obeys `MinWidth`/`MaxWidth`. Set to `false` to disable double-click auto-size on a specific column — drag resize is unaffected. See [Column auto-sizing](#column-auto-sizing). |
 | `Template` | `RenderFragment<T>?` | — | Custom cell renderer. The cell container (padding, selection highlight) is still rendered by the grid; the template fills the inner content. When both `Template` and `CheckBox` are set, `Template` takes priority. |
 | `CheckBox` | `bool` | `false` | Renders every body cell as a checkbox. `Property` must resolve to `bool` or `bool?`. When the column is not editable, the checkbox is disabled (read-only visual). When editable, clicking the checkbox or pressing Space on the focused cell toggles the value immediately and fires `OnUpdate` — no F2 or double-click required. All editability guards (`CellEditableGetter`, `OnEditing`) apply; a blocked cell renders with reduced opacity and fires `OnEditBlocked` on click. Delete has no effect on `bool` columns; for `bool?` it clears to `null`. |
 | `HeaderTemplate` | `RenderFragment?` | — | Custom markup rendered inside the column header cell instead of `Title`. Sort/filter icons and the menu button still appear. The resolved title (see `Title` fallback rules above) is still used as the `aria-label` and column menu label; state-persistence uses explicit `Title` only. Interactive elements inside the template (e.g. a checkbox) should include `@onmousedown:stopPropagation` (prevents column-range selection) and `@onclick:stopPropagation` (prevents opening the column menu). |
@@ -444,6 +445,34 @@ source values are always copied regardless of selection size.
 - Respects `CellEditableGetter` — blocked cells are silently skipped.
 - Fires a single `OnUpdate` after the drag completes, with all affected rows.
 - Drag fill does not open edit mode and does not interact with the clipboard.
+
+---
+
+## Column auto-sizing
+
+Double-click any column's resize grip to auto-size the column to its estimated best fit. When a full-column selection is active and you double-click any selected column's resize grip, all selected columns with `AutoSizable="true"` are auto-sized simultaneously.
+
+Because NxGrid virtualizes rows, off-screen row content is never in the DOM. Auto-size uses a **character-width prediction model** instead of DOM measurement:
+
+1. **Font measurement (once, at first use):** on the first auto-size operation the grid reads the computed `font` of the grid element and uses the browser Canvas `measureText` API to build a lookup table of pixel widths for printable ASCII characters and common extended Latin symbols. The table is cached for the lifetime of the grid instance.
+
+2. **Data width estimation:** the grid iterates every row in the current **filtered dataset** and estimates the rendered pixel width of each cell's display string by summing character widths from the lookup table. Characters absent from the table fall back to the average lowercase character width. The maximum across all rows is taken.
+
+3. **Header consideration:** the column header is always in the DOM. The grid clones the header row (invisible, no layout impact), strips all inline width constraints, and reads each cell's natural layout width. This gives the exact minimum width needed to display the header text plus any visible sort/filter icons and the menu button — no estimation required.
+
+4. **Padding:** 12 px is added to the winning estimate to account for cell horizontal padding.
+
+5. **Constraints:** the result is clamped to `MinWidth`/`MaxWidth` before being applied.
+
+The resulting width is treated identically to a drag resize: `UserWidth` is set, the grid enters manual mode, `OnColumnResized` fires, and (when `StateKey` is configured) the width is persisted to `localStorage`.
+
+### Precision
+
+The character-width model is an approximation. It is accurate for the fonts most grids use (system UI fonts, monospace fonts). Fonts with heavy kerning or complex shaping (Arabic, CJK, certain display fonts) may produce modestly imprecise estimates — the margin of error is bounded and visible content is never clipped.
+
+### Column opt-out
+
+Set `AutoSizable="false"` on a column to disable double-click auto-size. Drag resize is not affected.
 
 ---
 
