@@ -82,6 +82,7 @@
             }
         };
         document.addEventListener('click', this._menuClickHandler);
+
     }
 
     copyToClipboard(text) {

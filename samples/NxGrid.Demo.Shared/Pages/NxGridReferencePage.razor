@@ -108,11 +108,11 @@
                 <td><a href="/state-persistence">State Persistence</a></td>
             </tr>
             <tr>
-                <td>AutoSizeColumns</td>
+                <td>FitColumns</td>
                 <td>bool</td>
                 <td>true</td>
-                <td>When true, columns without <code>MaxWidth</code> use flex-grow to fill available space. Set false to start in manual (fixed-width) mode immediately.</td>
-                <td></td>
+                <td>When true (default), column widths are computed from data content on first render and on every Data change, similar to an HTML table auto-layout. Available width is distributed proportionally; MinWidth/MaxWidth respected. Columns the user manually resized keep their widths. Saved state wins over the initial fit. Set false to render all columns at their declared Width with no automatic sizing.</td>
+                <td><a href="/columns">Columns</a></td>
             </tr>
             <tr>
                 <td>Virtualize</td>
@@ -393,6 +393,11 @@
                 <td>Task PrintAsync(string? title = null)</td>
                 <td>Opens the print dialog with a filtered/sorted table preview. Offers Print everything or Print selection.</td>
                 <td><a href="/print">Print</a></td>
+            </tr>
+            <tr>
+                <td>Task FitColumnsAsync()</td>
+                <td>Recomputes all column widths to best fit current data and redistributes them across the available grid width. Columns the user has manually resized are skipped. Only meaningful when <code>FitColumns="true"</code>.</td>
+                <td><a href="/columns">Columns</a></td>
             </tr>
         </tbody>
     </table>

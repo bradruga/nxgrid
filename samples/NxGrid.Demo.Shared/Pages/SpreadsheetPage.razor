@@ -334,6 +334,7 @@
                     CellEditableGetter="@((row, col) => !sheet[row.RowIndex, col.Title![0] - 'A'].IsCheckBox)"
                     OnSelectionChanged="@OnSelectionChanged"
                     OnKeyPressed="@OnKeyPressed"
+                    OnColumnResized="@OnColumnResized"
                     TransformPastedValue="@AdjustFormulaCellRefs"
                     OnCopied="@OnSsCopied"
                     OnPasted="@OnSsPasted">
@@ -347,8 +348,9 @@
                                       Property="@(x => x.EditValue)"
                                       Display="@(x => FormatDisplay(sheet[x.RowIndex, ci]))"
                                       CopyGetter="@(x => sheet[x.RowIndex, ci].Value)"
-                                      MinWidth="@ColWidth(ci)"
-                                      MaxWidth="@ColWidth(ci)">
+                                      Width="@ColWidth(ci)"
+                                      MinWidth="30"
+                                      Fittable="false">
                             <Template Context="ssRow">
                                 @{
                                     var tcell = sheet[ssRow.RowIndex, ci];
@@ -1494,17 +1496,18 @@
 
         var save = new SpreadsheetSave
         {
-            Cells   = cells,
-            Charts  = charts.Select(c => new ChartSave
+            Cells     = cells,
+            Charts    = charts.Select(c => new ChartSave
             {
                 Id = c.Id, Title = c.Title, X = c.X, Y = c.Y, W = c.Width, H = c.Height,
                 DataRange = c.DataRange, XRange = c.XRange, HasHeaderRow = c.HasHeaderRow, HasHeaderCol = c.HasHeaderColumn
             }).ToList(),
-            CondFmt = condFmtRules.Select(r => new CondFmtSave
+            CondFmt   = condFmtRules.Select(r => new CondFmtSave
             {
                 Id = r.Id, Range = r.ApplyToRange, Formula = r.Formula,
                 B = r.Bold, I = r.Italic, Bg = r.BackgroundColor, Txt = r.TextColor
-            }).ToList()
+            }).ToList(),
+            ColWidths = (int[])_colWidths.Clone()
         };
 
         var json = JsonSerializer.Serialize(save);
@@ -1555,6 +1558,10 @@
                 Bold = r.B, Italic = r.I, BackgroundColor = r.Bg, TextColor = r.Txt
             }).ToList();
             selectedCondFmtRule = null;
+
+            if (save.ColWidths != null)
+                for (var c = 0; c < Math.Min(save.ColWidths.Length, ColCount); c++)
+                    _colWidths[c] = save.ColWidths[c];
 
             Calculate();
             chartDataVersion++;

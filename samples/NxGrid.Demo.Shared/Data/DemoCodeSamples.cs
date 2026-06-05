@@ -525,6 +525,26 @@ void OnSignalRRowReceived(Person newRow)
 </NxGrid>
 """;
 
+    public static readonly string FitColumns = """
+// FitColumns distributes the available grid width among columns to best fit data.
+// Columns resize automatically when Data changes.
+// Manually resized columns keep their widths across data changes.
+<NxGrid T="Person" Data="@people" FitColumns="true">
+    <NxGridColumn Property="@(x => x.FirstName)" />
+    <NxGridColumn Property="@(x => x.LastName)" />
+    <NxGridColumn Property="@(x => x.Department)" />
+    <NxGridColumn Property="@(x => x.Age)"
+                  Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+
+// Optional: use MinWidth / MaxWidth to constrain how wide a column can get.
+<NxGrid T="Person" Data="@people" FitColumns="true">
+    <NxGridColumn Property="@(x => x.Id)"         MaxWidth="60" />
+    <NxGridColumn Property="@(x => x.FirstName)"  MinWidth="80" />
+    <NxGridColumn Property="@(x => x.Department)" />
+</NxGrid>
+""";
+
     public static readonly string Alignment = """
 <NxGridColumn Property="@(x => x.Name)"
               Alignment="NxGridColumnAlignment.Left" />    // default

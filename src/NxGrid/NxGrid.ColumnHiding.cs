@@ -14,22 +14,29 @@ public partial class NxGrid<T>
         var column = FindColumn(columnId);
         if (column == null) return;
         column.UserHidden = hidden;
-        if (hidden) selectedRanges = [];
+        if (hidden) { selectedRanges = []; column.FitWidth = null; }
         ComputeFrozenOffsets();
         renderToken++;
         StateHasChanged();
         _ = SaveStateAsync();
+        if (FitColumns) _ = RunColumnFitAsync();
     }
 
     private async Task OnHideColumnClick()
     {
         if (openColumn == null) return;
         openColumn.UserHidden = true;
+        openColumn.FitWidth = null;
         openColumn = null;
         selectedRanges = [];
         ComputeFrozenOffsets();
-        renderToken++;
-        StateHasChanged();
+        if (FitColumns)
+            await RunColumnFitAsync();
+        else
+        {
+            renderToken++;
+            StateHasChanged();
+        }
         await SaveStateAsync();
     }
 
@@ -42,14 +49,19 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
-    private void OnChooserToggle(NxGridColumn<T> column, bool visible)
+    private async Task OnChooserToggle(NxGridColumn<T> column, bool visible)
     {
         column.UserHidden = !visible;
-        if (!visible) selectedRanges = [];
+        if (!visible) { selectedRanges = []; column.FitWidth = null; }
         ComputeFrozenOffsets();
-        renderToken++;
-        StateHasChanged();
-        _ = SaveStateAsync();
+        if (FitColumns)
+            await RunColumnFitAsync();
+        else
+        {
+            renderToken++;
+            StateHasChanged();
+        }
+        await SaveStateAsync();
     }
 
     private void CloseColumnChooser()

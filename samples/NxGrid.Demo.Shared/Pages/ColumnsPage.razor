@@ -102,6 +102,32 @@
     <pre class="doc-code" style="margin-top:12px">@autoSizeCode</pre>
 </div>
 
+<div class="doc-section">
+    <h2>FitColumns</h2>
+    <p class="doc-note">
+        Set <code>FitColumns="true"</code> to have the grid automatically size every column to best
+        fit its data, similar to an HTML <code>&lt;table&gt;</code>. The available width is distributed
+        proportionally so the grid always fills its container. Columns re-fit whenever
+        <code>Data</code> changes.
+    </p>
+    <p class="doc-note">
+        Manually resize any column — it will keep its width across data changes.
+        <code>MinWidth</code> / <code>MaxWidth</code> are respected.
+        Use <code>FitColumnsAsync()</code> to re-fit programmatically.
+    </p>
+    <NxGrid T="Person" @ref="fitGrid" Data="@fitData" FitColumns="true" Cursor="@NxGridCursor.Cell" Style="height:260px">
+        <NxGridColumn Title="First Name"  Property="@(x => x.FirstName)" />
+        <NxGridColumn Title="Last Name"   Property="@(x => x.LastName)" />
+        <NxGridColumn Title="Department"  Property="@(x => x.Department)" />
+        <NxGridColumn Title="Age"         Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" MaxWidth="80" />
+    </NxGrid>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="demo-btn" @onclick="ReloadFitData">Reload data</button>
+        <button class="demo-btn" @onclick="@(async () => { if (fitGrid != null) await fitGrid.FitColumnsAsync(); })">Re-fit columns</button>
+    </div>
+    <pre class="doc-code" style="margin-top:12px">@fitColumnsCode</pre>
+</div>
+
 @code {
     string GetDeptBadgeStyle(Person p) => p.Department switch
     {
@@ -114,9 +140,14 @@
     };
 
     List<Person> autoSizeData = SampleData.GeneratePeople(500);
+    List<Person> fitData = SampleData.GeneratePeople(500);
+    NxGrid<Person>? fitGrid;
+
+    void ReloadFitData() => fitData = SampleData.GeneratePeople(500);
 
     string alignmentCode   = DemoCodeSamples.Alignment;
     string templateCode    = DemoCodeSamples.Template;
     string valueGetterCode = DemoCodeSamples.FormattedDisplay;
     string autoSizeCode    = DemoCodeSamples.AutoSize;
+    string fitColumnsCode  = DemoCodeSamples.FitColumns;
 }

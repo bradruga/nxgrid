@@ -84,7 +84,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `SelectionMode` | `NxGridSelectionMode` | `Cell` | `Cell` — rectangular cell-range selection (default). `Row` — clicking any cell or using arrow keys selects the entire row; Shift extends to a contiguous row range; left/right arrows are no-ops. `None` — no selection highlight or interaction; `OnSelectionChanged` never fires; `SelectRow()` is a no-op. `None` is incompatible with `Editable=true` — a warning is logged and editing is suppressed. |
 | `AllowFocusCellMode` | `bool` | `true` | When `true` and `SelectionMode` is `Cell`, the right-click context menu shows a **Focus Cell** checkbox. When checked, all cells sharing the same row or column as the selection anchor receive the `--nx-grid-focus-cell-bg` background highlight (no selection border). The on/off state is stored in `localStorage` under the key `nx-grid-focus-cell` and shared across all NxGrid instances. |
 | `StateKey` | `string?` | — | When set, the grid saves column widths (including manual-mode lock state), sort state, and filter state to `localStorage` under this key after every user change, and restores it on first render. Each grid instance on a page should use a unique key. |
-| `AutoSizeColumns` | `bool` | `true` | When `true` (default), columns without a `MaxWidth` use `flex-grow: 1` to fill available space. Set to `false` to start the grid in manual mode immediately — all columns render at their declared `Width` with no flex growth, as if the user had already resized. |
+| `FitColumns` | `bool` | `true` | When `true` (default), column widths are computed from data content on first render and whenever `Data` changes, similar to an HTML `<table>` auto-layout. Available grid width is distributed proportionally among columns, respecting `MinWidth` / `MaxWidth`. Columns the user has manually resized keep their widths across data changes. When a `StateKey` is configured and persisted widths exist, they take precedence over the initial fit. Set to `false` to render all columns at their declared `Width` with no automatic sizing. See [Column fit](#column-fit). |
 | `Virtualize` | `bool` | `true` | When `true` (default), rows are rendered with Blazor's `<Virtualize>` component so only the visible rows are in the DOM. Set to `false` to render all rows at once — useful for small grids where browser Ctrl+F search, accessibility tools, or print should see every row. Automatically overridden to `false` when any column has `MultiLine = true`. |
 | `EnableSelectionMath` | `bool` | `false` | When `true`, a status bar is rendered below the grid body (sticky, does not scroll vertically) showing **Sum**, **Avg**, and **Count** for the current selection. Non-numeric cells in the selection are excluded from Sum and Avg but included in Count. Sum and Avg are hidden when the selection contains no numeric cells. The bar disappears when there is no active selection. |
 | `GroupBy` | `Func<T, object?>?` | — | When set, rows are grouped by the value of this function after filtering. Group order follows first-appearance in the filtered result. Sort operates within each group — it does not reorder groups. When `GroupBy` is set, virtualization is disabled regardless of the `Virtualize` parameter (same behavior as `MultiLine`). |
@@ -156,6 +156,7 @@ Task  SelectRowByKey(object? keyValue)             // select and scroll to the f
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
+Task  FitColumnsAsync()                            // recompute all column widths to best fit current data; skips columns the user has manually resized; only meaningful when FitColumns is true
 ```
 
 `PrintAsync` opens a modal dialog showing the current filtered/sorted data as a plain table with a live preview. The dialog offers two options:
@@ -200,6 +201,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | `Hidden` | `bool` | `false` | Excludes the column from rendering. A hidden column still participates in sort and filter if it has a `Property` or `Display`, but it is never rendered and cannot be selected. Useful for including a field in sort/filter without showing it in the grid. |
 | `Hideable` | `bool` | `true` | When `true`, the column menu shows a "Hide column" entry. A "Manage columns…" entry also appears (when at least one column is hideable) to let the user show hidden columns. Set to `false` to prevent the user from hiding a column. The user-toggled state is included in `StateKey` persistence. |
 | `AutoSizable` | `bool` | `true` | When `true`, double-clicking the column's resize grip auto-sizes the column to fit its widest content across the current filtered dataset. Obeys `MinWidth`/`MaxWidth`. Set to `false` to disable double-click auto-size on a specific column — drag resize is unaffected. See [Column auto-sizing](#column-auto-sizing). |
+| `Fittable` | `bool` | `true` | When `false`, this column is excluded from the grid's automatic column fitting (`FitColumns`). It renders at its declared `Width` (or `UserWidth` if the user has resized it), and its width is deducted from the available budget before the remaining columns are fitted. Useful for fixed-width utility columns such as checkboxes or action buttons. Does not affect drag resize or double-click auto-size. |
 | `Template` | `RenderFragment<T>?` | — | Custom cell renderer. The cell container (padding, selection highlight) is still rendered by the grid; the template fills the inner content. When both `Template` and `CheckBox` are set, `Template` takes priority. |
 | `CheckBox` | `bool` | `false` | Renders every body cell as a checkbox. `Property` must resolve to `bool` or `bool?`. When the column is not editable, the checkbox is disabled (read-only visual). When editable, clicking the checkbox or pressing Space on the focused cell toggles the value immediately and fires `OnUpdate` — no F2 or double-click required. All editability guards (`CellEditableGetter`, `OnEditing`) apply; a blocked cell renders with reduced opacity and fires `OnEditBlocked` on click. Delete has no effect on `bool` columns; for `bool?` it clears to `null`. |
 | `HeaderTemplate` | `RenderFragment?` | — | Custom markup rendered inside the column header cell instead of `Title`. Sort/filter icons and the menu button still appear. The resolved title (see `Title` fallback rules above) is still used as the `aria-label` and column menu label; state-persistence uses explicit `Title` only. Interactive elements inside the template (e.g. a checkbox) should include `@onmousedown:stopPropagation` (prevents column-range selection) and `@onclick:stopPropagation` (prevents opening the column menu). |
@@ -473,6 +475,51 @@ The character-width model is an approximation. It is accurate for the fonts most
 ### Column opt-out
 
 Set `AutoSizable="false"` on a column to disable double-click auto-size. Drag resize is not affected.
+
+---
+
+## Column fit
+
+Set `FitColumns="true"` to enable automatic width distribution across all columns, similar to an HTML `<table>` auto-layout.
+
+### How it works
+
+1. **Ideal width per column:** for each column the grid estimates the maximum data width across the current filtered dataset using the same character-width prediction model as double-click auto-size. The header minimum width is measured from the DOM clone (exact, not estimated). 12 px cell padding is added. `MinWidth`/`MaxWidth` are applied. The result is the column's *ideal width*.
+
+2. **Distribution:** the total of all ideal widths is compared to the available grid width (minus the 32 px gutter):
+   - If the ideal total fits within the available width, all columns are **scaled up** proportionally so they fill the container.
+   - If the ideal total exceeds the available width, columns are **scaled down** proportionally. `MinWidth` constraints are honored iteratively — pinned columns are removed from the budget and the remaining space is redistributed among the rest.
+
+3. **Skipping user-resized columns:** any column where the user has explicitly set a width (drag resize or double-click auto-size) has a `UserWidth` set. These columns are excluded from both the ideal-width calculation and the distribution step — their widths are left unchanged.
+
+### Automatic re-fit on data change
+
+When `Data` changes (new list reference or different row count), the fit algorithm runs again automatically. Columns with a `UserWidth` are skipped, so the user's manual resizes are preserved.
+
+### Saved state wins
+
+When `StateKey` is configured and persisted widths are loaded from `localStorage`, `manualMode` is set to `true` and the initial fit is skipped. The saved widths take precedence over the automatic fit. Once the user clears saved state (via `ClearSavedState()`), `FitWidth` is cleared on all columns and the fit runs again from scratch.
+
+### Programmatic re-fit
+
+Call `FitColumnsAsync()` on the grid reference to re-fit at any time:
+
+```razor
+<NxGrid T="Person" @ref="grid" Data="@people" FitColumns="true">
+    <NxGridColumn Property="@(x => x.Name)" />
+    <NxGridColumn Property="@(x => x.Department)" />
+</NxGrid>
+
+@code {
+    NxGrid<Person>? grid;
+
+    async Task OnDataRefreshed()
+    {
+        people = await LoadData();
+        await grid!.FitColumnsAsync();
+    }
+}
+```
 
 ---
 

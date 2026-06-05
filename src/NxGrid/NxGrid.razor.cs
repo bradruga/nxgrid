@@ -135,11 +135,16 @@ public partial class NxGrid<T>
     [Parameter] public string? StateKey { get; set; }
 
     /// <summary>
-    /// When <c>true</c> (default), columns without a <see cref="NxGridColumn{T}.MaxWidth"/> use
-    /// <c>flex-grow</c> to fill available space. Set to <c>false</c> to immediately start in
-    /// manual mode — all columns render at their declared <see cref="NxGridColumn{T}.Width"/>.
+    /// When <c>true</c> (default), column widths are computed from data content on first render
+    /// and whenever <see cref="Data"/> changes — similar to an HTML <c>&lt;table&gt;</c> auto-layout.
+    /// Available grid width is distributed proportionally among columns, respecting
+    /// <see cref="NxGridColumn{T}.MinWidth"/> and <see cref="NxGridColumn{T}.MaxWidth"/>.
+    /// Columns the user has manually resized keep their widths across data changes.
+    /// When a <see cref="StateKey"/> is configured and persisted widths exist, they take
+    /// precedence over the initial fit. Set to <c>false</c> to render all columns at their
+    /// declared <see cref="NxGridColumn{T}.Width"/> with no automatic sizing.
     /// </summary>
-    [Parameter] public bool AutoSizeColumns { get; set; } = true;
+    [Parameter] public bool FitColumns { get; set; } = true;
 
     /// <summary>
     /// When <c>true</c> (default), rows are rendered with Blazor's <c>&lt;Virtualize&gt;</c>
@@ -543,7 +548,7 @@ public partial class NxGrid<T>
         if (SelectionMode == NxGridSelectionMode.None && Editable)
             Console.Error.WriteLine("[NxGrid] Warning: SelectionMode=None is incompatible with Editable=true — editing will be suppressed.");
 
-        if (!AutoSizeColumns)
+        if (!FitColumns)
             manualMode = true;
         ComputeFrozenOffsets();
 
@@ -562,6 +567,9 @@ public partial class NxGrid<T>
                 RestoreSelectionByKeys(selectedKeys);
                 pendingKeyRestorationChanged = true;
             }
+
+            if (FitColumns)
+                _fitPending = true;
         }
 
         if (!ReferenceEquals(SelectedItems, lastRaisedSelectedItems))
@@ -597,6 +605,23 @@ public partial class NxGrid<T>
             isMac = await jsInterop.IsMacPlatform();
             await RestoreStateAsync();
             await LoadFocusCellStateAsync();
+
+            // Run initial fit if FitColumns is enabled and no saved state set manualMode.
+            if (FitColumns && !manualMode)
+            {
+                _fitPending = false;
+                await RunColumnFitAsync();
+            }
+            else
+            {
+                _fitPending = false;
+            }
+        }
+
+        if (_fitPending && jsInterop != null)
+        {
+            _fitPending = false;
+            await RunColumnFitAsync();
         }
 
         if (jsInterop != null)
@@ -676,7 +701,7 @@ public partial class NxGrid<T>
 
     private string BuildRowStyle()
     {
-        var totalWidth = 32 + visibleColumns.Sum(c => c.UserWidth ?? Math.Min(Math.Max(c.Width, c.MinWidth ?? 0), c.MaxWidth ?? int.MaxValue));
+        var totalWidth = 32 + visibleColumns.Sum(c => c.UserWidth ?? c.FitWidth ?? Math.Min(Math.Max(c.Width, c.MinWidth ?? 0), c.MaxWidth ?? int.MaxValue));
         var heightProp = HasMultiLineColumns ? "min-height" : "height";
         return $"{heightProp}:{RowHeight}px;min-width:{totalWidth}px";
     }

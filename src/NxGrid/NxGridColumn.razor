@@ -124,6 +124,16 @@
     [Parameter] public bool AutoSizable { get; set; } = true;
 
     /// <summary>
+    /// When <c>false</c>, this column is excluded from the grid's automatic column fitting
+    /// (<see cref="NxGrid{T}.FitColumns"/>). The column renders at its declared
+    /// <see cref="Width"/> (or <see cref="UserWidth"/> if the user has resized it), and its
+    /// width is deducted from the available budget before the remaining columns are fitted.
+    /// Useful for fixed-width utility columns such as checkboxes or action buttons.
+    /// Does not affect drag resize or double-click auto-size. Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool Fittable { get; set; } = true;
+
+    /// <summary>
     /// Custom cell renderer. The cell container (padding, selection highlight) is still rendered
     /// by the grid; the template fills the inner content. When both <c>Template</c> and
     /// <see cref="CheckBox"/> are set, <c>Template</c> takes priority.
@@ -459,15 +469,38 @@
         return (typed, row => setter(row, capture));
     }
 
+    internal int? FitWidth { get; set; }
+
     private string BuildWidthStyle()
     {
-        var w = UserWidth ?? Width;
-        var style = $"width:{w}px;";
-        if (MinWidth != null) style += $"min-width:{MinWidth}px;";
-        if (MaxWidth != null) style += $"max-width:{MaxWidth}px;";
-        else if (UserWidth == null && !(Parent?.IsManualMode ?? false))
-            style += $"flex-grow:{Width};";
-        return style;
+        // Pinned: user-resized or opted out of fitting — fixed width, no flex.
+        if (UserWidth.HasValue || !Fittable)
+        {
+            var fixedW = UserWidth ?? Width;
+            var style = $"width:{fixedW}px;";
+            if (MinWidth != null) style += $"min-width:{MinWidth}px;";
+            if (MaxWidth != null) style += $"max-width:{MaxWidth}px;";
+            return style;
+        }
+
+        // FitColumns mode: use FitWidth as flex-basis and proportional flex-grow weight.
+        // The browser distributes extra space natively — no JS resize callbacks needed.
+        if (FitWidth.HasValue)
+        {
+            var style = $"width:{FitWidth}px;flex-grow:{FitWidth};";
+            if (MinWidth != null) style += $"min-width:{MinWidth}px;";
+            if (MaxWidth != null) style += $"max-width:{MaxWidth}px;";
+            return style;
+        }
+
+        // Fallback (before first fit or FitColumns=false): declared Width.
+        var w = Width;
+        var fallback = $"width:{w}px;";
+        if (MinWidth != null) fallback += $"min-width:{MinWidth}px;";
+        if (MaxWidth != null) fallback += $"max-width:{MaxWidth}px;";
+        else if (!(Parent?.IsManualMode ?? false))
+            fallback += $"flex-grow:{w};";
+        return fallback;
     }
 
     private string BuildHeaderCellStyle()

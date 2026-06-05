@@ -109,7 +109,7 @@ public partial class NxGrid<T>
             var sortCol = FindColumn(state.Sort.ColumnId);
             if (sortCol != null)
             {
-                foreach (var c in columns) c.SortState = 0;
+                foreach (var c in ActiveColumns) c.SortState = 0;
                 sortCol.SortState = state.Sort.Direction;
             }
         }
@@ -144,10 +144,11 @@ public partial class NxGrid<T>
         if (jsInterop != null)
             await jsInterop.LocalStorageRemove(StateKey);
 
-        manualMode = !AutoSizeColumns;
+        manualMode = !FitColumns;
         foreach (var column in ActiveColumns)
         {
             column.UserWidth = null;
+            column.FitWidth = null;
             column.UserFrozen = null;
             column.UserHidden = null;
             column.SortState = 0;
@@ -156,8 +157,15 @@ public partial class NxGrid<T>
 
         ComputeFrozenOffsets();
         ApplyFilterAndSort();
-        renderToken++;
-        StateHasChanged();
+
+        if (FitColumns)
+            await RunColumnFitAsync();
+        else
+        {
+            renderToken++;
+            StateHasChanged();
+        }
+
         await RaiseFilterChanged(null);
         await RaiseSortChanged(null);
     }

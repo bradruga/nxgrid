@@ -71,9 +71,10 @@ public partial class SpreadsheetPage
 
     class SpreadsheetSave
     {
-        public List<CellSave>    Cells   { get; set; } = [];
-        public List<ChartSave>   Charts  { get; set; } = [];
-        public List<CondFmtSave> CondFmt { get; set; } = [];
+        public List<CellSave>    Cells     { get; set; } = [];
+        public List<ChartSave>   Charts    { get; set; } = [];
+        public List<CondFmtSave> CondFmt   { get; set; } = [];
+        public int[]?            ColWidths { get; set; }
     }
 
     class CellSave
@@ -146,7 +147,16 @@ public partial class SpreadsheetPage
 
     const int RowCount = 100;
     const int ColCount = 26;   // A–Z
-    static int ColWidth(int ci) => ci == 0 ? 120 : 80;
+
+    readonly int[] _colWidths = Enumerable.Range(0, ColCount).Select(i => i == 0 ? 120 : 80).ToArray();
+    int ColWidth(int ci) => _colWidths[ci];
+
+    void OnColumnResized(NxGridColumnResizedArgs args)
+    {
+        if (args.ColumnIndex >= 0 && args.ColumnIndex < ColCount)
+            _colWidths[args.ColumnIndex] = args.NewWidth;
+        TriggerSave();
+    }
 
     // ── Office color palette ──────────────────────────────────────────────────
     // 10 theme columns × 6 rows (base + 5 tint/shade rows), then 10 standard colors.
