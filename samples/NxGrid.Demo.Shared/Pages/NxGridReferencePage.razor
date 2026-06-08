@@ -22,6 +22,13 @@
                 <td></td>
             </tr>
             <tr>
+                <td>KeyProperty</td>
+                <td>Func&lt;T, object?&gt;?</td>
+                <td>—</td>
+                <td>Row identity function. When set, selection is preserved when Data is replaced by matching rows on key value instead of reference equality. Also enables <code>SelectRowByKey</code> and <code>@@bind-SelectedItems</code> reconciliation on reload.</td>
+                <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
                 <td>RowHeight</td>
                 <td>int</td>
                 <td>28</td>
@@ -99,6 +106,13 @@
                 <td>Cell</td>
                 <td><code>Cell</code> — rectangular range; <code>Row</code> — entire row selected on any cell click; <code>None</code> — no selection.</td>
                 <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>AllowFocusCellMode</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true and SelectionMode is Cell, the right-click context menu shows a Focus Cell toggle that highlights the row and column of the selection anchor. State is shared across all NxGrid instances via localStorage.</td>
+                <td></td>
             </tr>
             <tr>
                 <td>StateKey</td>
@@ -232,6 +246,30 @@
                 <td><a href="/selection">Selection</a></td>
             </tr>
             <tr>
+                <td>SelectedItems</td>
+                <td>List&lt;T&gt;?</td>
+                <td>Two-way bindable list of all currently selected row objects (all ranges combined, deduplicated). Use <code>@@bind-SelectedItems="@@myList"</code> as a shorthand for <code>OnSelectionChanged</code>. Setting this externally also updates the visual selection.</td>
+                <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>OnCellClicked</td>
+                <td>EventCallback&lt;NxGridCellClickArgs&lt;T&gt;&gt;</td>
+                <td>Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Does not fire on right-click, header click, keyboard navigation, or <code>SelectRow()</code>. Fires after <code>OnSelectionChanged</code>.</td>
+                <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>OnFilterChanged</td>
+                <td>EventCallback&lt;NxGridFilterChangedArgs&lt;T&gt;&gt;</td>
+                <td>Fires after any column filter changes and the filter pipeline has run. <code>args.Column</code> is null when all filters are cleared at once. <code>args.VisibleItems</code> is the post-filter snapshot.</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>OnSortChanged</td>
+                <td>EventCallback&lt;NxGridSortChangedArgs&lt;T&gt;&gt;</td>
+                <td>Fires after the sort column or direction changes. <code>args.Column</code> is null and <code>args.Direction</code> is 0 when sort is cleared. Does not fire when only filter state changes or when state is restored from localStorage.</td>
+                <td></td>
+            </tr>
+            <tr>
                 <td>OnKeyPressed</td>
                 <td>EventCallback&lt;NxGridKeyPressedArgs&gt;</td>
                 <td>Fires for keyboard events the grid does not handle internally, letting the host page react to custom hotkeys.</td>
@@ -240,7 +278,7 @@
             <tr>
                 <td>OnColumnResized</td>
                 <td>EventCallback&lt;NxGridColumnResizedArgs&gt;</td>
-                <td>Fires when the user drags a resize grip, passing <code>ColumnIndex</code> and <code>NewWidth</code>.</td>
+                <td>Fires when the user drags a resize grip <strong>or double-clicks it to auto-size</strong>, passing <code>ColumnIndex</code> and <code>NewWidth</code>.</td>
                 <td></td>
             </tr>
             <tr>
@@ -345,8 +383,15 @@
                 <td>OnUpdate</td>
                 <td>EventCallback&lt;NxGridUpdateArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
-                <td>Fires after any edit — single-cell commit, paste, or delete. Required for editing to be enabled.</td>
+                <td>Fires after any edit — single-cell commit, paste, delete, Ctrl+Enter fill, or drag-fill. Required for editing to be enabled.</td>
                 <td><a href="/editing">Editing</a><br /><a href="/batch-update">Batch Update</a></td>
+            </tr>
+            <tr>
+                <td>EnableDragFill</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>Enables the fill handle — a small square at the bottom-right corner of the active selection. Drag in any direction to fill adjacent editable cells. Auto-disabled when SelectionMode is Row or None. Only visible when exactly one range is active and OnUpdate is set.</td>
+                <td><a href="/drag-fill">Drag to Fill</a></td>
             </tr>
         </tbody>
     </table>
@@ -370,6 +415,11 @@
             <tr>
                 <td>Task SelectRow(T row)</td>
                 <td>Programmatically selects a row (all columns), fires <code>OnSelectionChanged</code>, and scrolls it into view. No-op if the row is filtered out.</td>
+                <td><a href="/selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>Task SelectRowByKey(object? keyValue)</td>
+                <td>Selects the first row in the current filtered data whose <code>KeyProperty</code> value equals <code>keyValue</code> and scrolls it into view. Logs a warning and is a no-op when <code>KeyProperty</code> is not set or no match is found.</td>
                 <td><a href="/selection">Selection</a></td>
             </tr>
             <tr>

@@ -13,6 +13,7 @@ A high-performance, virtualised data grid component for Blazor.
 - Client-side sort and filter via the column menu
 - Multi-cell rectangular selection with selection math (sum, avg, count)
 - Inline editing — text input, combo-box dropdowns, date picker, multi-line, and math expressions
+- Checkbox columns — toggle `bool` values with a single click or Space
 - Copy / paste as TSV (Excel-compatible)
 - Row grouping with collapsible groups
 - Row drag-and-drop reordering
@@ -21,7 +22,7 @@ A high-performance, virtualised data grid component for Blazor.
 - Custom cell and header templates, per-cell styling, cell and header tooltips
 - Context menu with custom items
 - Print filtered/sorted data
-- State persistence via `localStorage` (column widths, sort, filter, hidden state)
+- State persistence via `localStorage` (column widths, sort, filter, frozen and hidden state)
 - Themeable via CSS custom properties — no CSS framework required
 
 ## Installation
@@ -73,6 +74,20 @@ Declare columns when you want control over titles, widths, alignment, editing, a
 }
 ```
 
+For the common case of just tracking which rows are selected, `@bind-SelectedItems` is shorter:
+
+```razor
+<NxGrid T="Employee" Data="@employees" @bind-SelectedItems="selectedEmployees">
+    <NxGridColumn Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Department)"              />
+</NxGrid>
+
+@code {
+    List<Employee> employees = [ /* ... */ ];
+    List<Employee> selectedEmployees = [];
+}
+```
+
 ## Editable columns
 
 Set `Editable="true"` and handle `OnUpdate` to make columns editable. The user types in the cell and commits with Enter or Tab; `OnUpdate` fires once per operation with all affected rows and their changes.
@@ -81,7 +96,7 @@ Set `Editable="true"` and handle `OnUpdate` to make columns editable. The user t
 <NxGrid T="Employee" Data="@employees" Editable="true" OnUpdate="@HandleUpdate">
     <NxGridColumn Property="@(x => x.Name)" />
     <NxGridColumn Property="@(x => x.Department)"
-                  ComboBoxItems="@(() => NxGridComboItem.From(departments))" />
+                  ComboBoxItems="@(_ => NxGridComboItem.From(departments))" />
 </NxGrid>
 
 @code {
@@ -115,6 +130,37 @@ Use `CellEditableGetter` to lock rows or cells at runtime (e.g. an approved reco
 }
 ```
 
+### Multi-line text
+
+Set `MultiLine="true"` on a column to preserve newlines in the cell. The editor becomes a `<textarea>` that grows with the content; **Shift+Enter** inserts a newline, Enter commits. When any column in the grid uses `MultiLine`, row virtualisation is disabled so rows can grow to fit their content.
+
+```razor
+<NxGrid T="Issue" Data="@issues" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.Title)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Description)" MultiLine="true" Width="400" />
+</NxGrid>
+```
+
+### Math expressions
+
+Set `MathExpression="true"` on a numeric column to let users type arithmetic (`price * 1.1`, `100 + 50`) directly into the cell. The expression is evaluated before `OnUpdate` fires; if it cannot be parsed, the raw string is passed unchanged.
+
+```razor
+<NxGridColumn Property="@(x => x.UnitPrice)" MathExpression="true" />
+```
+
+## Checkbox columns
+
+Set `CheckBox="true"` on a column whose property is `bool` or `bool?`. In view mode the cell renders a read-only checkbox; when the column is editable, clicking the checkbox or pressing Space toggles the value immediately and fires `OnUpdate` — no F2 or double-click required.
+
+```razor
+<NxGrid T="Task" Data="@tasks" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.IsDone)"  CheckBox="true" Title="Done" Width="60" />
+    <NxGridColumn Property="@(x => x.Name)" />
+    <NxGridColumn Property="@(x => x.DueDate)" />
+</NxGrid>
+```
+
 ## Custom cell rendering
 
 Use `Template` for full control over a cell's content. The grid still handles padding, selection highlight, and sizing.
@@ -127,6 +173,95 @@ Use `Template` for full control over a cell's content. The grid still handles pa
         </span>
     </Template>
 </NxGridColumn>
+```
+
+## Row grouping
+
+Pass a `GroupBy` function to group rows after filtering. Groups are collapsible by default; clicking a group header row expands or collapses it.
+
+```razor
+<NxGrid T="Employee" Data="@employees" GroupBy="@(e => e.Department)">
+    <NxGridColumn Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Department)"              />
+    <NxGridColumn Property="@(x => x.Age)"         Width="80" Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+```
+
+Use `GroupHeaderTemplate` to customise the header row, and `GroupCollapsedWhen` to control initial state:
+
+```razor
+<NxGrid T="Employee" Data="@employees"
+        GroupBy="@(e => e.Department)"
+        GroupCollapsedWhen="@(dept => (string)dept! == "HR")">
+    <ChildContent>
+        <NxGridColumn Property="@(x => x.Name)" Width="200" />
+        <NxGridColumn Property="@(x => x.Age)"  Width="80" />
+    </ChildContent>
+    <GroupHeaderTemplate Context="grp">
+        <strong>@grp.GroupValue</strong>
+        <span style="margin-left:8px;color:#888">@grp.Items.Count employees</span>
+    </GroupHeaderTemplate>
+</NxGrid>
+```
+
+## Row drag-and-drop
+
+Set `RowGutter="NxGridRowGutter.DragHandle"` to show drag handles in the left gutter, then handle `OnRowDrop` to reorder your list. The drag handle is hidden automatically when an active sort or filter would conflict with manual ordering.
+
+```razor
+<NxGrid T="RequisitionLine" Data="@lines"
+        RowGutter="NxGridRowGutter.DragHandle"
+        OnRowDrop="@HandleDrop">
+    <NxGridColumn Property="@(x => x.PartNumber)" Width="120" />
+    <NxGridColumn Property="@(x => x.Description)"             />
+    <NxGridColumn Property="@(x => x.Quantity)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+
+@code {
+    List<RequisitionLine> lines = [ /* ... */ ];
+
+    void HandleDrop(NxGridRowDropArgs<RequisitionLine> args)
+    {
+        lines.RemoveAt(args.OldIndex);
+        lines.Insert(args.NewIndex, args.Row);
+    }
+}
+```
+
+## State persistence
+
+Set `StateKey` to a unique string per grid instance and the grid will automatically save and restore column widths, sort order, filters, and frozen/hidden column state via `localStorage`. Call `ClearSavedState()` to reset everything back to defaults.
+
+```razor
+<NxGrid T="Employee" Data="@employees" StateKey="hr-employee-grid" @ref="grid">
+    <NxGridColumn Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Department)"              />
+</NxGrid>
+
+<button @onclick="@(() => grid!.ClearSavedState())">Reset layout</button>
+
+@code {
+    NxGrid<Employee>? grid;
+    List<Employee> employees = [ /* ... */ ];
+}
+```
+
+## Print
+
+Call `PrintAsync()` on a grid reference to open the print dialog. It shows a live preview with two options — **Print everything** (all filtered/sorted rows and visible columns) and **Print selection** (rows and columns intersected by the current selection).
+
+```razor
+<NxGrid T="Employee" @ref="grid" Data="@employees">
+    <NxGridColumn Property="@(x => x.Name)"       Width="200" />
+    <NxGridColumn Property="@(x => x.Department)"              />
+</NxGrid>
+
+<button @onclick="@(() => grid!.PrintAsync("Employee List"))">Print</button>
+
+@code {
+    NxGrid<Employee>? grid;
+    List<Employee> employees = [ /* ... */ ];
+}
 ```
 
 ## Theming

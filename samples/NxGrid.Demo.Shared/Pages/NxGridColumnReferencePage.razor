@@ -139,6 +139,34 @@
                 <td><a href="/columns">Columns</a></td>
             </tr>
             <tr>
+                <td>AutoSizable</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, double-clicking the column's resize grip auto-sizes it to fit the widest content in the current filtered dataset. Obeys MinWidth / MaxWidth. Set to false to disable double-click auto-size for this column without affecting drag resize.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>Sizing</td>
+                <td>NxGridColumnSizing</td>
+                <td>Flex</td>
+                <td><code>Flex</code> — the column participates in CSS flex layout; Width is the flex-basis and proportional grow/shrink weight. <code>Fixed</code> — the column is always rendered at its exact pixel width with no flex participation.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>FlexMinWidth</td>
+                <td>int?</td>
+                <td>—</td>
+                <td>Minimum width in pixels during automatic flex distribution. Only applies when Sizing="Flex" and the column has not been manually resized. Independent of MinWidth, which enforces the floor during drag-resize. When both are set the larger value applies.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>FlexMaxWidth</td>
+                <td>int?</td>
+                <td>—</td>
+                <td>Maximum width in pixels during automatic flex distribution. Only applies when Sizing="Flex" and the column has not been manually resized. Also clamps the width computed by FitContent. Independent of MaxWidth, which enforces the ceiling during drag-resize. When both are set the smaller value applies.</td>
+                <td><a href="/columns">Columns</a></td>
+            </tr>
+            <tr>
                 <td>Template</td>
                 <td>RenderFragment&lt;T&gt;?</td>
                 <td>—</td>
@@ -205,9 +233,9 @@
             </tr>
             <tr>
                 <td>ComboBoxItems</td>
-                <td>Func&lt;IEnumerable&lt;NxGridComboItem&gt;&gt;?</td>
+                <td>Func&lt;T, IEnumerable&lt;NxGridComboItem&gt;&gt;?</td>
                 <td>—</td>
-                <td>Turns the inline editor into a combo-box dropdown. Called fresh on each open.</td>
+                <td>Turns the inline editor into a combo-box dropdown. Receives the row object so the list can vary per row; called fresh on each open. Use <code>NxGridComboItem.From(source, value, display)</code> to project any typed collection, or <code>NxGridComboItem.From(stringList)</code> when value and display are the same.</td>
                 <td><a href="/combo-box">Combo Box</a></td>
             </tr>
             <tr>

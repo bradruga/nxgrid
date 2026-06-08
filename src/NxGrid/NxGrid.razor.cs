@@ -258,7 +258,7 @@ public partial class NxGrid<T>
     /// </summary>
     [Parameter] public EventCallback<NxGridKeyPressedArgs> OnKeyPressed { get; set; }
 
-    /// <summary>Fires when the user drags a column resize grip. Provides the column index and new width in pixels.</summary>
+    /// <summary>Fires when the user drags a column resize grip or double-clicks it to auto-size. Provides the column index and new width in pixels.</summary>
     [Parameter] public EventCallback<NxGridColumnResizedArgs> OnColumnResized { get; set; }
 
     /// <summary>

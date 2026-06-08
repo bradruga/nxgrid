@@ -1,7 +1,8 @@
 namespace NxGrid;
 
 /// <summary>
-/// Arguments passed to <see cref="NxGrid{T}.OnColumnResized"/> when the user drags a column resize grip.
+/// Arguments passed to <see cref="NxGrid{T}.OnColumnResized"/> when the user drags a column resize grip
+/// or double-clicks it to auto-size.
 /// </summary>
 public sealed class NxGridColumnResizedArgs
 {
