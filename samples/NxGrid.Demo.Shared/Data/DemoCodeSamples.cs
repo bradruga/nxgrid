@@ -526,22 +526,25 @@ void OnSignalRRowReceived(Person newRow)
 """;
 
     public static readonly string FitColumns = """
-// FitColumns distributes the available grid width among columns to best fit data.
-// Columns resize automatically when Data changes.
+// FitContent defaults to true — columns snap to their widest data value automatically.
+// Sizing="Flex" (default) lets each column flex from that measured width into remaining space.
 // Manually resized columns keep their widths across data changes.
-<NxGrid T="Person" Data="@people" FitColumns="true">
+<NxGrid T="Person" Data="@people">
     <NxGridColumn Property="@(x => x.FirstName)" />
     <NxGridColumn Property="@(x => x.LastName)" />
     <NxGridColumn Property="@(x => x.Department)" />
     <NxGridColumn Property="@(x => x.Age)"
-                  Alignment="NxGridColumnAlignment.Right" />
+                  Alignment="NxGridColumnAlignment.Right"
+                  FlexMaxWidth="80" />
 </NxGrid>
 
-// Optional: use MinWidth / MaxWidth to constrain how wide a column can get.
-<NxGrid T="Person" Data="@people" FitColumns="true">
-    <NxGridColumn Property="@(x => x.Id)"         MaxWidth="60" />
-    <NxGridColumn Property="@(x => x.FirstName)"  MinWidth="80" />
-    <NxGridColumn Property="@(x => x.Department)" />
+// Use FitContent="false" to opt out on specific columns.
+// Fixed columns ignore FitContent and always render at their declared Width.
+<NxGrid T="Person" Data="@people">
+    <NxGridColumn Property="@(x => x.Id)"         Sizing="NxGridColumnSizing.Fixed" Width="50" FitContent="false" />
+    <NxGridColumn Property="@(x => x.FirstName)"  FlexMinWidth="80" />
+    <NxGridColumn Property="@(x => x.Department)" FlexMaxWidth="200" />
+    <NxGridColumn Property="@(x => x.Notes)"      FitContent="false" Width="300" />
 </NxGrid>
 """;
 

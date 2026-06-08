@@ -454,7 +454,7 @@ Column widths are determined by the declared parameters. Cells have `flex-shrink
 
 Once any column is resized, every visible column has `UserWidth` set to its pre-drag rendered pixel width. In manual mode, `width` is pinned to `UserWidth` and `flex-grow` is removed. `MinWidth` and `MaxWidth` continue to apply as hard constraints via their own CSS properties — they are never disabled by manual mode.
 
-Manual mode persists across page loads when `StateKey` is set. Calling `ClearSavedState()` resets all `UserWidth` values and returns to fit mode (unless `FitColumns="false"` is set on the grid, in which case manual mode is always active).
+Manual mode persists across page loads when `StateKey` is set. Calling `ClearSavedState()` resets all `UserWidth` values and re-runs the content fit for any `FitContent` columns.
 
 `UserWidth` values are sanitized against the current `MinWidth`/`MaxWidth` when restored from `localStorage`, so adding or tightening constraints after the user has resized will be respected immediately on the next page load.
 

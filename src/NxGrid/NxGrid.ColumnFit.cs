@@ -8,12 +8,13 @@ public partial class NxGrid<T>
 
     private const int FitScanRowLimit = 1000;
 
+    private bool HasFitContentColumns =>
+        visibleColumns.Any(c => c.FitContent);
+
     /// <summary>
-    /// Redistributes all column widths to best fit their current data, respecting
-    /// <see cref="NxGridColumn{T}.MinWidth"/> and <see cref="NxGridColumn{T}.MaxWidth"/>.
-    /// Columns where the user has set a width manually (<see cref="NxGridColumn{T}.UserWidth"/>)
-    /// are skipped — their widths are left unchanged.
-    /// Only meaningful when <see cref="FitColumns"/> is <c>true</c>.
+    /// Recomputes content-fit widths for all visible columns that have
+    /// <see cref="NxGridColumn{T}.FitContent"/> set to <c>true</c>, then redistributes
+    /// remaining space via CSS flex. Columns the user has manually resized are skipped.
     /// </summary>
     public async Task FitColumnsAsync()
     {
@@ -36,7 +37,7 @@ public partial class NxGrid<T>
         }
         var headerMinWidths = _cachedHeaderMinWidths;
 
-        const int cellPadding = 12;
+        const int cellPadding = 15; // 6px left + 6px right padding + 1px right border + 2px buffer
 
         // Scan at most FitScanRowLimit rows — the widest value is almost always
         // represented in the first thousand rows of any real dataset.
@@ -49,7 +50,7 @@ public partial class NxGrid<T>
         for (var i = 0; i < visibleColumns.Count; i++)
         {
             var col = visibleColumns[i];
-            if (col.UserWidth.HasValue || !col.Fittable) continue;
+            if (col.UserWidth.HasValue || !col.FitContent) continue;
 
             double maxDataWidth = 0;
             foreach (var row in scanRows)
@@ -63,8 +64,10 @@ public partial class NxGrid<T>
             var headerNeeded = i < headerMinWidths.Length ? (int)Math.Ceiling(headerMinWidths[i]) : 0;
             var ideal = Math.Max(dataNeeded, headerNeeded);
 
-            if (col.MinWidth.HasValue) ideal = Math.Max(ideal, col.MinWidth.Value);
-            if (col.MaxWidth.HasValue) ideal = Math.Min(ideal, col.MaxWidth.Value);
+            if (col.MinWidth.HasValue)    ideal = Math.Max(ideal, col.MinWidth.Value);
+            if (col.FlexMinWidth.HasValue) ideal = Math.Max(ideal, col.FlexMinWidth.Value);
+            if (col.MaxWidth.HasValue)    ideal = Math.Min(ideal, col.MaxWidth.Value);
+            if (col.FlexMaxWidth.HasValue) ideal = Math.Min(ideal, col.FlexMaxWidth.Value);
 
             col.FitWidth = ideal;
         }

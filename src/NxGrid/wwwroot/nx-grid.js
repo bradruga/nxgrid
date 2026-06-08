@@ -337,7 +337,8 @@
         }
     }
 
-    measureCharWidths() {
+    async measureCharWidths() {
+        await document.fonts.ready;
         const gridElement = document.getElementById(this.id);
         if (!gridElement) return null;
 

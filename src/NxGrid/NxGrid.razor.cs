@@ -135,18 +135,6 @@ public partial class NxGrid<T>
     [Parameter] public string? StateKey { get; set; }
 
     /// <summary>
-    /// When <c>true</c> (default), column widths are computed from data content on first render
-    /// and whenever <see cref="Data"/> changes — similar to an HTML <c>&lt;table&gt;</c> auto-layout.
-    /// Available grid width is distributed proportionally among columns, respecting
-    /// <see cref="NxGridColumn{T}.MinWidth"/> and <see cref="NxGridColumn{T}.MaxWidth"/>.
-    /// Columns the user has manually resized keep their widths across data changes.
-    /// When a <see cref="StateKey"/> is configured and persisted widths exist, they take
-    /// precedence over the initial fit. Set to <c>false</c> to render all columns at their
-    /// declared <see cref="NxGridColumn{T}.Width"/> with no automatic sizing.
-    /// </summary>
-    [Parameter] public bool FitColumns { get; set; } = true;
-
-    /// <summary>
     /// When <c>true</c> (default), rows are rendered with Blazor's <c>&lt;Virtualize&gt;</c>
     /// so only visible rows are in the DOM. Set to <c>false</c> to render all rows — useful for
     /// small grids, browser Ctrl+F search, accessibility tools, or print.
@@ -548,8 +536,6 @@ public partial class NxGrid<T>
         if (SelectionMode == NxGridSelectionMode.None && Editable)
             Console.Error.WriteLine("[NxGrid] Warning: SelectionMode=None is incompatible with Editable=true — editing will be suppressed.");
 
-        if (!FitColumns)
-            manualMode = true;
         ComputeFrozenOffsets();
 
         if (Data.Count != loadedDataCount || !ReferenceEquals(Data, loadedData))
@@ -568,7 +554,7 @@ public partial class NxGrid<T>
                 pendingKeyRestorationChanged = true;
             }
 
-            if (FitColumns)
+            if (HasFitContentColumns)
                 _fitPending = true;
         }
 
@@ -606,8 +592,8 @@ public partial class NxGrid<T>
             await RestoreStateAsync();
             await LoadFocusCellStateAsync();
 
-            // Run initial fit if FitColumns is enabled and no saved state set manualMode.
-            if (FitColumns && !manualMode)
+            // Run initial fit for any FitContent columns, unless saved state already set manual widths.
+            if (HasFitContentColumns && !manualMode)
             {
                 _fitPending = false;
                 await RunColumnFitAsync();
@@ -701,7 +687,22 @@ public partial class NxGrid<T>
 
     private string BuildRowStyle()
     {
-        var totalWidth = 32 + visibleColumns.Sum(c => c.UserWidth ?? c.FitWidth ?? Math.Min(Math.Max(c.Width, c.MinWidth ?? 0), c.MaxWidth ?? int.MaxValue));
+        var totalWidth = 32;
+        foreach (var col in visibleColumns)
+        {
+            if (col.Sizing == NxGridColumnSizing.Fixed || col.UserWidth.HasValue)
+            {
+                // These columns never flex — they hold their exact width.
+                // FitContent may have computed a measured width into FitWidth; prefer that over Width.
+                totalWidth += col.UserWidth ?? col.FitWidth ?? col.Width;
+            }
+            else
+            {
+                // Flex columns can compress; their floor is the effective CSS min-width.
+                var floor = Math.Max(col.FlexMinWidth ?? 0, col.MinWidth ?? 0);
+                totalWidth += floor;
+            }
+        }
         var heightProp = HasMultiLineColumns ? "min-height" : "height";
         return $"{heightProp}:{RowHeight}px;min-width:{totalWidth}px";
     }

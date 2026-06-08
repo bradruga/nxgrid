@@ -19,7 +19,7 @@ public partial class NxGrid<T>
         renderToken++;
         StateHasChanged();
         _ = SaveStateAsync();
-        if (FitColumns) _ = RunColumnFitAsync();
+        if (HasFitContentColumns) _ = RunColumnFitAsync();
     }
 
     private async Task OnHideColumnClick()
@@ -30,7 +30,7 @@ public partial class NxGrid<T>
         openColumn = null;
         selectedRanges = [];
         ComputeFrozenOffsets();
-        if (FitColumns)
+        if (HasFitContentColumns)
             await RunColumnFitAsync();
         else
         {
@@ -54,7 +54,7 @@ public partial class NxGrid<T>
         column.UserHidden = !visible;
         if (!visible) { selectedRanges = []; column.FitWidth = null; }
         ComputeFrozenOffsets();
-        if (FitColumns)
+        if (HasFitContentColumns)
             await RunColumnFitAsync();
         else
         {

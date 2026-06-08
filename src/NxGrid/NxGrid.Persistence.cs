@@ -144,7 +144,7 @@ public partial class NxGrid<T>
         if (jsInterop != null)
             await jsInterop.LocalStorageRemove(StateKey);
 
-        manualMode = !FitColumns;
+        manualMode = false;
         foreach (var column in ActiveColumns)
         {
             column.UserWidth = null;
@@ -158,7 +158,7 @@ public partial class NxGrid<T>
         ComputeFrozenOffsets();
         ApplyFilterAndSort();
 
-        if (FitColumns)
+        if (HasFitContentColumns)
             await RunColumnFitAsync();
         else
         {

@@ -103,23 +103,24 @@
 </div>
 
 <div class="doc-section">
-    <h2>FitColumns</h2>
+    <h2>FitContent</h2>
     <p class="doc-note">
-        Set <code>FitColumns="true"</code> to have the grid automatically size every column to best
-        fit its data, similar to an HTML <code>&lt;table&gt;</code>. The available width is distributed
-        proportionally so the grid always fills its container. Columns re-fit whenever
-        <code>Data</code> changes.
+        Columns automatically size to fit their widest data value on first render and whenever
+        <code>Data</code> changes — <code>FitContent="true"</code> is the default. Each fitted
+        column snaps to its content width, and remaining space is distributed among
+        <code>Sizing="Flex"</code> columns proportionally.
     </p>
     <p class="doc-note">
         Manually resize any column — it will keep its width across data changes.
-        <code>MinWidth</code> / <code>MaxWidth</code> are respected.
-        Use <code>FitColumnsAsync()</code> to re-fit programmatically.
+        <code>FlexMinWidth</code> / <code>FlexMaxWidth</code> bound the measurement.
+        Set <code>FitContent="false"</code> to opt out on a specific column (useful for
+        fixed-width utility columns). Use <code>FitColumnsAsync()</code> to re-fit programmatically.
     </p>
-    <NxGrid T="Person" @ref="fitGrid" Data="@fitData" FitColumns="true" Cursor="@NxGridCursor.Cell" Style="height:260px">
+    <NxGrid T="Person" @ref="fitGrid" Data="@fitData" Cursor="@NxGridCursor.Cell" Style="height:260px">
         <NxGridColumn Title="First Name"  Property="@(x => x.FirstName)" />
         <NxGridColumn Title="Last Name"   Property="@(x => x.LastName)" />
         <NxGridColumn Title="Department"  Property="@(x => x.Department)" />
-        <NxGridColumn Title="Age"         Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" MaxWidth="80" />
+        <NxGridColumn Title="Age"         Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" FlexMaxWidth="80" />
     </NxGrid>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="demo-btn" @onclick="ReloadFitData">Reload data</button>

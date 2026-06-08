@@ -124,14 +124,45 @@
     [Parameter] public bool AutoSizable { get; set; } = true;
 
     /// <summary>
-    /// When <c>false</c>, this column is excluded from the grid's automatic column fitting
-    /// (<see cref="NxGrid{T}.FitColumns"/>). The column renders at its declared
-    /// <see cref="Width"/> (or <see cref="UserWidth"/> if the user has resized it), and its
-    /// width is deducted from the available budget before the remaining columns are fitted.
-    /// Useful for fixed-width utility columns such as checkboxes or action buttons.
-    /// Does not affect drag resize or double-click auto-size. Default: <c>true</c>.
+    /// When <c>true</c>, the column's width is computed from its widest content value on first
+    /// render and whenever <see cref="NxGrid{T}.Data"/> changes. The computed width is used as
+    /// the flex-basis when <see cref="Sizing"/> is <see cref="NxGridColumnSizing.Flex"/>, so the
+    /// column snaps to content and then participates in distributing remaining space. With
+    /// <see cref="NxGridColumnSizing.Fixed"/>, it stays pinned at the measured content width.
+    /// <see cref="FlexMinWidth"/> and <see cref="FlexMaxWidth"/> bound the measurement.
+    /// Columns the user has manually resized keep their width and are not re-measured.
+    /// Default: <c>true</c>.
     /// </summary>
-    [Parameter] public bool Fittable { get; set; } = true;
+    [Parameter] public bool FitContent { get; set; } = true;
+
+    /// <summary>
+    /// Controls how the column participates in flexible width distribution.
+    /// <see cref="NxGridColumnSizing.Flex"/> (default) uses <see cref="Width"/> as the
+    /// flex-basis and proportional grow/shrink weight. Use <see cref="FlexMinWidth"/> and
+    /// <see cref="FlexMaxWidth"/> to bound how far the column can shrink or grow automatically.
+    /// <see cref="NxGridColumnSizing.Fixed"/> pins the column at its exact pixel width with no
+    /// flex participation. Default: <see cref="NxGridColumnSizing.Flex"/>.
+    /// </summary>
+    [Parameter] public NxGridColumnSizing Sizing { get; set; } = NxGridColumnSizing.Flex;
+
+    /// <summary>
+    /// Minimum width in pixels the column may shrink to during automatic flex distribution.
+    /// Only applies when <see cref="Sizing"/> is <see cref="NxGridColumnSizing.Flex"/> and
+    /// the column has not been manually resized by the user.
+    /// Independent of <see cref="MinWidth"/>, which enforces the floor during user drag-resize.
+    /// When both are set the larger value is the effective CSS <c>min-width</c> in flex mode.
+    /// </summary>
+    [Parameter] public int? FlexMinWidth { get; set; }
+
+    /// <summary>
+    /// Maximum width in pixels the column may grow to during automatic flex distribution.
+    /// Only applies when <see cref="Sizing"/> is <see cref="NxGridColumnSizing.Flex"/> and
+    /// the column has not been manually resized by the user.
+    /// Independent of <see cref="MaxWidth"/>, which enforces the ceiling during user drag-resize.
+    /// When both are set the smaller value is the effective CSS <c>max-width</c> in flex mode.
+    /// Also clamps the width computed when <see cref="FitContent"/> is <c>true</c>.
+    /// </summary>
+    [Parameter] public int? FlexMaxWidth { get; set; }
 
     /// <summary>
     /// Custom cell renderer. The cell container (padding, selection highlight) is still rendered
@@ -473,35 +504,66 @@
 
     private string BuildWidthStyle()
     {
-        // Pinned: user-resized or opted out of fitting — fixed width, no flex.
-        if (UserWidth.HasValue || !Fittable)
+        // Fixed sizing: exact pixel width — no flex growth or shrinkage regardless of mode.
+        // FitContent may have measured a content-ideal width into FitWidth; prefer that over Width.
+        if (Sizing == NxGridColumnSizing.Fixed)
         {
-            var fixedW = UserWidth ?? Width;
-            var style = $"width:{fixedW}px;";
+            var fixedW = UserWidth ?? FitWidth ?? Width;
+            var style = $"width:{fixedW}px;flex-shrink:0;";
             if (MinWidth != null) style += $"min-width:{MinWidth}px;";
             if (MaxWidth != null) style += $"max-width:{MaxWidth}px;";
             return style;
         }
 
-        // FitColumns mode: use FitWidth as flex-basis and proportional flex-grow weight.
-        // The browser distributes extra space natively — no JS resize callbacks needed.
+        // Pinned: user-resized — fixed width, no flex.
+        // FlexMinWidth/FlexMaxWidth don't apply; MinWidth/MaxWidth govern drag resize.
+        if (UserWidth.HasValue)
+        {
+            var fixedW = UserWidth.Value;
+            var style = $"width:{fixedW}px;flex-shrink:0;";
+            if (MinWidth != null) style += $"min-width:{MinWidth}px;";
+            if (MaxWidth != null) style += $"max-width:{MaxWidth}px;";
+            return style;
+        }
+
+        // Flex sizing, FitContent mode: FitWidth is the computed content-fit basis.
+        // FlexMinWidth/FlexMaxWidth bound the flex distribution on top of MinWidth/MaxWidth.
         if (FitWidth.HasValue)
         {
             var style = $"width:{FitWidth}px;flex-grow:{FitWidth};";
-            if (MinWidth != null) style += $"min-width:{MinWidth}px;";
-            if (MaxWidth != null) style += $"max-width:{MaxWidth}px;";
+            var cssMin = MaxOf(MinWidth, FlexMinWidth);
+            var cssMax = MinOf(MaxWidth, FlexMaxWidth);
+            if (cssMin != null) style += $"min-width:{cssMin}px;";
+            if (cssMax != null) style += $"max-width:{cssMax}px;";
             return style;
         }
 
-        // Fallback (before first fit or FitColumns=false): declared Width.
+        // Flex sizing, fallback (before first fit or FitContent=false): declared Width.
         var w = Width;
         var fallback = $"width:{w}px;";
-        if (MinWidth != null) fallback += $"min-width:{MinWidth}px;";
-        if (MaxWidth != null) fallback += $"max-width:{MaxWidth}px;";
-        else if (!(Parent?.IsManualMode ?? false))
-            fallback += $"flex-grow:{w};";
+        var fMin = MaxOf(MinWidth, FlexMinWidth);
+        var fMax = MinOf(MaxWidth, FlexMaxWidth);
+        if (fMin != null) fallback += $"min-width:{fMin}px;";
+        if (fMax != null) fallback += $"max-width:{fMax}px;";
+        if (!(Parent?.IsManualMode ?? false)) fallback += $"flex-grow:{w};";
         return fallback;
     }
+
+    private static int? MaxOf(int? a, int? b) => (a, b) switch
+    {
+        (null, null) => null,
+        (null, _)    => b,
+        (_, null)    => a,
+        _            => Math.Max(a.Value, b.Value)
+    };
+
+    private static int? MinOf(int? a, int? b) => (a, b) switch
+    {
+        (null, null) => null,
+        (null, _)    => b,
+        (_, null)    => a,
+        _            => Math.Min(a.Value, b.Value)
+    };
 
     private string BuildHeaderCellStyle()
     {

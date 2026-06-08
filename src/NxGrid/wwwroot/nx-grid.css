@@ -95,7 +95,6 @@
   align-items: center;
   overflow: hidden;
   position: relative;
-  flex-shrink: 0;
 }
 
 .nx-grid-cell-text {
