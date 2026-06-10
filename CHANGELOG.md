@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frozen columns were offset 32 px too far right when `RowGutter="Hidden"` because the gutter width was always added to sticky `left` offsets
 - Column resize drag produced incorrect column widths when `RowGutter="Hidden"` because the CSS `nth-child` selector was offset by one, targeting the wrong cells
 - Row `min-width` included a phantom 32 px gutter contribution when `RowGutter="Hidden"`, causing unnecessary horizontal scroll space
+- Cell selection threw `FormatException` when `--nx-grid-selection-bg` was set to a non-hex value; color blending now accepts hex (`#rgb`, `#rrggbb`, `#rrggbbaa`), `rgb()`/`rgba()`, and all CSS named colors, and gracefully skips blending for unrecognized formats
 
 ## [0.1.0] - 2026-06-08
 
