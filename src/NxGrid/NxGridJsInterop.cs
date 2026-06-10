@@ -87,6 +87,15 @@ public class NxGridJsInterop<T> : IAsyncDisposable
         return jsObject.InvokeVoidAsync("focusGrid").AsTask();
     }
 
+    public Task SetEditInputCursor(int cursorPos)
+    {
+        return jsObject.InvokeVoidAsync("setEditInputCursor", cursorPos).AsTask();
+    }
+
+    public Task FocusEditInput() => jsObject.InvokeVoidAsync("focusEditInput").AsTask();
+    public Task EnableEditPickMode() => jsObject.InvokeVoidAsync("enableEditPickMode").AsTask();
+    public Task DisableEditPickMode() => jsObject.InvokeVoidAsync("disableEditPickMode").AsTask();
+
     public Task<string> GetCssVar(string varName)
         => jsObject.InvokeAsync<string>("getCssVar", varName).AsTask();
 

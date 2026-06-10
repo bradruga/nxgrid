@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Edit-pick mode** — when `EditPickPredicate` returns `true` for the current edit value (e.g. `v => v.StartsWith("=")`), clicking or click-dragging another cell fires `OnCellPickedWhileEditing` instead of committing the edit. A live blue range overlay highlights the picked area during the drag and persists after mouseup until the edit ends or a new pick starts.
+- `EditPickPredicate` parameter (`Func<string, bool>?`) — predicate that activates edit-pick mode while editing.
+- `OnCellPickedWhileEditing` event (`EventCallback<NxGridEditCellPickArgs<T>>`) — fires on mouseup with the full picked range (`StartRow`, `StartColumn`, `EndRow`, `EndColumn`; end equals start for a single click).
+- `OnEditValueChanged` event (`EventCallback<NxGridEditValueChangedArgs<T>>`) — fires once when a cell enters edit mode (with the initial value) and again on every keystroke.
+- `OnEditCancelled` event (`EventCallback<NxGridEditCancelledArgs<T>>`) — fires when the user cancels an in-progress edit (Escape).
+- `SetEditValue(string value)` public method — programmatically replaces the active edit input's text and moves the cursor to the end; no-op when not editing.
+- `ResetColumnWidths()` public method — clears all user-dragged column widths, restoring every column to its declared `Width` parameter.
+- `--nx-grid-pick-border` CSS variable — controls the border color of the edit-pick range overlay (defaults to `--nx-grid-accent` blue).
+- `NxGridEditCellPickArgs<T>`, `NxGridEditValueChangedArgs<T>`, `NxGridEditCancelledArgs<T>` — new event argument types.
+
+### Fixed
+
+- Edit-pick mode: clicking another cell moved browser focus to the grid container (`tabindex="0"`), causing subsequent keystrokes after the pick to be lost. The edit input is now explicitly re-focused after each pick.
+- Edit-pick mode: click-and-drag range selection only captured the mousedown cell instead of the full dragged range. Picks are now tracked across `mousedown → mousemove → mouseup`, and `OnCellPickedWhileEditing` fires once on mouseup with the complete range.
+
+### Removed
+
+- `NxGridFormulaRefPickArgs<T>` — replaced by the more general `NxGridEditCellPickArgs<T>`.
+
 ## [0.1.1] - 2026-06-10
 
 ### Changed

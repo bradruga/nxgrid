@@ -200,6 +200,39 @@
         if (el) el.focus();
     }
 
+    focusEditInput() {
+        const gridEl = document.getElementById(this.id);
+        if (!gridEl) return;
+        const input = gridEl.querySelector('.nx-grid-edit-input, .nx-grid-combo-input, .nx-grid-edit-textarea, .nx-grid-edit-textarea-sl');
+        if (input) input.focus();
+    }
+
+    setEditInputCursor(cursorPos) {
+        const gridEl = document.getElementById(this.id);
+        if (!gridEl) return;
+        const input = gridEl.querySelector('.nx-grid-edit-input, .nx-grid-combo-input, .nx-grid-edit-textarea, .nx-grid-edit-textarea-sl');
+        if (!input) return;
+        try { input.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
+    }
+
+    enableEditPickMode() {
+        if (this._editPickHandler) return;
+        const gridEl = document.getElementById(this.id);
+        if (!gridEl) return;
+        this._editPickHandler = (e) => {
+            const input = gridEl.querySelector('.nx-grid-edit-input, .nx-grid-combo-input, .nx-grid-edit-textarea, .nx-grid-edit-textarea-sl');
+            if (input && document.activeElement === input) e.preventDefault();
+        };
+        gridEl.addEventListener('mousedown', this._editPickHandler, true);
+    }
+
+    disableEditPickMode() {
+        if (!this._editPickHandler) return;
+        const gridEl = document.getElementById(this.id);
+        if (gridEl) gridEl.removeEventListener('mousedown', this._editPickHandler, true);
+        this._editPickHandler = null;
+    }
+
     getCssVar(varName) {
         const el = document.getElementById(this.id);
         if (!el) return '';
@@ -677,6 +710,35 @@ export function nxGrid(id, dotNetObjectReference) {
 }
 export function isMacPlatform() {
     return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
+export function getInputSelection(el) {
+    if (!el) return { start: 0, end: 0 };
+    return { start: el.selectionStart ?? 0, end: el.selectionEnd ?? 0 };
+}
+export function setInputCursor(el, pos) {
+    if (!el) return;
+    el.setSelectionRange(pos, pos);
+}
+export function setInputValueAndFocus(el, value, cursorPos) {
+    if (!el) return;
+    el.value = value;
+    el.focus();
+    el.setSelectionRange(cursorPos, cursorPos);
+}
+export function setupFormulaRefMode(wrapperEl, inputEl) {
+    if (!wrapperEl || !inputEl) return;
+    wrapperEl._refModeHandler = (e) => {
+        if (document.activeElement === inputEl) {
+            e.preventDefault();  // keep focus on formula bar so blur doesn't fire
+        }
+    };
+    wrapperEl.addEventListener('mousedown', wrapperEl._refModeHandler);
+}
+export function teardownFormulaRefMode(wrapperEl) {
+    if (wrapperEl?._refModeHandler) {
+        wrapperEl.removeEventListener('mousedown', wrapperEl._refModeHandler);
+        delete wrapperEl._refModeHandler;
+    }
 }
 export function localStorageGet(key) {
     try { return localStorage.getItem(key); } catch { return null; }

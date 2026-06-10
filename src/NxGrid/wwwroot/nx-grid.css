@@ -11,6 +11,7 @@
   --nx-grid-accent: #0078d4;
   --nx-grid-accent-dark: #005a9e;
   --nx-grid-selection-border: #217346;
+  --nx-grid-pick-border: #0078d4;
   --nx-grid-row-number-fg: #666;
   --nx-grid-icon-fg: #000;
   --nx-grid-icon-muted-fg: #555;
@@ -143,6 +144,10 @@
   background-color: var(--nx-grid-selection-bg);
   border-right-color: var(--nx-grid-selected-border);
   border-bottom-color: var(--nx-grid-selected-border);
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cell-pick-range {
+  background-color: rgba(0, 120, 212, 0.07);
 }
 
 .nx-grid-edit-input {

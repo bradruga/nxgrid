@@ -50,8 +50,7 @@ public partial class SpreadsheetPage
 
     sealed class SsRow
     {
-        public int     RowIndex  { get; set; }
-        public string? EditValue { get; set; }
+        public int RowIndex { get; set; }
     }
 
     sealed class ConditionalFormattingRule
@@ -148,7 +147,7 @@ public partial class SpreadsheetPage
     const int RowCount = 100;
     const int ColCount = 26;   // A–Z
 
-    readonly int[] _colWidths = Enumerable.Range(0, ColCount).Select(i => i == 0 ? 120 : 80).ToArray();
+    readonly int[] _colWidths = Enumerable.Range(0, ColCount).Select(_ => 80).ToArray();
     int ColWidth(int ci) => _colWidths[ci];
 
     void OnColumnResized(NxGridColumnResizedArgs args)
@@ -176,14 +175,112 @@ public partial class SpreadsheetPage
         "#C00000","#FF0000","#FFC000","#FFFF00","#92D050","#00B050","#00B0F0","#0070C0","#002060","#7030A0"
     ];
 
+    // ── Cell reference editing ────────────────────────────────────────────────
+
+    record FormulaRef(int R1, int C1, int R2, int C2, string Color, int Start, int End);
+
+    static readonly string[] RefColors =
+        ["#1565c0", "#c84b0c", "#2e7d32", "#6a1b9a", "#c62828", "#00838f", "#e65100", "#37474f"];
+
     // ── Compiled regular expressions ──────────────────────────────────────────
 
     static readonly Regex CellRef  = new(@"(\$?)([A-Za-z])(\$?)(\d+)",                                       RegexOptions.Compiled);
     static readonly Regex RangeRef = new(@"^(\$?)([A-Za-z])(\$?)(\d+):(\$?)([A-Za-z])(\$?)(\d+)$",          RegexOptions.Compiled);
+    static readonly Regex InlineRangeRef = new(@"\$?[A-Za-z]\$?\d+:\$?[A-Za-z]\$?\d+",                      RegexOptions.Compiled);
+    static readonly Regex InlineCellRef  = new(@"\$?[A-Za-z]\$?\d+",                                         RegexOptions.Compiled);
     static readonly Regex SumFunc     = new(@"(?i)SUM\(([^)]+)\)",              RegexOptions.Compiled);
     static readonly Regex MaxFunc     = new(@"(?i)MAX\(([^)]+)\)",              RegexOptions.Compiled);
     static readonly Regex CountIfFunc = new(@"(?i)COUNTIF\(([^,)]+),([^)]+)\)", RegexOptions.Compiled);
     static readonly Regex CountAFunc  = new(@"(?i)COUNTA\(([^)]+)\)",           RegexOptions.Compiled);
+
+    // ── Formula ref parsing & colorization ───────────────────────────────────
+
+    List<FormulaRef> ParseFormulaRefs(string formula)
+    {
+        if (!formula.StartsWith("=") || formula.StartsWith("'=")) return [];
+
+        var expr     = formula[1..];
+        var colorMap = new Dictionary<(int, int, int, int), string>();
+        var colorIdx = 0;
+        var result   = new List<FormulaRef>();
+        var covered  = new bool[expr.Length];
+
+        // Pass 1: ranges
+        foreach (System.Text.RegularExpressions.Match m in InlineRangeRef.Matches(expr))
+        {
+            var parts = m.Value.ToUpperInvariant().Replace("$", "").Split(':');
+            if (parts.Length != 2) continue;
+            if (parts[0].Length < 2 || parts[1].Length < 2) continue;
+            var c1 = parts[0][0] - 'A';
+            var c2 = parts[1][0] - 'A';
+            if (!int.TryParse(parts[0][1..], out var r1) || !int.TryParse(parts[1][1..], out var r2)) continue;
+            r1--; r2--;
+            if (r1 < 0 || r2 < 0 || c1 < 0 || c2 < 0) continue;
+            if (r1 >= RowCount || r2 >= RowCount || c1 >= ColCount || c2 >= ColCount) continue;
+
+            var key = (Math.Min(r1, r2), Math.Min(c1, c2), Math.Max(r1, r2), Math.Max(c1, c2));
+            if (!colorMap.TryGetValue(key, out var color))
+                colorMap[key] = color = RefColors[colorIdx++ % RefColors.Length];
+
+            for (var i = m.Index; i < m.Index + m.Length && i < covered.Length; i++) covered[i] = true;
+            result.Add(new FormulaRef(key.Item1, key.Item2, key.Item3, key.Item4, color, m.Index + 1, m.Index + m.Length + 1));
+        }
+
+        // Pass 2: individual cells not inside a range
+        foreach (System.Text.RegularExpressions.Match m in InlineCellRef.Matches(expr))
+        {
+            if (covered[m.Index]) continue;
+            var clean = m.Value.ToUpperInvariant().Replace("$", "");
+            if (clean.Length < 2) continue;
+            var c = clean[0] - 'A';
+            if (!int.TryParse(clean[1..], out var r)) continue;
+            r--;
+            if (r < 0 || r >= RowCount || c < 0 || c >= ColCount) continue;
+
+            var key = (r, c, r, c);
+            if (!colorMap.TryGetValue(key, out var color))
+                colorMap[key] = color = RefColors[colorIdx++ % RefColors.Length];
+
+            for (var i = m.Index; i < m.Index + m.Length && i < covered.Length; i++) covered[i] = true;
+            result.Add(new FormulaRef(r, c, r, c, color, m.Index + 1, m.Index + m.Length + 1));
+        }
+
+        return result;
+    }
+
+    static string BuildColorizedHtml(string formula, List<FormulaRef> refs)
+    {
+        if (refs.Count == 0) return HtmlEncode(formula);
+
+        var sorted = refs.OrderBy(r => r.Start).ToList();
+        var sb  = new System.Text.StringBuilder();
+        var pos = 0;
+
+        foreach (var rf in sorted)
+        {
+            if (rf.Start > pos) sb.Append(HtmlEncode(formula[pos..rf.Start]));
+            sb.Append($"<span style=\"color:{rf.Color};font-weight:bold\">");
+            sb.Append(HtmlEncode(formula[rf.Start..rf.End]));
+            sb.Append("</span>");
+            pos = rf.End;
+        }
+        if (pos < formula.Length) sb.Append(HtmlEncode(formula[pos..]));
+        return sb.ToString();
+    }
+
+    static string HtmlEncode(string s) =>
+        s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    static string HexToRgba(string hex, double alpha)
+    {
+        hex = hex.TrimStart('#');
+        if (hex.Length == 6 &&
+            int.TryParse(hex[..2], System.Globalization.NumberStyles.HexNumber, null, out var r) &&
+            int.TryParse(hex[2..4], System.Globalization.NumberStyles.HexNumber, null, out var g) &&
+            int.TryParse(hex[4..6], System.Globalization.NumberStyles.HexNumber, null, out var b))
+            return $"rgba({r},{g},{b},{alpha})";
+        return hex;
+    }
 
     // ── String-literal-aware formula helpers ──────────────────────────────────
 
@@ -318,50 +415,4 @@ public partial class SpreadsheetPage
         return sign * (isPct ? num / 100m : num);
     }
 
-    // ── Code snippet ─────────────────────────────────────────────────────────
-
-    const string codeSnippet = """
-        // ── Checkbox cells ─────────────────────────────────────────────────────
-        // NxGridColumn Template renders checkboxes; CellEditableGetter blocks the
-        // text editor from opening on IsCheckBox cells.
-        <NxGridColumn Title="K" Property="@(x => x.EditValue)" ...>
-          <Template Context="ssRow">
-            @if (sheet[ssRow.RowIndex, 10].IsCheckBox) {
-              <input type="checkbox"
-                     checked="@(sheet[ssRow.RowIndex, 10].Value == "true")"
-                     @onchange="@(e => OnCheckBoxCellChanged(ssRow.RowIndex, 10, (bool)(e.Value ?? false)))"
-                     @ondblclick:stopPropagation />
-            } else { @FormatDisplay(sheet[ssRow.RowIndex, 10]) }
-          </Template>
-        </NxGridColumn>
-
-        // ── Charts ─────────────────────────────────────────────────────────────
-        // SpreadsheetChart components are rendered in the NxGrid Overlays slot as
-        // absolutely-positioned, draggable/resizable SVG line charts.
-        <NxGrid Overlays>
-          @foreach (var chart in charts) {
-            <SpreadsheetChart Chart="@chart"
-              CellDisplayGetter="@((r, c) => sheet[r, c].Display)"
-              RowCount="@RowCount" ColCount="@ColCount"
-              OnChanged="@TriggerSave" OnDelete="@(() => DeleteChart(chart))" />
-          }
-        </NxGrid>
-
-        // ── Conditional formatting ─────────────────────────────────────────────
-        // Rules specify ApplyToRange + Formula (e.g. =A1>0) and target styles.
-        // Applied in Calculate() after all formula cells are resolved.
-        void ApplyConditionalFormatting() {
-          conditionalStyles = new ConditionalCellStyle?[RowCount, ColCount];
-          foreach (var rule in condFmtRules)
-            for (var r = 0; r < RowCount; r++)
-              for (var c = 0; c < ColCount; c++)
-                if (EvaluateCondRule(rule, r, c))
-                  conditionalStyles[r, c] = MergeStyle(conditionalStyles[r, c], rule);
-        }
-
-        // ── Local-storage persistence ──────────────────────────────────────────
-        // On every change an 800 ms debounce timer serializes cell values,
-        // chart definitions, and cond-fmt rules to localStorage.
-        // The Reset button clears the key and reloads the built-in sample data.
-        """;
 }

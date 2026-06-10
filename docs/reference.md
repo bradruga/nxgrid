@@ -139,6 +139,10 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `CellEditableGetter` | `Func<T, NxGridColumn<T>, bool>?` | Grid-level per-cell editability guard. When supplied, cells where this returns `false` cannot enter edit mode regardless of column-level `Editable`. Evaluated after column editability. Direct edit attempts (F2, typing, double-click) on a blocked cell fire `OnEditBlocked`; bulk operations (paste, delete, Ctrl+Enter) silently skip blocked cells. |
 | `OnEditing` | `EventCallback<NxGridEditingArgs<T>>` | Fires just before a cell enters edit mode (after all editability checks pass). Set `args.Cancel = true` to prevent the editor from opening. |
 | `OnEditBlocked` | `EventCallback<NxGridEditBlockedArgs<T>>` | Fires when a user directly tries to edit a cell blocked by `CellEditableGetter`. Receives `args.Row` and `args.Column`. Does **not** fire for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells. |
+| `OnEditValueChanged` | `EventCallback<NxGridEditValueChangedArgs<T>>` | Fires when the in-cell edit value changes — once when a cell first enters edit mode (initial value) and again on every subsequent keystroke. |
+| `OnEditCancelled` | `EventCallback<NxGridEditCancelledArgs<T>>` | Fires when the user cancels an in-progress cell edit (e.g. Escape). |
+| `EditPickPredicate` | `Func<string, bool>?` | When set, the grid enters edit-pick mode while editing whenever this returns `true` for the current edit value (e.g. `v => v.StartsWith("=")`). In that mode, clicking another cell fires `OnCellPickedWhileEditing` instead of committing the edit, and mousedown on cells suppresses focus stealing. |
+| `OnCellPickedWhileEditing` | `EventCallback<NxGridEditCellPickArgs<T>>` | Fires on mouseup when the user clicks or click-drags a range while edit-pick mode is active. Args carry `StartRow`/`StartColumn`/`EndRow`/`EndColumn`; end equals start for a single click. Call `SetEditValue` from this handler to inject content into the edit input. |
 | `TransformPastedValue` | `Func<string, int, int, string>?` | `(rawValue, rowDelta, colDelta)` — lets the host rewrite pasted text before it is committed (e.g. formula adjustment). |
 | `OnCopied` | `EventCallback<NxGridCopiedArgs<T>>` | Fires after the selection is written to the clipboard. `args` exposes `MinRow`, `MaxRow`, `MinCol`, `MaxCol` — the bounding box of the copied range. Use to capture side-channel data (e.g. cell styles) alongside the OS clipboard text. |
 | `OnPasted` | `EventCallback<NxGridPastedArgs<T>>` | Fires after a paste completes (after `OnUpdate`). `args` exposes `OriginRow`/`OriginCol` (top-left of the paste destination), `SelectionEndRow`/`SelectionEndCol` (bottom-right of the active selection, for single-cell fill), and `ClipboardRows`/`ClipboardCols` (dimensions of the parsed clipboard). Use alongside `OnCopied` to apply side-channel data (e.g. cell styles) to the paste destination. |
@@ -154,6 +158,8 @@ Task  SelectRow(T row)                             // programmatically select a 
 Task  SelectRowByKey(object? keyValue)             // select and scroll to the first row whose KeyProperty value equals keyValue; logs a warning and is a no-op when KeyProperty is not set or no match is found
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title
+void  SetEditValue(string value)                   // replace the active edit input's text; no-op when not editing. Use in an OnCellPickedWhileEditing handler
+void  ResetColumnWidths()                          // clear all user-dragged widths, restoring every column to its declared Width parameter
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
 Task  FitColumnsAsync()                            // re-measure and apply FitWidth for all FitContent columns; skips columns the user has manually resized
 ```
@@ -643,6 +649,27 @@ public sealed class NxGridEditBlockedArgs<T>
     public NxGridColumn<T> Column { get; init; }
 }
 
+public sealed class NxGridEditValueChangedArgs<T>
+{
+    public T Row { get; init; }
+    public NxGridColumn<T> Column { get; init; }
+    public string Value { get; init; }   // current text in the edit input
+}
+
+public sealed class NxGridEditCancelledArgs<T>
+{
+    public T Row { get; init; }
+    public NxGridColumn<T> Column { get; init; }
+}
+
+public sealed class NxGridEditCellPickArgs<T>
+{
+    public T StartRow { get; init; }
+    public NxGridColumn<T> StartColumn { get; init; }
+    public T EndRow { get; init; }       // same as StartRow for a single click
+    public NxGridColumn<T> EndColumn { get; init; }  // same as StartColumn for a single click
+}
+
 public sealed class NxGridCellClickArgs<T>
 {
     public T Row { get; init; }
@@ -763,7 +790,8 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-selection-bg:     #C7C7C7;  /* selected cell background */
     --nx-grid-focus-cell-bg:    #d6f5e3;  /* Focus Cell row/column highlight */
     --nx-grid-selected-border:  #AFAFAF;  /* border around selected cells */
-    --nx-grid-selection-border: #217346;  /* green border on the active edit input */
+    --nx-grid-selection-border: #217346;  /* border on the active selection range */
+    --nx-grid-pick-border:      #0078d4;  /* border on the edit-pick range overlay */
     --nx-grid-accent:           #0078d4;  /* focus rings, hover states */
     --nx-grid-accent-dark:      #005a9e;  /* active/pressed states */
     --nx-grid-row-number-fg:    #666;

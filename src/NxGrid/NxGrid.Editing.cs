@@ -30,7 +30,7 @@ public partial class NxGrid<T>
             if (editingArgs.Cancel) return;
         }
 
-        var getter = column.EffectiveGetter;
+        var getter = column.EffectiveValueGetter;
         var rawValue = getter != null ? getter(filteredData[row]) : null;
         var currentText = column.IsDatePickerColumn && rawValue is DateTime dt
             ? dt.ToString(column.DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern)
@@ -43,6 +43,9 @@ public partial class NxGrid<T>
         // initialChar == null → F2/double-click mode (show existing value)
         // initialChar != null → typing mode (replace with first typed char)
         editValue = initialChar ?? currentText;
+
+        if (OnEditValueChanged.HasDelegate)
+            await OnEditValueChanged.InvokeAsync(new NxGridEditValueChangedArgs<T> { Row = filteredData[row], Column = column, Value = editValue });
 
         // Ensure the row is visible before the input renders
         _ = ScrollCellIntoView(row, col);
@@ -132,14 +135,33 @@ public partial class NxGrid<T>
     private async Task CancelEdit()
     {
         if (!isEditing) return;
+        var cancelledRow = filteredData[editRow];
+        var cancelledCol = visibleColumns[editCol];
         ClearEditState();
         StateHasChanged();
         if (jsInterop != null) await jsInterop.FocusGrid();
+        if (OnEditCancelled.HasDelegate)
+            await OnEditCancelled.InvokeAsync(new NxGridEditCancelledArgs<T> { Row = cancelledRow, Column = cancelledCol });
     }
 
     private void OnEditInputChange(ChangeEventArgs args)
     {
         editValue = args.Value?.ToString() ?? "";
+
+        if (OnEditValueChanged.HasDelegate && isEditing && editRow >= 0 && editRow < filteredData.Count && editCol >= 0 && editCol < visibleColumns.Count)
+            _ = OnEditValueChanged.InvokeAsync(new NxGridEditValueChangedArgs<T> { Row = filteredData[editRow], Column = visibleColumns[editCol], Value = editValue });
+
+        if (EditPickPredicate != null)
+        {
+            var newMode = IsEditPickMode;
+            if (newMode != prevEditPickMode)
+            {
+                prevEditPickMode = newMode;
+                if (jsInterop != null)
+                    _ = newMode ? jsInterop.EnableEditPickMode() : jsInterop.DisableEditPickMode();
+                StateHasChanged();
+            }
+        }
 
         if (isEditing && editCol >= 0 && visibleColumns[editCol].IsComboColumn)
         {
@@ -346,6 +368,14 @@ public partial class NxGrid<T>
 
     private void ClearEditState()
     {
+        if (prevEditPickMode && jsInterop != null)
+            _ = jsInterop.DisableEditPickMode();
+        isPickDragging = false;
+        lastPickedRange = null;
+        pickAnchorRow = -1;
+        pickAnchorCol = -1;
+        pickCurrentEndRow = -1;
+        pickCurrentEndCol = -1;
         isComboOpen = false;
         comboHighlightIndex = -1;
         comboAllItems = [];
@@ -355,6 +385,8 @@ public partial class NxGrid<T>
         isEditing = false;
         editRow = -1;
         editCol = -1;
+        prevEditPickMode = false;
+        pendingEditCursorPos = null;
     }
 
     private void SelectComboOption(int index)

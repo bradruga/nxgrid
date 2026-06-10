@@ -214,6 +214,21 @@ NxGridComboItem.From(new[] { "Engineering", "Finance", "HR" })</pre>
                 <td><code>Row</code>, <code>Column</code></td>
             </tr>
             <tr>
+                <td>NxGridEditValueChangedArgs&lt;T&gt;</td>
+                <td>OnEditValueChanged</td>
+                <td><code>Row</code>, <code>Column</code>, <code>Value</code> (current text in the edit input)</td>
+            </tr>
+            <tr>
+                <td>NxGridEditCancelledArgs&lt;T&gt;</td>
+                <td>OnEditCancelled</td>
+                <td><code>Row</code>, <code>Column</code></td>
+            </tr>
+            <tr>
+                <td>NxGridEditCellPickArgs&lt;T&gt;</td>
+                <td>OnCellPickedWhileEditing</td>
+                <td><code>StartRow</code>, <code>StartColumn</code>, <code>EndRow</code>, <code>EndColumn</code> — end equals start for a single-cell click</td>
+            </tr>
+            <tr>
                 <td>NxGridCellClickArgs&lt;T&gt;</td>
                 <td>OnCellClicked, OnCellDoubleClicked</td>
                 <td><code>Row</code>, <code>Column</code></td>

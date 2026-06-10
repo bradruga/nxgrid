@@ -1,24 +1,31 @@
 @page "/spreadsheet"
 @using System.Text.Json
 @inject IJSRuntime JS
-@implements IDisposable
+@implements IAsyncDisposable
 
 <PageTitle>Spreadsheet — NxGrid</PageTitle>
 
-<h1>Spreadsheet</h1>
-<p class="doc-intro">
-    NxGrid can serve as the rendering layer for a full spreadsheet UI.
-    Formula evaluation (<code>=A1+B2</code>, <code>=SUM(B2:B13)</code>), per-cell styling,
-    a formula bar, checkbox cells, draggable charts, conditional formatting, and
-    local-storage persistence are all driven by the same parameters:
-    <code>CellStyle</code>, <code>CellEditableGetter</code>, <code>Template</code>,
-    <code>Overlays</code>, <code>OnKeyPressed</code>, and <code>ForceRerender()</code>.
-</p>
-
-<div class="doc-section" style="padding:0; overflow:hidden;">
+<div class="ss-app" style="display:flex; flex-direction:column; margin:-28px -36px -48px; height:calc(100% + 76px); overflow:hidden; background:#fff; border-top:1px solid #d0d0d0;">
 
     @* ── Toolbar ── *@
     <div style="display:flex; align-items:center; gap:6px; padding:5px 10px; border-bottom:1px solid var(--nx-grid-border,#ddd); background:#fafafa; flex-wrap:wrap;">
+
+        @* File actions *@
+        <button type="button" class="ss-btn" @onclick="NewSpreadsheet" title="Create a blank spreadsheet">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707L9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1z"/>
+            </svg>
+            New
+        </button>
+        <button type="button" class="ss-btn" @onclick="LoadSample" title="Load sample financial data">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            </svg>
+            Load Sample
+        </button>
+
+        <div style="width:1px; height:22px; background:#ccc;"></div>
 
         @* Bold / Italic / Underline / Strikethrough *@
         <div style="display:flex;">
@@ -278,27 +285,10 @@
             Cond. Fmt.
         </button>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
-
-        @* Reset *@
-        <button type="button" class="ss-btn" @onclick="ResetData" title="Reset to sample data and clear saved state">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z"/>
-                <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466"/>
-            </svg>
-            Reset
-        </button>
-
-        <div style="margin-left:auto; font-size:12px; color:#888;">
-            @if (isSaving)
-            {
-                <span>Saving…</span>
-            }
-            else
-            {
-                <span>Ctrl+B/I/U · paste adjusts formulas · SUM/MAX supported</span>
-            }
-        </div>
+        @if (isSaving)
+        {
+            <div style="margin-left:auto; font-size:12px; color:#888;"><span>Saving…</span></div>
+        }
     </div>
 
     @* ── Formula bar ── *@
@@ -307,17 +297,28 @@
             @(anchorRef.Length > 0 ? anchorRef : " ")
         </span>
         <span style="font-size:12px; color:#aaa; font-style:italic;">fx</span>
-        <input style="flex:1; border:none; outline:none; font-family:monospace; font-size:13px;"
-               value="@formulaBarValue"
-               @oninput="OnFormulaBarInput"
-               @onkeydown="OnFormulaBarKeyDown" />
+        <div style="flex:1; position:relative; overflow:hidden;">
+            <div aria-hidden="true"
+                 style="position:absolute; inset:0; display:flex; align-items:center; font-family:monospace; font-size:13px; pointer-events:none; white-space:pre; overflow:hidden; padding:0;">
+                @((MarkupString)colorizedFormulaHtml)
+            </div>
+            <input @ref="formulaBarInputRef"
+                   style="position:relative; width:100%; border:none; outline:none; font-family:monospace; font-size:13px; background:transparent; color:@(editingRefs.Count > 0 ? "transparent" : "inherit"); caret-color:#333; padding:0; margin:0;"
+                   value="@formulaBarValue"
+                   @oninput="OnFormulaBarInput"
+                   @onkeydown="OnFormulaBarKeyDown"
+                   @onfocus="OnFormulaBarFocus"
+                   @onblur="OnFormulaBarBlur"
+                   @onmouseup="OnFormulaBarCursorEvent"
+                   @onkeyup="OnFormulaBarCursorEvent" />
+        </div>
     </div>
 
     @* ── Content area: grid + side panels ── *@
-    <div style="display:flex; height:520px;">
+    <div style="display:flex; flex:1; min-height:0;">
 
         @* Grid *@
-        <div style="flex:1; min-width:0; overflow:hidden;">
+        <div @ref="gridWrapperRef" style="flex:1; min-width:0; overflow:hidden;">
             <NxGrid T="SsRow"
                     @ref="grid"
                     Data="@rows"
@@ -333,6 +334,10 @@
                     CellStyle="@GetCellStyle"
                     CellEditableGetter="@((row, col) => !sheet[row.RowIndex, col.Title![0] - 'A'].IsCheckBox)"
                     OnSelectionChanged="@OnSelectionChanged"
+                    OnEditValueChanged="@OnGridEditValueChanged"
+                    OnEditCancelled="@OnGridEditCancelled"
+                    EditPickPredicate="@(v => v.StartsWith("="))"
+                    OnCellPickedWhileEditing="@OnGridCellPickedWhileEditing"
                     OnKeyPressed="@OnKeyPressed"
                     OnColumnResized="@OnColumnResized"
                     TransformPastedValue="@AdjustFormulaCellRefs"
@@ -345,7 +350,7 @@
                         var letter = ((char)('A' + ci)).ToString();
                         <NxGridColumn T="SsRow"
                                       Title="@letter"
-                                      Property="@(x => x.EditValue)"
+                                      Property="@(x => sheet[x.RowIndex, ci].Value)"
                                       Display="@(x => FormatDisplay(sheet[x.RowIndex, ci]))"
                                       CopyGetter="@(x => sheet[x.RowIndex, ci].Value)"
                                       Width="@ColWidth(ci)"
@@ -567,20 +572,12 @@
     </div>
 </div>
 
-<div class="doc-section">
-    <h2>How it works</h2>
-    <p class="doc-note">
-        The grid's <code>Data</code> is a list of thin row-index wrappers (<code>SsRow</code>).
-        Each column's <code>Display</code> lambda reads from a 2-D <code>Cell[,]</code> array, so
-        the grid never owns the cell values. <code>Template</code> renders checkboxes for
-        <code>IsCheckBox</code> cells. Chart overlays live in the <code>Overlays</code> slot.
-        Conditional formatting rules are evaluated after <code>Calculate()</code>.
-        All state is persisted automatically to <code>localStorage</code>.
-    </p>
-    <pre class="doc-code">@codeSnippet</pre>
-</div>
 
 <style>
+    .ss-app .nx-grid-column-title-wrap {
+        justify-content: center;
+    }
+
     .ss-btn {
         display: inline-flex;
         align-items: center;
@@ -623,6 +620,16 @@
     string formulaBarValue      = "";
     string formulaBarBaseValue  = "";
     string anchorRef            = "";
+
+    // formula ref editing
+    List<FormulaRef> editingRefs      = [];
+    string  colorizedFormulaHtml      = "";
+    bool    formulaBarHasFocus        = false;
+    bool    gridCellEditing           = false;
+    int     capturedCursorStart       = 0;
+    int     capturedCursorEnd         = 0;
+    ElementReference formulaBarInputRef;
+    ElementReference gridWrapperRef;
 
     // style clipboard (in-memory, separate from OS clipboard text)
     Cell?[,]? copiedStyleClipboard;
@@ -671,7 +678,6 @@
 
         rows = Enumerable.Range(0, RowCount).Select(i => new SsRow { RowIndex = i }).ToList();
 
-        LoadSampleData();
         Calculate();
     }
 
@@ -679,12 +685,15 @@
     {
         if (!firstRender) return;
         jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/NxGrid/nx-grid.js");
+        await jsModule.InvokeVoidAsync("setupFormulaRefMode", gridWrapperRef, formulaBarInputRef);
         await LoadFromStorage();
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         saveTimer?.Dispose();
+        if (jsModule != null)
+            try { await jsModule.InvokeVoidAsync("teardownFormulaRefMode", gridWrapperRef); } catch { }
     }
 
     // ── Sample data ───────────────────────────────────────────────────────────
@@ -1064,6 +1073,28 @@
         var hasBorders = cell.BorderTop != null || cell.BorderRight != null ||
                          cell.BorderBottom != null || cell.BorderLeft != null;
 
+        // Ref editing highlight (applied last so it overrides other backgrounds)
+        FormulaRef? matchedRef = null;
+        foreach (var er in editingRefs)
+        {
+            if (row.RowIndex >= er.R1 && row.RowIndex <= er.R2 && ci >= er.C1 && ci <= er.C2)
+            {
+                matchedRef = er;
+                break;
+            }
+        }
+        if (matchedRef is { } mr)
+        {
+            s += $"background:{HexToRgba(mr.Color, 0.14)};";
+            var bsh = new System.Text.StringBuilder();
+            if (row.RowIndex == mr.R1) bsh.Append($"inset 0 2px 0 0 {mr.Color},");
+            if (row.RowIndex == mr.R2) bsh.Append($"inset 0 -2px 0 0 {mr.Color},");
+            if (ci == mr.C1) bsh.Append($"inset 2px 0 0 0 {mr.Color},");
+            if (ci == mr.C2) bsh.Append($"inset -2px 0 0 0 {mr.Color},");
+            if (bsh.Length > 0)
+                s += $"box-shadow:{bsh.ToString().TrimEnd(',')};";
+        }
+
         if (s.Length == 0 && !hasBorders) return null;
 
         return new NxGridCellStyle
@@ -1087,6 +1118,18 @@
                 var val = change.NewValue?.ToString() ?? "";
                 sheet[rowArgs.Row.RowIndex, ci].Value = val;
             }
+
+        gridCellEditing = false;
+        ClearEditingRefs();
+
+        // Sync formula bar to the committed value (selection may not have moved)
+        if (selectedRanges.Count > 0)
+        {
+            var r0 = selectedRanges[0];
+            formulaBarValue     = sheet[r0.StartRow, r0.StartCol].Value;
+            formulaBarBaseValue = formulaBarValue;
+            colorizedFormulaHtml = HtmlEncode(formulaBarValue);
+        }
 
         Calculate();
         chartDataVersion++;
@@ -1170,6 +1213,31 @@
     void OnSelectionChanged(NxGridSelectionArgs<SsRow> args)
     {
         selectedRanges = args.Ranges;
+
+        // Click-to-insert: formula bar is focused and editing a formula → the user clicked a cell
+        // to insert its reference. (JS setupFormulaRefMode kept focus on the formula bar.)
+        if (formulaBarHasFocus && formulaBarValue.StartsWith("=") && args.Ranges.Count > 0)
+        {
+            var r    = args.Ranges[0];
+            var minR = Math.Min(r.StartRow, r.EndRow);
+            var maxR = Math.Max(r.StartRow, r.EndRow);
+            var minC = Math.Min(r.StartCol, r.EndCol);
+            var maxC = Math.Max(r.StartCol, r.EndCol);
+            var refText = minR == maxR && minC == maxC
+                ? $"{(char)('A' + minC)}{minR + 1}"
+                : $"{(char)('A' + minC)}{minR + 1}:{(char)('A' + maxC)}{maxR + 1}";
+
+            var before          = formulaBarValue[..capturedCursorStart];
+            var after           = formulaBarValue[capturedCursorEnd..];
+            formulaBarValue     = before + refText + after;
+            formulaBarBaseValue = formulaBarValue;
+            var newCursor = capturedCursorStart + refText.Length;
+            UpdateEditingRefs(formulaBarValue);
+            _ = SetFormulaBarCursor(newCursor);
+            return;
+        }
+
+        // Normal navigation — update formula bar and clear any editing highlights
         if (args.Ranges.Count > 0)
         {
             var r = args.Ranges[0];
@@ -1183,11 +1251,61 @@
             formulaBarValue = "";
             formulaBarBaseValue = "";
         }
+        colorizedFormulaHtml = HtmlEncode(formulaBarValue);
+        ClearEditingRefs();
+    }
+
+    void OnGridEditValueChanged(NxGridEditValueChangedArgs<SsRow> args)
+    {
+        gridCellEditing = true;
+        formulaBarValue = args.Value;
+        UpdateEditingRefs(args.Value);
+    }
+
+    void OnGridEditCancelled(NxGridEditCancelledArgs<SsRow> args)
+    {
+        gridCellEditing = false;
+        // Restore formula bar to the original cell value
+        if (selectedRanges.Count > 0)
+        {
+            var r0 = selectedRanges[0];
+            formulaBarValue     = sheet[r0.StartRow, r0.StartCol].Value;
+            formulaBarBaseValue = formulaBarValue;
+        }
+        colorizedFormulaHtml = HtmlEncode(formulaBarValue);
+        ClearEditingRefs();
+    }
+
+    void OnGridCellPickedWhileEditing(NxGridEditCellPickArgs<SsRow> args)
+    {
+        var c1 = args.StartColumn.Title![0] - 'A';
+        var r1 = args.StartRow.RowIndex;
+        var c2 = args.EndColumn.Title![0] - 'A';
+        var r2 = args.EndRow.RowIndex;
+
+        var minR = Math.Min(r1, r2); var maxR = Math.Max(r1, r2);
+        var minC = Math.Min(c1, c2); var maxC = Math.Max(c1, c2);
+
+        var refText = minR == maxR && minC == maxC
+            ? $"{(char)('A' + minC)}{minR + 1}"
+            : $"{(char)('A' + minC)}{minR + 1}:{(char)('A' + maxC)}{maxR + 1}";
+
+        // In-cell pick always appends: when typing a formula the cursor is naturally at
+        // the end, so appending is correct. The formula bar path uses cursor tracking instead.
+        var newFormula = formulaBarValue + refText;
+        formulaBarValue = newFormula;
+        UpdateEditingRefs(newFormula);
+        grid?.SetEditValue(newFormula);
     }
 
     void OnFillInput(Microsoft.AspNetCore.Components.ChangeEventArgs e)      { selectedFill      = e.Value?.ToString() ?? "#fff2cc"; ApplyFill(); }
     void OnTextColorInput(Microsoft.AspNetCore.Components.ChangeEventArgs e) { selectedTextColor = e.Value?.ToString() ?? "#000000"; ApplyTextColor(); }
-    void OnFormulaBarInput(Microsoft.AspNetCore.Components.ChangeEventArgs e) => formulaBarValue   = e.Value?.ToString() ?? "";
+
+    void OnFormulaBarInput(Microsoft.AspNetCore.Components.ChangeEventArgs e)
+    {
+        formulaBarValue = e.Value?.ToString() ?? "";
+        UpdateEditingRefs(formulaBarValue);
+    }
 
     void OnFormulaBarKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {
@@ -1196,6 +1314,8 @@
             var r0 = selectedRanges[0];
             sheet[r0.StartRow, r0.StartCol].Value = formulaBarValue;
             formulaBarBaseValue = formulaBarValue;
+            colorizedFormulaHtml = HtmlEncode(formulaBarValue);
+            ClearEditingRefs();
             Calculate();
             chartDataVersion++;
             grid?.ForceRerender();
@@ -1204,7 +1324,63 @@
         else if (e.Key == "Escape")
         {
             formulaBarValue = formulaBarBaseValue;
+            colorizedFormulaHtml = HtmlEncode(formulaBarValue);
+            ClearEditingRefs();
         }
+    }
+
+    void OnFormulaBarFocus()
+    {
+        formulaBarHasFocus  = true;
+        capturedCursorStart = formulaBarValue.Length;
+        capturedCursorEnd   = formulaBarValue.Length;
+        UpdateEditingRefs(formulaBarValue);
+    }
+
+    void OnFormulaBarBlur()
+    {
+        // Only clears if focus truly left (not suppressed by setupFormulaRefMode).
+        formulaBarHasFocus   = false;
+        colorizedFormulaHtml = HtmlEncode(formulaBarValue);
+        ClearEditingRefs();
+    }
+
+    async Task OnFormulaBarCursorEvent()
+    {
+        if (jsModule == null) return;
+        try
+        {
+            var sel = await jsModule.InvokeAsync<System.Text.Json.JsonElement>("getInputSelection", formulaBarInputRef);
+            capturedCursorStart = sel.GetProperty("start").GetInt32();
+            capturedCursorEnd   = sel.GetProperty("end").GetInt32();
+        }
+        catch { }
+    }
+
+    async Task SetFormulaBarCursor(int pos)
+    {
+        capturedCursorStart = capturedCursorEnd = pos;
+        await Task.Yield();
+        if (jsModule != null)
+            try { await jsModule.InvokeVoidAsync("setInputCursor", formulaBarInputRef, pos); } catch { }
+    }
+
+    void UpdateEditingRefs(string formula)
+    {
+        var newRefs = (formulaBarHasFocus || gridCellEditing) ? ParseFormulaRefs(formula) : [];
+        colorizedFormulaHtml = BuildColorizedHtml(formula, newRefs);
+        var changed = newRefs.Count != editingRefs.Count ||
+                      newRefs.Zip(editingRefs).Any(p => p.First.R1 != p.Second.R1 || p.First.C1 != p.Second.C1 ||
+                                                         p.First.R2 != p.Second.R2 || p.First.C2 != p.Second.C2);
+        editingRefs = newRefs;
+        if (changed) grid?.ForceRerender();
+    }
+
+    void ClearEditingRefs()
+    {
+        if (editingRefs.Count == 0) return;
+        editingRefs = [];
+        grid?.ForceRerender();
     }
 
     void OnKeyPressed(NxGridKeyPressedArgs args)
@@ -1572,7 +1748,7 @@
         catch { }
     }
 
-    async Task ResetData()
+    async Task NewSpreadsheet()
     {
         if (jsModule != null)
             try { await jsModule.InvokeVoidAsync("localStorageRemove", StorageKey); } catch { }
@@ -1580,6 +1756,32 @@
         for (var r = 0; r < RowCount; r++)
             for (var c = 0; c < ColCount; c++)
                 sheet[r, c] = new Cell();
+
+        for (var c = 0; c < ColCount; c++)
+            _colWidths[c] = 80;
+
+        charts.Clear();
+        selectedChart = null;
+        condFmtRules.Clear();
+        selectedCondFmtRule = null;
+
+        Calculate();
+        chartDataVersion++;
+        grid?.ResetColumnWidths();
+        grid?.ForceRerender();
+    }
+
+    async Task LoadSample()
+    {
+        if (jsModule != null)
+            try { await jsModule.InvokeVoidAsync("localStorageRemove", StorageKey); } catch { }
+
+        for (var r = 0; r < RowCount; r++)
+            for (var c = 0; c < ColCount; c++)
+                sheet[r, c] = new Cell();
+
+        for (var c = 0; c < ColCount; c++)
+            _colWidths[c] = c == 0 ? 120 : 80;
 
         charts.Clear();
         selectedChart = null;
@@ -1589,6 +1791,7 @@
         LoadSampleData();
         Calculate();
         chartDataVersion++;
+        grid?.ResetColumnWidths();
         grid?.ForceRerender();
     }
 }

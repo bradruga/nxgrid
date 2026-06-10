@@ -50,8 +50,9 @@
             && (RowIndex == FocusCellAnchorRow || ci == FocusCellAnchorCol)
             && !isAnchor
             && !selected;
+        var inPickRange = PickRange?.IsCellInRange(RowIndex, ci) == true;
 
-        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
+        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(inPickRange ? "nx-grid-cell-pick-range" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
              style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
              @onmousedown="@(args => HandleMouseDown(args, col))"
              @onmouseenter="@(args => HandleMouseEnter(args, col))"
@@ -232,6 +233,7 @@
     [Parameter] public string RowStyle { get; set; } = "";
     [Parameter] public NxGridRange? SelectedRange { get; set; }
     [Parameter] public IReadOnlyList<NxGridRange> AdditionalRanges { get; set; } = [];
+    [Parameter] public NxGridRange? PickRange { get; set; }
     [Parameter] public NxGridRowGutter RowGutter { get; set; }
     [Parameter] public bool IsEditing { get; set; }
     [Parameter] public int EditRow { get; set; }
@@ -275,6 +277,7 @@
     // in-place mutations to NxGridRange (e.g. during mouse-drag) are detected correctly.
     private T? prevRow;
     private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevRangeSnapshot;
+    private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevPickRangeSnapshot;
     private List<(int, int, int, int)> prevAdditionalSnapshots = [];
     private bool prevIsEditing;
     private NxGridCursor prevCursor;
@@ -310,6 +313,7 @@
     {
         var rowChanged       = !EqualityComparer<T>.Default.Equals(prevRow, Row);
         var selChanged       = SelectionChangedForRow();
+        var pickChanged      = PickRangeChangedForRow();
         var addlChanged      = AdditionalRangesChangedForRow();
         var editChanged      = EditChangedForRow();
         var tokenChanged     = RenderToken != prevRenderToken;
@@ -318,12 +322,13 @@
         var modeChanged      = SelectionMode != prevSelectionMode;
         var focusChanged     = FocusCellChangedForRow();
 
-        if (!rowChanged && !selChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged && !focusChanged)
+        if (!rowChanged && !selChanged && !pickChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged && !focusChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
         prevRow                 = Row;
         prevRangeSnapshot       = GetRangeSnapshot();
+        prevPickRangeSnapshot   = GetPickRangeSnapshot();
         prevAdditionalSnapshots = GetAdditionalSnapshots();
         prevIsEditing           = IsEditing;
         prevEditRow             = EditRow;
@@ -346,6 +351,22 @@
             Math.Max(SelectedRange.StartRow, SelectedRange.EndRow),
             Math.Min(SelectedRange.StartCol, SelectedRange.EndCol),
             Math.Max(SelectedRange.StartCol, SelectedRange.EndCol));
+
+    private (int, int, int, int)? GetPickRangeSnapshot() =>
+        PickRange == null ? null : (
+            Math.Min(PickRange.StartRow, PickRange.EndRow),
+            Math.Max(PickRange.StartRow, PickRange.EndRow),
+            Math.Min(PickRange.StartCol, PickRange.EndCol),
+            Math.Max(PickRange.StartCol, PickRange.EndCol));
+
+    private bool PickRangeChangedForRow()
+    {
+        var curr = GetPickRangeSnapshot();
+        if (curr == prevPickRangeSnapshot) return false;
+        var prevTouches = prevPickRangeSnapshot is var (pr0, pr1, _, _) && RowIndex >= pr0 && RowIndex <= pr1;
+        var currTouches = curr              is var (cr0, cr1, _, _) && RowIndex >= cr0 && RowIndex <= cr1;
+        return prevTouches || currTouches;
+    }
 
     private List<(int, int, int, int)> GetAdditionalSnapshots()
     {
@@ -418,13 +439,14 @@
 
     private string GetSelectionBorderStyle(int row, int col)
     {
-        if (AdditionalRanges.Count > 1) return "";
         var shadows = new System.Text.StringBuilder();
-        AppendRangeBorderShadows(shadows, row, col, SelectedRange);
+        if (AdditionalRanges.Count <= 1)
+            AppendRangeBorderShadows(shadows, row, col, SelectedRange, "var(--nx-grid-selection-border)");
+        AppendRangeBorderShadows(shadows, row, col, PickRange, "var(--nx-grid-pick-border)");
         return shadows.Length > 0 ? $"box-shadow:{shadows.ToString().TrimEnd(',')};" : "";
     }
 
-    private static void AppendRangeBorderShadows(System.Text.StringBuilder sb, int row, int col, NxGridRange? range)
+    private static void AppendRangeBorderShadows(System.Text.StringBuilder sb, int row, int col, NxGridRange? range, string color)
     {
         if (range == null || !range.IsCellInRange(row, col)) return;
 
@@ -433,10 +455,10 @@
         var minCol = Math.Min(range.StartCol, range.EndCol);
         var maxCol = Math.Max(range.StartCol, range.EndCol);
 
-        if (row == minRow) sb.Append("inset 0 2px 0 0 var(--nx-grid-selection-border),");
-        if (row == maxRow) sb.Append("inset 0 -2px 0 0 var(--nx-grid-selection-border),");
-        if (col == minCol) sb.Append("inset 2px 0 0 0 var(--nx-grid-selection-border),");
-        if (col == maxCol) sb.Append("inset -2px 0 0 0 var(--nx-grid-selection-border),");
+        if (row == minRow) sb.Append($"inset 0 2px 0 0 {color},");
+        if (row == maxRow) sb.Append($"inset 0 -2px 0 0 {color},");
+        if (col == minCol) sb.Append($"inset 2px 0 0 0 {color},");
+        if (col == maxCol) sb.Append($"inset -2px 0 0 0 {color},");
     }
 
     private bool EditChangedForRow()

@@ -359,6 +359,34 @@
                 <td><a href="/editing">Editing</a></td>
             </tr>
             <tr>
+                <td>OnEditValueChanged</td>
+                <td>EventCallback&lt;NxGridEditValueChangedArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires when the in-cell edit value changes — once when a cell first enters edit mode (initial value) and again on every subsequent keystroke.</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
+            </tr>
+            <tr>
+                <td>OnEditCancelled</td>
+                <td>EventCallback&lt;NxGridEditCancelledArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires when the user cancels an in-progress cell edit (e.g. Escape).</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
+            </tr>
+            <tr>
+                <td>EditPickPredicate</td>
+                <td>Func&lt;string, bool&gt;?</td>
+                <td>—</td>
+                <td>When set, the grid enters edit-pick mode while editing whenever this returns <code>true</code> for the current edit value. In that mode, clicking another cell fires <code>OnCellPickedWhileEditing</code> instead of committing the edit.</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
+            </tr>
+            <tr>
+                <td>OnCellPickedWhileEditing</td>
+                <td>EventCallback&lt;NxGridEditCellPickArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires on mouseup when the user clicks or click-drags a range while edit-pick mode is active. Args carry <code>StartRow</code>/<code>StartColumn</code>/<code>EndRow</code>/<code>EndColumn</code> — end equals start for a single click. Call <code>SetEditValue</code> from this handler to inject content into the edit input.</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
+            </tr>
+            <tr>
                 <td>TransformPastedValue</td>
                 <td>Func&lt;string, int, int, string&gt;?</td>
                 <td>—</td>
@@ -431,6 +459,16 @@
                 <td>void SetColumnHidden(string columnId, bool hidden)</td>
                 <td>Shows or hides a column by <code>Id</code> (falling back to <code>Title</code>). Takes effect immediately and persists when <code>StateKey</code> is set.</td>
                 <td><a href="/hidden-columns">Hidden Columns</a></td>
+            </tr>
+            <tr>
+                <td>void SetEditValue(string value)</td>
+                <td>Replaces the active edit input's text and moves the cursor to the end. No-op when the grid is not in edit mode. Use inside an <code>OnCellPickedWhileEditing</code> handler to inject content.</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
+            </tr>
+            <tr>
+                <td>void ResetColumnWidths()</td>
+                <td>Clears all user-dragged column widths, restoring every column to its declared <code>Width</code> parameter.</td>
+                <td><a href="/spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>Task PrintAsync(string? title = null)</td>

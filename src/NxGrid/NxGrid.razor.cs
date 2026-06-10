@@ -343,6 +343,31 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridEditBlockedArgs<T>> OnEditBlocked { get; set; }
 
     /// <summary>
+    /// Fires when the edit value changes — both when a cell first enters edit mode (initial value)
+    /// and on every subsequent keystroke in the edit input.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridEditValueChangedArgs<T>> OnEditValueChanged { get; set; }
+
+    /// <summary>
+    /// Fires when the user cancels an in-progress cell edit (e.g. by pressing Escape).
+    /// </summary>
+    [Parameter] public EventCallback<NxGridEditCancelledArgs<T>> OnEditCancelled { get; set; }
+
+    /// <summary>
+    /// When set, the grid enters edit-pick mode while editing whenever this predicate returns
+    /// <c>true</c> for the current edit value (e.g. <c>v => v.StartsWith("=")</c>).
+    /// In that mode, clicking another cell fires <see cref="OnCellPickedWhileEditing"/> instead
+    /// of committing the edit, and <c>mousedown</c> on cell divs suppresses focus stealing.
+    /// </summary>
+    [Parameter] public Func<string, bool>? EditPickPredicate { get; set; }
+
+    /// <summary>
+    /// Fires when the user clicks a cell while edit-pick mode is active.
+    /// Call <see cref="SetEditValue"/> from this handler to insert content into the edit input.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridEditCellPickArgs<T>> OnCellPickedWhileEditing { get; set; }
+
+    /// <summary>
     /// <c>(rawValue, rowDelta, colDelta)</c> — lets the host rewrite pasted text before it is
     /// committed, e.g. to adjust relative formulas. Runs after clipboard parsing and before
     /// <see cref="OnUpdate"/>.
@@ -422,6 +447,30 @@ public partial class NxGrid<T>
     private int editCol = -1;
     private string editValue = "";
     private string editOriginalValue = "";
+    private bool prevEditPickMode;
+    private bool IsEditPickMode => isEditing && EditPickPredicate?.Invoke(editValue) == true;
+
+    // Pick-drag state: tracks a click-and-drag range selection while in edit-pick mode.
+    private bool isPickDragging;
+    private int pickAnchorRow = -1;
+    private int pickAnchorCol = -1;
+    private int pickCurrentEndRow = -1;
+    private int pickCurrentEndCol = -1;
+    // Persists the last-picked range so the box stays visible after mouseup until the edit ends.
+    private NxGridRange? lastPickedRange;
+
+    private NxGridRange? GetCurrentPickRange()
+    {
+        if (isPickDragging && pickAnchorRow >= 0)
+            return new NxGridRange
+            {
+                StartRow = pickAnchorRow,
+                StartCol = pickAnchorCol,
+                EndRow   = pickCurrentEndRow,
+                EndCol   = pickCurrentEndCol
+            };
+        return lastPickedRange;
+    }
 
     // Combo-box dropdown state
     private bool isComboOpen;
@@ -446,6 +495,7 @@ public partial class NxGrid<T>
 
     private int renderToken;
     private bool pendingResizeCleanup;
+    private int? pendingEditCursorPos;
 
     private NxGridColumn<T>? openColumn;
     private bool menuNeedsPositioning;
@@ -469,6 +519,33 @@ public partial class NxGrid<T>
     {
         ApplyFilterAndSort();
         renderToken++;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Programmatically updates the text in the currently-active inline edit input.
+    /// Intended for use inside an <see cref="OnCellPickedWhileEditing"/> handler.
+    /// No-ops when the grid is not in edit mode.
+    /// </summary>
+    public void SetEditValue(string value)
+    {
+        if (!isEditing) return;
+        editValue = value;
+        pendingEditCursorPos = value.Length;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Clears all user-dragged column widths, restoring every column to its declared <see cref="NxGridColumn{T}.Width"/> parameter.
+    /// </summary>
+    public void ResetColumnWidths()
+    {
+        foreach (var col in columns)
+        {
+            col.UserWidth = null;
+            col.FitWidth  = null;
+        }
+        ComputeFrozenOffsets();
         StateHasChanged();
     }
 
@@ -633,6 +710,13 @@ public partial class NxGrid<T>
         {
             pendingResizeCleanup = false;
             await jsInterop.CleanupResizeStyle();
+        }
+
+        if (pendingEditCursorPos.HasValue && jsInterop != null)
+        {
+            var pos = pendingEditCursorPos.Value;
+            pendingEditCursorPos = null;
+            await jsInterop.SetEditInputCursor(pos);
         }
 
         if (comboNeedsPositioning && jsInterop != null)

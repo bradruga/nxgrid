@@ -47,6 +47,20 @@ public partial class NxGrid<T>
         clickDownCol = colIndex;
         clickWasDragged = false;
 
+        // Formula ref-pick mode: clicking another cell starts a pick range; the event fires on mouseup
+        // with the full range so click-and-drag produces a multi-cell reference (e.g. "A1:A4").
+        if (IsEditPickMode && (rowIndex != editRow || colIndex != editCol))
+        {
+            isPickDragging = true;
+            lastPickedRange = null;   // clear static range; live drag range takes over
+            pickAnchorRow = rowIndex;
+            pickAnchorCol = colIndex;
+            pickCurrentEndRow = rowIndex;
+            pickCurrentEndCol = colIndex;
+            StateHasChanged();
+            return;
+        }
+
         if (isEditing) await CommitEdit();
 
         var ctrlHeld = isMac ? args.MetaKey : args.CtrlKey;
@@ -132,7 +146,24 @@ public partial class NxGrid<T>
         // Only clear here — never set true. Only OnCellMouseDown starts a drag; an overlay
         // click that reveals a cell underneath must not trigger a spurious drag selection.
         if ((args.Buttons & MouseButtonsLeft) == 0)
+        {
             leftMouseDown = false;
+            isPickDragging = false;
+        }
+
+        // During a pick drag, update the current end cell and re-render for live visual feedback.
+        if (isPickDragging)
+        {
+            var rowIndex = filteredData.IndexOf(row);
+            var colIndex = visibleColumns.IndexOf(column);
+            if (rowIndex >= 0 && colIndex >= 0)
+            {
+                pickCurrentEndRow = rowIndex;
+                pickCurrentEndCol = colIndex;
+                StateHasChanged();
+            }
+            return;
+        }
 
         if (!leftMouseDown)
             StartCellTooltipTimer(args, row, column);
@@ -207,6 +238,37 @@ public partial class NxGrid<T>
 
     private async Task OnCellMouseUp(T row, NxGridColumn<T> column)
     {
+        if (isPickDragging)
+        {
+            isPickDragging = false;
+            var endRow = filteredData.IndexOf(row);
+            var endCol = visibleColumns.IndexOf(column);
+            if (pickAnchorRow >= 0 && pickAnchorRow < filteredData.Count
+                && pickAnchorCol >= 0 && pickAnchorCol < visibleColumns.Count
+                && endRow >= 0 && endCol >= 0)
+            {
+                lastPickedRange = new NxGridRange
+                {
+                    StartRow = pickAnchorRow,
+                    StartCol = pickAnchorCol,
+                    EndRow   = endRow,
+                    EndCol   = endCol
+                };
+                if (OnCellPickedWhileEditing.HasDelegate)
+                    await OnCellPickedWhileEditing.InvokeAsync(new NxGridEditCellPickArgs<T>
+                    {
+                        StartRow   = filteredData[pickAnchorRow],
+                        StartColumn = visibleColumns[pickAnchorCol],
+                        EndRow     = filteredData[endRow],
+                        EndColumn  = visibleColumns[endCol]
+                    });
+            }
+            if (jsInterop != null) await jsInterop.FocusEditInput();
+            clickDownRow = -1;
+            clickDownCol = -1;
+            return;
+        }
+
         leftMouseDown = false;
 
         if (!clickWasDragged && OnCellClicked.HasDelegate && clickDownRow >= 0)
