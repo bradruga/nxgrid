@@ -53,9 +53,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
         return jsObject.InvokeAsync<NxMenuPosition>("positionColumnMenu", columnIndex).AsTask();
     }
 
-    public Task<double[]> ResizeColumn(int columnIndex, double startMouseX, int? minWidth, int? maxWidth)
+    public Task<double[]> ResizeColumn(int columnIndex, double startMouseX, int? minWidth, int? maxWidth, bool gutterHidden = false)
     {
-        return jsObject.InvokeAsync<double[]>("resizeColumn", columnIndex, startMouseX, minWidth, maxWidth).AsTask();
+        return jsObject.InvokeAsync<double[]>("resizeColumn", columnIndex, startMouseX, minWidth, maxWidth, gutterHidden).AsTask();
     }
 
     public Task CleanupResizeStyle()

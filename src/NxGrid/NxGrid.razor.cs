@@ -689,7 +689,7 @@ public partial class NxGrid<T>
 
     private string BuildRowStyle()
     {
-        var totalWidth = 32;
+        var totalWidth = RowGutter == NxGridRowGutter.Hidden ? 0 : 32;
         foreach (var col in visibleColumns)
         {
             if (col.Sizing == NxGridColumnSizing.Fixed || col.UserWidth.HasValue)

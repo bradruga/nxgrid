@@ -259,7 +259,7 @@
         }
     }
 
-    async resizeColumn(columnIndex, startMouseX, minWidth, maxWidth){
+    async resizeColumn(columnIndex, startMouseX, minWidth, maxWidth, gutterHidden){
         const gridElement = document.getElementById(this.id);
         if (!gridElement) return [];
 
@@ -284,9 +284,11 @@
             `width:${w}px!important;min-width:${w}px!important;max-width:${w}px!important;flex-grow:0!important}`;
 
         const updateStyles = (resizeWidth) => {
-            // +2: row-start gutter is first child, column cells start at nth-child(2)
+            // When gutter is visible it is first child, so columns start at nth-child(2).
+            // When gutter is hidden there is no gutter element, so columns start at nth-child(1).
+            const nthOffset = gutterHidden ? 1 : 2;
             styleEl.textContent = initialWidths
-                .map((w, i) => colRule(i + 2, i === columnIndex ? resizeWidth : w))
+                .map((w, i) => colRule(i + nthOffset, i === columnIndex ? resizeWidth : w))
                 .join('');
         };
         updateStyles(currentWidth);

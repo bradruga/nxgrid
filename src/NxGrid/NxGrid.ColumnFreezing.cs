@@ -8,7 +8,7 @@ public partial class NxGrid<T>
     // position relative to both edges.
     internal void ComputeFrozenOffsets()
     {
-        const int gutterWidth = 32;
+        var gutterWidth = RowGutter == NxGridRowGutter.Hidden ? 0 : 32;
 
         visibleColumns = ActiveColumns.Where(c => !c.IsHidden).ToList();
 

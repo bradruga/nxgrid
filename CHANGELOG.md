@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Multiline `HeaderTemplate` content (e.g. a label with a `<br />` subtitle) was clipped to one line by `white-space: nowrap` and `overflow: hidden` on the title span — content now wraps and the header row expands to fit
+- Frozen columns were offset 32 px too far right when `RowGutter="Hidden"` because the gutter width was always added to sticky `left` offsets
+- Column resize drag produced incorrect column widths when `RowGutter="Hidden"` because the CSS `nth-child` selector was offset by one, targeting the wrong cells
+- Row `min-width` included a phantom 32 px gutter contribution when `RowGutter="Hidden"`, causing unnecessary horizontal scroll space
 
 ## [0.1.0] - 2026-06-08
 

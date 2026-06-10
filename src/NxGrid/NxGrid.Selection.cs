@@ -407,7 +407,7 @@ public partial class NxGrid<T>
 
         isResizing = true;
         var columnIndex = visibleColumns.IndexOf(column);
-        var allWidths = await jsInterop!.ResizeColumn(columnIndex, args.ClientX, column.MinWidth, column.MaxWidth);
+        var allWidths = await jsInterop!.ResizeColumn(columnIndex, args.ClientX, column.MinWidth, column.MaxWidth, RowGutter == NxGridRowGutter.Hidden);
         isResizing = false;
 
         if (allWidths is { Length: > 0 })
