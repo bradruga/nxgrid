@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Header row now uses `min-height` instead of a fixed `height`, allowing `HeaderTemplate` content to expand the row beyond the default `RowHeight`
+- When any column has a `HeaderTemplate`, all column headers in that grid are bottom-aligned so single-line and multiline headers share a common baseline
+
+### Fixed
+
+- Multiline `HeaderTemplate` content (e.g. a label with a `<br />` subtitle) was clipped to one line by `white-space: nowrap` and `overflow: hidden` on the title span — content now wraps and the header row expands to fit
+
 ## [0.1.0] - 2026-06-08
 
 ### Added

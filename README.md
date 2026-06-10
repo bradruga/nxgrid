@@ -161,6 +161,32 @@ Set `CheckBox="true"` on a column whose property is `bool` or `bool?`. In view m
 </NxGrid>
 ```
 
+## Custom header templates
+
+Use `HeaderTemplate` to replace a column's title text with arbitrary markup — icons, checkboxes, or multiline labels. Sort/filter icons and the column menu button still render after the template. `Title` continues to serve as the `aria-label` and column menu label.
+
+```razor
+@* Two-line header: label + unit on a narrow column *@
+<NxGridColumn Title="Age" Property="@(x => x.Age)" Width="80"
+              Alignment="NxGridColumnAlignment.Right">
+    <HeaderTemplate>
+        Age<br />
+        <small style="font-weight:normal;opacity:0.7">(years)</small>
+    </HeaderTemplate>
+</NxGridColumn>
+
+@* "Select all" checkbox in the header *@
+<NxGridColumn Title="Billable" Display="@(x => x.IsBillable ? "✓" : "–")" Width="110">
+    <HeaderTemplate>
+        <input type="checkbox" checked="@AllBillable" @onchange="ToggleAll"
+               @onmousedown:stopPropagation @onclick:stopPropagation />
+        <span>Billable</span>
+    </HeaderTemplate>
+</NxGridColumn>
+```
+
+When any column has a `HeaderTemplate`, the header row expands to fit the tallest cell and all headers are bottom-aligned so single-line and multiline titles share a common baseline. Interactive elements need `@onmousedown:stopPropagation` (prevents column-range selection) and `@onclick:stopPropagation` (prevents opening the column menu).
+
 ## Custom cell rendering
 
 Use `Template` for full control over a cell's content. The grid still handles padding, selection highlight, and sizing.

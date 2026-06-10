@@ -953,6 +953,19 @@ private async Task OnPrintClick()
 <NxGridColumn Property="@(x => x.Age)" />
 """;
 
+    public static readonly string HeaderTemplateMultiLine = """
+<NxGridColumn Title="Age" Property="@(x => x.Age)" Width="80"
+              Alignment="NxGridColumnAlignment.Right">
+    <HeaderTemplate>
+        Age<br />
+        <small style="font-weight:normal;opacity:0.7">(years)</small>
+    </HeaderTemplate>
+</NxGridColumn>
+
+@* HeaderTemplate renders inside a <span> alongside sort/filter icons.    *@
+@* white-space is set to normal so inline content wraps across two lines.  *@
+""";
+
     public static readonly string DatePickerBasic = """
 // DatePicker="true" adds a calendar button next to the text input.
 // The user can type a date or click the calendar to pick one.

@@ -7,12 +7,12 @@
     @ChildContent
 </CascadingValue>
 
-<div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @(HasMultiLineColumns ? "nx-grid-multiline" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px"
+<div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @(HasMultiLineColumns ? "nx-grid-multiline" : "") @(HasTemplateHeaders ? "nx-grid-template-header" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px"
      tabindex="0"
      @onkeydown="@OnGridKeyDown">
     @if (ShowHeader)
     {
-    <div class="nx-grid-header-row" style="@rowStyle">
+    <div class="nx-grid-header-row" style="@headerRowStyle">
         @if (RowGutter != NxGridRowGutter.Hidden)
         {
             <div class="nx-grid-row-start @(RowGutter == NxGridRowGutter.Numbers ? "nx-grid-row-number" : "")"
@@ -31,7 +31,7 @@
                  @onmouseenter="@(args => OnColumnHeaderMouseEnter(args, column))"
                  @onmouseleave="@(() => HideHeaderTooltip())">
                 <div class="nx-grid-column-title-wrap">
-                    <span class="nx-grid-column-title"
+                    <span class="nx-grid-column-title @(column.HeaderTemplate != null ? "nx-grid-column-title-template" : "")"
                               @onclick="@(async () => { if (HasColumnMenu) await OnColumnClick(column); })">
                         @if (column.HeaderTemplate != null)
                         {

@@ -75,6 +75,12 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
     white-space: nowrap;
 }
 
+.nx-grid-column-title-template {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
 .nx-grid-column-title-wrap {
     flex: 1;
     min-width: 0;
@@ -220,6 +226,15 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
 
 .nx-grid-multiline .nx-grid-cell {
     align-items: flex-start;
+}
+
+.nx-grid-template-header .nx-grid-header-row .nx-grid-cell {
+    align-items: flex-end;
+    padding-bottom: calc((var(--nx-grid-row-height) - 16px) / 2);
+}
+
+.nx-grid-template-header .nx-grid-column-title-wrap {
+    align-items: flex-end;
 }
 
 .nx-grid-row-start {

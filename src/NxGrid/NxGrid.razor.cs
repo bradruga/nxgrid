@@ -398,6 +398,7 @@ public partial class NxGrid<T>
     private List<NxGridColumn<T>> visibleColumns = [];
     private int lastColumnCount;
     private string rowStyle = "";
+    private string headerRowStyle = "";
 
     private bool showColumnChooser;
     private double chooserTop;
@@ -528,6 +529,7 @@ public partial class NxGrid<T>
 
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
     private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
+    private bool HasTemplateHeaders => visibleColumns.Any(c => c.HeaderTemplate != null);
     private bool IsVirtualized => Virtualize && !HasMultiLineColumns && !IsGrouped;
 
     /// <inheritdoc/>
@@ -703,8 +705,10 @@ public partial class NxGrid<T>
                 totalWidth += floor;
             }
         }
+        var minWidthPart = $"min-width:{totalWidth}px";
+        headerRowStyle = $"min-height:{RowHeight}px;{minWidthPart}";
         var heightProp = HasMultiLineColumns ? "min-height" : "height";
-        return $"{heightProp}:{RowHeight}px;min-width:{totalWidth}px";
+        return $"{heightProp}:{RowHeight}px;{minWidthPart}";
     }
 
     private async Task OnComboButtonClick(int row, int col)

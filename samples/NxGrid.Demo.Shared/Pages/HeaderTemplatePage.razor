@@ -75,6 +75,28 @@
 </div>
 
 <div class="doc-section">
+    <h2>Multiline Header</h2>
+    <p class="doc-note">
+        A <code>HeaderTemplate</code> can span two (or more) lines — useful for narrow columns that
+        need a label plus a unit or subtitle. Use <code>&lt;br /&gt;</code> or block-styled inline
+        elements to create the line break. The header row expands to accommodate the tallest header
+        in the grid.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Title="Name" Display="@(x => x.FirstName + " " + x.LastName)" Width="180" />
+        <NxGridColumn Property="@(x => x.Department)" Width="160" />
+        <NxGridColumn Title="Age" Property="@(x => x.Age)" Width="80"
+                      Alignment="NxGridColumnAlignment.Right">
+            <HeaderTemplate>
+                Age<br />
+                <small style="font-weight:normal;opacity:0.7">(years)</small>
+            </HeaderTemplate>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@multiLineCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>API reference</h2>
     <table class="doc-table">
         <thead>
@@ -130,6 +152,7 @@
         billableGrid.ForceRerender();
     }
 
-    string checkboxCode = DemoCodeSamples.HeaderTemplateCheckbox;
-    string iconCode     = DemoCodeSamples.HeaderTemplateIcon;
+    string checkboxCode   = DemoCodeSamples.HeaderTemplateCheckbox;
+    string iconCode       = DemoCodeSamples.HeaderTemplateIcon;
+    string multiLineCode  = DemoCodeSamples.HeaderTemplateMultiLine;
 }
