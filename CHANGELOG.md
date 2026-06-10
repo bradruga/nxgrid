@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-10
+
 ### Changed
 
 - Header row now uses `min-height` instead of a fixed `height`, allowing `HeaderTemplate` content to expand the row beyond the default `RowHeight`
