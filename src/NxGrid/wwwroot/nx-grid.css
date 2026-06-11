@@ -1,4 +1,5 @@
 :root {
+  --nx-grid-fg: inherit;
   --nx-grid-border: #E0E0E0;
   --nx-grid-header-bg: #F0F0F0;
   --nx-grid-header-border: #999999;
@@ -19,8 +20,6 @@
   --nx-grid-item-hover-bg: #e8f4ff;
   --nx-grid-muted-fg: #888;
   --nx-grid-shadow: rgba(0, 0, 0, 0.15);
-  --nx-grid-group-header-bg: #E8E8E8;
-  --nx-grid-group-header-fg: #333333;
 }
 
 .nx-grid {
@@ -30,6 +29,7 @@
   position: relative;
   font-size: 14px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--nx-grid-fg);
   outline: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -157,6 +157,7 @@
   border: 2px solid var(--nx-grid-selection-border);
   box-sizing: border-box;
   background: var(--nx-grid-surface);
+  color: inherit;
   font-size: inherit;
   font-family: inherit;
   line-height: inherit;
@@ -171,6 +172,7 @@
   border: 2px solid var(--nx-grid-selection-border);
   box-sizing: border-box;
   background: var(--nx-grid-surface);
+  color: inherit;
   font-size: inherit;
   font-family: inherit;
   line-height: inherit;
@@ -191,6 +193,7 @@
   border: 2px solid var(--nx-grid-selection-border);
   box-sizing: border-box;
   background: var(--nx-grid-surface);
+  color: inherit;
   font-size: inherit;
   font-family: inherit;
   line-height: inherit;
@@ -476,6 +479,7 @@
   padding: 2px 4px;
   border: none;
   background: transparent;
+  color: inherit;
   font-size: inherit;
   font-family: inherit;
   outline: none;
@@ -550,8 +554,6 @@
   font-size: 13px;
 }
 
-/* ── Date picker ─────────────────────────────────────────────────────────────── */
-
 .nx-grid-datepicker-wrapper {
   position: absolute;
   inset: 0;
@@ -569,6 +571,7 @@
   padding: 2px 4px;
   border: none;
   background: transparent;
+  color: inherit;
   font-size: inherit;
   font-family: inherit;
   outline: none;
@@ -587,12 +590,10 @@
   display: flex;
   align-items: center;
 }
-
 .nx-grid-datepicker-button:hover {
   color: var(--nx-grid-accent);
   background-color: var(--nx-grid-hover-bg);
 }
-
 .nx-grid-datepicker-button:active {
   color: var(--nx-grid-accent-dark);
 }
@@ -614,7 +615,6 @@
   cursor: pointer;
   color: var(--nx-grid-icon-muted-fg);
 }
-
 .nx-grid-datepicker-button-idle:hover {
   color: var(--nx-grid-accent);
   background-color: var(--nx-grid-hover-bg);
@@ -654,7 +654,6 @@
   align-items: center;
   border-radius: 3px;
 }
-
 .nx-grid-datepicker-nav:hover {
   color: var(--nx-grid-accent);
   background-color: var(--nx-grid-hover-bg);
@@ -682,7 +681,6 @@
   cursor: pointer;
   border-radius: 3px;
 }
-
 .nx-grid-datepicker-day:hover {
   background-color: var(--nx-grid-item-hover-bg);
 }
@@ -704,7 +702,6 @@
   background-color: var(--nx-grid-accent);
   color: #fff;
 }
-
 .nx-grid-datepicker-day-selected:hover {
   background-color: var(--nx-grid-accent-dark);
 }
@@ -836,11 +833,9 @@
   user-select: none;
   -webkit-user-select: none;
 }
-
 .nx-grid-chooser-item:hover {
   background-color: var(--nx-grid-item-hover-bg);
 }
-
 .nx-grid-chooser-item input[type=checkbox] {
   width: 14px;
   min-width: 14px;
@@ -863,8 +858,6 @@
   pointer-events: none;
 }
 
-/* ── Print dialog ─────────────────────────────────────────────────────────── */
-
 .nx-print-dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -884,7 +877,7 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   font-size: 14px;
 }
 
@@ -911,7 +904,6 @@
   padding: 0 4px;
   line-height: 1;
 }
-
 .nx-print-dialog-close:hover {
   color: var(--nx-grid-icon-fg);
 }
@@ -939,7 +931,6 @@
   gap: 6px;
   cursor: pointer;
 }
-
 .nx-print-option.nx-print-option-disabled {
   opacity: 0.4;
   cursor: default;
@@ -958,7 +949,6 @@
   width: 100%;
   font-size: 13px;
 }
-
 .nx-print-table th {
   background: var(--nx-grid-header-bg);
   border: 1px solid var(--nx-grid-header-border);
@@ -967,15 +957,12 @@
   font-weight: 600;
   white-space: nowrap;
 }
-
 .nx-print-table tr:nth-child(even) td {
   background: var(--nx-grid-row-even-bg);
 }
-
 .nx-print-table tr:nth-child(odd) td {
   background: var(--nx-grid-row-odd-bg);
 }
-
 .nx-print-table td {
   border: 1px solid var(--nx-grid-border);
   padding: 4px 8px;
@@ -1001,7 +988,6 @@
   font-size: 14px;
   font-family: inherit;
 }
-
 .nx-print-btn-cancel:hover {
   background: var(--nx-grid-hover-bg);
 }
@@ -1017,36 +1003,9 @@
   font-size: 14px;
   font-family: inherit;
 }
-
 .nx-print-btn-print:hover {
   background: var(--nx-grid-accent-dark);
 }
-
-.nx-print-area {
-  position: fixed;
-  left: 100vw;
-  top: 0;
-  min-width: 100vw;
-  background: #fff;
-  padding: 24px;
-  box-sizing: border-box;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.nx-print-area .nx-print-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0 0 4px;
-}
-
-.nx-print-area .nx-print-date {
-  font-size: 12px;
-  color: #666;
-  margin: 0 0 16px;
-}
-
-/* ── Row drag-and-drop ───────────────────────────────────────────────────────── */
 
 .nx-grid-drag-handle-gutter {
   display: flex;
@@ -1079,6 +1038,11 @@
   display: none;
 }
 
+:root {
+  --nx-grid-group-header-bg: #E8E8E8;
+  --nx-grid-group-header-fg: #333333;
+}
+
 .nx-grid-group-header {
   display: flex;
   align-items: center;
@@ -1096,11 +1060,34 @@
 .nx-grid-group-header.nx-grid-group-header-collapsible:hover {
   filter: brightness(0.96);
 }
+
 .nx-grid-group-toggle {
   margin-right: 6px;
   font-size: 10px;
   color: var(--nx-grid-icon-muted-fg);
   flex-shrink: 0;
+}
+
+.nx-print-area {
+  position: fixed;
+  left: 100vw;
+  top: 0;
+  min-width: 100vw;
+  background: #fff;
+  padding: 24px;
+  box-sizing: border-box;
+  visibility: hidden;
+  pointer-events: none;
+}
+.nx-print-area .nx-print-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.nx-print-area .nx-print-date {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 16px;
 }
 
 .nx-grid-fill-handle {

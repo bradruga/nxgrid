@@ -299,6 +299,7 @@ public static class DemoCodeSamples
     public static readonly string DarkTheme = """
 /* Option A — scoped: override on a wrapper element */
 .my-dark-theme {
+    --nx-grid-fg:               #c0caf5;
     --nx-grid-border:           #3b4261;
     --nx-grid-header-bg:        #1f2335;
     --nx-grid-header-border:    #3b4261;

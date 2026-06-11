@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Demo site: global dark mode toggle button in the sidebar switches the entire site between light and dark themes using CSS custom property overrides — no JavaScript required.
 
+### Fixed
+
+- Edit inputs (`input`, `textarea`) no longer render black text in dark mode — added `color: inherit` to `nx-grid-edit-input`, `nx-grid-edit-textarea`, `nx-grid-edit-textarea-sl`, `nx-grid-combo-input`, and `nx-grid-datepicker-input` so they always inherit the surrounding text color.
+
 ## [0.1.2] - 2026-06-11
 
 ### Added
