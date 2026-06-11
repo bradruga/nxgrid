@@ -28,7 +28,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public static async Task<NxGridJsInterop<T>> Create(NxGrid<T> grid, IJSRuntime jsRuntime, string id)
     {
         var reference = DotNetObjectReference.Create(grid);
-        var module = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/NxGrid/nx-grid.js");
+        var v = typeof(NxGridJsInterop<T>).Assembly.GetName().Version;
+        var version = v is null ? "0" : $"{v.Major}.{v.Minor}.{v.Build}";
+        var module = await jsRuntime.InvokeAsync<IJSObjectReference>("import", $"./_content/NxGrid/nx-grid.js?v={version}");
         var jsObject = await module.InvokeAsync<IJSObjectReference>("nxGrid", id, reference);
         return new NxGridJsInterop<T>(module, jsObject, reference);
     }
