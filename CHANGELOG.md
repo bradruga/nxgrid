@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-11
+
 ### Added
 
 - **Edit-pick mode** — when `EditPickPredicate` returns `true` for the current edit value (e.g. `v => v.StartsWith("=")`), clicking or click-dragging another cell fires `OnCellPickedWhileEditing` instead of committing the edit. A live blue range overlay highlights the picked area during the drag and persists after mouseup until the edit ends or a new pick starts.
