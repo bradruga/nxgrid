@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Edit-pick mode: clicking another cell moved browser focus to the grid container (`tabindex="0"`), causing subsequent keystrokes after the pick to be lost. The edit input is now explicitly re-focused after each pick.
 - Edit-pick mode: click-and-drag range selection only captured the mousedown cell instead of the full dragged range. Picks are now tracked across `mousedown → mousemove → mouseup`, and `OnCellPickedWhileEditing` fires once on mouseup with the complete range.
 - Fill handle (drag-fill square) drifted out of position when the grid was scrolled or a column was resized — it now tracks live during column resize and repositions correctly after scroll.
+- Relaxed `Microsoft.AspNetCore.Components.Web` minimum version from `10.0.8` to `10.0.0` (net10.0) and from `8.0.8` to `8.0.0` (net8.0) so consumers on earlier patch releases no longer get a package downgrade warning.
 
 ### Removed
 
