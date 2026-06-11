@@ -500,6 +500,7 @@ public partial class NxGrid<T>
 
             manualMode = true;
             pendingResizeCleanup = true;
+            fillHandleNeedsPositioning = true;
             ComputeFrozenOffsets();
             renderToken++;
             StateHasChanged();
@@ -560,6 +561,7 @@ public partial class NxGrid<T>
         }
 
         manualMode = true;
+        fillHandleNeedsPositioning = true;
         ComputeFrozenOffsets();
         renderToken++;
         StateHasChanged();

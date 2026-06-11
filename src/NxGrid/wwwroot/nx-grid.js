@@ -83,6 +83,39 @@
         };
         document.addEventListener('click', this._menuClickHandler);
 
+        this._fillHandleAnchor = null;
+        this._scrollHandler = () => this._repositionFillHandle();
+
+    }
+
+    setFillHandleAnchor(maxRow, maxCol, rowHeight) {
+        this._fillHandleAnchor = { maxRow, maxCol, rowHeight };
+        const gridElement = document.getElementById(this.id);
+        if (gridElement && !this._scrollHandlerAttached) {
+            gridElement.addEventListener('scroll', this._scrollHandler, { passive: true });
+            this._scrollHandlerAttached = true;
+        }
+    }
+
+    clearFillHandleAnchor() {
+        this._fillHandleAnchor = null;
+    }
+
+    _repositionFillHandle() {
+        if (!this._fillHandleAnchor) return;
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return;
+        const handle = gridElement.querySelector('.nx-grid-fill-handle');
+        if (!handle) return;
+        const { maxRow, maxCol, rowHeight } = this._fillHandleAnchor;
+        const pos = this.getFillHandlePosition(maxRow, maxCol, rowHeight);
+        if (pos) {
+            handle.style.top = pos.top + 'px';
+            handle.style.left = pos.left + 'px';
+            handle.style.visibility = '';
+        } else {
+            handle.style.visibility = 'hidden';
+        }
     }
 
     copyToClipboard(text) {
@@ -290,6 +323,11 @@
             document.removeEventListener('click', this._menuClickHandler);
             this._menuClickHandler = null;
         }
+        if (this._scrollHandlerAttached) {
+            const gridElement = document.getElementById(this.id);
+            if (gridElement) gridElement.removeEventListener('scroll', this._scrollHandler);
+            this._scrollHandlerAttached = false;
+        }
     }
 
     async resizeColumn(columnIndex, startMouseX, minWidth, maxWidth, gutterHidden){
@@ -332,6 +370,7 @@
             const delta = event.clientX - startMouseX;
             currentWidth = Math.min(effectiveMax, Math.max(effectiveMin, initialWidths[columnIndex] + delta));
             updateStyles(currentWidth);
+            this._repositionFillHandle();
         };
         document.addEventListener('mousemove', mouseMoveHandler);
 

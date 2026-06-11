@@ -43,6 +43,7 @@ public partial class NxGrid<T>
         if (!ShowFillHandle || jsInterop == null || ActiveRange == null)
         {
             fillHandleVisible = false;
+            if (jsInterop != null) await jsInterop.ClearFillHandleAnchor();
             return;
         }
 
@@ -55,10 +56,12 @@ public partial class NxGrid<T>
             fillHandleTop = pos.Top;
             fillHandleLeft = pos.Left;
             fillHandleVisible = true;
+            await jsInterop.SetFillHandleAnchor(maxRow, maxCol, RowHeight);
         }
         else
         {
             fillHandleVisible = false;
+            await jsInterop.ClearFillHandleAnchor();
         }
     }
 

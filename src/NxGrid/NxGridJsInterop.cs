@@ -127,6 +127,12 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public Task<NxFillHandlePosition?> GetFillHandlePosition(int maxRow, int maxCol, int rowHeight)
         => jsObject.InvokeAsync<NxFillHandlePosition?>("getFillHandlePosition", maxRow, maxCol, rowHeight).AsTask();
 
+    public Task SetFillHandleAnchor(int maxRow, int maxCol, int rowHeight)
+        => jsObject.InvokeVoidAsync("setFillHandleAnchor", maxRow, maxCol, rowHeight).AsTask();
+
+    public Task ClearFillHandleAnchor()
+        => jsObject.InvokeVoidAsync("clearFillHandleAnchor").AsTask();
+
     public Task<NxDragFillResult?> DragFill(int minRow, int maxRow, int minCol, int maxCol, int rowHeight, int rowCount)
         => jsObject.InvokeAsync<NxDragFillResult?>("dragFill", minRow, maxRow, minCol, maxCol, rowHeight, rowCount).AsTask();
 
