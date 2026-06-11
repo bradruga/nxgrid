@@ -10,23 +10,21 @@
 </p>
 
 <div class="doc-section">
-    <h2>Dark Theme Toggle</h2>
+    <h2>Dark Theme</h2>
     <p class="doc-note">
-        Wrap the grid in an element with the custom properties overridden to switch themes.
-        No JS required — pure CSS variables.
+        NxGrid has no built-in theme — all colors are CSS custom properties, so the grid
+        automatically picks up any overrides on an ancestor element. Use the <strong>Dark mode</strong>
+        button in the sidebar to see this page and the grid update together.
+        The toggle works by adding a <code>site-dark</code> class to the layout container,
+        which redefines the <code>--nx-grid-*</code> variables for everything underneath it.
     </p>
-    <div class="doc-controls">
-        <label><input type="checkbox" @bind="darkMode" /> Enable dark theme</label>
-    </div>
-    <div class="@(darkMode ? "demo-dark-theme" : "")">
-        <NxGrid T="Person" Data="@SampleData.People.ToList()" RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell">
-            <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
-            <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
-            <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
-            <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
-            <NxGridColumn Property="@(x => x.Department)" />
-        </NxGrid>
-    </div>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@darkThemeCode</pre>
 </div>
 
@@ -92,8 +90,6 @@
 </div>
 
 @code {
-    bool darkMode;
-
     NxGridCellStyle? GetCellStyle(Person p, NxGridColumn<Person> col)
     {
         if (col.Title == "Age" && p.Age >= 50)

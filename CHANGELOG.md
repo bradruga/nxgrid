@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Demo site: global dark mode toggle button in the sidebar switches the entire site between light and dark themes using CSS custom property overrides — no JavaScript required.
+
 ## [0.1.2] - 2026-06-11
 
 ### Added

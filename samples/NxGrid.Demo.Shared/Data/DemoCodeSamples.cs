@@ -297,8 +297,8 @@ public static class DemoCodeSamples
 """;
 
     public static readonly string DarkTheme = """
-/* In your CSS — override the custom properties on an ancestor element */
-.dark-theme {
+/* Option A — scoped: override on a wrapper element */
+.my-dark-theme {
     --nx-grid-border:           #3b4261;
     --nx-grid-header-bg:        #1f2335;
     --nx-grid-header-border:    #3b4261;
@@ -319,8 +319,14 @@ public static class DemoCodeSamples
     --nx-grid-shadow:           rgba(0,0,0,0.5);
 }
 
-<!-- In your Razor template -->
-<div class="@(darkMode ? "dark-theme" : "")">
+/* Option B — global: override on :root to apply everywhere */
+:root {
+    --nx-grid-accent: #7aa2f7;
+    /* ... */
+}
+
+<!-- Wrap in the themed element, or add the class to an ancestor like <body> -->
+<div class="my-dark-theme">
     <NxGrid T="Person" Data="@people" ...>
         ...
     </NxGrid>
