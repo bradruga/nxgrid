@@ -11,9 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Demo site: global dark mode toggle button in the sidebar switches the entire site between light and dark themes using CSS custom property overrides — no JavaScript required.
 
+### Changed
+
+- Mouse drag-select is now JS-driven (same pattern as column resize and drag-fill): C# awaits a JS Promise that resolves on mouseup; all visual updates — selected-cell highlighting, the selection border, and fill handle repositioning — happen synchronously in JS with zero Blazor renders during the drag, then one final Blazor render on release.
+
 ### Fixed
 
 - Edit inputs (`input`, `textarea`) no longer render black text in dark mode — added `color: inherit` to `nx-grid-edit-input`, `nx-grid-edit-textarea`, `nx-grid-edit-textarea-sl`, `nx-grid-combo-input`, and `nx-grid-datepicker-input` so they always inherit the surrounding text color.
+- Arrow key navigation was noticeably laggy on the Spreadsheet demo page — `NxGridColumn.OnParametersSet` now caches the `Property` expression reference and skips `Expression.Compile()` when the same object is passed again; the Spreadsheet page pre-creates per-column expression and lambda arrays once in `OnInitialized` so the reference guard is effective on every selection-change re-render, eliminating up to 26 redundant compilations per keypress.
 
 ## [0.1.2] - 2026-06-11
 

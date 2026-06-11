@@ -132,9 +132,11 @@ The `NxGridSelectionRange<T>` exposed through `OnSelectionChanged` always has no
 |---|---|
 | Left-click a cell | Single-cell selection (anchor = cursor = clicked cell) |
 | Shift+left-click | Extends selection: anchor stays, cursor moves to clicked cell |
-| Left-drag | Continuously extends selection as the mouse moves over cells |
+| Left-drag | Extends selection live as the mouse moves; selection highlight, border, and fill handle all update on every mousemove with no Blazor renders during the drag |
 | Right-click a selected cell | Preserves existing selection |
 | Right-click an unselected cell | Single-selects that cell first, then shows context menu |
+
+**Drag implementation.** Mouse drag-select is handled entirely in JavaScript via a `dragSelect` JS method (same pattern as column resize and drag-fill). On mousedown, C# starts a JS Promise and suspends; the JS handler attaches a `mousemove` listener that directly toggles `nx-grid-cell-selected` / `nx-grid-cell-anchor` CSS classes and sets `box-shadow` inline styles on cells to render the live border. The fill handle is repositioned on each move via `_repositionFillHandle()`. On mouseup the Promise resolves with the final row/column, the JS listeners are removed, and Blazor performs one final render to commit the selection state — since JS has maintained the correct DOM throughout, there is no visual flash on release.
 
 ### Header and row-number selection (requires `HeaderClickSelects = true`)
 
@@ -601,3 +603,43 @@ All other JS-dependent operations are no-ops if `jsInterop` is null, and silentl
 When the column menu opens, it is rendered off-screen (hidden via `visibility:hidden`) on the first render pass. After render, JS measures the button position and the menu is repositioned and made visible. A two-render cycle is unavoidable for correct positioning.
 
 An `openingMenu` flag prevents the "lost focus" JS callback from immediately closing the menu during the frame it opens.
+
+---
+
+## Performance: stable column accessor references
+
+`NxGridColumn` compiles the `Property` expression (via `Expression.Compile()`) only when the `Property` parameter reference changes. If the same object is passed on every render, compilation happens exactly once.
+
+**The problem:** Blazor re-renders a parent component whenever an `EventCallback` fires (e.g. `OnSelectionChanged`). If column `Property`, `Display`, or `CopyGetter` delegates are written as inline lambdas in the parent's template, the Razor compiler creates new lambda/expression objects on every `BuildRenderTree` call — every re-render passes a fresh reference, triggering recompilation on each keypress.
+
+**The fix:** pre-create accessor arrays as component fields and refer to them from the template:
+
+```csharp
+// Initialize once — same objects passed on every render
+private Expression<Func<MyRow, object?>>[] _propExprs;
+private Func<MyRow, object?>[] _displayFns;
+
+protected override void OnInitialized()
+{
+    _propExprs  = new Expression<Func<MyRow, object?>>[ColCount];
+    _displayFns = new Func<MyRow, object?>[ColCount];
+    for (var i = 0; i < ColCount; i++)
+    {
+        var ci = i;
+        _propExprs[ci]  = x => data[x.Index, ci].Value;
+        _displayFns[ci] = x => Format(data[x.Index, ci]);
+    }
+}
+```
+
+```razor
+@for (var i = 0; i < ColCount; i++)
+{
+    var ci = i;
+    <NxGridColumn T="MyRow"
+                  Property="@_propExprs[ci]"
+                  Display="@_displayFns[ci]" />
+}
+```
+
+Lambdas that capture instance fields (like `data` above) remain correct after field reassignment because they capture `this`, not the field value at creation time.

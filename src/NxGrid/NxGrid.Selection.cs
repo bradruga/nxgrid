@@ -89,7 +89,26 @@ public partial class NxGrid<T>
             }
             StateHasChanged();
             await RaiseSelectionChanged();
-            leftMouseDown = true;
+
+            if (!args.ShiftKey && !ctrlHeld && jsInterop != null)
+            {
+                clickDownRow = -1;
+                clickDownCol = -1;
+                var result = await jsInterop.DragSelect(rowIndex, colIndex, true, visibleColumns.Count - 1);
+                if (result != null && result.EndRow != rowIndex)
+                {
+                    clickWasDragged = true;
+                    ActiveRange!.EndRow = result.EndRow;
+                    StateHasChanged();
+                    await RaiseSelectionChanged();
+                }
+                else if (OnCellClicked.HasDelegate)
+                    await OnCellClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = row, Column = column });
+            }
+            else
+            {
+                leftMouseDown = true;
+            }
             return;
         }
 
@@ -138,7 +157,27 @@ public partial class NxGrid<T>
 
         StateHasChanged();
         await RaiseSelectionChanged();
-        leftMouseDown = true;
+
+        if (!args.ShiftKey && !ctrlHeld && jsInterop != null)
+        {
+            clickDownRow = -1;
+            clickDownCol = -1;
+            var result = await jsInterop.DragSelect(rowIndex, colIndex, false, visibleColumns.Count - 1);
+            if (result != null && (result.EndRow != rowIndex || result.EndCol != colIndex))
+            {
+                clickWasDragged = true;
+                ActiveRange!.EndRow = result.EndRow;
+                ActiveRange.EndCol = result.EndCol;
+                StateHasChanged();
+                await RaiseSelectionChanged();
+            }
+            else if (OnCellClicked.HasDelegate)
+                await OnCellClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = row, Column = column });
+        }
+        else
+        {
+            leftMouseDown = true;
+        }
     }
 
     private async Task OnCellMouseEnter(MouseEventArgs args, T row, NxGridColumn<T> column)
@@ -173,10 +212,18 @@ public partial class NxGrid<T>
         if (ActiveRange != null && leftMouseDown && SelectionMode != NxGridSelectionMode.None)
         {
             var rowIndex = filteredData.IndexOf(row);
-            if (rowIndex != clickDownRow || visibleColumns.IndexOf(column) != clickDownCol)
+            var colIndex = visibleColumns.IndexOf(column);
+
+            if (rowIndex != clickDownRow || colIndex != clickDownCol)
                 clickWasDragged = true;
 
-            ActiveRange.EndRow = rowIndex;
+            var newEndRow = rowIndex;
+            var newEndCol = SelectionMode == NxGridSelectionMode.Row ? visibleColumns.Count - 1 : colIndex;
+
+            // Skip re-render when the drag endpoint hasn't changed (mouse still on the same cell)
+            if (newEndRow == ActiveRange.EndRow && newEndCol == ActiveRange.EndCol) return;
+
+            ActiveRange.EndRow = newEndRow;
             if (SelectionMode == NxGridSelectionMode.Row)
             {
                 ActiveRange.StartCol = 0;
@@ -184,7 +231,7 @@ public partial class NxGrid<T>
             }
             else
             {
-                ActiveRange.EndCol = visibleColumns.IndexOf(column);
+                ActiveRange.EndCol = newEndCol;
             }
 
             StateHasChanged();
@@ -197,6 +244,9 @@ public partial class NxGrid<T>
     {
         if (IsDragFillActive)
             fillHandleNeedsPositioning = true;
+
+        if (!OnSelectionChanged.HasDelegate && !SelectedItemsChanged.HasDelegate)
+            return;
 
         var selectionArgs = new NxGridSelectionArgs<T>();
 

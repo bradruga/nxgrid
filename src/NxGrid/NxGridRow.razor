@@ -1,6 +1,6 @@
 @typeparam T
 
-<div class="nx-grid-row" style="@RowStyle">
+<div class="nx-grid-row" style="@RowStyle" data-row="@RowIndex">
     @if (RowGutter == NxGridRowGutter.DragHandle)
     {
         <div class="nx-grid-row-start nx-grid-drag-handle-gutter">
@@ -53,6 +53,7 @@
         var inPickRange = PickRange?.IsCellInRange(RowIndex, ci) == true;
 
         <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(inPickRange ? "nx-grid-cell-pick-range" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
+             data-col="@ci"
              style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
              @onmousedown="@(args => HandleMouseDown(args, col))"
              @onmouseenter="@(args => HandleMouseEnter(args, col))"

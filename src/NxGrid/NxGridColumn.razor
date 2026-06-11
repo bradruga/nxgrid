@@ -353,6 +353,7 @@
     private Type? propertyType;
     private string? displayName;
     private string? inferredName;
+    private Expression<Func<T, object?>>? _lastBuiltProperty;
 
     protected override void OnInitialized()
     {
@@ -361,7 +362,11 @@
 
     protected override void OnParametersSet()
     {
-        BuildPropertyAccessors();
+        if (!ReferenceEquals(_lastBuiltProperty, Property))
+        {
+            _lastBuiltProperty = Property;
+            BuildPropertyAccessors();
+        }
         HeaderCellStyle = BuildHeaderCellStyle();
         CellStyle = BuildCellStyle();
     }

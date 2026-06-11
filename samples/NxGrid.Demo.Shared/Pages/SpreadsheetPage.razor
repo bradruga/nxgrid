@@ -1,5 +1,6 @@
 @page "/spreadsheet"
 @using System.Text.Json
+@using System.Linq.Expressions
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -350,9 +351,9 @@
                         var letter = ((char)('A' + ci)).ToString();
                         <NxGridColumn T="SsRow"
                                       Title="@letter"
-                                      Property="@(x => sheet[x.RowIndex, ci].Value)"
-                                      Display="@(x => FormatDisplay(sheet[x.RowIndex, ci]))"
-                                      CopyGetter="@(x => sheet[x.RowIndex, ci].Value)"
+                                      Property="@colPropertyExprs[ci]"
+                                      Display="@colDisplayFuncs[ci]"
+                                      CopyGetter="@colCopyGetters[ci]"
                                       Width="@ColWidth(ci)"
                                       MinWidth="30"
                                       Sizing="NxGridColumnSizing.Fixed"
@@ -615,6 +616,12 @@
     List<SsRow> rows = [];
     NxGrid<SsRow>? grid;
 
+    // Stable per-column accessor delegates — created once so re-renders triggered by
+    // OnSelectionChanged don't recompile LINQ expression trees on every keypress.
+    Expression<Func<SsRow, object?>>[] colPropertyExprs = [];
+    Func<SsRow, object?>[] colDisplayFuncs = [];
+    Func<SsRow, object?>[] colCopyGetters  = [];
+
     // formula bar / selection
     List<NxGridSelectionRange<SsRow>> selectedRanges = [];
     string formulaBarValue      = "";
@@ -677,6 +684,17 @@
                 sheet[r, c] = new Cell();
 
         rows = Enumerable.Range(0, RowCount).Select(i => new SsRow { RowIndex = i }).ToList();
+
+        colPropertyExprs = new Expression<Func<SsRow, object?>>[ColCount];
+        colDisplayFuncs  = new Func<SsRow, object?>[ColCount];
+        colCopyGetters   = new Func<SsRow, object?>[ColCount];
+        for (var i = 0; i < ColCount; i++)
+        {
+            var ci = i;
+            colPropertyExprs[ci] = x => sheet[x.RowIndex, ci].Value;
+            colDisplayFuncs[ci]  = x => FormatDisplay(sheet[x.RowIndex, ci]);
+            colCopyGetters[ci]   = x => sheet[x.RowIndex, ci].Value;
+        }
 
         Calculate();
     }

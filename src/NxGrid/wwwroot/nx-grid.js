@@ -306,6 +306,83 @@
         return { top: rect.bottom, left, width };
     }
 
+    dragSelect(anchorRow, anchorCol, isRowMode, maxCol) {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return Promise.resolve({ endRow: anchorRow, endCol: anchorCol });
+
+        const selClass = 'nx-grid-cell-selected';
+        const anchorClass = 'nx-grid-cell-anchor';
+        let endRow = anchorRow;
+        let endCol = anchorCol;
+
+        const borderColor = 'var(--nx-grid-selection-border)';
+
+        const applyClasses = (er, ec) => {
+            const minR = Math.min(anchorRow, er);
+            const maxR = Math.max(anchorRow, er);
+            const minC = isRowMode ? 0 : Math.min(anchorCol, ec);
+            const maxC = isRowMode ? maxCol : Math.max(anchorCol, ec);
+
+            for (const rowEl of gridElement.querySelectorAll('.nx-grid-row[data-row]')) {
+                const ri = +rowEl.dataset.row;
+                const inRowRange = ri >= minR && ri <= maxR;
+                for (const cell of rowEl.querySelectorAll('.nx-grid-cell[data-col]')) {
+                    const ci = +cell.dataset.col;
+                    const inRange = inRowRange && ci >= minC && ci <= maxC;
+                    const isAnch = !isRowMode && ri === anchorRow && ci === anchorCol;
+                    cell.classList.toggle(selClass, inRange && !isAnch);
+                    cell.classList.toggle(anchorClass, isAnch);
+
+                    if (inRange) {
+                        const parts = [];
+                        if (ri === minR) parts.push(`inset 0 2px 0 0 ${borderColor}`);
+                        if (ri === maxR) parts.push(`inset 0 -2px 0 0 ${borderColor}`);
+                        if (ci === minC) parts.push(`inset 2px 0 0 0 ${borderColor}`);
+                        if (ci === maxC) parts.push(`inset -2px 0 0 0 ${borderColor}`);
+                        cell.style.boxShadow = parts.join(',');
+                    } else {
+                        cell.style.boxShadow = '';
+                    }
+                }
+            }
+
+            // Keep the fill handle tracking the drag endpoint
+            if (this._fillHandleAnchor) {
+                const { rowHeight } = this._fillHandleAnchor;
+                this._fillHandleAnchor = { maxRow: maxR, maxCol: maxC, rowHeight };
+                this._repositionFillHandle();
+            }
+        };
+
+        applyClasses(anchorRow, anchorCol);
+
+        const mouseMoveHandler = (e) => {
+            const target = document.elementFromPoint(e.clientX, e.clientY);
+            if (!target) return;
+            const cellEl = target.closest('.nx-grid-cell[data-col]');
+            if (!cellEl || !gridElement.contains(cellEl)) return;
+            const rowEl = cellEl.closest('.nx-grid-row[data-row]');
+            if (!rowEl) return;
+            const ri = +rowEl.dataset.row;
+            const ci = +cellEl.dataset.col;
+            if (isNaN(ri) || isNaN(ci) || (ri === endRow && ci === endCol)) return;
+            endRow = ri;
+            endCol = ci;
+            applyClasses(endRow, endCol);
+        };
+
+        document.body.style.userSelect = 'none';
+        document.addEventListener('mousemove', mouseMoveHandler);
+
+        return new Promise(resolve => {
+            document.addEventListener('mouseup', () => {
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.body.style.userSelect = '';
+                resolve({ endRow, endCol });
+            }, { once: true });
+        });
+    }
+
     dispose() {
         if (this._editTabHandler) {
             document.removeEventListener('keydown', this._editTabHandler, true);

@@ -9,6 +9,7 @@ public record NxMenuPosition(double Top, double Left);
 public record NxDatePickerPosition(double Top, double Left);
 public record NxFillHandlePosition(double Top, double Left);
 public record NxDragFillResult(string Direction, int FillCount);
+public record NxDragSelectResult(int EndRow, int EndCol);
 
 public class NxGridJsInterop<T> : IAsyncDisposable
 {
@@ -134,6 +135,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
 
     public Task ClearFillHandleAnchor()
         => jsObject.InvokeVoidAsync("clearFillHandleAnchor").AsTask();
+
+    public Task<NxDragSelectResult> DragSelect(int anchorRow, int anchorCol, bool isRowMode, int maxCol)
+        => jsObject.InvokeAsync<NxDragSelectResult>("dragSelect", anchorRow, anchorCol, isRowMode, maxCol).AsTask();
 
     public Task<NxDragFillResult?> DragFill(int minRow, int maxRow, int minCol, int maxCol, int rowHeight, int rowCount)
         => jsObject.InvokeAsync<NxDragFillResult?>("dragFill", minRow, maxRow, minCol, maxCol, rowHeight, rowCount).AsTask();
