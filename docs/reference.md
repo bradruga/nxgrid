@@ -781,6 +781,7 @@ All colors are overridable. Set these on `:root` or any ancestor element:
 
 ```css
 :root {
+    --nx-grid-fg:               inherit;  /* cell text color; inherits from parent when unset */
     --nx-grid-border:           #E0E0E0;
     --nx-grid-header-bg:        #F0F0F0;
     --nx-grid-header-border:    #999999;  /* header cell borders (darker than body) */
