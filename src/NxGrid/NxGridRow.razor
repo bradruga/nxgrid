@@ -148,9 +148,7 @@
             }
             else if (col.Template != null)
             {
-                <span class="nx-grid-cell-text">
-                    @col.Template(Row)
-                </span>
+                <span class="nx-grid-cell-template">@col.Template(Row)</span>
                 @if (col.IsComboColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
                      && (col.Editable ?? GridEditable)
                      && (CellEditableGetter == null || CellEditableGetter(Row, col)))

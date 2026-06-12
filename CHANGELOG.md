@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `Template` columns rendered text at the wrong size — the `<span>` wrapping template output used `white-space: pre`, causing the newlines Blazor injects around template content to render as literal line breaks and expand the cell height. Template content is now wrapped in a dedicated `nx-grid-cell-template` element that does not apply `white-space: pre`.
 - Edit inputs (`input`, `textarea`) no longer render black text in dark mode — added `color: inherit` to `nx-grid-edit-input`, `nx-grid-edit-textarea`, `nx-grid-edit-textarea-sl`, `nx-grid-combo-input`, and `nx-grid-datepicker-input` so they always inherit the surrounding text color.
 - Arrow key navigation was noticeably laggy on the Spreadsheet demo page — `NxGridColumn.OnParametersSet` now caches the `Property` expression reference and skips `Expression.Compile()` when the same object is passed again; the Spreadsheet page pre-creates per-column expression and lambda arrays once in `OnInitialized` so the reference guard is effective on every selection-change re-render, eliminating up to 26 redundant compilations per keypress.
 
