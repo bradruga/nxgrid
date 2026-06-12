@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--nx-grid-fg` documented in `docs/reference.md` CSS custom properties section.
+
+### Fixed
+
+- Combo input text color ignored `--nx-grid-fg` when the dropdown button was clicked with the mouse — changed `color: inherit` to `color: var(--nx-grid-fg)` on `.nx-grid-combo-input` so the variable is resolved directly on the input rather than relying on cascade inheritance through the cell's inline `style` attribute.
+
 ## [0.1.3] - 2026-06-12
 
 ### Added

@@ -487,7 +487,7 @@
   padding: 2px 4px;
   border: none;
   background: transparent;
-  color: inherit;
+  color: var(--nx-grid-fg);
   font-size: inherit;
   font-family: inherit;
   outline: none;

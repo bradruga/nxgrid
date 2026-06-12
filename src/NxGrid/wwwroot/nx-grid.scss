@@ -523,7 +523,7 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
     padding: 2px 4px;
     border: none;
     background: transparent;
-    color: inherit;
+    color: var(--nx-grid-fg);
     font-size: inherit;
     font-family: inherit;
     outline: none;
