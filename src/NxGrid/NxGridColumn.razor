@@ -60,11 +60,15 @@
     [Parameter] public string? Title { get; set; }
 
     /// <summary>
-    /// Preferred column width in pixels. Used as the initial CSS <c>width</c>.
-    /// Not a minimum — without <see cref="MinWidth"/> the column can be dragged narrower.
-    /// Default: <c>100</c>.
+    /// Declared column width in pixels. When set, it is used as the exact width for
+    /// <see cref="NxGridColumnSizing.Fixed"/> columns (disabling auto-measurement under
+    /// <see cref="NxGridFitContent.Auto"/>), or as the flex-basis / initial placeholder for
+    /// <see cref="NxGridColumnSizing.Flex"/> columns. When <c>null</c> (default), the column
+    /// auto-measures its content width unless <see cref="FitContent"/> is
+    /// <see cref="NxGridFitContent.Never"/>. Not a minimum — without <see cref="MinWidth"/>
+    /// the column can be dragged narrower.
     /// </summary>
-    [Parameter] public int Width { get; set; } = 100;
+    [Parameter] public int? Width { get; set; }
 
     /// <summary>
     /// Hard minimum width in pixels. Enforced both in auto-size mode (CSS <c>min-width</c>)
@@ -124,16 +128,31 @@
     [Parameter] public bool AutoSizable { get; set; } = true;
 
     /// <summary>
-    /// When <c>true</c>, the column's width is computed from its widest content value on first
-    /// render and whenever <see cref="NxGrid{T}.Data"/> changes. The computed width is used as
-    /// the flex-basis when <see cref="Sizing"/> is <see cref="NxGridColumnSizing.Flex"/>, so the
-    /// column snaps to content and then participates in distributing remaining space. With
-    /// <see cref="NxGridColumnSizing.Fixed"/>, it stays pinned at the measured content width.
-    /// <see cref="FlexMinWidth"/> and <see cref="FlexMaxWidth"/> bound the measurement.
-    /// Columns the user has manually resized keep their width and are not re-measured.
-    /// Default: <c>true</c>.
+    /// Controls whether the column automatically measures its widest data value to determine its width.
+    /// <see cref="NxGridFitContent.Auto"/> (default) infers the behavior: measurement is skipped when
+    /// <see cref="Sizing"/> is <see cref="NxGridColumnSizing.Fixed"/> and <see cref="Width"/> is set
+    /// (the declared width is the final answer); measurement runs in all other cases.
+    /// <see cref="NxGridFitContent.Always"/> forces measurement regardless of other parameters.
+    /// <see cref="NxGridFitContent.Never"/> disables measurement; the column renders at its declared
+    /// <see cref="Width"/> (or 100 px when unset). <see cref="FlexMinWidth"/> and
+    /// <see cref="FlexMaxWidth"/> bound the measurement result. Columns the user has manually resized
+    /// are not re-measured. Default: <see cref="NxGridFitContent.Auto"/>.
     /// </summary>
-    [Parameter] public bool FitContent { get; set; } = true;
+    [Parameter] public NxGridFitContent FitContent { get; set; } = NxGridFitContent.Auto;
+
+    /// <summary>
+    /// Resolved fit-content flag after applying <see cref="NxGridFitContent.Auto"/> inference.
+    /// <c>false</c> when <see cref="FitContent"/> is <see cref="NxGridFitContent.Never"/>, or when
+    /// <see cref="FitContent"/> is <see cref="NxGridFitContent.Auto"/> and
+    /// <see cref="Sizing"/> is <see cref="NxGridColumnSizing.Fixed"/> with <see cref="Width"/> set.
+    /// <c>true</c> otherwise.
+    /// </summary>
+    internal bool EffectiveFitContent => FitContent switch
+    {
+        NxGridFitContent.Always => true,
+        NxGridFitContent.Never  => false,
+        _                       => !(Sizing == NxGridColumnSizing.Fixed && Width.HasValue)
+    };
 
     /// <summary>
     /// Controls how the column participates in flexible width distribution.
@@ -510,10 +529,11 @@
     private string BuildWidthStyle()
     {
         // Fixed sizing: exact pixel width — no flex growth or shrinkage regardless of mode.
-        // FitContent may have measured a content-ideal width into FitWidth; prefer that over Width.
+        // EffectiveFitContent=true may have measured content into FitWidth; prefer that over Width.
+        // Width=null with no FitWidth yet falls back to 100px until measurement completes.
         if (Sizing == NxGridColumnSizing.Fixed)
         {
-            var fixedW = UserWidth ?? FitWidth ?? Width;
+            var fixedW = UserWidth ?? FitWidth ?? Width ?? 100;
             var style = $"width:{fixedW}px;flex-shrink:0;";
             if (MinWidth != null) style += $"min-width:{MinWidth}px;";
             if (MaxWidth != null) style += $"max-width:{MaxWidth}px;";
@@ -543,8 +563,8 @@
             return style;
         }
 
-        // Flex sizing, fallback (before first fit or FitContent=false): declared Width.
-        var w = Width;
+        // Flex sizing, fallback (before first fit, or FitContent=Never): declared Width or 100px.
+        var w = Width ?? 100;
         var fallback = $"width:{w}px;";
         var fMin = MaxOf(MinWidth, FlexMinWidth);
         var fMax = MinOf(MaxWidth, FlexMaxWidth);

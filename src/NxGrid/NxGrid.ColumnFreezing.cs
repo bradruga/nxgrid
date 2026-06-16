@@ -21,7 +21,7 @@ public partial class NxGrid<T>
             if (col.IsFrozen)
             {
                 col.StickyLeft = leftAccum;
-                leftAccum += col.UserWidth ?? Math.Min(Math.Max(col.Width, col.MinWidth ?? 0), col.MaxWidth ?? int.MaxValue);
+                leftAccum += col.UserWidth ?? Math.Min(Math.Max(col.Width ?? 100, col.MinWidth ?? 0), col.MaxWidth ?? int.MaxValue);
                 lastFrozen = col;
             }
             else
@@ -37,7 +37,7 @@ public partial class NxGrid<T>
             if (col.IsFrozen)
             {
                 col.StickyRight = rightAccum;
-                rightAccum += col.UserWidth ?? Math.Min(Math.Max(col.Width, col.MinWidth ?? 0), col.MaxWidth ?? int.MaxValue);
+                rightAccum += col.UserWidth ?? Math.Min(Math.Max(col.Width ?? 100, col.MinWidth ?? 0), col.MaxWidth ?? int.MaxValue);
             }
             else
             {

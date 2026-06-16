@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `NxGridFitContent` enum replaces the `FitContent` bool parameter on `NxGridColumn` (**breaking change**). Values: `Auto` (default), `Always`, `Never`. `Auto` infers the old behavior automatically: measurement is disabled when `Sizing="Fixed"` and `Width` is set; enabled otherwise. Migration: remove explicit `FitContent="true"` (Auto covers it), replace `FitContent="false"` on a Fixed+Width column with nothing (Auto handles it), replace `FitContent="false"` on a Flex column with `FitContent="NxGridFitContent.Never"`.
+- `NxGridColumn.Width` changed from `int` (default `100`) to `int?` (default `null`) (**breaking change**). A `null` width means "auto-measure content" (the previous default behavior). Set `Width="60"` on a `Sizing="Fixed"` column to get an exact 60 px column with no measurement — no other parameters needed.
 - `NxGridSelectionMode.MultiRow` — `Row` renamed to `MultiRow` for clarity; `Row` is removed (**breaking change**).
 - `NxGridSelectionMode.SingleRow` — new selection mode that selects exactly one entire row at a time. Shift and Ctrl modifiers are ignored (no multi-row ranges possible); left/right arrow keys are no-ops. All keyboard navigation (Up/Down, Home/End, Page Up/Down, Tab, Enter) moves the single-row selection without extending it. Use for master-detail layouts where accidental multi-row selection should be prevented.
 - `--nx-grid-fg` documented in `docs/reference.md` CSS custom properties section.

@@ -356,8 +356,7 @@
                                       CopyGetter="@colCopyGetters[ci]"
                                       Width="@ColWidth(ci)"
                                       MinWidth="30"
-                                      Sizing="NxGridColumnSizing.Fixed"
-                                      FitContent="false">
+                                      Sizing="NxGridColumnSizing.Fixed">
                             <Template Context="ssRow">
                                 @{
                                     var tcell = sheet[ssRow.RowIndex, ci];

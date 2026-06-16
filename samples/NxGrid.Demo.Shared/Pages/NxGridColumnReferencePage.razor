@@ -77,9 +77,9 @@
             </tr>
             <tr>
                 <td>Width</td>
-                <td>int</td>
-                <td>100</td>
-                <td>Preferred width in pixels. Not a minimum — without <code>MinWidth</code>, the column can be dragged narrower.</td>
+                <td>int?</td>
+                <td>—</td>
+                <td>Declared width in pixels. When set on a <code>Sizing="Fixed"</code> column, disables auto-measurement (<code>FitContent="Auto"</code> infers <code>Never</code>) — the column renders at exactly this width. When set on a <code>Sizing="Flex"</code> column, acts as the flex-basis / initial render placeholder while measurement still runs. When null (default), the column auto-measures its content. Not a minimum — without <code>MinWidth</code>, the column can be dragged narrower.</td>
                 <td><a href="/columns">Columns</a></td>
             </tr>
             <tr>
@@ -133,9 +133,9 @@
             </tr>
             <tr>
                 <td>FitContent</td>
-                <td>bool</td>
-                <td>true</td>
-                <td>When true, the column's width is measured from its widest data value on first render and whenever Data changes. With Sizing="Flex" the column snaps to content then flexes into remaining space; with Sizing="Fixed" it stays pinned at the measured width. FlexMinWidth / FlexMaxWidth bound the measurement. Columns the user has manually resized are not re-measured.</td>
+                <td>NxGridFitContent</td>
+                <td>Auto</td>
+                <td><code>Auto</code> — infers behavior: measurement is disabled when Sizing="Fixed" and Width is set (declared width is final); measurement runs in all other cases. <code>Always</code> — always measure regardless of Sizing or Width. <code>Never</code> — never measure; renders at Width (or 100 px when unset). With Sizing="Flex" the declared Width becomes the flex-basis. FlexMinWidth / FlexMaxWidth bound the measurement. Columns the user has manually resized are not re-measured.</td>
                 <td><a href="/columns">Columns</a></td>
             </tr>
             <tr>
@@ -149,7 +149,7 @@
                 <td>Sizing</td>
                 <td>NxGridColumnSizing</td>
                 <td>Flex</td>
-                <td><code>Flex</code> — the column participates in CSS flex layout; Width is the flex-basis and proportional grow/shrink weight. <code>Fixed</code> — the column is always rendered at its exact pixel width with no flex participation.</td>
+                <td><code>Flex</code> (default) — participates in CSS flex layout; Width (or the measured content width) is the flex-basis. <code>Fixed</code> — pinned at an exact pixel width with no flex. When Sizing="Fixed" and Width is set, <code>FitContent="Auto"</code> automatically disables measurement.</td>
                 <td><a href="/columns">Columns</a></td>
             </tr>
             <tr>

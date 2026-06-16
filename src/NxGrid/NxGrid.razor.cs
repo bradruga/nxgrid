@@ -782,7 +782,7 @@ public partial class NxGrid<T>
             {
                 // These columns never flex — they hold their exact width.
                 // FitContent may have computed a measured width into FitWidth; prefer that over Width.
-                totalWidth += col.UserWidth ?? col.FitWidth ?? col.Width;
+                totalWidth += col.UserWidth ?? col.FitWidth ?? col.Width ?? 100;
             }
             else
             {

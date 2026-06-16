@@ -161,7 +161,7 @@ void  SetColumnHidden(string columnId, bool hidden) // show or hide a column pro
 void  SetEditValue(string value)                   // replace the active edit input's text; no-op when not editing. Use in an OnCellPickedWhileEditing handler
 void  ResetColumnWidths()                          // clear all user-dragged widths, restoring every column to its declared Width parameter
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
-Task  FitColumnsAsync()                            // re-measure and apply FitWidth for all FitContent columns; skips columns the user has manually resized
+Task  FitColumnsAsync()                            // re-measure and apply FitWidth for all columns whose effective FitContent is true; skips columns the user has manually resized
 ```
 
 `PrintAsync` opens a modal dialog showing the current filtered/sorted data as a plain table with a live preview. The dialog offers two options:
@@ -197,7 +197,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
 | `Title` | `string?` | — | Column header text. When omitted, the header falls back to a `[Display(Name = "...")]` attribute on the property, then to the property name split on PascalCase word boundaries (e.g. `FirstName` → `"First Name"`). Explicit `Title` always wins. |
-| `Width` | `int` | `100` | Preferred width in pixels. Used as the initial `width` CSS value. Not a minimum — without `MinWidth`, the column can be dragged narrower than `Width`. |
+| `Width` | `int?` | — | Declared width in pixels. When set on a `Sizing="Fixed"` column, `FitContent="Auto"` automatically disables measurement and the column renders at exactly this width. When set on a `Sizing="Flex"` column, acts as the flex-basis / initial render placeholder while content measurement still runs. When `null` (default), the column auto-measures its content. Not a minimum — without `MinWidth`, the column can be dragged narrower. |
 | `MinWidth` | `int?` | — | Hard floor in pixels. Enforced both in auto mode (CSS `min-width`) and during user drag. Active even after `UserWidth` is set. |
 | `MaxWidth` | `int?` | — | Hard ceiling in pixels enforced during user drag-resize. Also applied as a CSS `max-width` in flex mode. Use `FlexMaxWidth` to cap automatic flex growth without restricting drag-resize. |
 | `Alignment` | `NxGridColumnAlignment` | `Left` | `Left`, `Center`, or `Right`. |
@@ -206,8 +206,8 @@ Columns self-register with their parent grid on initialization and deregister on
 | `Hidden` | `bool` | `false` | Excludes the column from rendering. A hidden column still participates in sort and filter if it has a `Property` or `Display`, but it is never rendered and cannot be selected. Useful for including a field in sort/filter without showing it in the grid. |
 | `Hideable` | `bool` | `true` | When `true`, the column menu shows a "Hide column" entry. A "Manage columns…" entry also appears (when at least one column is hideable) to let the user show hidden columns. Set to `false` to prevent the user from hiding a column. The user-toggled state is included in `StateKey` persistence. |
 | `AutoSizable` | `bool` | `true` | When `true`, double-clicking the column's resize grip auto-sizes the column to fit its widest content across the current filtered dataset. Obeys `MinWidth`/`MaxWidth`. Set to `false` to disable double-click auto-size on a specific column — drag resize is unaffected. See [Column auto-sizing](#column-auto-sizing). |
-| `FitContent` | `bool` | `true` | When `true` (default), the column's width is measured from its widest data value on first render and whenever `Data` changes. With `Sizing="Flex"` the measured width becomes the flex-basis so the column snaps to content then participates in distributing remaining space. With `Sizing="Fixed"` it is pinned at the measured width. `FlexMinWidth`/`FlexMaxWidth` bound the measurement. Columns the user has manually resized are not re-measured. Set to `false` to render at the declared `Width` with no automatic sizing (useful for fixed-width utility columns such as checkboxes or action buttons). See [Column fit](#column-fit). |
-| `Sizing` | `NxGridColumnSizing` | `Flex` | `Flex` — the column participates in CSS flex layout; `Width` is the flex-basis and proportional grow/shrink weight. `Fixed` — the column is always rendered at its exact pixel width with no flex participation. |
+| `FitContent` | `NxGridFitContent` | `Auto` | Controls automatic content measurement. `Auto` (default) — measurement is disabled when `Sizing="Fixed"` and `Width` is set (the declared width is the final answer); enabled in all other cases. `Always` — always measure regardless of `Sizing` or `Width`; `Width` serves as the initial render placeholder. `Never` — never measure; renders at `Width` (or 100 px when unset); with `Sizing="Flex"`, `Width` is the declared flex-basis. `FlexMinWidth`/`FlexMaxWidth` bound the measurement. Columns the user has manually resized are not re-measured. See [Column fit](#column-fit). |
+| `Sizing` | `NxGridColumnSizing` | `Flex` | `Flex` (default) — the column participates in CSS flex layout; `Width` (or measured content width) is the flex-basis and proportional grow/shrink weight. `Fixed` — the column is pinned at an exact pixel width with no flex. When `Sizing="Fixed"` and `Width` is set, `FitContent="Auto"` automatically disables measurement. |
 | `FlexMinWidth` | `int?` | — | Minimum width in pixels during automatic flex distribution. Only applies when `Sizing="Flex"` and the column has not been manually resized. Independent of `MinWidth`, which enforces the floor during drag-resize. When both are set the larger value applies. |
 | `FlexMaxWidth` | `int?` | — | Maximum width in pixels during automatic flex distribution. Only applies when `Sizing="Flex"` and the column has not been manually resized. Also clamps the width computed by `FitContent`. Independent of `MaxWidth`, which enforces the ceiling during drag-resize. When both are set the smaller value applies. |
 | `Template` | `RenderFragment<T>?` | — | Custom cell renderer. The cell container (padding, selection highlight) is still rendered by the grid; the template fills the inner content. When both `Template` and `CheckBox` are set, `Template` takes priority. |
@@ -488,13 +488,24 @@ Set `AutoSizable="false"` on a column to disable double-click auto-size. Drag re
 
 ## Column fit
 
-`FitContent="true"` (the default) causes a column to measure its widest data value and snap to that width on first render and whenever `Data` changes. It is set per column, so you can mix fitted and non-fitted columns freely.
+`FitContent` is an enum (`NxGridFitContent`) that controls whether a column automatically measures its widest data value to determine its width. The default value is `Auto`, which infers the right behavior from the other sizing parameters — meaning most columns need no explicit `FitContent` attribute at all.
+
+### Effective behavior by configuration
+
+| `Sizing` | `Width` | `FitContent="Auto"` infers | Result |
+|---|---|---|---|
+| `Flex` | not set | measure | auto-fit flex — snaps to content, then flex-distributes remaining space |
+| `Flex` | set (e.g. 150) | measure | auto-fit flex with 150 px as the initial render placeholder |
+| `Fixed` | not set | measure | content-pinned — measures and locks to that width |
+| `Fixed` | set (e.g. 60) | **skip** | exactly 60 px, no measurement |
+
+Override the inference with `FitContent="Always"` (always measure) or `FitContent="Never"` (never measure).
 
 ### How it works
 
-For each `FitContent` column that has not been manually resized:
+For each column whose effective `FitContent` is `true`:
 
-1. **Content width:** the grid estimates the maximum data width across the current filtered dataset (up to 1 000 rows) using a character-width prediction model. 15 px of cell padding is added.
+1. **Content width:** the grid estimates the maximum data width across the current filtered dataset (up to 1 000 rows) using a character-width prediction model. 20 px of cell padding is added.
 
 2. **Header width:** the minimum width required by the column header is measured from the DOM.
 
@@ -508,7 +519,7 @@ Any column the user has drag-resized or double-click auto-sized has a `UserWidth
 
 ### Automatic re-fit on data change
 
-When `Data` changes (new list reference or different row count), the fit runs again automatically for all `FitContent` columns. `UserWidth` columns are skipped so manual resizes are preserved.
+When `Data` changes (new list reference or different row count), the fit runs again automatically for all columns whose effective `FitContent` is `true`. `UserWidth` columns are skipped so manual resizes are preserved.
 
 ### Saved state wins
 
@@ -516,7 +527,7 @@ When `StateKey` is configured and persisted widths are loaded from `localStorage
 
 ### Opting out
 
-Set `FitContent="false"` to render a column at its declared `Width` with no automatic sizing. Useful for fixed-width utility columns (checkboxes, action buttons) or when you manage column widths externally.
+The simplest way to opt out is to set `Sizing="Fixed"` and a `Width` — `FitContent="Auto"` automatically disables measurement in that case. For a flex column that should render at a declared basis with no measurement, set `FitContent="Never"` alongside `Width`. Useful for fixed-width utility columns (checkboxes, action buttons) or when you manage column widths externally.
 
 ### Programmatic re-fit
 
@@ -762,7 +773,7 @@ When `ChildContent` is `null` (no `<NxGridColumn>` children), the grid reflects 
 | Aspect | Rule |
 |---|---|
 | Title | `[Display(Name = "...")]` attribute if present, otherwise the property name split on PascalCase word boundaries (`FirstName` → `"First Name"`) |
-| Width | `150 px` with `flex-grow: 150` in auto mode (extra space distributed proportionally to `Width`); locked to `150 px` once manual mode is active |
+| Width | Not set (`null`); auto-measures content on first render and distributes remaining flex space proportionally |
 | Alignment | `Right` for numeric types (`int`, `long`, `short`, `uint`, `ulong`, `ushort`, `byte`, `double`, `float`, `decimal`); `Left` for everything else |
 | Sort / filter | Fully supported — clicking the column header cycles sort, column menu provides filter. State is persisted by `StateKey`. |
 | Editing | Not enabled (auto-columns have no setter path) |

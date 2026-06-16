@@ -477,7 +477,7 @@
             </tr>
             <tr>
                 <td>Task FitColumnsAsync()</td>
-                <td>Recomputes content-fit widths for all columns with <code>FitContent="true"</code> and redistributes remaining space via flex. Columns the user has manually resized are skipped.</td>
+                <td>Recomputes content-fit widths for all columns whose effective <code>FitContent</code> resolves to <code>true</code> (<code>Always</code>, or <code>Auto</code> without a fixed Width override) and redistributes remaining space via flex. Columns the user has manually resized are skipped.</td>
                 <td><a href="/columns">Columns</a></td>
             </tr>
         </tbody>

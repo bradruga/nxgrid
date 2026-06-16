@@ -106,15 +106,17 @@
     <h2>FitContent</h2>
     <p class="doc-note">
         Columns automatically size to fit their widest data value on first render and whenever
-        <code>Data</code> changes — <code>FitContent="true"</code> is the default. Each fitted
+        <code>Data</code> changes. <code>FitContent="Auto"</code> is the default — each fitted
         column snaps to its content width, and remaining space is distributed among
         <code>Sizing="Flex"</code> columns proportionally.
     </p>
     <p class="doc-note">
         Manually resize any column — it will keep its width across data changes.
         <code>FlexMinWidth</code> / <code>FlexMaxWidth</code> bound the measurement.
-        Set <code>FitContent="false"</code> to opt out on a specific column (useful for
-        fixed-width utility columns). Use <code>FitColumnsAsync()</code> to re-fit programmatically.
+        Setting <code>Sizing="Fixed"</code> with an explicit <code>Width</code> automatically
+        disables measurement (<code>Auto</code> infers <code>Never</code>). Use
+        <code>FitContent="Never"</code> to opt out on a flex column with a declared basis.
+        Use <code>FitColumnsAsync()</code> to re-fit programmatically.
     </p>
     <NxGrid T="Person" @ref="fitGrid" Data="@fitData" Cursor="@NxGridCursor.Cell" Style="height:260px">
         <NxGridColumn Title="First Name"  Property="@(x => x.FirstName)" />

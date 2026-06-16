@@ -9,7 +9,7 @@ public partial class NxGrid<T>
     private const int FitScanRowLimit = 1000;
 
     private bool HasFitContentColumns =>
-        visibleColumns.Any(c => c.FitContent);
+        visibleColumns.Any(c => c.EffectiveFitContent);
 
     /// <summary>
     /// Recomputes content-fit widths for all visible columns that have
@@ -50,7 +50,7 @@ public partial class NxGrid<T>
         for (var i = 0; i < visibleColumns.Count; i++)
         {
             var col = visibleColumns[i];
-            if (col.UserWidth.HasValue || !col.FitContent) continue;
+            if (col.UserWidth.HasValue || !col.EffectiveFitContent) continue;
 
             double maxDataWidth = 0;
             foreach (var row in scanRows)

@@ -78,6 +78,42 @@
         </tbody>
     </table>
 
+    <h3 style="margin-top:20px">NxGridColumnSizing</h3>
+    <p class="doc-note">Passed to <code>Sizing</code> on <code>NxGridColumn</code>. <a href="/columns">Columns</a></p>
+    <table class="doc-table">
+        <thead><tr><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Flex</td>
+                <td>Default. The column participates in CSS flex layout. Width (or measured content width) is the flex-basis and proportional grow/shrink weight.</td>
+            </tr>
+            <tr>
+                <td>Fixed</td>
+                <td>The column is pinned at an exact pixel width with no flex participation. When Width is also set, <code>FitContent="Auto"</code> automatically disables measurement.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 style="margin-top:20px">NxGridFitContent</h3>
+    <p class="doc-note">Passed to <code>FitContent</code> on <code>NxGridColumn</code>. <a href="/columns">Columns</a></p>
+    <table class="doc-table">
+        <thead><tr><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Auto</td>
+                <td>Default. Measurement is disabled when <code>Sizing="Fixed"</code> and <code>Width</code> is set; enabled in all other cases.</td>
+            </tr>
+            <tr>
+                <td>Always</td>
+                <td>Always measure content regardless of Sizing or Width. Width (when set) serves as the initial render placeholder until measurement completes.</td>
+            </tr>
+            <tr>
+                <td>Never</td>
+                <td>Never measure. Renders at the declared Width (or 100 px when unset). With <code>Sizing="Flex"</code>, Width is used as the declared flex-basis with no automatic sizing.</td>
+            </tr>
+        </tbody>
+    </table>
+
     <h3 style="margin-top:20px">NxGridColumnAlignment</h3>
     <p class="doc-note">Passed to <code>Alignment</code> on <code>NxGridColumn</code>. <a href="/columns">Columns</a></p>
     <table class="doc-table">
