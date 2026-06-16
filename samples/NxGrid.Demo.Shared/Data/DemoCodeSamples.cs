@@ -1248,6 +1248,62 @@ private async Task OnPrintClick()
 </NxGrid>
 """;
 
+    public static readonly string CellColoringThreshold = """
+// Color a single column based on numeric thresholds.
+// Return null for all other columns to leave them unstyled.
+CellStyle="@StockCellStyle"
+
+NxGridCellStyle? StockCellStyle(StockRow row, NxGridColumn<StockRow> col)
+{
+    if (col.Title != "On Hand") return null;
+    return row.OnHand == 0
+        ? new NxGridCellStyle { Style = "background-color:#fee2e2;color:#991b1b;" }
+        : row.OnHand <= row.Reorder
+            ? new NxGridCellStyle { Style = "background-color:#fef9c3;color:#854d0e;" }
+            : new NxGridCellStyle { Style = "background-color:#dcfce7;color:#166534;" };
+}
+""";
+
+    public static readonly string CellColoringStatus = """
+// Map a fixed set of string values to distinct bg + text color pairs.
+// CSS variables work inside the Style string — define them on the grid element
+// (or any ancestor) to make colors overrideable from a stylesheet or dark-mode rule.
+<NxGrid ... CellStyle="@OrderCellStyle" style="--delivered-bg: #dcfce7;">
+
+NxGridCellStyle? OrderCellStyle(OrderRow row, NxGridColumn<OrderRow> col)
+{
+    if (col.Title != "Status") return null;
+    return row.Status switch
+    {
+        "Delivered"  => new NxGridCellStyle { Style = "background-color:var(--delivered-bg);color:#166534;" },
+        "Shipped"    => new NxGridCellStyle { Style = "background-color:#dbeafe;color:#1e40af;" },
+        "Processing" => new NxGridCellStyle { Style = "background-color:#fef9c3;color:#854d0e;" },
+        "On Hold"    => new NxGridCellStyle { Style = "background-color:#ffedd5;color:#9a3412;" },
+        "Cancelled"  => new NxGridCellStyle { Style = "background-color:#fee2e2;color:#991b1b;" },
+        _            => null
+    };
+}
+""";
+
+    public static readonly string CellColoringVariance = """
+// Color a computed variance column: under budget = green, over budget = red.
+// near-zero variance (< $200) gets no highlight.
+CellStyle="@VarianceCellStyle"
+
+<NxGridColumn Title="Variance" Width="120" Alignment="NxGridColumnAlignment.Right"
+              Display="@(x => FormatVariance(x.Actual - x.Budget))" />
+
+NxGridCellStyle? VarianceCellStyle(BudgetEntry row, NxGridColumn<BudgetEntry> col)
+{
+    if (col.Title != "Variance") return null;
+    var v = row.Actual - row.Budget;
+    if (Math.Abs(v) < 200) return null;
+    return v > 0
+        ? new NxGridCellStyle { Style = "background-color:#fee2e2;color:#991b1b;" }
+        : new NxGridCellStyle { Style = "background-color:#dcfce7;color:#166534;" };
+}
+""";
+
     public static readonly string FooterTemplateCombined = """
 // FooterTemplate and EnableSelectionMath work together —
 // the status bar floats above the footer row when a selection is active.

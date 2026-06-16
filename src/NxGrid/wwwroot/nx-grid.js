@@ -1,4 +1,19 @@
-﻿class NxGrid {
+﻿// Parse a CSS rgb/rgba string → [r, g, b], or null on failure.
+function parseRgbStr(str) {
+    const m = str && str.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    return m ? [+m[1], +m[2], +m[3]] : null;
+}
+
+// Parse a CSS hex color (#rgb or #rrggbb) → [r, g, b], or null on failure.
+function parseRgbHex(hex) {
+    let s = hex && hex.trim().replace(/^#/, '');
+    if (!s) return null;
+    if (s.length === 3) s = s[0]+s[0]+s[1]+s[1]+s[2]+s[2];
+    if (s.length < 6) return null;
+    return [parseInt(s.slice(0,2),16), parseInt(s.slice(2,4),16), parseInt(s.slice(4,6),16)];
+}
+
+class NxGrid {
     constructor(id, dotNetObjectReference) {
         this.id = id;
         this.dotNetObjectReference = dotNetObjectReference;
@@ -272,6 +287,18 @@
         return getComputedStyle(el).getPropertyValue(varName).trim();
     }
 
+    getCssVars(names) {
+        const el = document.getElementById(this.id);
+        if (!el) return {};
+        const style = getComputedStyle(el);
+        const result = {};
+        for (const name of names) {
+            const val = style.getPropertyValue(name).trim();
+            if (val) result[name] = val;
+        }
+        return result;
+    }
+
     getDatePickerPosition() {
         const gridElement = document.getElementById(this.id);
         if (!gridElement) return { top: 0, left: 0 };
@@ -323,6 +350,10 @@
             const minC = isRowMode ? 0 : Math.min(anchorCol, ec);
             const maxC = isRowMode ? maxCol : Math.max(anchorCol, ec);
 
+            // Resolve selection color once for blending (handles CSS variable overrides)
+            const selHex = getComputedStyle(gridElement).getPropertyValue('--nx-grid-selection-bg').trim();
+            const selRgb = parseRgbHex(selHex) || [199, 199, 199];
+
             for (const rowEl of gridElement.querySelectorAll('.nx-grid-row[data-row]')) {
                 const ri = +rowEl.dataset.row;
                 const inRowRange = ri >= minR && ri <= maxR;
@@ -330,8 +361,33 @@
                     const ci = +cell.dataset.col;
                     const inRange = inRowRange && ci >= minC && ci <= maxC;
                     const isAnch = !isRowMode && ri === anchorRow && ci === anchorCol;
-                    cell.classList.toggle(selClass, inRange && !isAnch);
+                    const wasSelected = cell.classList.contains(selClass);
+                    const nowSelected = inRange && !isAnch;
+
+                    cell.classList.toggle(selClass, nowSelected);
                     cell.classList.toggle(anchorClass, isAnch);
+
+                    // Blend background for cells that have an inline background-color.
+                    // The inline style's background-color has higher specificity than the
+                    // selection CSS class, so the class alone would have no visible effect.
+                    // We read getComputedStyle AFTER toggling the class: the inline bg-color
+                    // still wins over the class, so the computed value is the cell's custom
+                    // color — this also resolves CSS var() references to their actual rgb value.
+                    if (/background-color\s*:/i.test(cell.getAttribute('style') || '')) {
+                        if (nowSelected && !wasSelected) {
+                            const cellRgb = parseRgbStr(getComputedStyle(cell).backgroundColor);
+                            if (cellRgb) {
+                                cell.dataset.selSavedStyle = cell.getAttribute('style');
+                                const r = (cellRgb[0] + selRgb[0]) >> 1;
+                                const g = (cellRgb[1] + selRgb[1]) >> 1;
+                                const b = (cellRgb[2] + selRgb[2]) >> 1;
+                                cell.style.setProperty('background-color', `rgb(${r},${g},${b})`);
+                            }
+                        } else if (!nowSelected && wasSelected && cell.dataset.selSavedStyle != null) {
+                            cell.setAttribute('style', cell.dataset.selSavedStyle);
+                            delete cell.dataset.selSavedStyle;
+                        }
+                    }
 
                     if (inRange) {
                         const parts = [];

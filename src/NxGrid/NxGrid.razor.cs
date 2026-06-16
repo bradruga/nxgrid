@@ -702,6 +702,22 @@ public partial class NxGrid<T>
             }
         }
 
+        // Resolve any CSS custom property names encountered during rendering that weren't yet cached.
+        // GetCellStyle queues them in _pendingCssVars; we batch-resolve here and re-render once.
+        if (jsInterop != null && _pendingCssVars.Count > 0)
+        {
+            var names = _pendingCssVars.ToArray();
+            _pendingCssVars.Clear();
+            var resolved = await jsInterop.GetCssVars(names);
+            foreach (var (name, value) in resolved)
+            {
+                if (!string.IsNullOrEmpty(value))
+                    _cssVarColors[name] = value;
+            }
+            if (resolved.Count > 0)
+                StateHasChanged();
+        }
+
         if (columns.Count != lastColumnCount)
         {
             lastColumnCount = columns.Count;

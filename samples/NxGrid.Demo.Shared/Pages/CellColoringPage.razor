@@ -1,0 +1,162 @@
+@page "/cell-coloring"
+
+<PageTitle>Cell Coloring — NxGrid</PageTitle>
+
+<h1>Cell Coloring</h1>
+<p class="doc-intro">
+    Pass a <code>Func&lt;T, NxGridColumn&lt;T&gt;, NxGridCellStyle?&gt;</code> to the <code>CellStyle</code>
+    parameter to color individual cells based on row data. Return a <code>NxGridCellStyle</code> with a
+    <code>Style</code> string for cells that need coloring and <code>null</code> for all others.
+    Selection color blending still applies — custom backgrounds mix with the selection highlight automatically.
+</p>
+
+<div class="doc-section">
+    <h2>Threshold Coloring</h2>
+    <p class="doc-note">
+        Color the <strong>On Hand</strong> column to communicate stock status at a glance.
+        Green = in stock, amber = below reorder level, red = out of stock.
+        All other columns retain default styling.
+    </p>
+    <NxGrid T="StockRow" Data="@inventory" CellStyle="@StockCellStyle"
+            RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.Product)"  Title="Product"  Width="200" />
+        <NxGridColumn Property="@(x => x.Category)" Title="Category" Width="130" />
+        <NxGridColumn Property="@(x => x.OnHand)"   Title="On Hand"  Width="90"
+                      Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Reorder)"  Title="Reorder"  Width="90"
+                      Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@thresholdCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Status Coloring</h2>
+    <p class="doc-note">
+        Map a fixed set of string values to distinct background and text color pairs.
+        Each status is visually distinct without needing a separate icon column.
+        CSS variables work inside the <code>Style</code> string — the
+        <code>--delivered-bg</code> variable is defined on the grid element itself,
+        making it easy to override from a parent stylesheet or dark-mode rule.
+    </p>
+    <NxGrid T="OrderRow" Data="@orders" CellStyle="@OrderCellStyle"
+            style="--delivered-bg: #dcfce7;"
+            RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.OrderId)"  Title="Order"    Width="90" />
+        <NxGridColumn Property="@(x => x.Customer)" Title="Customer" Width="160" />
+        <NxGridColumn Property="@(x => x.Status)"   Title="Status"   Width="110"
+                      Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Property="@(x => x.Amount)"   Title="Amount"   Width="100"
+                      Alignment="NxGridColumnAlignment.Right"
+                      Display="@(x => x.Amount.ToString("C"))" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@statusCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Positive / Negative Values</h2>
+    <p class="doc-note">
+        Color a variance column green when under budget and red when over.
+        Only the <strong>Variance</strong> column is styled; the numeric columns
+        keep their default appearance.
+    </p>
+    <NxGrid T="BudgetEntry" Data="@budgetRows" CellStyle="@VarianceCellStyle"
+            RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.Category)" Title="Category" Width="160" />
+        <NxGridColumn Property="@(x => x.Budget)"   Title="Budget"   Width="110"
+                      Alignment="NxGridColumnAlignment.Right"
+                      Display="@(x => x.Budget.ToString("C0"))" />
+        <NxGridColumn Property="@(x => x.Actual)"   Title="Actual"   Width="110"
+                      Alignment="NxGridColumnAlignment.Right"
+                      Display="@(x => x.Actual.ToString("C0"))" />
+        <NxGridColumn Title="Variance" Width="120"
+                      Alignment="NxGridColumnAlignment.Right"
+                      Display="@(x => FormatVariance(x.Actual - x.Budget))" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@varianceCode</pre>
+</div>
+
+@code {
+    // ── Section 1 — Threshold coloring ──────────────────────────────────────
+    record StockRow(string Product, string Category, int OnHand, int Reorder);
+
+    List<StockRow> inventory =
+    [
+        new("Wireless Mouse",      "Peripherals", 142, 50),
+        new("USB-C Cable",         "Accessories",  38, 40),
+        new("Mechanical Keyboard", "Peripherals",   0, 25),
+        new("Monitor Stand",       "Desk",         12, 20),
+        new("Webcam",              "Peripherals",   5, 15),
+        new("HDMI Adapter",        "Accessories",   0, 30),
+        new("Laptop Stand",        "Desk",         67, 20),
+        new("Desk Mat",            "Desk",          3, 10),
+    ];
+
+    NxGridCellStyle? StockCellStyle(StockRow row, NxGridColumn<StockRow> col)
+    {
+        if (col.Title != "On Hand") return null;
+        return row.OnHand == 0
+            ? new NxGridCellStyle { Style = "background-color:#fee2e2;color:#991b1b;" }
+            : row.OnHand <= row.Reorder
+                ? new NxGridCellStyle { Style = "background-color:#fef9c3;color:#854d0e;" }
+                : new NxGridCellStyle { Style = "background-color:#dcfce7;color:#166534;" };
+    }
+
+    // ── Section 2 — Status coloring ─────────────────────────────────────────
+    record OrderRow(string OrderId, string Customer, string Status, decimal Amount);
+
+    List<OrderRow> orders =
+    [
+        new("ORD-001", "Acme Corp",          "Delivered",  1_250.00m),
+        new("ORD-002", "Globex Inc",          "Shipped",     875.50m),
+        new("ORD-003", "Initech",             "Processing",  340.00m),
+        new("ORD-004", "Umbrella Ltd",        "On Hold",   2_100.75m),
+        new("ORD-005", "Stark Industries",    "Delivered",   990.00m),
+        new("ORD-006", "Wayne Enterprises",   "Cancelled",   560.00m),
+        new("ORD-007", "Oscorp",              "Processing",  725.25m),
+        new("ORD-008", "Weyland Corp",        "Shipped",   1_450.00m),
+    ];
+
+    NxGridCellStyle? OrderCellStyle(OrderRow row, NxGridColumn<OrderRow> col)
+    {
+        if (col.Title != "Status") return null;
+        return row.Status switch
+        {
+            "Delivered"  => new NxGridCellStyle { Style = "background-color:var(--delivered-bg);color:#166534;" },
+            "Shipped"    => new NxGridCellStyle { Style = "background-color:#dbeafe;color:#1e40af;" },
+            "Processing" => new NxGridCellStyle { Style = "background-color:#fef9c3;color:#854d0e;" },
+            "On Hold"    => new NxGridCellStyle { Style = "background-color:#ffedd5;color:#9a3412;" },
+            "Cancelled"  => new NxGridCellStyle { Style = "background-color:#fee2e2;color:#991b1b;" },
+            _            => null
+        };
+    }
+
+    // ── Section 3 — Variance coloring ───────────────────────────────────────
+    record BudgetEntry(string Category, decimal Budget, decimal Actual);
+
+    List<BudgetEntry> budgetRows =
+    [
+        new("Marketing",   50_000m, 47_200m),
+        new("Engineering", 80_000m, 86_500m),
+        new("Sales",       60_000m, 58_900m),
+        new("HR",          30_000m, 30_100m),
+        new("Operations",  45_000m, 39_750m),
+        new("Legal",       20_000m, 23_400m),
+    ];
+
+    static string FormatVariance(decimal v) =>
+        v > 0 ? $"+{v:C0}" : v.ToString("C0");
+
+    NxGridCellStyle? VarianceCellStyle(BudgetEntry row, NxGridColumn<BudgetEntry> col)
+    {
+        if (col.Title != "Variance") return null;
+        var v = row.Actual - row.Budget;
+        if (Math.Abs(v) < 200) return null;
+        return v > 0
+            ? new NxGridCellStyle { Style = "background-color:#fee2e2;color:#991b1b;" }
+            : new NxGridCellStyle { Style = "background-color:#dcfce7;color:#166534;" };
+    }
+
+    string thresholdCode = DemoCodeSamples.CellColoringThreshold;
+    string statusCode    = DemoCodeSamples.CellColoringStatus;
+    string varianceCode  = DemoCodeSamples.CellColoringVariance;
+}

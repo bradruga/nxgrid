@@ -7,6 +7,15 @@ public partial class NxGrid<T>
     private static readonly Regex BgColorExtractRegex =
         new(@"background-color\s*:\s*(#[0-9a-fA-F]{3,8}|rgba?\s*\([^)]+\)|[a-zA-Z]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    // Captures the CSS variable name from background-color: var(--name ...).
+    // Must be checked before TryExtractHexBgColor because [a-zA-Z]+ in that regex
+    // false-positively matches "var", causing a wrong blend result.
+    private static readonly Regex CssVarNameRegex =
+        new(@"background-color\s*:\s*var\s*\(\s*(--[^,)\s]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private readonly Dictionary<string, string> _cssVarColors = new();
+    private readonly HashSet<string> _pendingCssVars = new();
+
     private static readonly Regex RgbRegex =
         new(@"rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -25,11 +34,30 @@ public partial class NxGrid<T>
 
         if (!selected) return baseStyle;
 
-        var hasBg = TryExtractHexBgColor(baseStyle, out var cellHex);
-        if (!hasBg) return baseStyle;  // no custom bg — CSS class handles selection color via var(--nx-grid-selection-bg)
+        // CSS variable backgrounds must be checked before TryExtractHexBgColor — the named-color
+        // branch of that regex matches "var" as a word, producing an incorrect blend.
+        var varMatch = CssVarNameRegex.Match(baseStyle);
+        if (varMatch.Success)
+        {
+            var varName = varMatch.Groups[1].Value.Trim();
+            if (_cssVarColors.TryGetValue(varName, out var resolvedHex))
+            {
+                // Resolved value on hand — blend exactly like a hex background
+                var blended = BlendHexColors(resolvedHex, selectionColor);
+                return RemoveBgColorFromStyle(baseStyle) + $"background-color:{blended};";
+            }
+            // Not yet resolved — queue for JS lookup after this render, use overlay as one-frame fallback
+            _pendingCssVars.Add(varName);
+            if (TryParseHex(selectionColor, out var sc))
+                return baseStyle + $"background-image:linear-gradient(rgba({sc.r},{sc.g},{sc.b},0.5),rgba({sc.r},{sc.g},{sc.b},0.5));";
+            return baseStyle;
+        }
 
-        var blended = BlendHexColors(cellHex!, selectionColor);
-        return RemoveBgColorFromStyle(baseStyle) + $"background-color:{blended};";
+        var hasBg = TryExtractHexBgColor(baseStyle, out var cellHex);
+        if (!hasBg) return baseStyle;  // no custom bg — CSS class handles selection color
+
+        var blendedHex = BlendHexColors(cellHex!, selectionColor);
+        return RemoveBgColorFromStyle(baseStyle) + $"background-color:{blendedHex};";
     }
 
     internal static string? BuildCellStyleCss(NxGridCellStyle? s)

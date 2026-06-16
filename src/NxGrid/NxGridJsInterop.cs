@@ -102,6 +102,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public Task<string> GetCssVar(string varName)
         => jsObject.InvokeAsync<string>("getCssVar", varName).AsTask();
 
+    public Task<Dictionary<string, string>> GetCssVars(string[] names)
+        => jsObject.InvokeAsync<Dictionary<string, string>>("getCssVars", names).AsTask();
+
     public Task<NxComboDropdownPosition> GetComboDropdownPosition()
     {
         return jsObject.InvokeAsync<NxComboDropdownPosition>("getComboDropdownPosition").AsTask();
