@@ -20,6 +20,8 @@
   --nx-grid-item-hover-bg: #e8f4ff;
   --nx-grid-muted-fg: #888;
   --nx-grid-shadow: rgba(0, 0, 0, 0.15);
+  --nx-grid-group-header-bg: #E8E8E8;
+  --nx-grid-group-header-fg: #333333;
 }
 
 .nx-grid {
@@ -1044,11 +1046,6 @@
   pointer-events: none;
   z-index: 10;
   display: none;
-}
-
-:root {
-  --nx-grid-group-header-bg: #E8E8E8;
-  --nx-grid-group-header-fg: #333333;
 }
 
 .nx-grid-group-header {

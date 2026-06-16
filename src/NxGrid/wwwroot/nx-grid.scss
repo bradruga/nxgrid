@@ -1,25 +1,27 @@
 // ── Default values ────────────────────────────────────────────────────────────
-$nx-grid-fg:            inherit;
-$nx-grid-border:        #E0E0E0;
-$nx-grid-header-bg:     #F0F0F0;
-$nx-grid-header-border: #999999;
-$nx-grid-row-even-bg:   #e7e7e7;
-$nx-grid-row-odd-bg:    #ececec;
-$nx-grid-surface:       #fff;
-$nx-grid-selection-bg:          #C7C7C7;
-$nx-grid-selected-border:       #AFAFAF;
-$nx-grid-focus-cell-bg:         #d6f5e3;
-$nx-grid-accent:              #0078d4;
-$nx-grid-accent-dark:         #005a9e;
-$nx-grid-selection-border:    #217346;
-$nx-grid-pick-border:         #0078d4;
-$nx-grid-row-number-fg: #666;
-$nx-grid-icon-fg:       #000;
-$nx-grid-icon-muted-fg: #555;
-$nx-grid-hover-bg:      #f0f0f0;
-$nx-grid-item-hover-bg: #e8f4ff;
-$nx-grid-muted-fg:      #888;
-$nx-grid-shadow:        rgba(0, 0, 0, 0.15);
+$nx-grid-fg:            inherit   !default;
+$nx-grid-border:        #E0E0E0   !default;
+$nx-grid-header-bg:     #F0F0F0   !default;
+$nx-grid-header-border: #999999   !default;
+$nx-grid-row-even-bg:   #e7e7e7   !default;
+$nx-grid-row-odd-bg:    #ececec   !default;
+$nx-grid-surface:       #fff      !default;
+$nx-grid-selection-bg:          #C7C7C7   !default;
+$nx-grid-selected-border:       #AFAFAF   !default;
+$nx-grid-focus-cell-bg:         #d6f5e3   !default;
+$nx-grid-accent:              #0078d4     !default;
+$nx-grid-accent-dark:         #005a9e     !default;
+$nx-grid-selection-border:    #217346     !default;
+$nx-grid-pick-border:         #0078d4     !default;
+$nx-grid-row-number-fg: #666      !default;
+$nx-grid-icon-fg:       #000      !default;
+$nx-grid-icon-muted-fg: #555      !default;
+$nx-grid-hover-bg:      #f0f0f0   !default;
+$nx-grid-item-hover-bg: #e8f4ff   !default;
+$nx-grid-muted-fg:      #888      !default;
+$nx-grid-shadow:        rgba(0, 0, 0, 0.15) !default;
+$nx-grid-group-header-bg: #E8E8E8 !default;
+$nx-grid-group-header-fg: #333333 !default;
 
 // ── CSS custom properties (override these in your own CSS) ────────────────────
 :root {
@@ -44,6 +46,8 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
     --nx-grid-item-hover-bg: #{$nx-grid-item-hover-bg};
     --nx-grid-muted-fg:      #{$nx-grid-muted-fg};
     --nx-grid-shadow:        #{$nx-grid-shadow};
+    --nx-grid-group-header-bg: #{$nx-grid-group-header-bg};
+    --nx-grid-group-header-fg: #{$nx-grid-group-header-fg};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1117,14 +1121,6 @@ $nx-grid-shadow:        rgba(0, 0, 0, 0.15);
 }
 
 // ── Row grouping ──────────────────────────────────────────────────────────────
-
-$nx-grid-group-header-bg: #E8E8E8;
-$nx-grid-group-header-fg: #333333;
-
-:root {
-    --nx-grid-group-header-bg: #{$nx-grid-group-header-bg};
-    --nx-grid-group-header-fg: #{$nx-grid-group-header-fg};
-}
 
 .nx-grid-group-header {
     display: flex;

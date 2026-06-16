@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `--nx-grid-fg` documented in `docs/reference.md` CSS custom properties section.
+- All SCSS variables in `nx-grid.scss` now use `!default`, allowing consuming projects to override theme values before importing the file.
+- SCSS variables `$nx-grid-group-header-bg` and `$nx-grid-group-header-fg` moved to the top of `nx-grid.scss` with all other variables; their CSS custom properties consolidated into the single `:root` block.
 
 ### Fixed
 
