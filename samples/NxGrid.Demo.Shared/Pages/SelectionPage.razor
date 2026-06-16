@@ -120,6 +120,47 @@
 </div>
 
 <div class="doc-section">
+    <h2>SelectionMode.SingleRow — One Row at a Time</h2>
+    <p class="doc-para">
+        Like <code>Row</code> mode, clicking any cell selects the entire row and left/right arrows
+        are no-ops. Unlike <code>Row</code> mode, <kbd class="doc-kbd">Shift</kbd> and
+        <kbd class="doc-kbd">Ctrl</kbd> are ignored — only one row can ever be selected. Use this
+        for master-detail layouts where accidental multi-row selection should be prevented.
+    </p>
+    <div class="doc-demo-row">
+        <div class="doc-demo-grid">
+            <NxGrid T="Person" Data="@singleRowPeople"
+                    SelectionMode="NxGridSelectionMode.SingleRow"
+                    OnSelectionChanged="@OnSingleRowSelectionChanged"
+                    Cursor="@NxGridCursor.Pointer"
+                    Style="height:260px">
+                <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+                <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+                <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+                <NxGridColumn Property="@(x => x.Department)" />
+            </NxGrid>
+        </div>
+        <div class="doc-detail-panel">
+            @if (singleRowPerson != null)
+            {
+                <div class="doc-detail-card">
+                    <div class="doc-detail-name">@singleRowPerson.FirstName @singleRowPerson.LastName</div>
+                    <div class="doc-detail-row"><span>ID</span><span>@singleRowPerson.Id</span></div>
+                    <div class="doc-detail-row"><span>Age</span><span>@singleRowPerson.Age</span></div>
+                    <div class="doc-detail-row"><span>Department</span><span>@singleRowPerson.Department</span></div>
+                    <div class="doc-detail-row"><span>Email</span><span>@($"{singleRowPerson.FirstName.ToLower()}.{singleRowPerson.LastName.ToLower()}@corp.com")</span></div>
+                </div>
+            }
+            else
+            {
+                <div class="doc-detail-empty">← Select a row</div>
+            }
+        </div>
+    </div>
+    <pre class="doc-code">@selectionModeSingleRowCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Multi-Range Selection (Ctrl+Click)</h2>
     <p class="doc-para">
         Hold <kbd class="doc-kbd">Ctrl</kbd> (⌘ on Mac) while clicking or dragging to build up multiple independent
@@ -349,10 +390,11 @@
         clickLog = $"Clicked: {args.Row.FirstName} {args.Row.LastName} — column \"{args.Column.EffectiveTitle}\"";
     }
 
-    List<Person> cellPeople  = SampleData.GetPeopleCopy();
-    List<Person> rowPeople   = SampleData.GetPeopleCopy();
-    List<Person> nonePeople  = SampleData.GetPeopleCopy();
-    List<Person> multiPeople = SampleData.GetPeopleCopy();
+    List<Person> cellPeople      = SampleData.GetPeopleCopy();
+    List<Person> rowPeople       = SampleData.GetPeopleCopy();
+    List<Person> singleRowPeople = SampleData.GetPeopleCopy();
+    List<Person> nonePeople      = SampleData.GetPeopleCopy();
+    List<Person> multiPeople     = SampleData.GetPeopleCopy();
     List<Person> bindPeople  = SampleData.GetPeopleCopy();
     List<Person> bindSelectedPeople = [];
 
@@ -381,6 +423,13 @@
     void OnRowSelectionChanged(NxGridSelectionArgs<Person> args)
     {
         selectedPerson = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
+    }
+
+    Person? singleRowPerson;
+
+    void OnSingleRowSelectionChanged(NxGridSelectionArgs<Person> args)
+    {
+        singleRowPerson = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
     }
 
     async Task SelectAlice()
@@ -446,8 +495,9 @@
     string keyPropertySaveRefreshCode = DemoCodeSamples.KeyPropertySaveRefresh;
     string selectRowByKeyCode         = DemoCodeSamples.SelectRowByKeyCode;
 
-    string bindSelectedItemsCode = DemoCodeSamples.BindSelectedItems;
-    string selectionCode        = DemoCodeSamples.Selection;
+    string bindSelectedItemsCode      = DemoCodeSamples.BindSelectedItems;
+    string selectionModeSingleRowCode = DemoCodeSamples.SelectionModeSingleRow;
+    string selectionCode              = DemoCodeSamples.Selection;
     string selectionModeRowCode = DemoCodeSamples.SelectionModeRow;
     string selectionModeNoneCode = DemoCodeSamples.SelectionModeNone;
     string selectRowCode        = DemoCodeSamples.SelectRow;

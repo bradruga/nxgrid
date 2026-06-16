@@ -33,7 +33,7 @@ public partial class NxGrid<T>
             if (selectedRanges.Any(r => r.IsCellInRange(rowIndex, colIndex))) return;
 
             if (isEditing) await CommitEdit();
-            selectedRanges = [SelectionMode == NxGridSelectionMode.Row
+            selectedRanges = [(SelectionMode == NxGridSelectionMode.Row || SelectionMode == NxGridSelectionMode.SingleRow)
                 ? new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }
                 : new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex }];
             StateHasChanged();
@@ -64,6 +64,15 @@ public partial class NxGrid<T>
         if (isEditing) await CommitEdit();
 
         var ctrlHeld = isMac ? args.MetaKey : args.CtrlKey;
+
+        if (SelectionMode == NxGridSelectionMode.SingleRow)
+        {
+            selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
+            StateHasChanged();
+            await RaiseSelectionChanged();
+            // SingleRow never drag-extends; OnCellClicked fires from OnCellMouseUp for clean clicks.
+            return;
+        }
 
         if (SelectionMode == NxGridSelectionMode.Row)
         {
@@ -209,7 +218,7 @@ public partial class NxGrid<T>
         else
             DismissTooltip();
 
-        if (ActiveRange != null && leftMouseDown && SelectionMode != NxGridSelectionMode.None)
+        if (ActiveRange != null && leftMouseDown && SelectionMode != NxGridSelectionMode.None && SelectionMode != NxGridSelectionMode.SingleRow)
         {
             var rowIndex = filteredData.IndexOf(row);
             var colIndex = visibleColumns.IndexOf(column);
@@ -395,7 +404,7 @@ public partial class NxGrid<T>
         if (args.Button != MouseButtonLeft) return;
         if (SelectionMode == NxGridSelectionMode.None) return;
         int startRow, endRow;
-        if (args.ShiftKey && headerAnchorRow.HasValue)
+        if (args.ShiftKey && headerAnchorRow.HasValue && SelectionMode != NxGridSelectionMode.SingleRow)
         {
             startRow = Math.Min(headerAnchorRow.Value, rowIndex);
             endRow   = Math.Max(headerAnchorRow.Value, rowIndex);
@@ -414,6 +423,7 @@ public partial class NxGrid<T>
     private async Task OnRowNumberMouseEnter(MouseEventArgs args, int rowIndex)
     {
         if (SelectionMode == NxGridSelectionMode.None) return;
+        if (SelectionMode == NxGridSelectionMode.SingleRow) return;
         if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) return;
         if (!headerAnchorRow.HasValue) return;
 

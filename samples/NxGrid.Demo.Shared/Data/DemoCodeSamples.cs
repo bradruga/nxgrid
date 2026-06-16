@@ -264,6 +264,31 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string SelectionModeSingleRow = """
+// SingleRow mode — clicking any cell selects a single entire row.
+// Shift and Ctrl are ignored — only one row is ever selected at a time.
+// Arrow keys (Up/Down), Tab, and Enter move the selection without extending it.
+<NxGrid T="Person"
+        Data="@people"
+        SelectionMode="NxGridSelectionMode.SingleRow"
+        OnSelectionChanged="@OnSelectionChanged"
+        Cursor="NxGridCursor.Pointer">
+    <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+    <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
+    <NxGridColumn Property="@(x => x.Department)" />
+</NxGrid>
+
+@code {
+    List<Person> people = [ /* ... */ ];
+    Person? selected;
+
+    void OnSelectionChanged(NxGridSelectionArgs<Person> args)
+    {
+        selected = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
+    }
+}
+""";
+
     public static readonly string BindSelectedItems = """
 // @bind-SelectedItems is a shorthand for the common OnSelectionChanged pattern.
 // selectedPeople is updated automatically on every selection change.
