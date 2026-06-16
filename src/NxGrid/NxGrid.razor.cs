@@ -112,7 +112,7 @@ public partial class NxGrid<T>
     /// Controls how the grid handles mouse and keyboard selection.
     /// <list type="bullet">
     ///   <item><see cref="NxGridSelectionMode.Cell"/> — rectangular cell-range selection (default).</item>
-    ///   <item><see cref="NxGridSelectionMode.Row"/> — whole-row selection; Shift extends to a contiguous range; left/right arrows are no-ops.</item>
+    ///   <item><see cref="NxGridSelectionMode.MultiRow"/> — whole-row selection; Shift extends to a contiguous range; left/right arrows are no-ops.</item>
     ///   <item><see cref="NxGridSelectionMode.SingleRow"/> — whole-row selection, exactly one row at a time; Shift and Ctrl are ignored; left/right arrows are no-ops.</item>
     ///   <item><see cref="NxGridSelectionMode.None"/> — selection disabled; incompatible with <see cref="Editable"/>.</item>
     /// </list>
@@ -399,7 +399,7 @@ public partial class NxGrid<T>
     /// Enables the fill handle — a small square at the bottom-right corner of the active selection.
     /// Drag it in any direction to fill adjacent editable cells. Numeric cells increment by 1 per
     /// step (or detect a series); dates increment by one calendar day; all other types copy.
-    /// Auto-disabled when <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.Row"/>,
+    /// Auto-disabled when <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.MultiRow"/>,
     /// <see cref="NxGridSelectionMode.SingleRow"/>, or <see cref="NxGridSelectionMode.None"/>.
     /// Only visible when exactly one range is active and
     /// <see cref="OnUpdate"/> is set. Default: <c>true</c>.

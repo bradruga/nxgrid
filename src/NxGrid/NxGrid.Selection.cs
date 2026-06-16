@@ -33,7 +33,7 @@ public partial class NxGrid<T>
             if (selectedRanges.Any(r => r.IsCellInRange(rowIndex, colIndex))) return;
 
             if (isEditing) await CommitEdit();
-            selectedRanges = [(SelectionMode == NxGridSelectionMode.Row || SelectionMode == NxGridSelectionMode.SingleRow)
+            selectedRanges = [(SelectionMode == NxGridSelectionMode.MultiRow || SelectionMode == NxGridSelectionMode.SingleRow)
                 ? new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }
                 : new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex }];
             StateHasChanged();
@@ -74,7 +74,7 @@ public partial class NxGrid<T>
             return;
         }
 
-        if (SelectionMode == NxGridSelectionMode.Row)
+        if (SelectionMode == NxGridSelectionMode.MultiRow)
         {
             if (args.ShiftKey && ActiveRange != null)
             {
@@ -227,13 +227,13 @@ public partial class NxGrid<T>
                 clickWasDragged = true;
 
             var newEndRow = rowIndex;
-            var newEndCol = SelectionMode == NxGridSelectionMode.Row ? visibleColumns.Count - 1 : colIndex;
+            var newEndCol = SelectionMode == NxGridSelectionMode.MultiRow ? visibleColumns.Count - 1 : colIndex;
 
             // Skip re-render when the drag endpoint hasn't changed (mouse still on the same cell)
             if (newEndRow == ActiveRange.EndRow && newEndCol == ActiveRange.EndCol) return;
 
             ActiveRange.EndRow = newEndRow;
-            if (SelectionMode == NxGridSelectionMode.Row)
+            if (SelectionMode == NxGridSelectionMode.MultiRow)
             {
                 ActiveRange.StartCol = 0;
                 ActiveRange.EndCol = visibleColumns.Count - 1;

@@ -243,12 +243,13 @@ public static class DemoCodeSamples
 """;
 
     public static readonly string SelectionModeRow = """
-// Row mode — clicking any cell selects the entire row.
+// MultiRow mode — clicking any cell selects the entire row.
 // Shift+click / Shift+Arrow extends to a contiguous row range.
+// Ctrl+click adds independent row ranges.
 // Left / right arrow keys are no-ops.
 <NxGrid T="Person"
         Data="@people"
-        SelectionMode="NxGridSelectionMode.Row"
+        SelectionMode="NxGridSelectionMode.MultiRow"
         OnSelectionChanged="@OnSelectionChanged">
     ...
 </NxGrid>
@@ -294,7 +295,7 @@ public static class DemoCodeSamples
 // selectedPeople is updated automatically on every selection change.
 <NxGrid T="Person"
         Data="@people"
-        SelectionMode="NxGridSelectionMode.Row"
+        SelectionMode="NxGridSelectionMode.MultiRow"
         @bind-SelectedItems="selectedPeople"
         Cursor="NxGridCursor.Pointer">
     <NxGridColumn Property="@(x => x.FirstName)" Width="130" />

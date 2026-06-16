@@ -104,7 +104,7 @@
                 <td>SelectionMode</td>
                 <td>NxGridSelectionMode</td>
                 <td>Cell</td>
-                <td><code>Cell</code> — rectangular range; <code>Row</code> — entire row, Shift extends to multi-row; <code>SingleRow</code> — entire row, one row only (Shift/Ctrl ignored); <code>None</code> — no selection.</td>
+                <td><code>Cell</code> — rectangular range; <code>MultiRow</code> — entire row, Shift/Ctrl multi-range; <code>SingleRow</code> — entire row, one row only (Shift/Ctrl ignored); <code>None</code> — no selection.</td>
                 <td><a href="/selection">Selection</a></td>
             </tr>
             <tr>
@@ -418,7 +418,7 @@
                 <td>EnableDragFill</td>
                 <td>bool</td>
                 <td>true</td>
-                <td>Enables the fill handle — a small square at the bottom-right corner of the active selection. Drag in any direction to fill adjacent editable cells. Auto-disabled when SelectionMode is Row, SingleRow, or None. Only visible when exactly one range is active and OnUpdate is set.</td>
+                <td>Enables the fill handle — a small square at the bottom-right corner of the active selection. Drag in any direction to fill adjacent editable cells. Auto-disabled when SelectionMode is MultiRow, SingleRow, or None. Only visible when exactly one range is active and OnUpdate is set.</td>
                 <td><a href="/drag-fill">Drag to Fill</a></td>
             </tr>
         </tbody>

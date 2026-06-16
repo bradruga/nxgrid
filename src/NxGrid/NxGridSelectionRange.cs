@@ -3,7 +3,7 @@ namespace NxGrid;
 /// <summary>
 /// A single rectangular selection range within <see cref="NxGridSelectionArgs{T}"/>.
 /// Row and column indices are into <c>filteredData</c> and <c>visibleColumns</c> respectively.
-/// In <see cref="NxGridSelectionMode.Row"/> mode the range always spans all visible columns
+/// In <see cref="NxGridSelectionMode.MultiRow"/> mode the range always spans all visible columns
 /// (<c>StartCol = 0</c>, <c>EndCol = visibleColumns.Count - 1</c>).
 /// </summary>
 public class NxGridSelectionRange<T>
@@ -28,7 +28,7 @@ public class NxGridSelectionRange<T>
 
     /// <summary>
     /// The <see cref="NxGridColumn{T}"/> objects covered by this range, in visible order.
-    /// In <see cref="NxGridSelectionMode.Row"/> mode this contains every visible column.
+    /// In <see cref="NxGridSelectionMode.MultiRow"/> mode this contains every visible column.
     /// </summary>
     public List<NxGridColumn<T>> Columns { get; set; } = [];
 }

@@ -206,7 +206,7 @@ public class NxGridSelectionTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         NxGridSelectionArgs<Row>? captured = null;
         var rows = new List<Row> { new("Alice", 25), new("Bob", 20) };
-        var cut = RenderGrid(rows, mode: NxGridSelectionMode.Row, onChanged: args => captured = args);
+        var cut = RenderGrid(rows, mode: NxGridSelectionMode.MultiRow, onChanged: args => captured = args);
 
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[0]
             .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });

@@ -6,7 +6,8 @@
 <p class="doc-intro">
     <code>SelectionMode</code> controls how the grid responds to mouse and keyboard interaction.
     <code>Cell</code> (default) gives you rectangular cell-range selection.
-    <code>Row</code> selects entire rows — the natural fit for master-detail layouts.
+    <code>MultiRow</code> selects entire rows with Shift/Ctrl multi-range support.
+    <code>SingleRow</code> selects exactly one row at a time — the natural fit for master-detail layouts.
     <code>None</code> disables all selection feedback for display-only grids.
 </p>
 
@@ -21,7 +22,7 @@
     <div class="doc-demo-row">
         <div class="doc-demo-grid">
             <NxGrid T="Person" Data="@clickPeople"
-                    SelectionMode="NxGridSelectionMode.Row"
+                    SelectionMode="NxGridSelectionMode.MultiRow"
                     OnCellClicked="@OnPersonClicked"
                     Cursor="NxGridCursor.Pointer"
                     Style="height:260px">
@@ -81,16 +82,17 @@
 </div>
 
 <div class="doc-section">
-    <h2>SelectionMode.Row — Master-Detail</h2>
+    <h2>SelectionMode.MultiRow — Master-Detail</h2>
     <p class="doc-para">
         Clicking any cell in a row selects the whole row.
         <kbd class="doc-kbd">Shift+click</kbd> and <kbd class="doc-kbd">Shift+↑↓</kbd> extend to a contiguous row range.
+        <kbd class="doc-kbd">Ctrl+click</kbd> adds independent row ranges.
         Left/right arrows are no-ops. <code>args.Ranges[0].Items</code> gives you the selected row objects directly.
     </p>
     <div class="doc-demo-row">
         <div class="doc-demo-grid">
             <NxGrid T="Person" Data="@rowPeople"
-                    SelectionMode="NxGridSelectionMode.Row"
+                    SelectionMode="NxGridSelectionMode.MultiRow"
                     OnSelectionChanged="@OnRowSelectionChanged"
                     Cursor="@NxGridCursor.Pointer"
                     Style="height:260px">
@@ -218,7 +220,7 @@
     <div class="doc-demo-row">
         <div class="doc-demo-grid">
             <NxGrid T="Person" Data="@bindPeople"
-                    SelectionMode="NxGridSelectionMode.Row"
+                    SelectionMode="NxGridSelectionMode.MultiRow"
                     @bind-SelectedItems="bindSelectedPeople"
                     Cursor="NxGridCursor.Pointer"
                     Style="height:260px">
@@ -274,7 +276,7 @@
         <div>
             <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#666">Without KeyProperty</div>
             <NxGrid T="Person" Data="@keyPeopleNoKey"
-                    SelectionMode="NxGridSelectionMode.Row"
+                    SelectionMode="NxGridSelectionMode.MultiRow"
                     @bind-SelectedItems="keySelectedNoKey"
                     Cursor="NxGridCursor.Pointer"
                     Style="height:220px">
@@ -293,7 +295,7 @@
             <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#666">With KeyProperty="@@(x => x.Id)"</div>
             <NxGrid T="Person" Data="@keyPeopleWithKey"
                     KeyProperty="@(x => x.Id)"
-                    SelectionMode="NxGridSelectionMode.Row"
+                    SelectionMode="NxGridSelectionMode.MultiRow"
                     @bind-SelectedItems="keySelectedWithKey"
                     Cursor="NxGridCursor.Pointer"
                     Style="height:220px">
@@ -327,7 +329,7 @@
     </div>
     <NxGrid T="Person" @ref="keyNavGrid" Data="@keyNavPeople"
             KeyProperty="@(x => x.Id)"
-            SelectionMode="NxGridSelectionMode.Row"
+            SelectionMode="NxGridSelectionMode.MultiRow"
             @bind-SelectedItems="keyNavSelected"
             Cursor="NxGridCursor.Pointer"
             Style="height:240px">
@@ -350,7 +352,7 @@
 </div>
 
 <div class="doc-section">
-    <h2>Row Mode</h2>
+    <h2>MultiRow Mode</h2>
     <pre class="doc-code">@selectionModeRowCode</pre>
 </div>
 

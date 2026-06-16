@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `NxGridSelectionMode.MultiRow` — `Row` renamed to `MultiRow` for clarity; `Row` is removed (**breaking change**).
 - `NxGridSelectionMode.SingleRow` — new selection mode that selects exactly one entire row at a time. Shift and Ctrl modifiers are ignored (no multi-row ranges possible); left/right arrow keys are no-ops. All keyboard navigation (Up/Down, Home/End, Page Up/Down, Tab, Enter) moves the single-row selection without extending it. Use for master-detail layouts where accidental multi-row selection should be prevented.
 - `--nx-grid-fg` documented in `docs/reference.md` CSS custom properties section.
 - All SCSS variables in `nx-grid.scss` now use `!default`, allowing consuming projects to override theme values before importing the file.
@@ -121,7 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Selection
 - Multi-cell rectangular selection with mouse (click, click-drag) and keyboard (Shift+Arrow)
 - Multiple non-contiguous selection ranges via Ctrl/⌘+Click or Ctrl/⌘+Drag; Ctrl+clicking a single-cell range removes it
-- `SelectionMode` parameter: `None`, `Cell` (default), or `Row`
+- `SelectionMode` parameter: `None`, `Cell` (default), `MultiRow`, or `SingleRow`
 - `HeaderClickSelects` parameter: clicking a column header selects the full column; clicking the row-number gutter selects the full row
 - Focus cell mode (`AllowFocusCellMode`): highlights the row and column of the anchor cell without a filled selection; state persisted to `localStorage`
 - `EnableSelectionMath` parameter: sticky status bar below the grid showing Sum, Avg, and Count for the current selection
