@@ -609,6 +609,7 @@ public partial class NxGrid<T>
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
     private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
     private bool HasTemplateHeaders => visibleColumns.Any(c => c.HeaderTemplate != null);
+    private bool HasFooterRow => visibleColumns.Any(c => c.FooterTemplate != null);
     private bool IsVirtualized => Virtualize && !HasMultiLineColumns && !IsGrouped;
 
     /// <inheritdoc/>

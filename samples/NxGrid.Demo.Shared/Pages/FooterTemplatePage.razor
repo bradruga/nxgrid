@@ -1,0 +1,178 @@
+@page "/footer-template"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Footer Template — NxGrid</PageTitle>
+
+<h1>Footer Template</h1>
+<p class="doc-intro">
+    Add a <code>FooterTemplate</code> to any column to display computed aggregates — totals,
+    averages, counts — in a sticky row pinned to the bottom of the grid. The template receives
+    the current <strong>filtered</strong> dataset, so footer values update automatically when
+    filters change.
+</p>
+
+<div class="doc-section">
+    <h2>Budget Summary</h2>
+    <p class="doc-note">
+        The <strong>Qty</strong> and <strong>Line Total</strong> columns show footer aggregates.
+        Try opening a column menu and applying a filter — the totals recalculate to reflect
+        only the visible rows.
+    </p>
+    <NxGrid T="BudgetLine" Data="@lines" Style="height:260px">
+        <NxGridColumn Property="@(x => x.Description)" Title="Description" Width="220" />
+        <NxGridColumn Property="@(x => x.Qty)" Title="Qty"
+                      Width="80" Alignment="NxGridColumnAlignment.Right">
+            <FooterTemplate Context="rows">
+                @rows.Sum(r => r.Qty)
+            </FooterTemplate>
+        </NxGridColumn>
+        <NxGridColumn Property="@(x => x.UnitCost)" Title="Unit Cost"
+                      Display="@(x => x.UnitCost.ToString("C"))"
+                      Width="110" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Line Total"
+                      Display="@(x => (x.Qty * x.UnitCost).ToString("C"))"
+                      Width="130" Alignment="NxGridColumnAlignment.Right">
+            <FooterTemplate Context="rows">
+                @rows.Sum(r => r.Qty * r.UnitCost).ToString("C")
+            </FooterTemplate>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@budgetCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Filter-Reactive Aggregates</h2>
+    <p class="doc-note">
+        The template context is <code>filteredData</code> — the rows currently visible after
+        sorting and filtering, not the full dataset. Open the <strong>Department</strong> column
+        menu and filter to one or two departments to see the <strong>Avg Age</strong> and
+        <strong>Count</strong> recalculate.
+    </p>
+    <NxGrid T="Person" Data="@people" Style="height:320px">
+        <NxGridColumn Display="@(x => x.FirstName + " " + x.LastName)" Title="Name" Width="160" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)" Width="80"
+                      Alignment="NxGridColumnAlignment.Right">
+            <FooterTemplate Context="rows">
+                @if (rows.Count > 0)
+                {
+                    <span>Avg: @rows.Average(r => r.Age).ToString("F1")</span>
+                }
+            </FooterTemplate>
+        </NxGridColumn>
+        <NxGridColumn Title="Count"
+                      Display="@(x => "")"
+                      Width="80" Alignment="NxGridColumnAlignment.Right">
+            <FooterTemplate Context="rows">
+                @rows.Count rows
+            </FooterTemplate>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@filterCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>With Frozen Columns</h2>
+    <p class="doc-note">
+        Frozen columns retain their sticky-left behavior in the footer row, just as they do in
+        the header and body.
+    </p>
+    <NxGrid T="BudgetLine" Data="@lines" Style="height:260px">
+        <NxGridColumn Property="@(x => x.Description)" Title="Description"
+                      Width="220" Frozen="true" />
+        <NxGridColumn Property="@(x => x.Qty)" Title="Qty"
+                      Width="80" Alignment="NxGridColumnAlignment.Right">
+            <FooterTemplate Context="rows">
+                @rows.Sum(r => r.Qty)
+            </FooterTemplate>
+        </NxGridColumn>
+        <NxGridColumn Property="@(x => x.UnitCost)" Title="Unit Cost"
+                      Display="@(x => x.UnitCost.ToString("C"))"
+                      Width="110" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Line Total"
+                      Display="@(x => (x.Qty * x.UnitCost).ToString("C"))"
+                      Width="130" Alignment="NxGridColumnAlignment.Right">
+            <FooterTemplate Context="rows">
+                @rows.Sum(r => r.Qty * r.UnitCost).ToString("C")
+            </FooterTemplate>
+        </NxGridColumn>
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>With Selection Math</h2>
+    <p class="doc-note">
+        <code>FooterTemplate</code> and <code>EnableSelectionMath</code> can be used together.
+        Select cells in the grid — the selection-math status bar floats above the footer row
+        while a selection is active.
+    </p>
+    <NxGrid T="BudgetLine" Data="@lines" EnableSelectionMath="true" Style="height:260px">
+        <NxGridColumn Property="@(x => x.Description)" Title="Description" Width="220" />
+        <NxGridColumn Property="@(x => x.Qty)" Title="Qty"
+                      Width="80" Alignment="NxGridColumnAlignment.Right">
+            <FooterTemplate Context="rows">
+                @rows.Sum(r => r.Qty)
+            </FooterTemplate>
+        </NxGridColumn>
+        <NxGridColumn Property="@(x => x.UnitCost)" Title="Unit Cost"
+                      Display="@(x => x.UnitCost.ToString("C"))"
+                      Width="110" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Line Total"
+                      Display="@(x => (x.Qty * x.UnitCost).ToString("C"))"
+                      Width="130" Alignment="NxGridColumnAlignment.Right">
+            <FooterTemplate Context="rows">
+                @rows.Sum(r => r.Qty * r.UnitCost).ToString("C")
+            </FooterTemplate>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@combinedCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>API reference</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Parameter</th><th>Type</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>FooterTemplate</code></td>
+                <td><code>RenderFragment&lt;IReadOnlyList&lt;T&gt;&gt;?</code></td>
+                <td>
+                    Custom markup for the column's footer cell. The template context is the current
+                    filtered dataset as <code>IReadOnlyList&lt;T&gt;</code>. A footer row is rendered
+                    when at least one visible column has a <code>FooterTemplate</code>; columns
+                    without one show an empty cell. The footer row is sticky at the bottom of the
+                    scroll area and uses the same column widths as the header row.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <h3 style="margin-top:16px">CSS custom properties</h3>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Variable</th><th>Default</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>--nx-grid-footer-bg</code></td>
+                <td><code>var(--nx-grid-header-bg)</code></td>
+                <td>Background color of the footer row cells.</td>
+            </tr>
+            <tr>
+                <td><code>--nx-grid-footer-color</code></td>
+                <td><code>inherit</code></td>
+                <td>Text color of footer cells.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<BudgetLine> lines = SampleData.GetBudgetLines();
+    List<Person> people   = SampleData.GeneratePeople(30);
+
+    string budgetCode   = DemoCodeSamples.FooterTemplateBudget;
+    string filterCode   = DemoCodeSamples.FooterTemplateFilter;
+    string combinedCode = DemoCodeSamples.FooterTemplateCombined;
+}

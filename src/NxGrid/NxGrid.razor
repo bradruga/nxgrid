@@ -151,6 +151,26 @@
         </Virtualize>
     }
 
+    @if (HasFooterRow)
+    {
+        <div class="nx-grid-footer-row" style="@headerRowStyle">
+            @if (RowGutter != NxGridRowGutter.Hidden)
+            {
+                <div class="nx-grid-row-start"></div>
+            }
+            @foreach (var column in visibleColumns)
+            {
+                <div class="nx-grid-cell @(column.IsLastFrozen ? "nx-grid-cell-frozen-last" : "")"
+                     style="@column.FooterCellStyle">
+                    @if (column.FooterTemplate != null)
+                    {
+                        @column.FooterTemplate(filteredData)
+                    }
+                </div>
+            }
+        </div>
+    }
+
     @if (EnableSelectionMath && selectedRanges.Count > 0)
     {
         var math = ComputeSelectionMath();

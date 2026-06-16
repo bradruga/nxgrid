@@ -1155,4 +1155,72 @@ private async Task OnPrintClick()
     }
 }
 """;
+
+    public static readonly string FooterTemplateBudget = """
+// FooterTemplate receives filteredData as IReadOnlyList<T>.
+// Columns without a FooterTemplate show an empty footer cell.
+<NxGrid T="BudgetLine" Data="@lines" Style="height:260px">
+    <NxGridColumn Property="@(x => x.Description)" Title="Description" Width="220" />
+    <NxGridColumn Property="@(x => x.Qty)" Title="Qty"
+                  Width="80" Alignment="NxGridColumnAlignment.Right">
+        <FooterTemplate Context="rows">
+            @rows.Sum(r => r.Qty)
+        </FooterTemplate>
+    </NxGridColumn>
+    <NxGridColumn Property="@(x => x.UnitCost)" Title="Unit Cost"
+                  Display="@(x => x.UnitCost.ToString("C"))"
+                  Width="110" Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Title="Line Total"
+                  Display="@(x => (x.Qty * x.UnitCost).ToString("C"))"
+                  Width="130" Alignment="NxGridColumnAlignment.Right">
+        <FooterTemplate Context="rows">
+            @rows.Sum(r => r.Qty * r.UnitCost).ToString("C")
+        </FooterTemplate>
+    </NxGridColumn>
+</NxGrid>
+""";
+
+    public static readonly string FooterTemplateFilter = """
+// The template context is filteredData — aggregates update when filters change.
+<NxGrid T="Person" Data="@people" Style="height:320px">
+    <NxGridColumn Display="@(x => x.FirstName + " " + x.LastName)" Title="Name" Width="160" />
+    <NxGridColumn Property="@(x => x.Department)" Width="140" />
+    <NxGridColumn Property="@(x => x.Age)" Width="80"
+                  Alignment="NxGridColumnAlignment.Right">
+        <FooterTemplate Context="rows">
+            @if (rows.Count > 0)
+            {
+                <span>Avg: @rows.Average(r => r.Age).ToString("F1")</span>
+            }
+        </FooterTemplate>
+    </NxGridColumn>
+    <NxGridColumn Title="Count" Display="@(x => "")" Width="80"
+                  Alignment="NxGridColumnAlignment.Right">
+        <FooterTemplate Context="rows">
+            @rows.Count rows
+        </FooterTemplate>
+    </NxGridColumn>
+</NxGrid>
+""";
+
+    public static readonly string FooterTemplateCombined = """
+// FooterTemplate and EnableSelectionMath work together —
+// the status bar floats above the footer row when a selection is active.
+<NxGrid T="BudgetLine" Data="@lines" EnableSelectionMath="true" Style="height:260px">
+    <NxGridColumn Property="@(x => x.Description)" Title="Description" Width="220" />
+    <NxGridColumn Property="@(x => x.Qty)" Title="Qty"
+                  Width="80" Alignment="NxGridColumnAlignment.Right">
+        <FooterTemplate Context="rows">
+            @rows.Sum(r => r.Qty)
+        </FooterTemplate>
+    </NxGridColumn>
+    <NxGridColumn Title="Line Total"
+                  Display="@(x => (x.Qty * x.UnitCost).ToString("C"))"
+                  Width="130" Alignment="NxGridColumnAlignment.Right">
+        <FooterTemplate Context="rows">
+            @rows.Sum(r => r.Qty * r.UnitCost).ToString("C")
+        </FooterTemplate>
+    </NxGridColumn>
+</NxGrid>
+""";
 }

@@ -206,6 +206,14 @@
     /// </summary>
     [Parameter] public RenderFragment? HeaderTooltipTemplate { get; set; }
 
+    /// <summary>
+    /// Custom markup rendered in the footer cell for this column. The template receives the
+    /// current filtered dataset as <c>IReadOnlyList&lt;T&gt;</c>. A footer row is rendered when
+    /// at least one visible column has a <c>FooterTemplate</c>; columns without one show an empty
+    /// cell. The footer row is sticky at the bottom of the grid scroll area.
+    /// </summary>
+    [Parameter] public RenderFragment<IReadOnlyList<T>>? FooterTemplate { get; set; }
+
     // ── Editing ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -284,6 +292,9 @@
 
     /// <summary>Pre-computed CSS for body cells (width, alignment, sticky offset). Rebuilt on each parameter set.</summary>
     public string CellStyle { get; private set; } = "";
+
+    /// <summary>Pre-computed CSS for footer cells (width, alignment, sticky offset with footer background). Rebuilt on each parameter set.</summary>
+    public string FooterCellStyle { get; private set; } = "";
 
     /// <summary>Current sort state: <c>0</c> = unsorted, <c>1</c> = ascending, <c>2</c> = descending.</summary>
     public int SortState { get; set; }
@@ -391,12 +402,14 @@
         }
         HeaderCellStyle = BuildHeaderCellStyle();
         CellStyle = BuildCellStyle();
+        FooterCellStyle = BuildFooterCellStyle();
     }
 
     public void BuildStyles()
     {
         HeaderCellStyle = BuildHeaderCellStyle();
         CellStyle = BuildCellStyle();
+        FooterCellStyle = BuildFooterCellStyle();
     }
 
     private void BuildPropertyAccessors()
@@ -647,6 +660,19 @@
         {
             var right = StickyRight is int r ? $"right:{r}px;" : "";
             style += $"position:sticky;left:{left}px;{right}z-index:1;background-color:inherit;";
+        }
+        return style;
+    }
+
+    private string BuildFooterCellStyle()
+    {
+        var style = BuildWidthStyle();
+        if (CheckBox || Alignment == NxGridColumnAlignment.Center) style += "justify-content:center;";
+        else if (Alignment == NxGridColumnAlignment.Right) style += "justify-content:flex-end;";
+        if (StickyLeft is int left)
+        {
+            var right = StickyRight is int r ? $"right:{r}px;" : "";
+            style += $"position:sticky;left:{left}px;{right}z-index:1;background-color:var(--nx-grid-footer-bg,var(--nx-grid-header-bg));";
         }
         return style;
     }

@@ -22,6 +22,8 @@
   --nx-grid-shadow: rgba(0, 0, 0, 0.15);
   --nx-grid-group-header-bg: #E8E8E8;
   --nx-grid-group-header-fg: #333333;
+  --nx-grid-footer-bg: #F0F0F0;
+  --nx-grid-footer-color: inherit;
 }
 
 .nx-grid {
@@ -802,6 +804,27 @@
 
 .nx-grid-status-label {
   font-weight: 600;
+}
+
+.nx-grid-footer-row {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--nx-grid-footer-bg);
+  border-top: 2px solid var(--nx-grid-header-border);
+  color: var(--nx-grid-footer-color);
+  display: flex;
+  font-weight: bold;
+  z-index: 2;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.nx-grid-footer-row .nx-grid-cell {
+  border-right-color: var(--nx-grid-header-border);
+}
+
+.nx-grid:has(.nx-grid-status-bar) .nx-grid-footer-row {
+  bottom: 26px;
 }
 
 .nx-grid-cell-frozen-last {

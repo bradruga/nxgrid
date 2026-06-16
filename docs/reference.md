@@ -215,6 +215,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | `HeaderTemplate` | `RenderFragment?` | — | Custom markup rendered inside the column header cell instead of `Title`. Sort/filter icons and the menu button still appear. The resolved title (see `Title` fallback rules above) is still used as the `aria-label` and column menu label; state-persistence uses explicit `Title` only. Interactive elements inside the template (e.g. a checkbox) should include `@onmousedown:stopPropagation` (prevents column-range selection) and `@onclick:stopPropagation` (prevents opening the column menu). Multiline content — created with `<br />` or block-styled inline elements — is supported; the header row expands to fit the tallest cell. When any column in the grid has a `HeaderTemplate`, all header cells are bottom-aligned so single-line and multiline headers share a common baseline. |
 | `HeaderTooltip` | `string?` | — | Static tooltip text shown immediately when hovering the column header. |
 | `HeaderTooltipTemplate` | `RenderFragment?` | — | Custom tooltip markup for the column header. Takes priority over `HeaderTooltip`. |
+| `FooterTemplate` | `RenderFragment<IReadOnlyList<T>>?` | — | Custom markup rendered in the footer cell for this column. Receives the current filtered dataset as `IReadOnlyList<T>`. A footer row appears when at least one visible column has a `FooterTemplate`; columns without one show an empty cell. The footer row is sticky at the bottom of the scroll area and uses the same column widths as the header. See [Footer row](#footer-row). |
 
 ### Editing
 
@@ -455,6 +456,48 @@ source values are always copied regardless of selection size.
 - Respects `CellEditableGetter` — blocked cells are silently skipped.
 - Fires a single `OnUpdate` after the drag completes, with all affected rows.
 - Drag fill does not open edit mode and does not interact with the clipboard.
+
+---
+
+## Footer row
+
+When at least one `NxGridColumn` has a `FooterTemplate`, a sticky footer row appears at the
+bottom of the grid's scroll area. Columns without a `FooterTemplate` render empty cells in
+the footer.
+
+The template receives the current **filtered** dataset as `IReadOnlyList<T>`, so aggregates
+automatically reflect any active filters and sorting.
+
+```razor
+<NxGrid T="Invoice" Data="@invoices" Style="height:400px">
+    <NxGridColumn Property="@(x => x.Client)"   Width="200" />
+    <NxGridColumn Property="@(x => x.Amount)"   Width="120" Alignment="NxGridColumnAlignment.Right">
+        <FooterTemplate Context="rows">
+            <strong>Total: @rows.Sum(r => r.Amount).ToString("C")</strong>
+        </FooterTemplate>
+    </NxGridColumn>
+    <NxGridColumn Property="@(x => x.Quantity)" Width="80" Alignment="NxGridColumnAlignment.Right">
+        <FooterTemplate Context="rows">
+            @rows.Sum(r => r.Quantity)
+        </FooterTemplate>
+    </NxGridColumn>
+</NxGrid>
+```
+
+### CSS theming
+
+| Variable | Default | Notes |
+|---|---|---|
+| `--nx-grid-footer-bg` | `var(--nx-grid-header-bg)` | Background of footer cells. Override to visually distinguish the footer from the header. |
+| `--nx-grid-footer-color` | `inherit` | Text color of footer cells. |
+
+### Notes
+
+- The footer context is `filteredData` — it reflects the currently filtered and sorted rows, not the full `Data` list.
+- Frozen columns retain their sticky-left position in the footer row.
+- When `EnableSelectionMath` is also `true`, the status bar floats above the footer row while a selection is active. They do not overlap.
+- Clicking the footer row does not affect the grid's selection state.
+- The footer row is excluded from print output when using the built-in print dialog.
 
 ---
 
@@ -842,6 +885,8 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-shadow:           rgba(0, 0, 0, 0.15);
     --nx-grid-group-header-bg:  #E8E8E8;  /* group header row background */
     --nx-grid-group-header-fg:  #333333;  /* group header row text */
+    --nx-grid-footer-bg:        #F0F0F0;  /* footer row cell background (defaults to header bg) */
+    --nx-grid-footer-color:     inherit;  /* footer row cell text color */
 }
 ```
 
