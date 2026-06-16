@@ -256,8 +256,8 @@
                 <td>DateFormat</td>
                 <td>string?</td>
                 <td>—</td>
-                <td>Controls display format, editor pre-population, and commit parsing (tried before <code>DateTime.TryParse</code>). Defaults to the thread's short-date culture pattern.</td>
-                <td><a href="/date-picker">Date Picker</a></td>
+                <td>Applied to all <code>DateTime</code>/<code>DateTime?</code> columns: governs cell display, editor pre-population on F2/double-click, and the first parse attempt on commit before falling back to <code>DateTime.TryParse</code>. When <code>DatePicker="true"</code> and unset, falls back to the thread's short-date culture pattern.</td>
+                <td><a href="/date-picker">Date Picker</a>, <a href="/time-entry">Time Entry</a></td>
             </tr>
         </tbody>
     </table>

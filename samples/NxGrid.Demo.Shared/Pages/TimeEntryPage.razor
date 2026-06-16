@@ -1,0 +1,204 @@
+@page "/time-entry"
+
+<PageTitle>Time Entry — NxGrid</PageTitle>
+
+<h1>Time Entry</h1>
+<p class="doc-intro">
+    Demonstrates editing <code>DateTime</code> columns formatted as <code>h:mm tt</code> with a
+    shorthand time parser wired through <code>OnUpdate</code>. The grid handles standard inputs
+    like <strong>8:00 AM</strong> natively via <code>DateFormat</code>. Shorthands like
+    <strong>8p</strong>, <strong>830a</strong>, and <strong>1230</strong> are caught in
+    <code>OnUpdate</code> by checking <code>change.NewValue is string</code> — the signal that the
+    grid's built-in parser couldn't convert the input to <code>DateTime</code>.
+</p>
+
+<div class="doc-section">
+    <h2>Shift Schedule</h2>
+    <p class="doc-note">
+        Click any cell in the <strong>Start</strong> or <strong>End</strong> columns to edit.
+        Try shorthands from the reference table below — press <kbd class="doc-kbd">Enter</kbd>
+        to commit and see the cell reformat.
+    </p>
+    <NxGrid T="ShiftRow" Data="@shifts" OnUpdate="HandleUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Name)"  Title="Name"  Width="180" Editable="false" />
+        <NxGridColumn @ref="startCol"
+                      Property="@(x => x.Start)" Title="Start" Width="110"
+                      DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn @ref="endCol"
+                      Property="@(x => x.End)"   Title="End"   Width="110"
+                      DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Duration"
+                      Display="@(x => FormatDuration(x.End - x.Start))"
+                      Width="100" Editable="false" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@timeEntryCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Shorthand reference</h2>
+    <table class="doc-table">
+        <thead><tr><th>Input</th><th>Parsed as</th><th>Rule</th></tr></thead>
+        <tbody>
+            <tr><td><code>8</code></td><td>8:00 AM</td><td>5–11 default AM</td></tr>
+            <tr><td><code>9</code></td><td>9:00 AM</td><td>5–11 default AM</td></tr>
+            <tr><td><code>12</code></td><td>12:00 PM</td><td>12 defaults PM (noon)</td></tr>
+            <tr><td><code>1</code></td><td>1:00 PM</td><td>1–4 default PM</td></tr>
+            <tr><td><code>4</code></td><td>4:00 PM</td><td>1–4 default PM</td></tr>
+            <tr><td><code>5</code></td><td>5:00 AM</td><td>5–11 default AM</td></tr>
+            <tr><td><code>8p</code></td><td>8:00 PM</td><td>p / pm suffix</td></tr>
+            <tr><td><code>6pm</code></td><td>6:00 PM</td><td>pm suffix</td></tr>
+            <tr><td><code>12a</code></td><td>12:00 AM</td><td>a / am suffix (midnight)</td></tr>
+            <tr><td><code>830a</code></td><td>8:30 AM</td><td>3-digit HMM + suffix</td></tr>
+            <tr><td><code>1230</code></td><td>12:30 PM</td><td>4-digit HHMM, 12 → PM default</td></tr>
+            <tr><td><code>930</code></td><td>9:30 AM</td><td>3-digit HMM, 9 → AM default</td></tr>
+            <tr><td><code>8:30 AM</code></td><td>8:30 AM</td><td>standard format, no custom parse needed</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>How it works</h2>
+    <p class="doc-note">
+        <code>DateFormat="h:mm tt"</code> governs two things: the display string shown in
+        non-editing cells, and the value pre-loaded into the editor on F2/double-click.
+        On commit the grid tries <code>DateTime.TryParseExact(input, "h:mm tt")</code> then
+        <code>DateTime.TryParse(input)</code>. When both fail — as they do for shorthands
+        like <code>8p</code> — <code>change.NewValue</code> remains a <code>string</code>
+        instead of a <code>DateTime</code>. That is the hook for custom parsing.
+    </p>
+    <p class="doc-note">
+        The custom parser strips an optional <code>a</code>/<code>am</code>/<code>p</code>/<code>pm</code>
+        suffix, then interprets 1–4 remaining digits as H, HH, HMM, or HHMM. When no
+        AM/PM is given, hours 5–11 default to AM and hours 12, 1–4 default to PM — a
+        reasonable bias for a work-day schedule.
+    </p>
+</div>
+
+@code {
+    class ShiftRow
+    {
+        public string   Name  { get; set; } = "";
+        public DateTime Start { get; set; }
+        public DateTime End   { get; set; }
+    }
+
+    NxGridColumn<ShiftRow>? startCol;
+    NxGridColumn<ShiftRow>? endCol;
+
+    List<ShiftRow> shifts =
+    [
+        new() { Name = "Alice Johnson", Start = Today(8, 0),  End = Today(17, 0) },
+        new() { Name = "Bob Smith",     Start = Today(9, 0),  End = Today(18, 0) },
+        new() { Name = "Carol White",   Start = Today(7, 30), End = Today(16, 0) },
+        new() { Name = "David Chen",    Start = Today(12, 0), End = Today(20, 0) },
+        new() { Name = "Eve Davis",     Start = Today(10, 0), End = Today(19, 0) },
+        new() { Name = "Frank Brown",   Start = Today(8, 30), End = Today(17, 30) },
+    ];
+
+    static DateTime Today(int hour, int minute) =>
+        DateTime.Today.AddHours(hour).AddMinutes(minute);
+
+    static string FormatDuration(TimeSpan span)
+    {
+        if (span < TimeSpan.Zero) return "—";
+        return span.TotalHours >= 1
+            ? $"{(int)span.TotalHours}h {span.Minutes:D2}m"
+            : $"{span.Minutes}m";
+    }
+
+    Task HandleUpdate(NxGridUpdateArgs<ShiftRow> args)
+    {
+        foreach (var rowChange in args.Rows)
+        {
+            foreach (var change in rowChange.Changes)
+            {
+                if (change.NewValue is string raw)
+                {
+                    // Grid parsing failed — try shorthand time input.
+                    // change.NewValue is a string (not DateTime) when TryParseExact and
+                    // DateTime.TryParse both failed for the typed input.
+                    var existing = change.OldValue is DateTime old ? old : DateTime.Today;
+                    var parsed   = TryParseTime(raw, existing);
+                    if (parsed.HasValue)
+                    {
+                        if (ReferenceEquals(change.Column, startCol))
+                            rowChange.Row.Start = parsed.Value;
+                        else if (ReferenceEquals(change.Column, endCol))
+                            rowChange.Row.End = parsed.Value;
+                    }
+                    // else: unrecognised input — discard (cell reverts on next render)
+                }
+                else
+                {
+                    // Grid parsed a DateTime successfully (e.g. "8:00 AM") — apply it.
+                    change.Apply(rowChange.Row);
+                }
+            }
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Parses shorthand time strings into a DateTime on the same date as
+    /// <paramref name="existing"/>.
+    ///
+    /// Accepted forms:
+    ///   H / HH              — hour only (minutes = 0)
+    ///   HMM / HHMM          — compact hours + minutes
+    ///   any of the above + a / am / p / pm suffix
+    ///
+    /// Default AM/PM when no suffix:
+    ///   12, 1–4  →  PM
+    ///   5–11     →  AM
+    /// </summary>
+    static DateTime? TryParseTime(string input, DateTime existing)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+
+        var s = input.Trim().ToLowerInvariant().Replace(" ", "");
+
+        // Strip AM/PM suffix before digit parsing
+        bool? isPm = null;
+        if      (s.EndsWith("pm")) { isPm = true;  s = s[..^2]; }
+        else if (s.EndsWith("am")) { isPm = false; s = s[..^2]; }
+        else if (s.EndsWith("p"))  { isPm = true;  s = s[..^1]; }
+        else if (s.EndsWith("a"))  { isPm = false; s = s[..^1]; }
+
+        // Remaining characters must be pure digits, 1–4 of them
+        if (s.Length is 0 or > 4 || !s.All(char.IsDigit)) return null;
+
+        var n = int.Parse(s);
+        int hours, minutes;
+
+        if (s.Length <= 2)
+        {
+            hours   = n;
+            minutes = 0;
+        }
+        else if (s.Length == 3)
+        {
+            hours   = n / 100;
+            minutes = n % 100;
+        }
+        else // 4 digits
+        {
+            hours   = n / 100;
+            minutes = n % 100;
+        }
+
+        if (hours is < 0 or > 12 || minutes is < 0 or >= 60) return null;
+
+        // Apply default AM/PM rule when not given explicitly
+        if (isPm == null)
+            isPm = hours == 12 || hours is >= 1 and <= 4;
+
+        // Convert to 24-hour clock
+        if (isPm == true  && hours != 12) hours += 12;
+        if (isPm == false && hours == 12) hours  = 0;
+
+        return existing.Date.AddHours(hours).AddMinutes(minutes);
+    }
+
+    string timeEntryCode = DemoCodeSamples.TimeEntry;
+}

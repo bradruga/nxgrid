@@ -35,9 +35,19 @@ public partial class NxGrid<T>
         // so that formatted Display strings (e.g. "25 yrs") don't leak into the edit input.
         var getter = column.IsComboColumn ? column.EffectiveGetter : column.EffectiveValueGetter;
         var rawValue = getter != null ? getter(filteredData[row]) : null;
-        var currentText = column.IsDatePickerColumn && rawValue is DateTime dt
-            ? dt.ToString(column.DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern)
-            : rawValue?.ToString() ?? "";
+        string currentText;
+        if (rawValue is DateTime dt)
+        {
+            var fmt = column.DateFormat
+                ?? (column.IsDatePickerColumn
+                    ? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern
+                    : null);
+            currentText = fmt != null ? dt.ToString(fmt) : dt.ToString();
+        }
+        else
+        {
+            currentText = rawValue?.ToString() ?? "";
+        }
 
         isEditing = true;
         editRow = row;

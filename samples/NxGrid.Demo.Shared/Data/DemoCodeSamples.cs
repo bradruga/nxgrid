@@ -1156,6 +1156,51 @@ private async Task OnPrintClick()
 }
 """;
 
+    public static readonly string TimeEntry = """
+// DateFormat governs display and the first parse attempt on commit.
+// When TryParseExact("h:mm tt") and DateTime.TryParse both fail, change.NewValue
+// stays a string — the hook for custom shorthand parsing in OnUpdate.
+<NxGrid T="ShiftRow" Data="@shifts" OnUpdate="HandleUpdate" Editable="true">
+    <NxGridColumn Property="@(x => x.Name)"  Width="180" Editable="false" />
+    <NxGridColumn @ref="startCol" Property="@(x => x.Start)" Title="Start"
+                  DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
+    <NxGridColumn @ref="endCol"   Property="@(x => x.End)"   Title="End"
+                  DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
+</NxGrid>
+
+@code {
+    NxGridColumn<ShiftRow>? startCol;
+    NxGridColumn<ShiftRow>? endCol;
+
+    Task HandleUpdate(NxGridUpdateArgs<ShiftRow> args)
+    {
+        foreach (var rowChange in args.Rows)
+            foreach (var change in rowChange.Changes)
+            {
+                if (change.NewValue is string raw)
+                {
+                    var existing = change.OldValue is DateTime old ? old : DateTime.Today;
+                    var parsed   = TryParseTime(raw, existing);
+                    if (parsed.HasValue)
+                    {
+                        if (ReferenceEquals(change.Column, startCol)) rowChange.Row.Start = parsed.Value;
+                        if (ReferenceEquals(change.Column, endCol))   rowChange.Row.End   = parsed.Value;
+                    }
+                }
+                else
+                {
+                    change.Apply(rowChange.Row);
+                }
+            }
+        return Task.CompletedTask;
+    }
+
+    // Shorthand rules: H, HH, HMM, HHMM + optional a/am/p/pm suffix.
+    // No suffix: 12 and 1–4 → PM, 5–11 → AM.
+    static DateTime? TryParseTime(string input, DateTime existing) { /* ... */ }
+}
+""";
+
     public static readonly string FooterTemplateBudget = """
 // FooterTemplate receives filteredData as IReadOnlyList<T>.
 // Columns without a FooterTemplate show an empty footer cell.

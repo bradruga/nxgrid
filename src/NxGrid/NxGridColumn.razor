@@ -359,7 +359,7 @@
     /// (when the property type is an enum), then the compiled <see cref="Property"/> getter.
     /// Used for rendering, filter labels, column fit measurement, and clipboard copy fallback.
     /// </summary>
-    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (enumDisplayGetter ?? compiledPropertyGetter);
+    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (enumDisplayGetter ?? dateFormatGetter ?? compiledPropertyGetter);
 
     /// <summary>
     /// The effective copy getter: <see cref="CopyGetter"/> takes priority, then
@@ -382,6 +382,7 @@
 
     private Func<T, object?>? compiledPropertyGetter;
     private Func<T, object?>? enumDisplayGetter;
+    private Func<T, object?>? dateFormatGetter;
     private Action<T, object?>? compiledPropertySetter;
     private Type? propertyType;
     private string? displayName;
@@ -400,9 +401,30 @@
             _lastBuiltProperty = Property;
             BuildPropertyAccessors();
         }
+        RebuildDateFormatGetter();
         HeaderCellStyle = BuildHeaderCellStyle();
         CellStyle = BuildCellStyle();
         FooterCellStyle = BuildFooterCellStyle();
+    }
+
+    private void RebuildDateFormatGetter()
+    {
+        if (compiledPropertyGetter != null && !string.IsNullOrEmpty(DateFormat) && propertyType != null)
+        {
+            var underlying = System.Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+            if (underlying == typeof(DateTime))
+            {
+                var baseGetter = compiledPropertyGetter;
+                var fmt = DateFormat;
+                dateFormatGetter = row =>
+                {
+                    var val = baseGetter(row);
+                    return val is DateTime dt ? dt.ToString(fmt) : val;
+                };
+                return;
+            }
+        }
+        dateFormatGetter = null;
     }
 
     public void BuildStyles()
