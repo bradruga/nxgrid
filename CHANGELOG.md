@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Combo input text color ignored `--nx-grid-fg` when the dropdown button was clicked with the mouse — changed `color: inherit` to `color: var(--nx-grid-fg)` on `.nx-grid-combo-input` so the variable is resolved directly on the input rather than relying on cascade inheritance through the cell's inline `style` attribute.
+- Typing the exact display name (or value) of a combo item and pressing Enter/Tab did not commit the selection — the typed text was passed directly to `ParseAndBuildApply`, which failed for columns where `Display` differs from the stored type (e.g. a color name typed into an `int` ID column). Enter/Tab now perform a case-insensitive exact match against both `Display` and `Value` in the filtered options list before committing, auto-selecting the matching item the same way an arrow-key selection would.
 
 ## [0.1.3] - 2026-06-12
 

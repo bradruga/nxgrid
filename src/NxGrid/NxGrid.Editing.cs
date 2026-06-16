@@ -30,7 +30,10 @@ public partial class NxGrid<T>
             if (editingArgs.Cancel) return;
         }
 
-        var getter = column.EffectiveValueGetter;
+        // Combo columns pre-populate the input with the display value so the inline filter
+        // starts from the text the user sees. All other columns use the raw property value
+        // so that formatted Display strings (e.g. "25 yrs") don't leak into the edit input.
+        var getter = column.IsComboColumn ? column.EffectiveGetter : column.EffectiveValueGetter;
         var rawValue = getter != null ? getter(filteredData[row]) : null;
         var currentText = column.IsDatePickerColumn && rawValue is DateTime dt
             ? dt.ToString(column.DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern)
@@ -245,8 +248,8 @@ public partial class NxGrid<T>
             case KeyEnter:
                 if (args.CtrlKey)
                 {
-                    if (isComboColumn && isComboOpen && comboHighlightIndex >= 0)
-                        SelectComboOption(comboHighlightIndex);
+                    if (isComboColumn && isComboOpen)
+                        TrySelectComboByHighlightOrExactMatch();
                     await CommitEditToSelection();
                     break;
                 }
@@ -260,14 +263,14 @@ public partial class NxGrid<T>
                 }
                 if (isMultiLineColumn && args.ShiftKey)
                     break; // let the browser insert the newline; oninput updates editValue
-                if (isComboColumn && isComboOpen && comboHighlightIndex >= 0)
-                    SelectComboOption(comboHighlightIndex);
+                if (isComboColumn && isComboOpen)
+                    TrySelectComboByHighlightOrExactMatch();
                 await CommitEdit(args.ShiftKey ? KeyShiftEnter : KeyEnter);
                 break;
 
             case KeyTab:
-                if (isComboColumn && isComboOpen && comboHighlightIndex >= 0)
-                    SelectComboOption(comboHighlightIndex);
+                if (isComboColumn && isComboOpen)
+                    TrySelectComboByHighlightOrExactMatch();
                 await CommitEdit(args.ShiftKey ? KeyShiftTab : KeyTab);
                 break;
 
@@ -395,6 +398,20 @@ public partial class NxGrid<T>
         editValue = comboFilteredOptions[index].Value ?? "";
         isComboOpen = false;
         comboHighlightIndex = -1;
+    }
+
+    private void TrySelectComboByHighlightOrExactMatch()
+    {
+        if (comboHighlightIndex >= 0)
+        {
+            SelectComboOption(comboHighlightIndex);
+            return;
+        }
+        var exactIndex = comboFilteredOptions.FindIndex(
+            o => string.Equals(o.Display, editValue, StringComparison.OrdinalIgnoreCase)
+              || string.Equals(o.Value,   editValue, StringComparison.OrdinalIgnoreCase));
+        if (exactIndex >= 0)
+            SelectComboOption(exactIndex);
     }
 
     private async Task OnComboItemMouseDown(int optionIndex)

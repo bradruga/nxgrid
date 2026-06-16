@@ -489,6 +489,52 @@ void OnSignalRRowReceived(Person newRow)
 }
 """;
 
+    public static readonly string ComboBoxKeyDisplay = """
+// Store a foreign-key ID in the row; show the human-readable name in the cell.
+// ColorName is kept in sync with ColorId in the OnUpdate handler.
+// NxGridComboItem.Value is the ID (committed to ColorId on selection);
+// NxGridComboItem.Display is the name (shown in the dropdown).
+// NxGridColumn.Display reads ColorName to render the cell without a lookup per row.
+<NxGridColumn Property="@(x => x.ColorId)"
+              Title="Color"
+              Display="@(x => x.ColorName)"
+              ComboBoxItems="@(_ => NxGridComboItem.From(ColorOptions, c => c.Id.ToString(), c => c.Name))" />
+
+@code {
+    record ColorOption(int Id, string Name);
+
+    static readonly ColorOption[] ColorOptions =
+    [
+        new(1, "Crimson Red"),
+        new(2, "Sky Blue"),
+        new(3, "Forest Green"),
+        new(4, "Sunset Orange"),
+        new(5, "Violet Purple"),
+        new(6, "Golden Yellow"),
+    ];
+
+    class ProductRow
+    {
+        public int    Id        { get; set; }
+        public string Product   { get; set; } = "";
+        public int    ColorId   { get; set; }
+        public string ColorName { get; set; } = "";
+    }
+
+    async Task HandleColorUpdate(NxGridUpdateArgs<ProductRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+            {
+                change.Apply(rowArgs.Row);
+                // keep ColorName in sync after ColorId is updated
+                rowArgs.Row.ColorName = ColorOptions.FirstOrDefault(c => c.Id == rowArgs.Row.ColorId)?.Name ?? "";
+            }
+        await Task.CompletedTask;
+    }
+}
+""";
+
     public static readonly string ComboBoxItemTemplateCode = """
 // ComboBoxItemTemplate renders each dropdown row with custom markup.
 // The item's Value is still committed on selection — template is display-only.

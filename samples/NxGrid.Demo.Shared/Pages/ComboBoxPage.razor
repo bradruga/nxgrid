@@ -7,8 +7,10 @@
     Set <code>ComboBoxItems</code> on a column to turn its inline editor into a dropdown.
     The function receives the row object so the list can vary per row — called fresh on each open.
     Use <code>NxGridComboItem.From</code> to project any typed collection. The selected item's
-    <code>Value</code> is committed to the property and shown in the cell; <code>Display</code>
-    is used only inside the dropdown list.
+    <code>Value</code> is committed to the property; <code>Display</code> is the label shown
+    in the dropdown list. The non-editing cell shows whatever the property currently holds —
+    set the column's <code>Display</code> parameter when you need the cell to show a name
+    derived from a stored ID (see <strong>Key / Display</strong> below).
 </p>
 
 <div class="doc-section">
@@ -44,6 +46,27 @@
         <NxGridColumn Property="@(x => x.Hours)"    Width="80" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@objectProjectionCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Key / Display (Foreign Key)</h2>
+    <p class="doc-note">
+        Store a foreign-key ID in the row while showing a human-readable name in the cell.
+        Set <code>NxGridComboItem.Value</code> to the ID and <code>NxGridComboItem.Display</code>
+        to the name. Because the cell renders the raw property value, also set the
+        <code>Display</code> parameter on the column to perform the ID→name lookup for
+        non-editing cells.
+    </p>
+    <NxGrid T="ProductRow" Data="@colorRows" OnUpdate="@HandleColorUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)"      Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Product)" Width="160" Editable="false" />
+        <NxGridColumn Property="@(x => x.ColorId)"
+                      Title="Color"
+                      Display="@(x => x.ColorName)"
+                      ComboBoxItems="@(_ => NxGridComboItem.From(ColorOptions, c => c.Id.ToString(), c => c.Name))" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@keyDisplayCode</pre>
 </div>
 
 <div class="doc-section">
@@ -175,6 +198,49 @@
         new() { Id = 6, Employee = "Frank Miller",   TaskName = "Meetings",          Hours = 1 },
     ];
 
+    record ColorOption(int Id, string Name);
+
+    static readonly ColorOption[] ColorOptions =
+    [
+        new(1, "Crimson Red"),
+        new(2, "Sky Blue"),
+        new(3, "Forest Green"),
+        new(4, "Sunset Orange"),
+        new(5, "Violet Purple"),
+        new(6, "Golden Yellow"),
+    ];
+
+    class ProductRow
+    {
+        public int    Id        { get; set; }
+        public string Product   { get; set; } = "";
+        public int    ColorId   { get; set; }
+        public string ColorName { get; set; } = "";
+    }
+
+    List<ProductRow> colorRows =
+    [
+        new() { Id = 1, Product = "Interior Matt",  ColorId = 1, ColorName = "Crimson Red"   },
+        new() { Id = 2, Product = "Exterior Gloss", ColorId = 2, ColorName = "Sky Blue"      },
+        new() { Id = 3, Product = "Primer",         ColorId = 3, ColorName = "Forest Green"  },
+        new() { Id = 4, Product = "Chalk Paint",    ColorId = 4, ColorName = "Sunset Orange" },
+        new() { Id = 5, Product = "Spray Can",      ColorId = 5, ColorName = "Violet Purple" },
+        new() { Id = 6, Product = "Enamel",         ColorId = 6, ColorName = "Golden Yellow" },
+        new() { Id = 7, Product = "Undercoat",      ColorId = 1, ColorName = "Crimson Red"   },
+        new() { Id = 8, Product = "Varnish",        ColorId = 2, ColorName = "Sky Blue"      },
+    ];
+
+    async Task HandleColorUpdate(NxGridUpdateArgs<ProductRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+            {
+                change.Apply(rowArgs.Row);
+                rowArgs.Row.ColorName = ColorOptions.FirstOrDefault(c => c.Id == rowArgs.Row.ColorId)?.Name ?? "";
+            }
+        await Task.CompletedTask;
+    }
+
     class ScheduleRow
     {
         public string Employee { get; set; } = "";
@@ -233,6 +299,7 @@
 
     string stringListCode        = DemoCodeSamples.ComboBoxStringList;
     string objectProjectionCode  = DemoCodeSamples.ComboBoxObjectProjection;
+    string keyDisplayCode        = DemoCodeSamples.ComboBoxKeyDisplay;
     string itemTemplateCode      = DemoCodeSamples.ComboBoxItemTemplateCode;
     string perRowCode            = DemoCodeSamples.ComboBoxPerRow;
 }
