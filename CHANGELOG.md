@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Enum properties decorated with `[Display(Name = "...")]` now render using the display name in cells, filter checkbox labels, and column fit measurement. The raw enum value is still used for sorting and filtering so sort order and filter state are unaffected. Works automatically — no column configuration needed.
 - `NxGridFitContent` enum replaces the `FitContent` bool parameter on `NxGridColumn` (**breaking change**). Values: `Auto` (default), `Always`, `Never`. `Auto` infers the old behavior automatically: measurement is disabled when `Sizing="Fixed"` and `Width` is set; enabled otherwise. Migration: remove explicit `FitContent="true"` (Auto covers it), replace `FitContent="false"` on a Fixed+Width column with nothing (Auto handles it), replace `FitContent="false"` on a Flex column with `FitContent="NxGridFitContent.Never"`.
 - `NxGridColumn.Width` changed from `int` (default `100`) to `int?` (default `null`) (**breaking change**). A `null` width means "auto-measure content" (the previous default behavior). Set `Width="60"` on a `Sizing="Fixed"` column to get an exact 60 px column with no measurement — no other parameters needed.
 - `NxGridSelectionMode.MultiRow` — `Row` renamed to `MultiRow` for clarity; `Row` is removed (**breaking change**).

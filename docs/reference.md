@@ -182,7 +182,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | Parameter | Type | Notes |
 |---|---|---|
 | `Property` | `Expression<Func<T, object?>>?` | Captures a member expression (e.g. `x => x.Age`). Used for display, sort/filter, and as the target for `change.Apply(row)`. When the member has a setter, `Apply` writes the correctly-parsed value back to the model. Get-only properties and read-only computed expressions are fully supported for display, sort, and filter — they are simply not editable (the column behaves as read-only regardless of the `Editable` setting). |
-| `Display` | `Func<T, object?>?` | Display value override. Takes priority over `Property` for rendering. Use when you need formatted output (e.g. `x => x.Age + " yrs"`). `Property` is still used for sort/filter when `Display` is set. Clipboard copy falls back to this when `CopyGetter` is not set. |
+| `Display` | `Func<T, object?>?` | Display value override. Takes priority over `Property` for rendering. Use when you need formatted output (e.g. `x => x.Age + " yrs"`). `Property` is still used for sort/filter when `Display` is set. Clipboard copy falls back to this when `CopyGetter` is not set. When not set and the property type is an enum, the grid automatically applies `[Display(Name)]` attribute values for rendering (see [Enum display names](#enum-display-names)). |
 | `CopyGetter` | `Func<T, object?>?` | Override for the value placed on the clipboard during copy. Takes priority over `Display` and `Property` for copy only. Use when the rendered display value differs from what should be pasted (e.g. copy a raw formula string while displaying the evaluated result). |
 | `Editable` | `bool?` | Makes the column editable. When not set, falls back to the grid-level `Editable`. Requires `OnUpdate` on the grid. |
 
@@ -549,6 +549,33 @@ Call `FitColumnsAsync()` on the grid reference to re-fit at any time:
     }
 }
 ```
+
+---
+
+## Enum display names
+
+When a column's `Property` points to an `enum` type (or nullable enum), the grid automatically reads `[Display(Name = "...")]` attributes on enum members and uses them for all display purposes: cell rendering, filter checkbox labels, column fit measurement, and clipboard copy. No column configuration is needed.
+
+```csharp
+public enum Priority
+{
+    Low,
+
+    [Display(Name = "In Progress")]
+    InProgress,
+
+    [Display(Name = "High Priority")]
+    High
+}
+```
+
+With the above, a cell containing `Priority.InProgress` renders as `"In Progress"`, the filter panel shows `"In Progress"` as the checkbox label, and the column auto-sizes to fit `"High Priority"` (the widest display name).
+
+Enum members without a `[Display]` attribute fall back to `ToString()` (e.g. `Priority.Low` → `"Low"`).
+
+Sort order and filter state are based on the raw enum value, not the display name, so sort order matches the enum's declared member order and persisted filter state remains stable across display name changes.
+
+Setting an explicit `Display` parameter on the column takes full priority over automatic enum display name resolution.
 
 ---
 

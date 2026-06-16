@@ -343,10 +343,12 @@
     public bool IsDatePickerColumn => DatePicker;
 
     /// <summary>
-    /// The effective display getter: <see cref="Display"/> takes priority, then the compiled
-    /// <see cref="Property"/> getter. Used for rendering and clipboard copy fallback.
+    /// The effective display getter: <see cref="Display"/> takes priority, then a
+    /// <see cref="System.ComponentModel.DataAnnotations.DisplayAttribute"/>-aware enum wrapper
+    /// (when the property type is an enum), then the compiled <see cref="Property"/> getter.
+    /// Used for rendering, filter labels, column fit measurement, and clipboard copy fallback.
     /// </summary>
-    public Func<T, object?>? EffectiveGetter => Display ?? compiledPropertyGetter;
+    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (enumDisplayGetter ?? compiledPropertyGetter);
 
     /// <summary>
     /// The effective copy getter: <see cref="CopyGetter"/> takes priority, then
@@ -368,6 +370,7 @@
     public string EffectiveTitle => Title ?? displayName ?? inferredName ?? "";
 
     private Func<T, object?>? compiledPropertyGetter;
+    private Func<T, object?>? enumDisplayGetter;
     private Action<T, object?>? compiledPropertySetter;
     private Type? propertyType;
     private string? displayName;
@@ -401,6 +404,7 @@
         if (Property == null)
         {
             compiledPropertyGetter = null;
+            enumDisplayGetter = null;
             compiledPropertySetter = null;
             propertyType = null;
             displayName = null;
@@ -417,6 +421,7 @@
         {
             // Not a simple member access — read-only (getter only, no setter)
             compiledPropertyGetter = Property.Compile();
+            enumDisplayGetter = null;
             compiledPropertySetter = null;
             propertyType = null;
             displayName = null;
@@ -428,6 +433,18 @@
         compiledPropertyGetter = Property.Compile();
         inferredName = SplitPascalCase(member.Member.Name);
         displayName = member.Member.GetCustomAttribute<DisplayAttribute>()?.GetName();
+
+        // Cache an enum-display wrapper when the property type is an enum (or nullable enum).
+        var enumType = System.Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+        if (enumType.IsEnum)
+        {
+            var baseGetter = compiledPropertyGetter;
+            enumDisplayGetter = row => GetEnumDisplayName(baseGetter(row));
+        }
+        else
+        {
+            enumDisplayGetter = null;
+        }
 
         var canWrite = member.Member is PropertyInfo pi ? pi.CanWrite : member.Member is FieldInfo;
         if (canWrite)
@@ -471,6 +488,25 @@
             sb.Append(i == 0 ? char.ToUpper(name[i]) : name[i]);
         }
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Returns the <see cref="DisplayAttribute.Name"/> for an enum value when the attribute is
+    /// present; otherwise returns <c>value.ToString()</c>. Returns <c>null</c> when
+    /// <paramref name="value"/> is <c>null</c>. Supports nullable enums.
+    /// </summary>
+    internal static string? GetEnumDisplayName(object? value)
+    {
+        if (value == null) return null;
+        var type = value.GetType();
+        var enumType = System.Nullable.GetUnderlyingType(type) ?? type;
+        if (!enumType.IsEnum) return value.ToString();
+        var memberName = value.ToString();
+        if (memberName == null) return null;
+        var members = enumType.GetMember(memberName);
+        if (members.Length == 0) return memberName;
+        var attr = members[0].GetCustomAttribute<DisplayAttribute>();
+        return attr?.GetName() ?? memberName;
     }
 
     // Parses rawValue to the property's CLR type and returns a pre-bound apply action.
