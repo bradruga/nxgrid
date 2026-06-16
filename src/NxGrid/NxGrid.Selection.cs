@@ -595,7 +595,7 @@ public partial class NxGrid<T>
         // Measure actual header cell natural widths from the DOM (header is always rendered).
         var headerMinWidths = await jsInterop.GetHeaderMinWidths();
 
-        const int cellPadding = 15; // 6px left + 6px right padding + 1px right border + 2px buffer
+        const int cellPadding = 20; // 6px left + 6px right padding + 1px right border + 7px buffer for font rendering variation
         foreach (var idx in columnsToResize)
         {
             var col = visibleColumns[idx];

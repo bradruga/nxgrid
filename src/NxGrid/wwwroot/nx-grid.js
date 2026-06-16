@@ -540,6 +540,14 @@
             cell.style.flexShrink = '0';
         }
 
+        // The title wrap has flex:1;min-width:0 which collapses to ~0 in an unconstrained
+        // flex container, causing the measured cell width to reflect only the menu button.
+        // Override to let each wrap size to its natural text content width.
+        for (const wrap of clone.querySelectorAll('.nx-grid-column-title-wrap')) {
+            wrap.style.flex = 'none';
+            wrap.style.width = 'max-content';
+        }
+
         document.body.appendChild(clone);
         const widths = Array.from(clone.querySelectorAll('.nx-grid-cell'))
             .map(cell => cell.getBoundingClientRect().width);

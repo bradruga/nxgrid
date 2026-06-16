@@ -37,7 +37,7 @@ public partial class NxGrid<T>
         }
         var headerMinWidths = _cachedHeaderMinWidths;
 
-        const int cellPadding = 15; // 6px left + 6px right padding + 1px right border + 2px buffer
+        const int cellPadding = 20; // 6px left + 6px right padding + 1px right border + 7px buffer for font rendering variation
 
         // Scan at most FitScanRowLimit rows — the widest value is almost always
         // represented in the first thousand rows of any real dataset.

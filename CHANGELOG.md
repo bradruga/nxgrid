@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `FitContent` columns were consistently a few pixels too narrow, causing cell text and header titles to ellipsize. Two root causes: (1) `getHeaderMinWidths` collapsed each header's title-wrap to ~0px during clone measurement because `.nx-grid-column-title-wrap` has `flex:1;min-width:0`, so only the menu button width was returned — fixed by setting `flex:none;width:max-content` on each title-wrap in the measurement clone before reading `getBoundingClientRect`; (2) the data-estimation padding constant was only 2px larger than the actual consumed cell padding, which canvas `measureText` divergence easily exceeded — increased from 15 to 20px.
+
 ### Added
 
 - `NxGridSelectionMode.MultiRow` — `Row` renamed to `MultiRow` for clarity; `Row` is removed (**breaking change**).
