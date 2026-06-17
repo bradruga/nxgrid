@@ -102,6 +102,31 @@ This mirrors the `Data` / `filteredData` split for rows.
 
 All visual properties are CSS custom properties (override on `:root` or a parent element): `--nx-grid-accent`, `--nx-grid-header-bg`, `--nx-grid-surface`, `--nx-grid-border`, etc. Full list in `docs/reference.md`.
 
+## Checklist for Every Change
+
+### Documentation
+The docs folder is the source of truth for user-facing behavior and API. Update the relevant file(s) whenever the public surface or observable behavior changes:
+
+- **`docs/reference.md`** — any parameter, property, method, event, CSS variable, or type that is added, removed, or changed
+- **`docs/behavior.md`** — any change to interaction behavior (keyboard, mouse, selection, editing, sorting, filtering, etc.)
+- **`docs/howto.md`** — any change that affects a recipe or common usage pattern
+
+When in doubt, update. Stale docs are worse than over-documented ones.
+
+### Sample Pages
+Update existing sample pages when a change affects what they demonstrate. The reference pages in particular must stay current:
+
+- `NxGridReferencePage.razor` — any `NxGrid<T>` parameter change
+- `NxGridColumnReferencePage.razor` — any `NxGridColumn<T>` parameter change
+
+If the change is significant and no sample page covers it, create one in `samples/NxGrid.Demo.Shared/Pages/` and add it to the nav.
+
+### Changelog
+Add a concise entry to `CHANGELOG.md` for every user-visible change. One line per item; group under the correct version heading. Do not describe implementation details — describe what changed from the user's perspective.
+
+### README
+Update `README.md` when the change is major: new top-level features, breaking changes, significantly expanded capability, or anything that would affect a first-time reader's understanding of what NxGrid does.
+
 ## Testing
 
 Tests use **bUnit** with xUnit. Render pattern:
