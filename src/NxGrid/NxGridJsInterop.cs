@@ -4,7 +4,7 @@ using Microsoft.JSInterop;
 namespace NxGrid;
 
 public record NxComboDropdownPosition(double Top, double Left, double Width);
-public record NxCharWidths(Dictionary<string, double> Normal);
+public record NxCharWidths(Dictionary<string, double> Normal, Dictionary<string, double> Bold);
 public record NxMenuPosition(double Top, double Left);
 public record NxDatePickerPosition(double Top, double Left);
 public record NxFillHandlePosition(double Top, double Left);

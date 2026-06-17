@@ -556,17 +556,21 @@ class NxGrid {
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        ctx.font = `${fontWeight} ${fontSize} ${fontFamily}`;
 
-        const widths = {};
-        for (let i = 32; i <= 126; i++) {
-            widths[String.fromCharCode(i)] = ctx.measureText(String.fromCharCode(i)).width;
-        }
-        for (const ch of 'àáâãäåæçèéêëìíîïðñòóôõöùúûüýþÿÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖÙÚÛÜÝÞŸ€£¥©®°±×÷…–—') {
-            widths[ch] = ctx.measureText(ch).width;
-        }
+        const extendedChars = 'àáâãäåæçèéêëìíîïðñòóôõöùúûüýþÿÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖÙÚÛÜÝÞŸ€£¥©®°±×÷…–—';
 
-        return { normal: widths };
+        const measure = (font) => {
+            ctx.font = font;
+            const w = {};
+            for (let i = 32; i <= 126; i++) w[String.fromCharCode(i)] = ctx.measureText(String.fromCharCode(i)).width;
+            for (const ch of extendedChars) w[ch] = ctx.measureText(ch).width;
+            return w;
+        };
+
+        return {
+            normal: measure(`${fontWeight} ${fontSize} ${fontFamily}`),
+            bold:   measure(`bold ${fontSize} ${fontFamily}`),
+        };
     }
 
     getColumnWidths() {
@@ -599,9 +603,17 @@ class NxGrid {
         // The title wrap has flex:1;min-width:0 which collapses to ~0 in an unconstrained
         // flex container, causing the measured cell width to reflect only the menu button.
         // Override to let each wrap size to its natural text content width.
+        // Also clear overflow:hidden on both the wrap and the title span — overflow:hidden on a
+        // flex item prevents browsers from correctly computing its max-content contribution to
+        // the parent's width:max-content, causing the cell to still measure too narrow.
         for (const wrap of clone.querySelectorAll('.nx-grid-column-title-wrap')) {
             wrap.style.flex = 'none';
             wrap.style.width = 'max-content';
+            wrap.style.overflow = 'visible';
+        }
+        for (const title of clone.querySelectorAll('.nx-grid-column-title')) {
+            title.style.overflow = 'visible';
+            title.style.textOverflow = 'clip';
         }
 
         document.body.appendChild(clone);

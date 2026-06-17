@@ -12,6 +12,7 @@ public partial class NxGrid<T>
 
     private NxCharWidths? _charWidths;
     private double _normalAvgWidth;
+    private double _boldAvgWidth;
 
     private int clickDownRow = -1;
     private int clickDownCol = -1;
@@ -592,10 +593,10 @@ public partial class NxGrid<T>
                 visibleColumns[i].UserWidth = (int)currentWidths[i];
         }
 
-        // Measure actual header cell natural widths from the DOM (header is always rendered).
-        var headerMinWidths = await jsInterop.GetHeaderMinWidths();
-
         const int cellPadding = 20; // 6px left + 6px right padding + 1px right border + 7px buffer for font rendering variation
+        const int headerFixedOverhead = 13; // 6px left + 6px right + 1px border
+        const int menuButtonWidth = 28;     // 24px svg + 4px margin-left
+        const int iconWidth = 20;           // 16px svg + 4px margin-left, per icon
         foreach (var idx in columnsToResize)
         {
             var col = visibleColumns[idx];
@@ -604,12 +605,17 @@ public partial class NxGrid<T>
             foreach (var row in filteredData)
             {
                 var val = col.EffectiveGetter?.Invoke(row)?.ToString();
-                var w = EstimateStringWidth(val, _charWidths.Normal, _normalAvgWidth);
+                var w = EstimateStringWidth(val, _charWidths!.Normal, _normalAvgWidth);
                 if (w > maxDataWidth) maxDataWidth = w;
             }
 
             var dataNeeded = (int)Math.Ceiling(maxDataWidth) + cellPadding;
-            var headerNeeded = idx < headerMinWidths.Length ? (int)Math.Ceiling(headerMinWidths[idx]) : 0;
+            var headerTextWidth = col.HeaderTemplate == null
+                ? EstimateStringWidth(col.EffectiveTitle, _charWidths!.Bold, _boldAvgWidth)
+                : 0;
+            var iconCount = (col.SortState != 0 ? 1 : 0) + (col.FilterState.Count > 0 ? 1 : 0);
+            var headerNeeded = (int)Math.Ceiling(headerTextWidth) + headerFixedOverhead
+                             + (HasColumnMenu ? menuButtonWidth : 0) + iconCount * iconWidth;
             var newWidth = Math.Max(dataNeeded, headerNeeded);
 
             if (col.MinWidth.HasValue) newWidth = Math.Max(newWidth, col.MinWidth.Value);
@@ -635,6 +641,7 @@ public partial class NxGrid<T>
         if (result == null) return;
         _charWidths = result;
         _normalAvgWidth = ComputeAverageWidth(_charWidths.Normal);
+        _boldAvgWidth   = ComputeAverageWidth(_charWidths.Bold);
     }
 
     private static double ComputeAverageWidth(Dictionary<string, double> widths)
