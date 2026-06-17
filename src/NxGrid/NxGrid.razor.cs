@@ -542,12 +542,14 @@ public partial class NxGrid<T>
     /// </summary>
     public void ResetColumnWidths()
     {
-        foreach (var col in columns)
+        foreach (var col in ActiveColumns)
         {
             col.UserWidth = null;
             col.FitWidth  = null;
         }
+        manualMode = false;
         ComputeFrozenOffsets();
+        renderToken++;
         StateHasChanged();
     }
 

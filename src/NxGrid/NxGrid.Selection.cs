@@ -634,6 +634,14 @@ public partial class NxGrid<T>
         await SaveStateAsync();
     }
 
+    private async Task OnResetAllColumnWidthsClick()
+    {
+        openColumn = null;
+        ResetColumnWidths();
+        pendingResizeCleanup = true;
+        await SaveStateAsync();
+    }
+
     private async Task EnsureCharWidthsAsync()
     {
         if (_charWidths != null) return;
