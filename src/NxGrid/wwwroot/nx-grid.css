@@ -26,6 +26,8 @@
   --nx-grid-footer-color: inherit;
   --nx-grid-font-family: inherit;
   --nx-grid-font-size: 14px;
+  --nx-grid-menu-bg: #fff;
+  --nx-grid-menu-icon: #0078d4;
 }
 
 .nx-grid {
@@ -277,7 +279,7 @@
 
 .nx-grid-column-menu {
   width: 300px;
-  background-color: var(--nx-grid-surface);
+  background-color: var(--nx-grid-menu-bg);
   border: 1px solid var(--nx-grid-border);
   box-shadow: 0 4px 12px var(--nx-grid-shadow);
   position: fixed;
@@ -321,7 +323,7 @@
 
 .nx-grid-menu-item-icon {
   flex-shrink: 0;
-  color: var(--nx-grid-accent);
+  color: var(--nx-grid-menu-icon);
   display: inline-flex;
   align-items: center;
 }
@@ -333,7 +335,7 @@
 }
 
 .nx-grid-context-menu {
-  background-color: var(--nx-grid-surface);
+  background-color: var(--nx-grid-menu-bg);
   border: 1px solid var(--nx-grid-border);
   box-shadow: 0 4px 12px var(--nx-grid-shadow);
   border-radius: 4px;
@@ -429,6 +431,7 @@
   margin-top: 3px;
   flex-shrink: 0;
   cursor: pointer;
+  accent-color: var(--nx-grid-accent);
 }
 
 .nx-grid-filter-item label {
@@ -876,6 +879,7 @@
   height: 14px;
   cursor: pointer;
   flex-shrink: 0;
+  accent-color: var(--nx-grid-accent);
 }
 
 .nx-grid-tooltip {

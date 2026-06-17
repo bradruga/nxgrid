@@ -889,6 +889,8 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-footer-color:     inherit;  /* footer row cell text color */
     --nx-grid-font-family:      inherit;  /* grid font; inherits from parent by default */
     --nx-grid-font-size:        14px;     /* grid base font size */
+    --nx-grid-menu-bg:          #fff;     /* background of column menu and context menu */
+    --nx-grid-menu-icon:        #0078d4;  /* icon color in column menu (independent of accent and checkboxes) */
 }
 ```
 

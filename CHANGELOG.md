@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Column header menu now includes a "Reset all column widths" item when any column has been manually resized. Clicking it clears all user-dragged widths, restores flex/auto sizing, and persists the reset to `StateKey` storage.
 - New `--nx-grid-font-family` CSS variable (default: `inherit`) — the grid now inherits the host project's font automatically, with an easy override point.
 - New `--nx-grid-font-size` CSS variable (default: `14px`) — grid font size is now overridable without targeting internal class names.
+- New `--nx-grid-menu-bg` CSS variable (default: `--nx-grid-surface`) — controls the background color of the column menu and context menu independently.
+- New `--nx-grid-menu-icon` CSS variable (default: `--nx-grid-accent`) — controls the icon color in the column menu independently of the accent color and checkboxes.
 
 ### Fixed
 

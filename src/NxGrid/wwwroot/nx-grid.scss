@@ -26,6 +26,8 @@ $nx-grid-footer-bg:       $nx-grid-header-bg !default;
 $nx-grid-footer-color:    inherit            !default;
 $nx-grid-font-family:     inherit            !default;
 $nx-grid-font-size:       14px               !default;
+$nx-grid-menu-bg:         $nx-grid-surface   !default;
+$nx-grid-menu-icon:       $nx-grid-accent    !default;
 
 // ── CSS custom properties (override these in your own CSS) ────────────────────
 :root {
@@ -56,6 +58,8 @@ $nx-grid-font-size:       14px               !default;
     --nx-grid-footer-color:    #{$nx-grid-footer-color};
     --nx-grid-font-family:     #{$nx-grid-font-family};
     --nx-grid-font-size:       #{$nx-grid-font-size};
+    --nx-grid-menu-bg:         #{$nx-grid-menu-bg};
+    --nx-grid-menu-icon:       #{$nx-grid-menu-icon};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -309,7 +313,7 @@ $nx-grid-font-size:       14px               !default;
 
 .nx-grid-column-menu {
     width: 300px;
-    background-color: var(--nx-grid-surface);
+    background-color: var(--nx-grid-menu-bg);
     border: 1px solid var(--nx-grid-border);
     box-shadow: 0 4px 12px var(--nx-grid-shadow);
     position: fixed;
@@ -355,7 +359,7 @@ $nx-grid-font-size:       14px               !default;
 
 .nx-grid-menu-item-icon {
     flex-shrink: 0;
-    color: var(--nx-grid-accent);
+    color: var(--nx-grid-menu-icon);
     display: inline-flex;
     align-items: center;
 }
@@ -369,7 +373,7 @@ $nx-grid-font-size:       14px               !default;
 // ── Context menu ──────────────────────────────────────────────────────────────
 
 .nx-grid-context-menu {
-    background-color: var(--nx-grid-surface);
+    background-color: var(--nx-grid-menu-bg);
     border: 1px solid var(--nx-grid-border);
     box-shadow: 0 4px 12px var(--nx-grid-shadow);
     border-radius: 4px;
@@ -467,6 +471,7 @@ $nx-grid-font-size:       14px               !default;
     margin-top: 3px;
     flex-shrink: 0;
     cursor: pointer;
+    accent-color: var(--nx-grid-accent);
 }
 
 .nx-grid-filter-item label {
@@ -941,6 +946,7 @@ $nx-grid-font-size:       14px               !default;
         height: 14px;
         cursor: pointer;
         flex-shrink: 0;
+        accent-color: var(--nx-grid-accent);
     }
 }
 
