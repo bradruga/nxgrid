@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-06-17
+
 ### Fixed
 
 - `FitContent` header titles ellipsized — the DOM-clone `getHeaderMinWidths` measurement was unreliable because `overflow:hidden` at multiple levels of the header cell prevented browsers from correctly computing `width:max-content`. Header width is now estimated the same way data cells are: canvas `measureText` with bold character widths (headers use `font-weight:bold`) plus fixed pixel offsets for cell padding, border, menu button, and sort/filter icons.
