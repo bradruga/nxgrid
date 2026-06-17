@@ -33,8 +33,8 @@ public partial class NxGrid<T>
     private string? GetColumnId(NxGridColumn<T> column)
     {
         if (!string.IsNullOrEmpty(column.Id)) return column.Id;
-        if (!string.IsNullOrEmpty(column.Title)) return column.Title;
-        return null;
+        var title = column.EffectiveTitle;
+        return string.IsNullOrEmpty(title) ? null : title;
     }
 
     private NxGridColumn<T>? FindColumn(string id)

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Manual column resize widths not restored after page reload when columns have no explicit `Id` or `Title` — `GetColumnId` now falls back to `EffectiveTitle` (which includes the property-inferred name), so columns identified only by their `Property` expression are correctly saved and restored via `StateKey`.
+
 ## [0.1.5] - 2026-06-17
 
 ### Fixed
