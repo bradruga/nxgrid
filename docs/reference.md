@@ -887,6 +887,8 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-group-header-fg:  #333333;  /* group header row text */
     --nx-grid-footer-bg:        #F0F0F0;  /* footer row cell background (defaults to header bg) */
     --nx-grid-footer-color:     inherit;  /* footer row cell text color */
+    --nx-grid-font-family:      inherit;  /* grid font; inherits from parent by default */
+    --nx-grid-font-size:        14px;     /* grid base font size */
 }
 ```
 
@@ -894,7 +896,6 @@ Things that cannot be changed through CSS variables (require a CSS override targ
 
 - Row height — controlled by the `RowHeight` parameter
 - Column widths — controlled by `Width`, `MinWidth`, `MaxWidth`
-- Font family / size — inherit from the parent element; override `.nx-grid { font-size: 13px; }`
 
 **Cell text whitespace:** all cell text renders with `white-space: pre`, so leading spaces, trailing spaces, and tab characters are preserved and visible exactly as stored. Multi-line columns additionally use `white-space: pre-wrap` so embedded newlines wrap inside the cell.
 

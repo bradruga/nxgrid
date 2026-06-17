@@ -24,6 +24,8 @@ $nx-grid-group-header-bg: #E8E8E8 !default;
 $nx-grid-group-header-fg: #333333 !default;
 $nx-grid-footer-bg:       $nx-grid-header-bg !default;
 $nx-grid-footer-color:    inherit            !default;
+$nx-grid-font-family:     inherit            !default;
+$nx-grid-font-size:       14px               !default;
 
 // ── CSS custom properties (override these in your own CSS) ────────────────────
 :root {
@@ -52,6 +54,8 @@ $nx-grid-footer-color:    inherit            !default;
     --nx-grid-group-header-fg: #{$nx-grid-group-header-fg};
     --nx-grid-footer-bg:       #{$nx-grid-footer-bg};
     --nx-grid-footer-color:    #{$nx-grid-footer-color};
+    --nx-grid-font-family:     #{$nx-grid-font-family};
+    --nx-grid-font-size:       #{$nx-grid-font-size};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,8 +65,8 @@ $nx-grid-footer-color:    inherit            !default;
     overflow-x: auto;
     overflow-y: auto;
     position: relative;
-    font-size: 14px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    font-size: var(--nx-grid-font-size);
+    font-family: var(--nx-grid-font-family);
     color: var(--nx-grid-fg);
     outline: none;
     -webkit-user-select: none;
@@ -335,7 +339,7 @@ $nx-grid-footer-color:    inherit            !default;
     background: none;
     cursor: pointer;
     text-align: left;
-    font-size: 14px;
+    font-size: inherit;
     font-family: inherit;
     color: inherit;
     box-sizing: border-box;
@@ -381,7 +385,7 @@ $nx-grid-footer-color:    inherit            !default;
     background: none;
     cursor: pointer;
     text-align: left;
-    font-size: 14px;
+    font-size: inherit;
     font-family: inherit;
     color: inherit;
     box-sizing: border-box;
@@ -588,7 +592,7 @@ $nx-grid-footer-color:    inherit            !default;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 14px;
+    font-size: inherit;
 }
 
 .nx-grid-combo-item:hover {
@@ -921,7 +925,7 @@ $nx-grid-footer-color:    inherit            !default;
     gap: 8px;
     padding: 5px 12px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: inherit;
     font-family: inherit;
     color: inherit;
     user-select: none;
@@ -977,8 +981,8 @@ $nx-grid-footer-color:    inherit            !default;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-    font-size: 14px;
+    font-family: var(--nx-grid-font-family);
+    font-size: inherit;
 }
 
 .nx-print-dialog-header {
@@ -1091,7 +1095,7 @@ $nx-grid-footer-color:    inherit            !default;
     padding: 6px 16px;
     min-width: 80px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: inherit;
     font-family: inherit;
 
     &:hover {
@@ -1107,7 +1111,7 @@ $nx-grid-footer-color:    inherit            !default;
     padding: 6px 16px;
     min-width: 80px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: inherit;
     font-family: inherit;
 
     &:hover {
