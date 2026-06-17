@@ -301,7 +301,7 @@
         <div class="nx-grid-context-menu" style="position:fixed;left:@(contextMenuX)px;top:@(contextMenuY)px;z-index:1000;">
             <button type="button" class="nx-grid-context-item"
                     @onclick="@OnContextMenuCopyClick">
-                Copy
+                <span>Copy</span><span class="nx-grid-context-shortcut">Ctrl+C</span>
             </button>
             <button type="button" class="nx-grid-context-item"
                     @onclick="@OnContextMenuCopyWithHeadersClick">
@@ -333,7 +333,11 @@
                 <button type="button" class="nx-grid-context-item @(capturedItem.Disabled ? "nx-grid-context-item-disabled" : "")"
                         disabled="@capturedItem.Disabled"
                         @onclick="@(() => OnCustomContextMenuItemClick(capturedItem))">
-                    @capturedItem.Label
+                    <span>@capturedItem.Label</span>
+                    @if (capturedItem.Shortcut != null)
+                    {
+                        <span class="nx-grid-context-shortcut">@capturedItem.Shortcut</span>
+                    }
                 </button>
             }
         </div>

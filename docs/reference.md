@@ -776,6 +776,7 @@ public sealed class NxGridContextMenuItem
     public string Label { get; init; }    // text shown in the menu
     public bool Disabled { get; init; }   // renders the item grayed out and non-clickable
     public bool Separator { get; init; }  // renders a divider line above this item
+    public string? Shortcut { get; init; } // optional shortcut hint shown on the right, e.g. "Ctrl+Z"
 }
 
 public sealed class NxGridContextMenuItemArgs<T>

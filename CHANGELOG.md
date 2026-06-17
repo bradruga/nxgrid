@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `--nx-grid-font-size` CSS variable (default: `14px`) — grid font size is now overridable without targeting internal class names.
 - New `--nx-grid-menu-bg` CSS variable (default: `--nx-grid-surface`) — controls the background color of the column menu and context menu independently.
 - New `--nx-grid-menu-icon` CSS variable (default: `--nx-grid-accent`) — controls the icon color in the column menu independently of the accent color and checkboxes.
+- `NxGridContextMenuItem` gains an optional `Shortcut` property — set it to a string such as `"Ctrl+Z"` to display a right-aligned keyboard shortcut hint on the item. The built-in Copy item now shows `Ctrl+C`.
+- Context menu Copy button now shows a `Ctrl+C` shortcut hint.
 
 ### Fixed
 

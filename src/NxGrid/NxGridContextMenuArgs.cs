@@ -41,6 +41,9 @@ public sealed class NxGridContextMenuItem
 
     /// <summary>When <c>true</c>, a divider line is rendered above this item.</summary>
     public bool Separator { get; init; }
+
+    /// <summary>Optional keyboard shortcut hint displayed on the right side of the item (e.g. "Ctrl+Z").</summary>
+    public string? Shortcut { get; init; }
 }
 
 /// <summary>

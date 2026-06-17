@@ -344,7 +344,8 @@
 }
 
 .nx-grid-context-item {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
   padding: 8px 16px;
   border: none;
@@ -355,6 +356,14 @@
   font-family: inherit;
   color: inherit;
   box-sizing: border-box;
+}
+
+.nx-grid-context-shortcut {
+  color: var(--nx-grid-muted-fg);
+  font-size: 0.85em;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 16px;
 }
 
 .nx-grid-context-item:hover {

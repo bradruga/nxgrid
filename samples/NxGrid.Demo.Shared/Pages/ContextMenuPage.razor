@@ -15,7 +15,7 @@
     <h2>Custom items</h2>
     <p class="doc-note">
         Right-click any cell. Two custom items — <em>View details</em> and <em>Copy full name</em> — appear
-        after Copy. <em>Copy full name</em> has a separator above it.
+        after Copy. <em>Copy full name</em> has a separator above it and a keyboard shortcut hint.
     </p>
     <div class="doc-controls">
         <span style="font-size:13px;color:#555;">Last action: <strong>@basicLog</strong></span>
@@ -130,6 +130,11 @@
                 <td>bool</td>
                 <td>When <code>true</code>, renders the item grayed out and non-clickable. Clicking it does nothing.</td>
             </tr>
+            <tr>
+                <td>Shortcut</td>
+                <td>string?</td>
+                <td>Optional keyboard shortcut hint displayed on the right side of the item (e.g. <code>"Ctrl+Z"</code>). Purely decorative — the grid does not wire up the shortcut automatically.</td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -157,7 +162,7 @@
     void BuildBasicMenu(NxGridContextMenuArgs<Person> args)
     {
         args.Items.Add(new NxGridContextMenuItem { Id = "view",      Label = "View details" });
-        args.Items.Add(new NxGridContextMenuItem { Id = "copy-name", Label = "Copy full name", Separator = true });
+        args.Items.Add(new NxGridContextMenuItem { Id = "copy-name", Label = "Copy full name", Separator = true, Shortcut = "Ctrl+Shift+C" });
     }
 
     void HandleBasicClick(NxGridContextMenuItemArgs<Person> args)

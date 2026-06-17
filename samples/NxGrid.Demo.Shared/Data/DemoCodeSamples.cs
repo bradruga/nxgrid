@@ -902,7 +902,7 @@ void OnSignalRRowReceived(Person newRow)
     void BuildMenu(NxGridContextMenuArgs<Person> args)
     {
         args.Items.Add(new NxGridContextMenuItem { Id = "view",      Label = "View details" });
-        args.Items.Add(new NxGridContextMenuItem { Id = "copy-name", Label = "Copy full name", Separator = true });
+        args.Items.Add(new NxGridContextMenuItem { Id = "copy-name", Label = "Copy full name", Separator = true, Shortcut = "Ctrl+Shift+C" });
     }
 
     async Task HandleMenuClick(NxGridContextMenuItemArgs<Person> args)
