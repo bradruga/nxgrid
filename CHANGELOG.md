@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-06-18
+
 ### Added
 
 - Multi-column sort: clicking column headers accumulates sort criteria. The most recently clicked column is the primary sort; earlier sorts are tiebreakers. Only the primary sort column shows a sort arrow. **Breaking change:** persisted sort state format changed (`sort` → `sorts`).
