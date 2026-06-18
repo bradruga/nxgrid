@@ -370,7 +370,7 @@ body:has(.site-dark) { background: #1a1b26; }
     --nx-grid-row-even-bg:      #1a1b26;
     --nx-grid-row-odd-bg:       #24283b;
     --nx-grid-surface:          #1a1b26;
-    --nx-grid-selection-bg:     #2d3f76;
+    --nx-grid-selection-bg:     rgba(59, 183, 253, 0.2);
     --nx-grid-selected-border:  #3b4261;
     --nx-grid-focus-cell-bg:    #1e3128;
     --nx-grid-accent:           #7aa2f7;

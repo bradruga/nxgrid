@@ -10,7 +10,8 @@ function parseRgbHex(hex) {
     if (!s) return null;
     if (s.length === 3) s = s[0]+s[0]+s[1]+s[1]+s[2]+s[2];
     if (s.length < 6) return null;
-    return [parseInt(s.slice(0,2),16), parseInt(s.slice(2,4),16), parseInt(s.slice(4,6),16)];
+    const r = parseInt(s.slice(0,2),16), g = parseInt(s.slice(2,4),16), b = parseInt(s.slice(4,6),16);
+    return isNaN(r) || isNaN(g) || isNaN(b) ? null : [r, g, b];
 }
 
 class NxGrid {
@@ -350,9 +351,10 @@ class NxGrid {
             const minC = isRowMode ? 0 : Math.min(anchorCol, ec);
             const maxC = isRowMode ? maxCol : Math.max(anchorCol, ec);
 
-            // Resolve selection color once for blending (handles CSS variable overrides)
+            // Resolve selection color once for blending (handles CSS variable overrides).
+            // parseRgbStr fallback handles rgba() values; null means transparent/unparseable → skip blend.
             const selHex = getComputedStyle(gridElement).getPropertyValue('--nx-grid-selection-bg').trim();
-            const selRgb = parseRgbHex(selHex) || [199, 199, 199];
+            const selRgb = parseRgbHex(selHex) || parseRgbStr(selHex);
 
             for (const rowEl of gridElement.querySelectorAll('.nx-grid-row[data-row]')) {
                 const ri = +rowEl.dataset.row;
@@ -376,7 +378,7 @@ class NxGrid {
                     if (/background-color\s*:/i.test(cell.getAttribute('style') || '')) {
                         if (nowSelected && !wasSelected) {
                             const cellRgb = parseRgbStr(getComputedStyle(cell).backgroundColor);
-                            if (cellRgb) {
+                            if (cellRgb && selRgb) {
                                 cell.dataset.selSavedStyle = cell.getAttribute('style');
                                 const r = (cellRgb[0] + selRgb[0]) >> 1;
                                 const g = (cellRgb[1] + selRgb[1]) >> 1;
