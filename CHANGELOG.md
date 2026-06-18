@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-06-18
+
 ### Fixed
 
 - FitContent columns no longer truncate long header titles: the header width estimate now includes the same 7 px font-rendering-variation buffer applied to data cells, and flex columns are given a `min-width` equal to their computed fit width so they cannot shrink below what the header needs.
