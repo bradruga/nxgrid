@@ -540,7 +540,7 @@ public partial class NxGrid<T>
     /// <summary>
     /// Clears all user-dragged column widths, restoring every column to its declared <see cref="NxGridColumn{T}.Width"/> parameter.
     /// </summary>
-    public void ResetColumnWidths()
+    public async Task ResetColumnWidths()
     {
         foreach (var col in ActiveColumns)
         {
@@ -550,7 +550,10 @@ public partial class NxGrid<T>
         manualMode = false;
         ComputeFrozenOffsets();
         renderToken++;
-        StateHasChanged();
+        if (HasFitContentColumns)
+            await RunColumnFitAsync();
+        else
+            StateHasChanged();
     }
 
     /// <summary>Scrolls the grid to the last row in the filtered data set.</summary>

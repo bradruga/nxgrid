@@ -1784,7 +1784,7 @@
 
         Calculate();
         chartDataVersion++;
-        grid?.ResetColumnWidths();
+        if (grid != null) await grid.ResetColumnWidths();
         grid?.ForceRerender();
     }
 
@@ -1808,7 +1808,7 @@
         LoadSampleData();
         Calculate();
         chartDataVersion++;
-        grid?.ResetColumnWidths();
+        if (grid != null) await grid.ResetColumnWidths();
         grid?.ForceRerender();
     }
 }

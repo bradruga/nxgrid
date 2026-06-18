@@ -160,7 +160,7 @@ Task  ClearAllFilters()                            // clear all column filters a
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title
 void  SetEditValue(string value)                   // replace the active edit input's text; no-op when not editing. Use in an OnCellPickedWhileEditing handler
-void  ResetColumnWidths()                          // clear all user-dragged widths, restoring every column to its declared Width parameter; also resets manualMode so flex columns resume auto-sizing
+Task  ResetColumnWidths()                          // clear all user-dragged widths, restoring every column to its declared Width parameter; also resets manualMode so flex columns resume auto-sizing; re-measures FitContent columns
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
 Task  FitColumnsAsync()                            // re-measure and apply FitWidth for all columns whose effective FitContent is true; skips columns the user has manually resized
 ```
