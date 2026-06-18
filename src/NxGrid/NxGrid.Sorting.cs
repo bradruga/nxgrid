@@ -6,9 +6,20 @@ public partial class NxGrid<T>
 
     private void UpdateSortHistory(NxGridColumn<T> column, int state)
     {
+        var wasPrimary = IsPrimarySort(column);
         sortHistory.Remove(column);
+
         if (state != 0)
+        {
             sortHistory.Add(column);
+        }
+        else if (wasPrimary)
+        {
+            // Primary sort cleared — secondary sorts are meaningless without it
+            foreach (var col in sortHistory)
+                col.SortState = 0;
+            sortHistory.Clear();
+        }
     }
 
     private bool IsPrimarySort(NxGridColumn<T> column)
@@ -73,8 +84,16 @@ public partial class NxGrid<T>
     {
         if (HeaderClickSelects) return;
 
-        column.SortState++;
-        if (column.SortState > 2) column.SortState = 0;
+        if (IsPrimarySort(column))
+        {
+            column.SortState++;
+            if (column.SortState > 2) column.SortState = 0;
+        }
+        else
+        {
+            // Non-primary column clicked — make it primary at ascending, don't cycle
+            column.SortState = 1;
+        }
 
         UpdateSortHistory(column, column.SortState);
         ApplyFilterAndSort();
