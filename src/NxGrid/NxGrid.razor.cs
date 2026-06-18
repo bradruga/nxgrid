@@ -662,6 +662,7 @@ public partial class NxGrid<T>
     /// <summary>Removes a column from this grid. Called automatically by <see cref="NxGridColumn{T}"/> on disposal.</summary>
     public void RemoveColumn(NxGridColumn<T> column)
     {
+        sortHistory.Remove(column);
         if (columns.Remove(column))
             ComputeFrozenOffsets();
     }

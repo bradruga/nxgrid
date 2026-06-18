@@ -43,7 +43,7 @@
                         }
                     </span>
 
-                    @if (column.SortState == 1)
+                    @if (IsPrimarySort(column) && column.SortState == 1)
                     {
                         <span class="nx-grid-sort-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">
@@ -51,7 +51,7 @@
                             </svg>
                         </span>
                     }
-                    else if (column.SortState == 2)
+                    else if (IsPrimarySort(column) && column.SortState == 2)
                     {
                         <span class="nx-grid-sort-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512">

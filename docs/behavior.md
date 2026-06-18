@@ -88,19 +88,23 @@ When the grid has no `ChildContent` (no `<NxGridColumn>` children declared), it 
 
 ## Sorting
 
-**Sort states:** `0` = unsorted, `1` = ascending, `2` = descending. Only one column can be sorted at a time — activating sort on any column clears all others to `0`.
+**Sort states:** `0` = unsorted, `1` = ascending, `2` = descending. Multiple columns can be sorted simultaneously. The grid maintains a sort history — the order in which columns were sorted determines their priority.
 
-**Null/empty values sort to the bottom** regardless of ascending or descending direction. The sort predicate pushes rows where the cell value is null or whitespace-only to the end before applying the primary comparison.
+**Multi-column sort (Excel-style cumulative sort):** each column click adds that column to the sort stack as the new primary sort. Earlier sorts become tiebreakers. This is equivalent to a stable sort applied sequentially: clicking column A then column B produces the same result as a compound sort with primary=B, secondary=A. Cycling a column back to unsorted (`0`) removes it from the stack.
+
+**Priority:** the most recently sorted column is always the primary sort (highest priority). All prior sorts remain active as tiebreakers in the order they were applied, oldest first. The sort arrow is shown only on the primary sort column; secondary and lower columns show no arrow.
+
+**Null/empty values sort to the bottom** regardless of ascending or descending direction. The sort predicate pushes rows where the cell value is null or whitespace-only to the end before applying the primary comparison. This blank-pushing applies at every level of the sort stack.
 
 **Sort key:** `Property` is the primary sort key. If `Property` is not set but `Display` is, `Display` is used as the sort key. If neither is set, the column cannot be sorted.
 
 **Two ways to change sort:**
-- Click the column title (only when `HasColumnMenu = true`; cycles 0 → 1 → 2 → 0).
+- Click the column title (only when `HasColumnMenu = true`; cycles 0 → 1 → 2 → 0, promoting the column to primary on each non-zero state).
 - Use the column menu (Sort Ascending / Sort Descending / Clear Sort), which sets the state directly.
 
 When `HeaderClickSelects = true`, clicking a column header selects the full column instead of cycling sort. Sort cycling via title click is disabled in that mode.
 
-A sort icon (↑ or ↓) appears in the column header when SortState is 1 or 2. A filter icon appears when FilterState is non-empty.
+A sort icon (↑ or ↓) appears in the column header of the primary sort column only. A filter icon appears when FilterState is non-empty.
 
 ---
 
@@ -537,10 +541,15 @@ When `StateKey` is non-null, the grid serialises its current column configuratio
     { "id": "desc", "width": 200, "frozen": null, "hidden": null },
     { "id": "qty",  "width": null, "frozen": true, "hidden": false }
   ],
-  "sort": { "columnId": "desc", "direction": 1 },
+  "sorts": [
+    { "columnId": "dept", "direction": 1 },
+    { "columnId": "desc", "direction": 2 }
+  ],
   "filters": { "dept": ["Engineering", "Sales"] }
 }
 ```
+
+`sorts` is an ordered list of active sort columns from oldest/lowest-priority to newest/highest-priority (the last entry is the primary sort). An empty array means no sort is active.
 
 `width` is only non-null when the user has explicitly dragged the resize grip. `frozen` and `hidden` are only non-null when the user has toggled the column's frozen or hidden state. Columns that have never been toggled have `null` for those fields and use their declared parameter values on restore.
 

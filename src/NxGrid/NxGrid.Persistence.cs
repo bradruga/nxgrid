@@ -19,7 +19,7 @@ internal class PersistedSortState
 internal class PersistedState
 {
     public List<PersistedColumnState> Columns { get; set; } = [];
-    public PersistedSortState? Sort { get; set; }
+    public List<PersistedSortState> Sorts { get; set; } = [];
     public Dictionary<string, List<string?>> Filters { get; set; } = [];
 }
 
@@ -53,12 +53,11 @@ public partial class NxGrid<T>
             state.Columns.Add(new PersistedColumnState { Id = id, Width = column.UserWidth, Frozen = column.UserFrozen, Hidden = column.UserHidden });
         }
 
-        var sortCol = ActiveColumns.FirstOrDefault(c => c.SortState != 0);
-        if (sortCol != null)
+        foreach (var col in sortHistory)
         {
-            var sortId = GetColumnId(sortCol);
-            if (sortId != null)
-                state.Sort = new PersistedSortState { ColumnId = sortId, Direction = sortCol.SortState };
+            var id = GetColumnId(col);
+            if (id != null)
+                state.Sorts.Add(new PersistedSortState { ColumnId = id, Direction = col.SortState });
         }
 
         foreach (var column in ActiveColumns)
@@ -104,14 +103,14 @@ public partial class NxGrid<T>
 
         ComputeFrozenOffsets();
 
-        if (state.Sort != null)
+        sortHistory.Clear();
+        foreach (var c in ActiveColumns) c.SortState = 0;
+        foreach (var savedSort in state.Sorts)
         {
-            var sortCol = FindColumn(state.Sort.ColumnId);
-            if (sortCol != null)
-            {
-                foreach (var c in ActiveColumns) c.SortState = 0;
-                sortCol.SortState = state.Sort.Direction;
-            }
+            var col = FindColumn(savedSort.ColumnId);
+            if (col == null) continue;
+            col.SortState = savedSort.Direction;
+            sortHistory.Add(col);
         }
 
         foreach (var (colId, storedValues) in state.Filters)
@@ -145,6 +144,7 @@ public partial class NxGrid<T>
             await jsInterop.LocalStorageRemove(StateKey);
 
         manualMode = false;
+        sortHistory.Clear();
         foreach (var column in ActiveColumns)
         {
             column.UserWidth = null;

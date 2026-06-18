@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Multi-column sort: clicking column headers accumulates sort criteria. The most recently clicked column is the primary sort; earlier sorts are tiebreakers. Only the primary sort column shows a sort arrow. **Breaking change:** persisted sort state format changed (`sort` → `sorts`).
 - Column header menu now includes a "Reset all column widths" item when any column has been manually resized. Clicking it clears all user-dragged widths, restores flex/auto sizing, and persists the reset to `StateKey` storage.
 - New `--nx-grid-font-family` CSS variable (default: `inherit`) — the grid now inherits the host project's font automatically, with an easy override point.
 - New `--nx-grid-font-size` CSS variable (default: `14px`) — grid font size is now overridable without targeting internal class names.

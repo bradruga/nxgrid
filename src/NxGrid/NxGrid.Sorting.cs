@@ -2,12 +2,25 @@ namespace NxGrid;
 
 public partial class NxGrid<T>
 {
+    private List<NxGridColumn<T>> sortHistory = [];
+
+    private void UpdateSortHistory(NxGridColumn<T> column, int state)
+    {
+        sortHistory.Remove(column);
+        if (state != 0)
+            sortHistory.Add(column);
+    }
+
+    private bool IsPrimarySort(NxGridColumn<T> column)
+        => sortHistory.Count > 0 && sortHistory[^1] == column;
+
     private async Task ApplySortState(int state)
     {
         var col = openColumn!;
         col.SortState = state;
-        SortColumn(col);
+        UpdateSortHistory(col, state);
         openColumn = null;
+        ApplyFilterAndSort();
         StateHasChanged();
         await SaveStateAsync();
         await RaiseSortChanged(col);
@@ -51,7 +64,8 @@ public partial class NxGrid<T>
         column.SortState++;
         if (column.SortState > 2) column.SortState = 0;
 
-        SortColumn(column);
+        UpdateSortHistory(column, column.SortState);
+        ApplyFilterAndSort();
         await SaveStateAsync();
         await RaiseSortChanged(column);
     }
@@ -77,22 +91,6 @@ public partial class NxGrid<T>
         });
     }
 
-    private void SortColumn(NxGridColumn<T> column)
-    {
-        // Clear all other column sort states
-        foreach (var col in ActiveColumns)
-        {
-            if (col != column)
-                col.SortState = 0;
-        }
-
-        var getter = column.EffectiveValueGetter;
-
-        if (getter == null) return;
-
-        ApplyFilterAndSort();
-    }
-
     private void ApplyFilterAndSort()
     {
         var data = Data;
@@ -113,20 +111,30 @@ public partial class NxGrid<T>
 
     private List<T> ApplySortToList(List<T> items)
     {
-        foreach (var column in ActiveColumns)
+        // Only include history entries that are still active with a getter and non-zero state.
+        // Last entry = primary sort (most recently clicked); earlier entries = tiebreakers.
+        var active = sortHistory
+            .Where(c => ActiveColumns.Contains(c) && c.SortState != 0 && c.EffectiveValueGetter != null)
+            .ToList();
+
+        if (active.Count == 0) return items;
+
+        var primary = active[^1];
+        var primaryGetter = primary.EffectiveValueGetter!;
+
+        IOrderedEnumerable<T> ordered = primary.SortState == 1
+            ? items.OrderBy(x => string.IsNullOrWhiteSpace(primaryGetter(x)?.ToString())).ThenBy(primaryGetter)
+            : items.OrderBy(x => string.IsNullOrWhiteSpace(primaryGetter(x)?.ToString())).ThenByDescending(primaryGetter);
+
+        for (var i = active.Count - 2; i >= 0; i--)
         {
-            if (column.SortState == 0) continue;
-
-            var getter = column.EffectiveValueGetter;
-            if (getter == null) continue;
-
-            if (column.SortState == 1)
-                items = items.OrderBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString()))
-                    .ThenBy(getter).ToList();
-            else if (column.SortState == 2)
-                items = items.OrderBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString()))
-                    .ThenByDescending(getter).ToList();
+            var col = active[i];
+            var getter = col.EffectiveValueGetter!;
+            ordered = col.SortState == 1
+                ? ordered.ThenBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString())).ThenBy(getter)
+                : ordered.ThenBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString())).ThenByDescending(getter);
         }
-        return items;
+
+        return ordered.ToList();
     }
 }
