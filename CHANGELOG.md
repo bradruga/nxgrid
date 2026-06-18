@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-06-18
+
 ### Added
 
 - `ClearAllFilters()` public method: clears all column filters and re-applies sort without touching column widths, sort order, or frozen/hidden state. Saves to `localStorage` when `StateKey` is configured and fires `OnFilterChanged`.
