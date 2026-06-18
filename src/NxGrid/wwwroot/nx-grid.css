@@ -122,6 +122,7 @@
 
 .nx-grid-cell-template {
   overflow: hidden;
+  white-space: nowrap;
   min-width: 0;
   flex: 1;
   display: flex;

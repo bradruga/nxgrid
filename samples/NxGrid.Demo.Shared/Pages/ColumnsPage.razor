@@ -28,7 +28,11 @@
         The <code>Context</code> attribute names the row object variable.
     </p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell" RowHeight="32">
-        <NxGridColumn Title="Name"       Display="@(x => x.FirstName + " " + x.LastName)" Width="180" />
+        <NxGridColumn Title="Name" Width="180">
+            <Template>
+                @context.FirstName @context.LastName
+            </Template>
+        </NxGridColumn>
         <NxGridColumn Property="@(x => x.Department)" Width="180">
             <Template Context="p">
                 <span style="@GetDeptBadgeStyle(p)">@p.Department</span>
