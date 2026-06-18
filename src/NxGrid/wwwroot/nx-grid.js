@@ -559,6 +559,17 @@ class NxGrid {
         const fontFamily = computed.fontFamily;
         const fontWeight = computed.fontWeight;
 
+        // Explicitly load the exact font strings we'll use in the canvas so the
+        // browser warms up the correct typeface (e.g. a web font like Roboto) before
+        // measuring. document.fonts.ready resolves when fonts are in the FontFaceSet
+        // but does not guarantee the canvas engine has loaded a specific weight/size.
+        try {
+            await Promise.all([
+                document.fonts.load(`${fontWeight} ${fontSize} ${fontFamily}`),
+                document.fonts.load(`bold ${fontSize} ${fontFamily}`),
+            ]);
+        } catch (_) { /* ignore — fall back to whatever the canvas can resolve */ }
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 

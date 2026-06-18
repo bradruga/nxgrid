@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Drag-select no longer paints cells with custom background colors black when `--nx-grid-selection-bg` is `transparent` or an `rgba()` color. The JavaScript selection path now correctly skips blending when the selection color is transparent, and correctly parses `rgba()` values when it is not.
+- Column auto-size now calls `document.fonts.load()` for the exact font strings used by the canvas, fixing columns sized too narrow when a custom web font (e.g. Roboto) is in use.
+- Drag-select no longer paints cells black when `--nx-grid-selection-bg` is `transparent` or an `rgba()` color.
 
 ## [0.1.6] - 2026-06-18
 
