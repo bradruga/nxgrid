@@ -28,7 +28,7 @@ public partial class NxGrid<T>
         if (_charWidths == null) return;
 
         const int cellPadding = 20; // 6px left + 6px right padding + 1px right border + 7px buffer for font rendering variation
-        const int headerFixedOverhead = 13; // 6px left + 6px right + 1px border
+        const int headerFixedOverhead = 20; // 6px left + 6px right + 1px border + 7px buffer for font rendering variation
         const int menuButtonWidth = 28;     // 24px svg + 4px margin-left
         const int iconWidth = 20;           // 16px svg + 4px margin-left, per icon
 

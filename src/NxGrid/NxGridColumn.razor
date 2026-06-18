@@ -626,10 +626,9 @@
         // FlexMinWidth/FlexMaxWidth bound the flex distribution on top of MinWidth/MaxWidth.
         if (FitWidth.HasValue)
         {
-            var style = $"width:{FitWidth}px;flex-grow:{FitWidth};";
-            var cssMin = MaxOf(MinWidth, FlexMinWidth);
+            var cssMin = MaxOf(MaxOf(MinWidth, FlexMinWidth), FitWidth); // never shrink below computed fit
             var cssMax = MinOf(MaxWidth, FlexMaxWidth);
-            if (cssMin != null) style += $"min-width:{cssMin}px;";
+            var style = $"width:{FitWidth}px;flex-grow:{FitWidth};min-width:{cssMin}px;";
             if (cssMax != null) style += $"max-width:{cssMax}px;";
             return style;
         }
