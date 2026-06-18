@@ -26,16 +26,28 @@ public partial class NxGrid<T>
         await RaiseSortChanged(col);
     }
 
-    private async Task OnClearAllFiltersClick()
+    /// <summary>
+    /// Programmatically clears all column filters and re-applies the sort.
+    /// Saves the updated state to <c>localStorage</c> when <see cref="StateKey"/> is configured.
+    /// Fires <see cref="OnFilterChanged"/> with <c>null</c> column.
+    /// Unlike <see cref="ClearSavedState"/>, column widths, sort order, frozen state, and hidden
+    /// state are all preserved.
+    /// </summary>
+    public async Task ClearAllFilters()
     {
         foreach (var col in columns)
             col.FilterState = [];
 
-        openColumn = null;
         ApplyFilterAndSort();
         StateHasChanged();
         await SaveStateAsync();
         await RaiseFilterChanged(null);
+    }
+
+    private async Task OnClearAllFiltersClick()
+    {
+        openColumn = null;
+        await ClearAllFilters();
     }
 
     private async Task OnFilterOk(List<object?> values)

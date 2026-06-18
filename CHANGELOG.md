@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ClearAllFilters()` public method: clears all column filters and re-applies sort without touching column widths, sort order, or frozen/hidden state. Saves to `localStorage` when `StateKey` is configured and fires `OnFilterChanged`.
+
 ### Fixed
 
 - Column auto-size now calls `document.fonts.load()` for the exact font strings used by the canvas, fixing columns sized too narrow when a custom web font (e.g. Roboto) is in use.

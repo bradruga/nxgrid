@@ -8,7 +8,7 @@ public sealed class NxGridFilterChangedArgs<T>
 {
     /// <summary>
     /// The column whose filter changed. <c>null</c> when all filters are cleared at once
-    /// (e.g. <see cref="NxGrid{T}.ClearSavedState"/>).
+    /// (e.g. <see cref="NxGrid{T}.ClearAllFilters"/> or <see cref="NxGrid{T}.ClearSavedState"/>).
     /// </summary>
     public required NxGridColumn<T>? Column { get; init; }
 

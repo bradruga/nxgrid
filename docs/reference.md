@@ -117,7 +117,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `SelectedItems` | `List<T>?` | Two-way bindable list of the currently selected row objects (all ranges combined, deduplicated). Use `@bind-SelectedItems="@myList"` as a shorthand for `OnSelectionChanged`. `SelectedItemsChanged` fires in sync with `OnSelectionChanged`. Setting this from outside (e.g. `myList = []`) also updates the visual selection in the grid. |
 | `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. |
 | `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip **or double-clicks it to auto-size**. `args.ColumnIndex` and `args.NewWidth` (px). |
-| `OnFilterChanged` | `EventCallback<NxGridFilterChangedArgs<T>>` | Fires after any column's filter state changes and `ApplyFilterAndSort` has run. `args.Column` is `null` when all filters are cleared at once (e.g. `ClearSavedState()`). Does not fire when `Data` is replaced externally. |
+| `OnFilterChanged` | `EventCallback<NxGridFilterChangedArgs<T>>` | Fires after any column's filter state changes and `ApplyFilterAndSort` has run. `args.Column` is `null` when all filters are cleared at once (e.g. `ClearAllFilters()` or `ClearSavedState()`). Does not fire when `Data` is replaced externally. |
 | `OnSortChanged` | `EventCallback<NxGridSortChangedArgs<T>>` | Fires after the sort column or direction changes and `ApplyFilterAndSort` has run. `args.Column` is `null` and `args.Direction` is `0` when sort is cleared. Does not fire when only filter state changes, or when state is restored from `localStorage` on first render. |
 | `OnCellClicked` | `EventCallback<NxGridCellClickArgs<T>>` | Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Fires for all cells regardless of editability. Does not fire on right-click, drag-select, header click, row-number gutter click, keyboard navigation, or `SelectRow()`. Fires after `OnSelectionChanged`. |
 | `OnCellDoubleClicked` | `EventCallback<NxGridCellClickArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |
@@ -156,6 +156,7 @@ void  ForceRerender()                              // force a re-render after ex
 Task  ScrollToEnd()                                // scroll to the last row
 Task  SelectRow(T row)                             // programmatically select a row and scroll it into view; when KeyProperty is set, falls back to key-value match if reference is not found
 Task  SelectRowByKey(object? keyValue)             // select and scroll to the first row whose KeyProperty value equals keyValue; logs a warning and is a no-op when KeyProperty is not set or no match is found
+Task  ClearAllFilters()                            // clear all column filters and re-apply sort; saves state when StateKey is set; fires OnFilterChanged; column widths/sort/frozen/hidden are preserved
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title
 void  SetEditValue(string value)                   // replace the active edit input's text; no-op when not editing. Use in an OnCellPickedWhileEditing handler
@@ -788,7 +789,7 @@ public sealed class NxGridContextMenuItemArgs<T>
 
 public sealed class NxGridFilterChangedArgs<T>
 {
-    // The column whose filter changed. Null when all filters are cleared (e.g. ClearSavedState()).
+    // The column whose filter changed. Null when all filters are cleared (e.g. ClearAllFilters() or ClearSavedState()).
     public NxGridColumn<T>? Column { get; init; }
 
     // Post-filter, post-sort snapshot of currently visible rows. Not mutated after creation.

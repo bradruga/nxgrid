@@ -265,8 +265,8 @@ public partial class NxGrid<T>
     /// <summary>
     /// Fires after any column's filter state changes and <c>ApplyFilterAndSort</c> has run.
     /// <see cref="NxGridFilterChangedArgs{T}.Column"/> is <c>null</c> when all filters are
-    /// cleared at once (e.g. <see cref="ClearSavedState"/>). Does not fire when <see cref="Data"/>
-    /// is replaced externally.
+    /// cleared at once (e.g. <see cref="ClearAllFilters"/> or <see cref="ClearSavedState"/>).
+    /// Does not fire when <see cref="Data"/> is replaced externally.
     /// </summary>
     [Parameter] public EventCallback<NxGridFilterChangedArgs<T>> OnFilterChanged { get; set; }
 
