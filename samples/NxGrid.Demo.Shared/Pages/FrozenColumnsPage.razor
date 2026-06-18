@@ -17,21 +17,21 @@
         the existing ones.
     </p>
     <NxGrid T="SalesRow" Data="@rows" Style="height:360px" RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell" HasColumnMenu="true">
-        <NxGridColumn Title="Employee"   Display="@(x => x.Name)"       Width="140" Frozen="true" />
-        <NxGridColumn Title="Department" Display="@(x => x.Department)" Width="130" Frozen="true" />
-        <NxGridColumn Property="@(x => x.Jan)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Feb)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Mar)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Apr)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.May)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Jun)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Jul)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Aug)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Sep)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Oct)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Nov)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Dec)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Title="Total" Display="@(x => x.Total.ToString("N0"))" Width="95" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Employee"   Display="@(x => x.Name)"       Width="140" Sizing="NxGridColumnSizing.Fixed" Frozen="true" />
+        <NxGridColumn Title="Department" Display="@(x => x.Department)" Width="130" Sizing="NxGridColumnSizing.Fixed" Frozen="true" />
+        <NxGridColumn Property="@(x => x.Jan)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Feb)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Mar)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Apr)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.May)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Jun)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Jul)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Aug)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Sep)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Oct)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Nov)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Dec)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Total" Display="@(x => x.Total.ToString("N0"))" Width="95" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
 </div>

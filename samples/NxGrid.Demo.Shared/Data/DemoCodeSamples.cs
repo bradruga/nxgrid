@@ -685,13 +685,14 @@ void OnSignalRRowReceived(Person newRow)
 """;
 
     public static readonly string FrozenColumns = """
+@* Use Sizing="Fixed" so columns hold their declared widths and the grid scrolls horizontally. *@
 <NxGrid T="SalesRow" Data="@rows" Style="height:360px" RowGutter="NxGridRowGutter.Numbers">
-    <NxGridColumn Title="Employee"   Display="@(x => x.Name)"       Width="140" Frozen="true" />
-    <NxGridColumn Title="Department" Display="@(x => x.Department)" Width="130" Frozen="true" />
-    <NxGridColumn Property="@(x => x.Jan)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
-    <NxGridColumn Property="@(x => x.Feb)"   Width="80" Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Title="Employee"   Display="@(x => x.Name)"       Width="140" Sizing="NxGridColumnSizing.Fixed" Frozen="true" />
+    <NxGridColumn Title="Department" Display="@(x => x.Department)" Width="130" Sizing="NxGridColumnSizing.Fixed" Frozen="true" />
+    <NxGridColumn Property="@(x => x.Jan)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.Feb)"   Width="80" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
     @* ... *@
-    <NxGridColumn Title="Total" Display="@(x => x.Total.ToString("N0"))" Width="95" Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Title="Total" Display="@(x => x.Total.ToString("N0"))" Width="95" Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
 </NxGrid>
 
 @* Any column without Freezable="false" shows "Freeze / Unfreeze column" in the ▾ menu. *@
