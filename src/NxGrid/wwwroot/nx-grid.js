@@ -507,6 +507,8 @@ class NxGrid {
         };
         document.addEventListener('mousemove', mouseMoveHandler);
 
+        const grip = headerCells[columnIndex].querySelector('.nx-grid-resize-grip');
+        if (grip) grip.classList.add('nx-grid-resize-grip-active');
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
 
@@ -519,6 +521,7 @@ class NxGrid {
             document.addEventListener('mouseup', mouseUpHandler);
         });
 
+        if (grip) grip.classList.remove('nx-grid-resize-grip-active');
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
 

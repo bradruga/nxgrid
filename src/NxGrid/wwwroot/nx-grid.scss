@@ -177,7 +177,8 @@ $nx-grid-menu-icon:       $nx-grid-accent    !default;
     position: relative;
 }
 
-.nx-grid-header-row .nx-grid-cell:hover .nx-grid-resize-grip {
+.nx-grid-header-row .nx-grid-cell:hover .nx-grid-resize-grip,
+.nx-grid-resize-grip.nx-grid-resize-grip-active {
     border-color: var(--nx-grid-accent);
 }
 
