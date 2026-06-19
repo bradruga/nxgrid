@@ -117,10 +117,10 @@ public class NxGridSortingTests : BunitContext
         Assert.That(cells[^1].TextContent.Trim(), Is.EqualTo(""));
     }
 
-    // ── Only one sort at a time ───────────────────────────────────────────────
+    // ── Multi-column sort ─────────────────────────────────────────────────────
 
     [Test]
-    public async Task Sort_ClickingSecondColumn_ClearsFirstColumnSort()
+    public async Task Sort_ClickingSecondColumn_PromotesItToPrimary()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = RenderSortGrid([new("Alice", 25, null), new("Bob", 20, null)]);
@@ -129,9 +129,35 @@ public class NxGridSortingTests : BunitContext
         await cut.FindAll(".nx-grid-column-title")[1].TriggerEventAsync("onclick", new EventArgs());
 
         var cols = cut.FindComponents<NxGridColumn<SortRow>>();
-        Assert.That(cols[0].Instance.SortState, Is.EqualTo(0), "First column should be cleared");
-        Assert.That(cols[1].Instance.SortState, Is.EqualTo(1), "Second column should be ascending");
+        // Col0 remains a tiebreaker (state preserved), col1 becomes the primary sort
+        Assert.That(cols[0].Instance.SortState, Is.EqualTo(1), "First column should remain a tiebreaker");
+        Assert.That(cols[1].Instance.SortState, Is.EqualTo(1), "Second column should be the new primary (ascending)");
+        // Only the primary column shows a sort icon
         Assert.That(cut.FindAll(".nx-grid-sort-icon").Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Sort_TwoColumns_TiebreakerAffectsRowOrder()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        // Two rows share the same Age — the Name tiebreaker must distinguish them.
+        // Primary: Age ascending. Tiebreaker: Name ascending.
+        var cut = RenderSortGrid([
+            new("Charlie", 25, null),
+            new("Alice", 25, null),
+            new("Bob", 30, null),
+        ]);
+
+        // Click Name first (becomes tiebreaker), then Age (becomes primary)
+        await cut.FindAll(".nx-grid-column-title")[0].TriggerEventAsync("onclick", new EventArgs()); // Name asc
+        await cut.FindAll(".nx-grid-column-title")[1].TriggerEventAsync("onclick", new EventArgs()); // Age asc (primary)
+
+        var nameCells = cut.FindAll(".nx-grid-row .nx-grid-cell-text")
+            .Where((_, i) => i % 2 == 0).ToList();
+        // Age 25 rows should come first, ordered by Name (tiebreaker): Alice before Charlie
+        Assert.That(nameCells[0].TextContent.Trim(), Is.EqualTo("Alice"));
+        Assert.That(nameCells[1].TextContent.Trim(), Is.EqualTo("Charlie"));
+        Assert.That(nameCells[2].TextContent.Trim(), Is.EqualTo("Bob"));
     }
 
     // ── Filtering ─────────────────────────────────────────────────────────────

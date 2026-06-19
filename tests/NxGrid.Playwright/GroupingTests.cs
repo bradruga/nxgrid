@@ -18,7 +18,9 @@ public class GroupingTests : PageTest
 
     private async Task GoToGroupingPage()
     {
-        await Page.GotoAsync(_baseUrl + GroupingPage);
+        // NetworkIdle ensures the SignalR WebSocket upgrade completes before we interact,
+        // preventing clicks that land during Blazor Server's prerender-only phase.
+        await Page.GotoAsync(_baseUrl + GroupingPage, new() { WaitUntil = Microsoft.Playwright.WaitUntilState.NetworkIdle });
         await Expect(FirstGrid).ToBeVisibleAsync();
     }
 

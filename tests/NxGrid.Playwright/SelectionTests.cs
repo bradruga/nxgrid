@@ -14,7 +14,8 @@ public class SelectionTests : PageTest
 
     // Grid order on the selection page:
     // 0 = OnCellClicked demo (Row mode), 1 = Cell mode, 2 = Row mode (master-detail),
-    // 3 = Multi-range, 4 = None mode, 5 = @bind-SelectedItems, 6-7 = KeyProperty, 8 = SelectRowByKey
+    // 3 = SingleRow, 4 = Multi-range, 5 = None mode, 6 = @bind-SelectedItems,
+    // 7-8 = KeyProperty, 9 = SelectRowByKey
 
     private Microsoft.Playwright.ILocator CellModeGrid
         => Page.Locator(".nx-grid").Nth(1);
@@ -23,7 +24,7 @@ public class SelectionTests : PageTest
         => Page.Locator(".nx-grid").Nth(2);
 
     private Microsoft.Playwright.ILocator NoneModeGrid
-        => Page.Locator(".nx-grid").Nth(4);
+        => Page.Locator(".nx-grid").Nth(5);
 
     private async Task GoToSelectionPage()
     {
@@ -129,7 +130,7 @@ public class SelectionTests : PageTest
         await GoToSelectionPage();
 
         // The @bind-SelectedItems grid is the one after the None mode grid
-        var bindGrid = Page.Locator(".nx-grid").Nth(5);
+        var bindGrid = Page.Locator(".nx-grid").Nth(6);
         await Expect(bindGrid).ToBeVisibleAsync();
 
         // Initially no selection
