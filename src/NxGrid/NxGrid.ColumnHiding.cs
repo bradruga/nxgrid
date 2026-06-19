@@ -13,6 +13,7 @@ public partial class NxGrid<T>
     {
         var column = FindColumn(columnId);
         if (column == null) return;
+        if (!hidden && !column.Visible) return;
         column.UserHidden = hidden;
         if (hidden) { selectedRanges = []; column.FitWidth = null; }
         ComputeFrozenOffsets();
@@ -67,6 +68,13 @@ public partial class NxGrid<T>
     private void CloseColumnChooser()
     {
         showColumnChooser = false;
+        StateHasChanged();
+    }
+
+    internal void NotifyColumnLayoutChanged()
+    {
+        ComputeFrozenOffsets();
+        renderToken++;
         StateHasChanged();
     }
 }

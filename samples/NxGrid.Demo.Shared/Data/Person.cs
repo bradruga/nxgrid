@@ -7,4 +7,5 @@ public class Person
     public string LastName { get; set; } = string.Empty;
     public int Age { get; set; }
     public string Department { get; set; } = string.Empty;
+    public decimal Salary { get; set; }
 }

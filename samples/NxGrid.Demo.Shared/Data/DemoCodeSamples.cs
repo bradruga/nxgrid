@@ -882,6 +882,31 @@ void OnSignalRRowReceived(Person newRow)
 }
 """;
 
+    public static readonly string VisibleBasic = """
+// Bind Visible to a bool. When false the column is completely absent —
+// not rendered, not in the column chooser, and cannot be shown by the user.
+<NxGrid T="Person" Data="@people" HasColumnMenu="true">
+    <NxGridColumn Display="@(x => x.FirstName + " " + x.LastName)" Title="Name" Width="180" />
+    <NxGridColumn Property="@(x => x.Department)"   Width="140" />
+    <NxGridColumn Property="@(x => x.Salary)"       Width="120" Visible="@isManager"
+                  Display="@(x => x.Salary.ToString("C0"))" Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+
+@code {
+    bool isManager = false;
+}
+""";
+
+    public static readonly string VisibleVsHidden = """
+// Visible="false"  — programmer gate. User cannot show the column. Not persisted.
+// Hidden="true"    — user-facing default. User can unhide via "Manage columns…".
+// Hideable="false" — locks the hidden state; column appears in the chooser as
+//                    a locked checkbox (greyed out).
+
+// Use Visible for authorization: the column doesn't exist for that user.
+// Use Hidden for defaults: the column exists but is collapsed by default.
+""";
+
     public static readonly string ContextMenuBasic = """
 // OnContextMenuShowing is called synchronously — append items before the menu opens.
 // OnContextMenuItemClicked receives args.Item.Id, args.Row, and args.Column.

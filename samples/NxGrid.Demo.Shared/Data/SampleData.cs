@@ -4,14 +4,14 @@ public static class SampleData
 {
     public static IReadOnlyList<Person> People { get; } = new[]
     {
-        new Person { Id = 1, FirstName = "Alice",  LastName = "Johnson",  Age = 32, Department = "Engineering" },
-        new Person { Id = 2, FirstName = "Bob",    LastName = "Smith",    Age = 45, Department = "Marketing"   },
-        new Person { Id = 3, FirstName = "Carol",  LastName = "Williams", Age = 28, Department = "Engineering" },
-        new Person { Id = 4, FirstName = "David",  LastName = "Brown",    Age = 51, Department = "Finance"     },
-        new Person { Id = 5, FirstName = "Eve",    LastName = "Davis",    Age = 37, Department = "Marketing"   },
-        new Person { Id = 6, FirstName = "Frank",  LastName = "Miller",   Age = 29, Department = "Engineering" },
-        new Person { Id = 7, FirstName = "Grace",  LastName = "Wilson",   Age = 44, Department = "Finance"     },
-        new Person { Id = 8, FirstName = "Henry",  LastName = "Moore",    Age = 38, Department = "HR"          },
+        new Person { Id = 1, FirstName = "Alice",  LastName = "Johnson",  Age = 32, Department = "Engineering", Salary = 95000m  },
+        new Person { Id = 2, FirstName = "Bob",    LastName = "Smith",    Age = 45, Department = "Marketing",   Salary = 78000m  },
+        new Person { Id = 3, FirstName = "Carol",  LastName = "Williams", Age = 28, Department = "Engineering", Salary = 88000m  },
+        new Person { Id = 4, FirstName = "David",  LastName = "Brown",    Age = 51, Department = "Finance",     Salary = 112000m },
+        new Person { Id = 5, FirstName = "Eve",    LastName = "Davis",    Age = 37, Department = "Marketing",   Salary = 82000m  },
+        new Person { Id = 6, FirstName = "Frank",  LastName = "Miller",   Age = 29, Department = "Engineering", Salary = 91000m  },
+        new Person { Id = 7, FirstName = "Grace",  LastName = "Wilson",   Age = 44, Department = "Finance",     Salary = 105000m },
+        new Person { Id = 8, FirstName = "Henry",  LastName = "Moore",    Age = 38, Department = "HR",          Salary = 74000m  },
     };
 
     private static readonly string[] FirstNames =
@@ -39,7 +39,8 @@ public static class SampleData
             FirstName = p.FirstName,
             LastName = p.LastName,
             Age = p.Age,
-            Department = p.Department
+            Department = p.Department,
+            Salary = p.Salary
         }).ToList();
 
     public static List<WideRow> GenerateWideRows(int count) =>
@@ -54,7 +55,8 @@ public static class SampleData
             FirstName = FirstNames[rng.Next(FirstNames.Length)],
             LastName = LastNames[rng.Next(LastNames.Length)],
             Age = rng.Next(22, 65),
-            Department = Departments[rng.Next(Departments.Length)]
+            Department = Departments[rng.Next(Departments.Length)],
+            Salary = rng.Next(50, 150) * 1000m
         }).ToList();
     }
 

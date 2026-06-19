@@ -227,7 +227,7 @@
                 </button>
             }
 
-            @if (openColumn.Freezable || openColumn.Hideable || ActiveColumns.Any(c => c.Hideable) || ActiveColumns.Any(c => c.UserWidth != null))
+            @if (openColumn.Freezable || openColumn.Hideable || ActiveColumns.Any(c => c.Hideable && c.Visible) || ActiveColumns.Any(c => c.UserWidth != null))
             {
                 <div class="nx-grid-menu-divider"></div>
                 @if (openColumn.Freezable)
@@ -261,7 +261,7 @@
                         Hide column
                     </button>
                 }
-                @if (ActiveColumns.Any(c => c.Hideable))
+                @if (ActiveColumns.Any(c => c.Hideable && c.Visible))
                 {
                     <button type="button" class="nx-grid-menu-item" @onclick="@OnManageColumnsClick">
                         <span class="nx-grid-menu-item-icon">
@@ -450,7 +450,7 @@
         <div style="position:fixed;inset:0;z-index:999;" @onclick="CloseColumnChooser"></div>
         <div class="nx-grid-chooser-panel" style="top:@(chooserTop)px;left:@(chooserLeft)px;" @onclick:stopPropagation>
             <div class="nx-grid-chooser-title">Columns</div>
-            @foreach (var col in ActiveColumns.Where(c => c.Hideable))
+            @foreach (var col in ActiveColumns.Where(c => c.Hideable && c.Visible))
             {
                 var capturedCol = col;
                 <label class="nx-grid-chooser-item">

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `NxGridColumn.Visible` — programmer-controlled gate that excludes a column from rendering and from the column chooser. Unlike `Hidden`, it is not user-controllable and is never persisted; use it for authorization-based column visibility (e.g., show a column only to certain roles).
+
 ## [0.1.9] - 2026-06-19
 
 ### Fixed

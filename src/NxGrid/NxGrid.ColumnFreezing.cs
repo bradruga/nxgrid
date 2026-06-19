@@ -10,7 +10,7 @@ public partial class NxGrid<T>
     {
         var gutterWidth = RowGutter == NxGridRowGutter.Hidden ? 0 : 32;
 
-        visibleColumns = ActiveColumns.Where(c => !c.IsHidden).ToList();
+        visibleColumns = ActiveColumns.Where(c => c.Visible && !c.IsHidden).ToList();
 
         // Left-to-right pass: left offsets accumulate from the gutter outward.
         var leftAccum = gutterWidth;

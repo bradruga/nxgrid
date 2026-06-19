@@ -120,6 +120,14 @@
     [Parameter] public bool Hideable { get; set; } = true;
 
     /// <summary>
+    /// Controls whether this column is rendered at all. When <c>false</c>, the column is excluded
+    /// from the grid and from the column chooser; the user cannot show it. Unlike <see cref="Hidden"/>,
+    /// this is not user-controlled and is never persisted. Use for authorization-based column
+    /// visibility. Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool Visible { get; set; } = true;
+
+    /// <summary>
     /// When <c>true</c>, double-clicking the column's resize grip auto-sizes the column to fit
     /// its widest content across the current filtered dataset. Obeys <see cref="MinWidth"/> and
     /// <see cref="MaxWidth"/>. Set to <c>false</c> to disable double-click auto-size for this
@@ -390,6 +398,7 @@
     private string? displayName;
     private string? inferredName;
     private Expression<Func<T, object?>>? _lastBuiltProperty;
+    private bool _lastVisible = true;
 
     protected override void OnInitialized()
     {
@@ -398,6 +407,12 @@
 
     protected override void OnParametersSet()
     {
+        if (Visible != _lastVisible)
+        {
+            _lastVisible = Visible;
+            Parent?.NotifyColumnLayoutChanged();
+        }
+
         if (!ReferenceEquals(_lastBuiltProperty, Property))
         {
             _lastBuiltProperty = Property;

@@ -1,0 +1,71 @@
+@page "/visible-columns"
+@using NxGrid.Demo.Shared.Data
+
+<PageTitle>Visible Columns — NxGrid</PageTitle>
+
+<h1>Visible Columns</h1>
+<p class="doc-intro">
+    <code>Visible</code> is a programmer-controlled gate that removes a column entirely from the
+    grid and from the column chooser. Unlike <code>Hidden</code>, it cannot be changed by the user
+    and is never saved to localStorage. The intended use is authorization-based column visibility —
+    show a column only to users with the appropriate role.
+</p>
+
+<div class="doc-section">
+    <h2>Try it</h2>
+    <p class="doc-note">
+        The <strong>Salary</strong> column is only visible when "Manager" is checked. When unchecked
+        the column does not exist in the grid — it is not in the column chooser and cannot be shown
+        by the user. Toggle the checkbox to simulate a role change.
+    </p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500">
+            <input type="checkbox" @bind="isManager" style="width:16px;height:16px" />
+            I am a manager — show salary data
+        </label>
+    </div>
+    <NxGrid T="Person" Data="@rows" Style="height:320px" RowGutter="NxGridRowGutter.Numbers"
+            HasColumnMenu="true" Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Display="@(x => x.FirstName + " " + x.LastName)" Title="Name" Width="180" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="80"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Salary)"     Width="120" Visible="@isManager"
+                      Display="@(x => x.Salary.ToString("C0"))"
+                      Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Visible vs Hidden</h2>
+    <p class="doc-note">
+        <code>Visible="false"</code> and <code>Hidden="true"</code> both exclude a column from
+        rendering, but they serve different purposes:
+    </p>
+    <ul class="doc-list">
+        <li>
+            <code>Visible="false"</code> — the column does not exist for the current user.
+            It is absent from the column chooser. No user action can reveal it.
+            Useful when the column's existence should be conditional on authorization.
+        </li>
+        <li>
+            <code>Hidden="true"</code> — the column is collapsed by default but the user
+            can show it via <strong>Manage columns…</strong> in the column menu. Use this
+            when the column is simply not displayed initially but is available on request.
+        </li>
+        <li>
+            <code>Hidden="true" Hideable="false"</code> — permanently hidden from rendering
+            but still participates in sort and filter. Use this to filter or sort by a field
+            without showing it as a column.
+        </li>
+    </ul>
+    <pre class="doc-code">@vsHiddenCode</pre>
+</div>
+
+@code {
+    List<Person> rows = SampleData.People.ToList();
+    bool isManager = false;
+
+    string basicCode    = DemoCodeSamples.VisibleBasic;
+    string vsHiddenCode = DemoCodeSamples.VisibleVsHidden;
+}
