@@ -228,21 +228,21 @@
                 <td>MultiLine</td>
                 <td>bool</td>
                 <td>false</td>
-                <td>Uses a growing textarea editor. Shift+Enter inserts a newline; Enter commits. Disables virtualization for the entire grid. Silently ignored when <code>ComboBoxItems</code> is also set.</td>
+                <td>Uses a growing textarea editor. Shift+Enter inserts a newline; Enter commits. Disables virtualization for the entire grid. Silently ignored when <code>ComboBoxSource</code> is also set.</td>
                 <td><a href="/multi-line">Multi-Line</a></td>
             </tr>
             <tr>
-                <td>ComboBoxItems</td>
-                <td>Func&lt;T, IEnumerable&lt;NxGridComboItem&gt;&gt;?</td>
+                <td>ComboBoxSource</td>
+                <td>NxGridComboSource?</td>
                 <td>—</td>
-                <td>Turns the inline editor into a combo-box dropdown. Receives the row object so the list can vary per row; called fresh on each open. Use <code>NxGridComboItem.From(source, value, display)</code> to project any typed collection, or <code>NxGridComboItem.From(stringList)</code> when value and display are the same.</td>
+                <td>Turns the inline editor into a combo-box dropdown. Use <code>NxGridComboSource.FixedList(source, id, text)</code> for a fixed list — Id→Text is resolved automatically for cell display. Use <code>NxGridComboSource.FixedList(stringList)</code> when id and text are the same. Use <code>NxGridComboSource.VariableList((Row r) =&gt; …, id, text)</code> when the list depends on the row.</td>
                 <td><a href="/combo-box">Combo Box</a></td>
             </tr>
             <tr>
                 <td>ComboBoxItemTemplate</td>
                 <td>RenderFragment&lt;NxGridComboItem&gt;?</td>
                 <td>—</td>
-                <td>Custom markup for each dropdown item. Overrides the plain <code>Display</code> string.</td>
+                <td>Custom markup for each dropdown item. Overrides the plain <code>Text</code> string.</td>
                 <td><a href="/combo-box">Combo Box</a></td>
             </tr>
             <tr>

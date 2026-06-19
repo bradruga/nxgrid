@@ -150,7 +150,7 @@ public class NxGridRenderTests : BunitContext
     }
 
     [Test]
-    public void ComboBox_WithDisplayGetter_ShowsDisplayInsteadOfComboLabel()
+    public void ComboBox_WithDisplayGetter_ShowsDisplayInsteadOfComboLookup()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -159,14 +159,14 @@ public class NxGridRenderTests : BunitContext
             .AddChildContent<NxGridColumn<Row>>(col => col
                 .Add(x => x.Display, r => "Dept: " + r.Department)
                 .Add(x => x.Title, "Department")
-                .Add(x => x.ComboBoxItems, (Row _) => NxGridComboItem.From(["Engineering", "Finance", "HR"]))));
+                .Add(x => x.ComboBoxSource, NxGridComboSource.FixedList(["Engineering", "Finance", "HR"]))));
 
         var cell = cut.Find(".nx-grid-cell-text");
         Assert.That(cell.TextContent.Trim(), Is.EqualTo("Dept: Engineering"));
     }
 
     [Test]
-    public void ComboBox_WithPropertyOnly_ShowsRawPropertyValue()
+    public void ComboBox_WithFixedList_ShowsTextFromLookup()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
@@ -178,8 +178,7 @@ public class NxGridRenderTests : BunitContext
                 b.OpenComponent<NxGridColumn<Row>>(0);
                 b.AddAttribute(1, "Property", prop);
                 b.AddAttribute(2, "Title", "Department");
-                b.AddAttribute(3, "ComboBoxItems", (Func<Row, IEnumerable<NxGridComboItem>>)(_ =>
-                    NxGridComboItem.From(["Engineering", "Finance", "HR"])));
+                b.AddAttribute(3, "ComboBoxSource", NxGridComboSource.FixedList(["Engineering", "Finance", "HR"]));
                 b.CloseComponent();
             }));
 

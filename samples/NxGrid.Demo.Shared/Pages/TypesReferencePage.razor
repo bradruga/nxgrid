@@ -137,25 +137,34 @@
 
 <div class="doc-section">
     <h2>NxGridComboItem</h2>
-    <p class="doc-note">Used with <code>ComboBoxItems</code> on <code>NxGridColumn</code>. <code>Value</code> is written to the <code>Property</code> on commit; <code>Display</code> is shown in the dropdown list and in the non-editing cell.</p>
+    <p class="doc-note">A single dropdown item. <code>Id</code> is committed to <code>Property</code> on selection; <code>Text</code> is shown in the dropdown and (for fixed-list columns) in the non-editing cell automatically. Build a source with <code>NxGridComboSource.FixedList</code> or <code>NxGridComboSource.VariableList</code>.</p>
     <table class="doc-table">
         <thead><tr><th>Member</th><th>Notes</th></tr></thead>
         <tbody>
             <tr>
-                <td>Value</td>
+                <td>Id</td>
                 <td><code>string?</code> — Written to the <code>Property</code> setter on selection.</td>
             </tr>
             <tr>
-                <td>Display</td>
-                <td><code>string?</code> — Shown in the dropdown list and in the non-editing cell when the stored value matches.</td>
+                <td>Text</td>
+                <td><code>string?</code> — Shown in the dropdown list and in the non-editing cell.</td>
             </tr>
         </tbody>
     </table>
-    <pre class="doc-code" style="margin-top:12px">// Project any typed collection — no wrapper objects needed.
-NxGridComboItem.From(source, value, display)
+    <pre class="doc-code" style="margin-top:12px">// Fixed list — same options for every row; Id→Text lookup is automatic.
+NxGridComboSource.FixedList(source, id, text)
 
-// String list shorthand — Value and Display are set to the same string.
-NxGridComboItem.From(new[] { "Engineering", "Finance", "HR" })</pre>
+// Fixed list — when id and text are the same value.
+NxGridComboSource.FixedList(source, id)
+
+// String params — no brackets needed when Id and Text are identical.
+NxGridComboSource.FixedList("Engineering", "Finance", "HR")
+
+// Variable list — options depend on the row; type the lambda parameter for inference.
+NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id, text)
+
+// Variable list — when id and text are the same value.
+NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id)</pre>
 </div>
 
 <div class="doc-section">

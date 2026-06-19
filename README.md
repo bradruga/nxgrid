@@ -96,12 +96,11 @@ Set `Editable="true"` and handle `OnUpdate` to make columns editable. The user t
 <NxGrid T="Employee" Data="@employees" Editable="true" OnUpdate="@HandleUpdate">
     <NxGridColumn Property="@(x => x.Name)" />
     <NxGridColumn Property="@(x => x.Department)"
-                  ComboBoxItems="@(_ => NxGridComboItem.From(departments))" />
+                  ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Marketing", "Finance", "HR"))" />
 </NxGrid>
 
 @code {
     List<Employee> employees = [ /* ... */ ];
-    List<string> departments = ["Engineering", "Marketing", "Finance", "HR"];
 
     async Task HandleUpdate(NxGridUpdateArgs<Employee> args)
     {

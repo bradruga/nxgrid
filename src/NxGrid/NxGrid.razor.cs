@@ -840,14 +840,14 @@ public partial class NxGrid<T>
 
     private void LoadAllComboItems()
     {
-        comboAllItems = visibleColumns[editCol].ComboBoxItems?.Invoke(filteredData[editRow]).ToList() ?? [];
+        comboAllItems = visibleColumns[editCol].ComboBoxSource?.GetItems(filteredData[editRow]!) ?? [];
     }
 
     private void RefreshComboFilteredOptions(bool showAll = false)
     {
         comboFilteredOptions = showAll || string.IsNullOrEmpty(editValue)
             ? comboAllItems.ToList()
-            : comboAllItems.Where(i => i.Display != null && i.Display.Contains(editValue, StringComparison.OrdinalIgnoreCase)).ToList();
+            : comboAllItems.Where(i => i.Text != null && i.Text.Contains(editValue, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     private async Task PositionComboDropdown()

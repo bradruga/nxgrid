@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `NxGridComboItem.Value` renamed to `Id`; `NxGridComboItem.Display` renamed to `Text`.
+- **Breaking:** `NxGridColumn.ComboBoxItems` renamed to `ComboBoxSource` and its type changed from `Func<T, IEnumerable<NxGridComboItem>>?` to `NxGridComboSource?`. Replace `@(_ => NxGridComboItem.From(…))` with `@(NxGridComboSource.FixedList(…))` and per-row lambdas with `@(NxGridComboSource.VariableList((Row r) => …, id, text))`.
+
+### Added
+
+- `NxGridComboSource.FixedList(source, id, text)` — builds a fixed combo source with an Id→Text lookup dictionary. Fixed-list columns automatically show the looked-up `Text` in non-editing cells; no separate `Display` parameter is needed.
+- `NxGridComboSource.FixedList(source, id)` — shorthand when `Id` and `Text` are the same value.
+- `NxGridComboSource.FixedList("a", "b", "c")` — params overload; pass strings directly without a collection literal.
+- `NxGridComboSource.VariableList((Row r) => items, id, text)` — per-row combo source; type the lambda parameter so C# can infer the row type. Non-editing cells show the raw stored property value; set `Display` on the column for a formatted view.
+- `NxGridComboSource.VariableList((Row r) => items, id)` — shorthand when `Id` and `Text` are the same value.
+- `NxGridComboSource` — non-generic abstract base class assigned to `ComboBoxSource`.
+- `NxGridFixedComboSource` — returned by `NxGridComboSource.FixedList`; backed by an O(1) Id→Text lookup dictionary. Duplicate Id values in the source are silently deduplicated (first occurrence wins).
+- `NxGridVariableComboSource<T>` — returned by `NxGridComboSource.VariableList`; resolves items fresh per row on each dropdown open.
+
 ## [0.1.8] - 2026-06-18
 
 ### Fixed
@@ -189,7 +205,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Editing
 - Inline cell editing with text input; F2, double-click, or any printable key begins editing
-- Combo-box dropdowns with live filtering and keyboard navigation via `ComboBoxItems` (`Func<T, IEnumerable<NxGridComboItem>>`) and optional `ComboBoxItemTemplate`
+- Combo-box dropdowns with live filtering and keyboard navigation via `ComboBoxSource` (`Func<T, IEnumerable<NxGridComboItem>>`) and optional `ComboBoxItemTemplate`
 - Date picker input for date columns via `DatePicker` and `DateFormat` parameters
 - Multi-line text editing via `MultiLine` parameter; Shift+Enter inserts a newline, Enter commits; disables row virtualization so rows grow to fit content
 - `MathExpression` parameter: arithmetic expressions (`100 + 50 * 2`, `price / 1.21`) are evaluated on commit for numeric columns

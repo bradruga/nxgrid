@@ -45,7 +45,7 @@ Auto-columns are a starting point. Switch to explicit `<NxGridColumn>` declarati
 
 - Control over width, `MinWidth`, or `MaxWidth`
 - Custom titles that differ from the property name
-- Editing (`Editable`, `ComboBoxItems`, `OnUpdate`)
+- Editing (`Editable`, `ComboBoxSource`, `OnUpdate`)
 - Custom cell templates (`Template`, `CheckBox`)
 - Frozen or hidden columns
 - `Display` for formatted values (e.g. currency, dates)
@@ -242,12 +242,12 @@ When `Nullable = true` on a column and the user deletes the cell, `NewValue` is 
 
 ### Combo-box columns
 
-For columns with `ComboBoxItems`, the committed value is always one of the values returned by the items function (or whatever the user typed if they did not select from the list).
+For columns with `ComboBoxSource`, the committed value is always one of the values returned by the items function (or whatever the user typed if they did not select from the list).
 
 ```razor
 <NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate">
     <NxGridColumn Property="@(x => x.Department)"
-        ComboBoxItems="@(() => NxGridComboItem.From(departments))" />
+        ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing"))" />
 </NxGrid>
 ```
 
@@ -374,7 +374,7 @@ A column with a `Template` can also be editable (`Editable="true"` on the column
 
 ```razor
 <NxGridColumn Property="@(x => x.Department)"
-    ComboBoxItems="@(() => NxGridComboItem.From(departments))">
+    ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing"))">
     <Template Context="person">
         <span class="dept-chip">@person.Department</span>
     </Template>
@@ -714,9 +714,9 @@ This means multi-line grids are not virtualized — all rows are in the DOM at o
 </NxGrid>
 ```
 
-### Interaction with ComboBoxItems
+### Interaction with ComboBoxSource
 
-`MultiLine` is silently ignored when `ComboBoxItems` is also set on the same column. Combo-box columns are always single-line.
+`MultiLine` is silently ignored when `ComboBoxSource` is also set on the same column. Combo-box columns are always single-line.
 
 ---
 

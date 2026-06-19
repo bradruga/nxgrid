@@ -92,7 +92,7 @@ This mirrors the `Data` / `filteredData` split for rows.
 
 ### Column Configuration
 
-`NxGridColumn<T>` is a non-visual component that self-registers with the parent via `Parent?.AddColumn(this)` in `OnInitialized()`. Key properties: `Getter`/`ValueGetter` for display/sort, `Setter` for editing, `SortState` (0/1/2), `FilterState` (included values list), `ComboBoxItems` for dropdowns.
+`NxGridColumn<T>` is a non-visual component that self-registers with the parent via `Parent?.AddColumn(this)` in `OnInitialized()`. Key properties: `Getter`/`ValueGetter` for display/sort, `Setter` for editing, `SortState` (0/1/2), `FilterState` (included values list), `ComboBoxSource` for dropdowns.
 
 ### JavaScript Interop
 

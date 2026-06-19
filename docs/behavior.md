@@ -308,7 +308,7 @@ The computation runs during each Blazor render triggered by `StateHasChanged`. B
 
 ## Combo box
 
-Combo box editing applies to columns that have `ComboBoxItems` set. The behavior differs from plain text editing:
+Combo box editing applies to columns that have `ComboBoxSource` set. The behavior differs from plain text editing:
 
 **Opening the dropdown:**
 
@@ -322,7 +322,7 @@ Combo box editing applies to columns that have `ComboBoxItems` set. The behavior
 
 **Filtering:** options are filtered case-insensitively by the current `editValue`. When the combo button is used to open the dropdown, all options are shown regardless of the current edit value. "No matches" is displayed when the filter returns an empty list.
 
-`ComboBoxItems` is called fresh on each open, so the list can be dynamic.
+`ComboBoxSource` is called fresh on each open, so the list can be dynamic.
 
 **Keyboard while dropdown is open:**
 

@@ -85,7 +85,7 @@ public static class DemoCodeSamples
     <NxGridColumn Property="@(x => x.Title)"  Title="Title" />
     <NxGridColumn Property="@(x => x.Notes)"  Title="Notes"  MultiLine="true" />
     <NxGridColumn Property="@(x => x.Status)" Title="Status"
-                  ComboBoxItems="@(_ => NxGridComboItem.From(["Open", "In Progress", "Done", "Blocked"]))" />
+                  ComboBoxSource="@(NxGridComboSource.FixedList("Open", "In Progress", "Done", "Blocked"))" />
 </NxGrid>
 """;
 
@@ -107,7 +107,7 @@ public static class DemoCodeSamples
     <NxGridColumn Property="@(x => x.Id)"  Editable="false" />
     <NxGridColumn Property="@(x => x.Age)" Alignment="NxGridColumnAlignment.Right" />
     <NxGridColumn Property="@(x => x.Department)"
-                  ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
+                  ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing"))" />
 </NxGrid>
 
 @code {
@@ -130,7 +130,7 @@ public static class DemoCodeSamples
 // OnUpdate fires once with all affected rows — same shape as a paste.
 <NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Editable="true">
     <NxGridColumn Property="@(x => x.Department)"
-                  ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing"]))" />
+                  ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing"))" />
     ...
 </NxGrid>
 
@@ -463,17 +463,17 @@ void OnSignalRRowReceived(Person newRow)
 """;
 
     public static readonly string ComboBoxStringList = """
-// The simplest case — wrap a plain string array.
-// NxGridComboItem.From(IEnumerable<string?>) sets Value and Display to the same string.
+// The simplest case — pass strings directly as params (no brackets needed).
+// Id and Text are set to the same string value.
 <NxGridColumn Property="@(x => x.Department)"
-              ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+              ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
 """;
 
     public static readonly string ComboBoxObjectProjection = """
-// NxGridComboItem.From projects any typed collection — no wrapper objects needed.
-// Value is what gets stored in the property and shown in the cell.
+// NxGridComboSource.FixedList projects any typed collection — no wrapper objects needed.
+// Omit the text selector when id and text are the same value.
 <NxGridColumn Property="@(x => x.TaskName)" Title="Task"
-              ComboBoxItems="@(_ => NxGridComboItem.From(Tasks, t => t.Name, t => t.Name))" />
+              ComboBoxSource="@(NxGridComboSource.FixedList(Tasks, t => t.Name))" />
 
 @code {
     record TaskOption(string Code, string Name);
@@ -491,14 +491,12 @@ void OnSignalRRowReceived(Person newRow)
 
     public static readonly string ComboBoxKeyDisplay = """
 // Store a foreign-key ID in the row; show the human-readable name in the cell.
-// ColorName is kept in sync with ColorId in the OnUpdate handler.
-// NxGridComboItem.Value is the ID (committed to ColorId on selection);
-// NxGridComboItem.Display is the name (shown in the dropdown).
-// NxGridColumn.Display reads ColorName to render the cell without a lookup per row.
+// FixedList builds a lookup dictionary — no Display parameter or denormalized column needed.
+// NxGridComboItem.Id is the value committed to ColorId on selection;
+// NxGridComboItem.Text is the name resolved automatically for cell display.
 <NxGridColumn Property="@(x => x.ColorId)"
               Title="Color"
-              Display="@(x => x.ColorName)"
-              ComboBoxItems="@(_ => NxGridComboItem.From(ColorOptions, c => c.Id.ToString(), c => c.Name))" />
+              ComboBoxSource="@(NxGridComboSource.FixedList(ColorOptions, c => c.Id, c => c.Name))" />
 
 @code {
     record ColorOption(int Id, string Name);
@@ -515,21 +513,16 @@ void OnSignalRRowReceived(Person newRow)
 
     class ProductRow
     {
-        public int    Id        { get; set; }
-        public string Product   { get; set; } = "";
-        public int    ColorId   { get; set; }
-        public string ColorName { get; set; } = "";
+        public int    Id      { get; set; }
+        public string Product { get; set; } = "";
+        public int    ColorId { get; set; }
     }
 
     async Task HandleColorUpdate(NxGridUpdateArgs<ProductRow> args)
     {
         foreach (var rowArgs in args.Rows)
             foreach (var change in rowArgs.Changes)
-            {
                 change.Apply(rowArgs.Row);
-                // keep ColorName in sync after ColorId is updated
-                rowArgs.Row.ColorName = ColorOptions.FirstOrDefault(c => c.Id == rowArgs.Row.ColorId)?.Name ?? "";
-            }
         await Task.CompletedTask;
     }
 }
@@ -537,21 +530,22 @@ void OnSignalRRowReceived(Person newRow)
 
     public static readonly string ComboBoxItemTemplateCode = """
 // ComboBoxItemTemplate renders each dropdown row with custom markup.
-// The item's Value is still committed on selection — template is display-only.
+// The item's Id is still committed on selection — template is display-only.
 <NxGridColumn Property="@(x => x.TaskName)" Title="Task"
-              ComboBoxItems="@(_ => NxGridComboItem.From(Tasks, t => t.Name, t => t.Name))">
+              ComboBoxSource="@(NxGridComboSource.FixedList(Tasks, t => t.Code, t => t.Name))">
     <ComboBoxItemTemplate Context="item">
-        <span class="demo-combo-name">@item.Display</span>
+        <span class="demo-combo-code">@item.Id</span>
+        <span class="demo-combo-name">@item.Text</span>
     </ComboBoxItemTemplate>
 </NxGridColumn>
 """;
 
     public static readonly string ComboBoxPerRow = """
-// ComboBoxItems receives the row — return a different list based on any property.
+// VariableList receives the row — return a different list based on any property.
+// Type the lambda parameter explicitly so C# can infer the row type.
 // Called fresh on each open; preload data into a dictionary for instant lookup.
 <NxGridColumn Property="@(x => x.Skill)"
-              ComboBoxItems="@(row => SkillsByTeam[row.Team]
-                                       .Select(s => new NxGridComboItem { Value = s, Display = s }))" />
+              ComboBoxSource="@(NxGridComboSource.VariableList((ScheduleRow r) => SkillsByTeam.GetValueOrDefault(r.Team, []), s => s))" />
 
 @code {
     static readonly Dictionary<string, string[]> SkillsByTeam = new()
@@ -1142,7 +1136,7 @@ private async Task OnPrintClick()
     <NxGridColumn Property="@(x => x.Age)"       Width="80"
                   Alignment="NxGridColumnAlignment.Right" />
     <NxGridColumn Property="@(x => x.Department)"
-                  ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+                  ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
 </NxGrid>
 
 @code {

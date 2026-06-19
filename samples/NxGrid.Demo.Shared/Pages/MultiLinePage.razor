@@ -20,7 +20,7 @@
         <kbd class="doc-kbd">Escape</kbd> cancels.
         <kbd class="doc-kbd">Ctrl+Enter</kbd> fills the selection (same as single-line columns).
         The Status column uses a combo-box — <code>MultiLine</code> is silently ignored when
-        <code>ComboBoxItems</code> is also set.
+        <code>ComboBoxSource</code> is also set.
     </p>
     <NxGrid T="TaskItem" Data="@tasks" OnUpdate="@HandleUpdate" Editable="true"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
@@ -28,7 +28,7 @@
         <NxGridColumn Property="@(x => x.Title)"  Title="Title"  Width="200" />
         <NxGridColumn Property="@(x => x.Notes)"  Title="Notes"  MultiLine="true" />
         <NxGridColumn Property="@(x => x.Status)" Title="Status" Width="130"
-                      ComboBoxItems="@(_ => NxGridComboItem.From(["Open", "In Progress", "Done", "Blocked"]))" />
+                      ComboBoxSource="@(NxGridComboSource.FixedList("Open", "In Progress", "Done", "Blocked"))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@editCode</pre>
 </div>
@@ -74,7 +74,7 @@
                 <td>
                     When true, the inline editor is a <code>&lt;textarea&gt;</code> that auto-grows up to
                     5× <code>RowHeight</code>. Line breaks in the cell value are preserved and displayed with
-                    <code>white-space: pre-wrap</code> in view mode. Ignored when <code>ComboBoxItems</code> is set.
+                    <code>white-space: pre-wrap</code> in view mode. Ignored when <code>ComboBoxSource</code> is set.
                     Disables virtualization for the grid.
                 </td>
             </tr>

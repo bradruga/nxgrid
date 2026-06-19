@@ -405,7 +405,7 @@ public partial class NxGrid<T>
     private void SelectComboOption(int index)
     {
         if (index < 0 || index >= comboFilteredOptions.Count) return;
-        editValue = comboFilteredOptions[index].Value ?? "";
+        editValue = comboFilteredOptions[index].Id ?? "";
         isComboOpen = false;
         comboHighlightIndex = -1;
     }
@@ -418,8 +418,8 @@ public partial class NxGrid<T>
             return;
         }
         var exactIndex = comboFilteredOptions.FindIndex(
-            o => string.Equals(o.Display, editValue, StringComparison.OrdinalIgnoreCase)
-              || string.Equals(o.Value,   editValue, StringComparison.OrdinalIgnoreCase));
+            o => string.Equals(o.Text, editValue, StringComparison.OrdinalIgnoreCase)
+              || string.Equals(o.Id,   editValue, StringComparison.OrdinalIgnoreCase));
         if (exactIndex >= 0)
             SelectComboOption(exactIndex);
     }

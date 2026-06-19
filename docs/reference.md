@@ -224,9 +224,9 @@ Columns self-register with their parent grid on initialization and deregister on
 |---|---|---|
 | `Nullable` | `bool` | When `true`, Delete clears the cell to `null` rather than `0`/`""`. |
 | `MathExpression` | `bool` | When `true` and the column is editable, the raw input string is evaluated as an arithmetic expression before being passed to `OnUpdate`. Supports `+`, `-`, `*`, `/`, parentheses, unary negation, and decimal literals. Whitespace is ignored. If evaluation fails (syntax error, division by zero, non-finite result), the raw string is passed unchanged — identical behavior to a column without `MathExpression`. Applies to typed commits, Ctrl+Enter fill, and paste (after `TransformPastedValue` runs). |
-| `MultiLine` | `bool` | When `true`, the cell renders with `white-space: pre-wrap` so newlines and whitespace sequences are preserved. The inline editor is a `<textarea>` that grows with the content. **Shift+Enter** inserts a newline; Enter commits; Tab commits and moves right; Ctrl/⌘+Enter fills the selection. Silently ignored when `ComboBoxItems` is also set on the column. When any visible column has `MultiLine = true`, the grid disables row virtualization and uses `min-height` instead of a fixed row height so rows grow and shrink to fit their content. In this mode, all columns in the grid — including non-`MultiLine` ones — use a single-line `<textarea>` editor (fixed height, no wrapping) rather than a plain `<input>`, so text stays top-aligned regardless of row height. |
-| `ComboBoxItems` | `Func<T, IEnumerable<NxGridComboItem>>?` | Turns the inline editor into a combo box. The function receives the row object so the list can vary per row; called fresh on each open. The selected item's `Value` is committed via `Property`; `Display` is shown in the dropdown and in the non-editing cell. Use `NxGridComboItem.From(source, value, display)` to project any typed collection, or `NxGridComboItem.From(stringList)` when value and display are the same. |
-| `ComboBoxItemTemplate` | `RenderFragment<NxGridComboItem>?` | Custom markup for each dropdown item. When set, replaces the plain `Display` string in the dropdown list. |
+| `MultiLine` | `bool` | When `true`, the cell renders with `white-space: pre-wrap` so newlines and whitespace sequences are preserved. The inline editor is a `<textarea>` that grows with the content. **Shift+Enter** inserts a newline; Enter commits; Tab commits and moves right; Ctrl/⌘+Enter fills the selection. Silently ignored when `ComboBoxSource` is also set on the column. When any visible column has `MultiLine = true`, the grid disables row virtualization and uses `min-height` instead of a fixed row height so rows grow and shrink to fit their content. In this mode, all columns in the grid — including non-`MultiLine` ones — use a single-line `<textarea>` editor (fixed height, no wrapping) rather than a plain `<input>`, so text stays top-aligned regardless of row height. |
+| `ComboBoxSource` | `NxGridComboSource?` | Turns the inline editor into a combo box. Use `NxGridComboSource.FixedList(source, id, text)` for a list that is the same every row — the column automatically resolves `Id`→`Text` for cell display, so no separate `Display` parameter is needed. Use `NxGridComboSource.FixedList(stringList)` when id and text are the same. Use `NxGridComboSource.VariableList((Row r) => …, id, text)` when the list depends on the row; type the lambda parameter so C# can infer the row type. The selected item's `Id` is committed via `Property`. |
+| `ComboBoxItemTemplate` | `RenderFragment<NxGridComboItem>?` | Custom markup for each dropdown item. When set, replaces the plain `Text` string in the dropdown list. |
 | `DatePicker` | `bool` | `false` | When `true` and the column is editable, the inline editor renders a free-text input alongside a calendar button that opens a month-view popup. The user can type a date directly or click a day to commit. `Property` should resolve to `DateTime` or `DateTime?`. |
 | `DateFormat` | `string?` | — | Format string applied to all `DateTime`/`DateTime?` columns: governs cell display, editor pre-population on F2/double-click, and the first parse attempt on commit before falling back to `DateTime.TryParse`. When `DatePicker="true"` and `DateFormat` is not set, the thread's current culture short-date pattern is used as a display fallback; non-DatePicker columns with no `DateFormat` use `DateTime.ToString()`. |
 
@@ -407,7 +407,7 @@ When any column in the grid has `MultiLine = true`, every editable column in tha
 | Ctrl/⌘+Enter | Fill the selection with the current value |
 | Escape | Cancel and restore the original value |
 
-Multi-line is silently ignored when `ComboBoxItems` is also set on the same column (combo boxes are always single-line).
+Multi-line is silently ignored when `ComboBoxSource` is also set on the same column (combo boxes are always single-line).
 
 **Row height:** when any visible column has `MultiLine = true`, the grid switches from `<Virtualize>` (uniform row height) to `@foreach` rendering. Rows expand and contract as their tallest multi-line cell grows or shrinks. The `RowHeight` parameter still sets the *minimum* row height. This change applies to the entire grid, so single-line cells in the same grid also get top-aligned text.
 
@@ -425,7 +425,7 @@ async Task HandleUpdate(NxGridUpdateArgs<Person> args)
 
 **Fill selection with Ctrl+Enter.** While editing a cell, press Ctrl+Enter to write the current value to every editable cell in the selection — across all rows and columns in the range. Non-editable columns and cells blocked by `CellEditableGetter` are silently skipped. A single `OnUpdate` call is fired with all affected rows, identical to paste behavior.
 
-Combo-box editing activates when `ComboBoxItems` is set. The dropdown filters as the user types (against `Display`) and can be navigated with Arrow keys. The non-editing cell shows the `Display` of the item whose `Value` matches the stored property value; if no match is found the raw stored value is shown as a fallback.
+Combo-box editing activates when `ComboBoxSource` is set. The dropdown filters as the user types (against `Text`) and can be navigated with Arrow keys. For fixed-list columns (`NxGridComboSource.FixedList`), the non-editing cell shows the `Text` of the item whose `Id` matches the stored property value (looked up from the built-in dictionary); if no match is found the raw stored value is shown as a fallback. Variable-list columns show the raw stored property value in non-editing cells; set `Display` on the column for a formatted view.
 
 ---
 
@@ -650,21 +650,46 @@ public sealed class NxGridCellChange<T>
 
 ## `NxGridComboItem`
 
+A single dropdown item.
+
 ```csharp
 public sealed class NxGridComboItem
 {
-    public string? Value   { get; init; }   // written to Property on selection
-    public string? Display { get; init; }   // shown in the dropdown and in the non-editing cell
-
-    // Project any typed collection into combo items — Value and Display stay as strings internally
-    public static IEnumerable<NxGridComboItem> From<TItem>(
-        IEnumerable<TItem> source,
-        Func<TItem, string?> value,
-        Func<TItem, string?> display);
-
-    // Convenience overload for string lists where value and display are the same
-    public static IEnumerable<NxGridComboItem> From(IEnumerable<string?> source);
+    public string? Id   { get; init; }   // written to Property on selection
+    public string? Text { get; init; }   // shown in the dropdown list
 }
+```
+
+## `NxGridComboSource`
+
+Abstract base class for combo-box item sources. Obtain via the static factory methods below and assign the result to `NxGridColumn.ComboBoxSource`. Fixed-list columns automatically resolve `Id`→`Text` for non-editing cell display from the built-in lookup dictionary; variable-list columns show the raw property value (use `Display` for a formatted view).
+
+```csharp
+// Fixed list — same items for every row; O(1) Id→Text cell display.
+public static NxGridFixedComboSource FixedList<TItem, TId>(
+    IEnumerable<TItem> source,
+    Func<TItem, TId> id,
+    Func<TItem, string?> text);
+
+// Fixed list — when Id and Text are the same value.
+public static NxGridFixedComboSource FixedList<TItem, TId>(
+    IEnumerable<TItem> source,
+    Func<TItem, TId> id);
+
+// String params — no collection literal needed when Id and Text are identical.
+public static NxGridFixedComboSource FixedList(params string?[] source);
+
+// Variable list — list differs per row; called fresh on each dropdown open.
+// Type the lambda parameter so C# can infer T: (MyRow r) => …
+public static NxGridVariableComboSource<T> VariableList<T, TItem, TId>(
+    Func<T, IEnumerable<TItem>> rowItems,
+    Func<TItem, TId> id,
+    Func<TItem, string?> text);
+
+// Variable list — when Id and Text are the same value.
+public static NxGridVariableComboSource<T> VariableList<T, TItem, TId>(
+    Func<T, IEnumerable<TItem>> rowItems,
+    Func<TItem, TId> id);
 ```
 
 ---

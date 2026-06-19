@@ -236,7 +236,7 @@
     /// is a <c>&lt;textarea&gt;</c> that grows with content. Shift+Enter inserts a newline;
     /// Enter commits. When any visible column has <c>MultiLine = true</c>, row virtualization
     /// is disabled for the entire grid and all editable columns use a textarea editor.
-    /// Silently ignored when <see cref="ComboBoxItems"/> is also set.
+    /// Silently ignored when <see cref="ComboBoxSource"/> is also set.
     /// </summary>
     [Parameter] public bool MultiLine { get; set; }
 
@@ -251,21 +251,22 @@
     [Parameter] public bool CheckBox { get; set; }
 
     /// <summary>
-    /// Turns the inline editor into a combo-box dropdown. The function receives the row object
-    /// so the list can vary per row. It is called fresh each time the dropdown opens; results
-    /// are not cached. The selected item's <see cref="NxGridComboItem.Value"/> is committed via
-    /// <see cref="Property"/>; <see cref="NxGridComboItem.Display"/> is shown in the dropdown
-    /// and in the non-editing cell. Use <see cref="NxGridComboItem.From{TItem}"/> to project
-    /// any typed collection.
+    /// Turns the inline editor into a combo-box dropdown.
+    /// Use <see cref="NxGridComboSource"/>.<c>FixedList</c> for a list that is the same for every row —
+    /// the selected item's <see cref="NxGridComboItem.Id"/> is committed via <see cref="Property"/>
+    /// and the <see cref="NxGridComboItem.Text"/> is automatically shown in the non-editing cell
+    /// without a separate <c>Display</c> parameter.
+    /// Use <see cref="NxGridComboSource"/>.<c>VariableList</c> when the list depends on the row;
+    /// the source is called fresh each time the dropdown opens.
     /// </summary>
     /// <example>
-    /// <code>ComboBoxItems="@(_ => NxGridComboItem.From(statuses, s => s.Code, s => s.Label))"</code>
+    /// <code>ComboBoxSource="@(NxGridComboSource.FixedList(statuses, s => s.Code, s => s.Label))"</code>
     /// </example>
-    [Parameter] public Func<T, IEnumerable<NxGridComboItem>>? ComboBoxItems { get; set; }
+    [Parameter] public NxGridComboSource? ComboBoxSource { get; set; }
 
     /// <summary>
     /// Custom markup for each combo-box dropdown item. When set, replaces the plain
-    /// <see cref="NxGridComboItem.Display"/> string in the dropdown list.
+    /// <see cref="NxGridComboItem.Text"/> string in the dropdown list.
     /// </summary>
     [Parameter] public RenderFragment<NxGridComboItem>? ComboBoxItemTemplate { get; set; }
 
@@ -341,25 +342,25 @@
     /// <summary><c>true</c> when this is the rightmost frozen column (receives the sticky-shadow visual separator).</summary>
     public bool IsLastFrozen { get; set; }
 
-    /// <summary><c>true</c> when <see cref="ComboBoxItems"/> is set.</summary>
-    public bool IsComboColumn => ComboBoxItems != null;
+    /// <summary><c>true</c> when <see cref="ComboBoxSource"/> is set.</summary>
+    public bool IsComboColumn => ComboBoxSource != null;
 
     /// <summary><c>true</c> when <see cref="CheckBox"/> is set.</summary>
     public bool IsCheckboxColumn => CheckBox;
 
-    /// <summary><c>true</c> when <see cref="MultiLine"/> is set and <see cref="ComboBoxItems"/> is not (combo overrides multi-line).</summary>
+    /// <summary><c>true</c> when <see cref="MultiLine"/> is set and <see cref="ComboBoxSource"/> is not (combo overrides multi-line).</summary>
     public bool IsMultiLineColumn => MultiLine && !IsComboColumn;
 
     /// <summary><c>true</c> when <see cref="DatePicker"/> is set.</summary>
     public bool IsDatePickerColumn => DatePicker;
 
     /// <summary>
-    /// The effective display getter: <see cref="Display"/> takes priority, then a
-    /// <see cref="System.ComponentModel.DataAnnotations.DisplayAttribute"/>-aware enum wrapper
-    /// (when the property type is an enum), then the compiled <see cref="Property"/> getter.
+    /// The effective display getter: <see cref="Display"/> takes priority, then the combo-source
+    /// lookup (when <see cref="ComboBoxSource"/> is set and <see cref="Display"/> is not), then
+    /// an enum wrapper, date formatter, or the compiled <see cref="Property"/> getter.
     /// Used for rendering, filter labels, column fit measurement, and clipboard copy fallback.
     /// </summary>
-    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (enumDisplayGetter ?? dateFormatGetter ?? compiledPropertyGetter);
+    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (comboDisplayGetter ?? enumDisplayGetter ?? dateFormatGetter ?? compiledPropertyGetter);
 
     /// <summary>
     /// The effective copy getter: <see cref="CopyGetter"/> takes priority, then
@@ -383,6 +384,7 @@
     private Func<T, object?>? compiledPropertyGetter;
     private Func<T, object?>? enumDisplayGetter;
     private Func<T, object?>? dateFormatGetter;
+    private Func<T, object?>? comboDisplayGetter;
     private Action<T, object?>? compiledPropertySetter;
     private Type? propertyType;
     private string? displayName;
@@ -402,9 +404,23 @@
             BuildPropertyAccessors();
         }
         RebuildDateFormatGetter();
+        RebuildComboDisplayGetter();
         HeaderCellStyle = BuildHeaderCellStyle();
         CellStyle = BuildCellStyle();
         FooterCellStyle = BuildFooterCellStyle();
+    }
+
+    private void RebuildComboDisplayGetter()
+    {
+        if (ComboBoxSource is NxGridFixedComboSource fixedSource && Display == null && compiledPropertyGetter != null)
+        {
+            var valueGetter = compiledPropertyGetter;
+            comboDisplayGetter = row => fixedSource.LookupText(row!, valueGetter(row)?.ToString());
+        }
+        else
+        {
+            comboDisplayGetter = null;
+        }
     }
 
     private void RebuildDateFormatGetter()

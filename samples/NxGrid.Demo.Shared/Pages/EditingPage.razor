@@ -21,7 +21,7 @@
         <NxGridColumn Property="@(x => x.Age)"
                       Width="80" Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn Property="@(x => x.Department)"
-                      ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+                      ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@basicEditCode</pre>
 </div>
@@ -40,7 +40,7 @@
         <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
         <NxGridColumn Property="@(x => x.LastName)" Width="140" />
         <NxGridColumn Property="@(x => x.Department)"
-                      ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+                      ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@ctrlEnterFillCode</pre>
 </div>
@@ -108,9 +108,9 @@
                 <td>Fires when a user directly tries to edit a cell blocked by <code>CellEditableGetter</code>. Provides the row and column that were blocked.</td>
             </tr>
             <tr>
-                <td>ComboBoxItems</td>
-                <td>Func&lt;T, IEnumerable&lt;NxGridComboItem&gt;&gt;</td>
-                <td>Turns the inline editor into a dropdown. Receives the row so the list can vary per row; called fresh on each open. Use <code>NxGridComboItem.From(source, value, display)</code> to project any typed collection.</td>
+                <td>ComboBoxSource</td>
+                <td>NxGridComboSource?</td>
+                <td>Turns the inline editor into a dropdown. Use <code>NxGridComboSource.FixedList(source, id, text)</code> for a fixed list (Id→Text lookup is automatic). Use <code>NxGridComboSource.VariableList((Row r) =&gt; …, id, text)</code> when the list depends on the row.</td>
             </tr>
             <tr>
                 <td>Nullable</td>

@@ -4,20 +4,18 @@
 
 <h1>Combo Box</h1>
 <p class="doc-intro">
-    Set <code>ComboBoxItems</code> on a column to turn its inline editor into a dropdown.
-    The function receives the row object so the list can vary per row — called fresh on each open.
-    Use <code>NxGridComboItem.From</code> to project any typed collection. The selected item's
-    <code>Value</code> is committed to the property; <code>Display</code> is the label shown
-    in the dropdown list. The non-editing cell shows whatever the property currently holds —
-    set the column's <code>Display</code> parameter when you need the cell to show a name
-    derived from a stored ID (see <strong>Key / Display</strong> below).
+    Set <code>ComboBoxSource</code> on a column to turn its inline editor into a dropdown.
+    Use <code>NxGridComboSource.FixedList</code> when the list is the same for every row — the selected
+    item's <code>Id</code> is committed to the property and its <code>Text</code> is automatically
+    shown in the non-editing cell, with no separate <code>Display</code> parameter required.
+    Use <code>NxGridComboSource.VariableList</code> when the list depends on the row.
 </p>
 
 <div class="doc-section">
     <h2>String List</h2>
     <p class="doc-note">
-        When value and display are the same, use the <code>NxGridComboItem.From(IEnumerable&lt;string?&gt;)</code>
-        overload. Type to filter, press <kbd class="doc-kbd">↓</kbd> or click the chevron to open the full list.
+        When <code>Id</code> and <code>Text</code> are the same, pass a plain string collection.
+        Type to filter, press <kbd class="doc-kbd">↓</kbd> or click the chevron to open the full list.
     </p>
     <NxGrid T="Person" Data="@stringPeople" OnUpdate="@HandleStringUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
@@ -25,7 +23,7 @@
         <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
         <NxGridColumn Property="@(x => x.LastName)"  Width="130" />
         <NxGridColumn Property="@(x => x.Department)"
-                      ComboBoxItems="@(_ => NxGridComboItem.From(["Engineering", "Finance", "HR", "Marketing", "Sales"]))" />
+                      ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@stringListCode</pre>
 </div>
@@ -33,29 +31,28 @@
 <div class="doc-section">
     <h2>Object Projection</h2>
     <p class="doc-note">
-        <code>NxGridComboItem.From</code> projects any typed collection into combo items —
-        no wrapper objects needed. The selected item's <code>Value</code> is what gets stored
-        in the property and rendered in the cell.
+        <code>NxGridComboSource.FixedList</code> projects any typed collection.
+        Supply <code>id</code> and <code>text</code> selectors; the selected item's <code>Id</code>
+        is stored in the property and its <code>Text</code> is shown in the cell.
     </p>
     <NxGrid T="TaskRow" Data="@taskRows" OnUpdate="@HandleTaskUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"       Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Employee)" Width="140" Editable="false" />
         <NxGridColumn Property="@(x => x.TaskName)" Title="Task" Width="200"
-                      ComboBoxItems="@(_ => NxGridComboItem.From(TaskOptions, t => t.Name, t => t.Name))" />
+                      ComboBoxSource="@(NxGridComboSource.FixedList(TaskOptions, t => t.Name))" />
         <NxGridColumn Property="@(x => x.Hours)"    Width="80" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@objectProjectionCode</pre>
 </div>
 
 <div class="doc-section">
-    <h2>Key / Display (Foreign Key)</h2>
+    <h2>Key / Text (Foreign Key)</h2>
     <p class="doc-note">
-        Store a foreign-key ID in the row while showing a human-readable name in the cell.
-        Set <code>NxGridComboItem.Value</code> to the ID and <code>NxGridComboItem.Display</code>
-        to the name. Because the cell renders the raw property value, also set the
-        <code>Display</code> parameter on the column to perform the ID→name lookup for
-        non-editing cells.
+        Store a foreign-key ID in the row while showing the human-readable name in the cell.
+        Because <code>FixedList</code> builds a lookup dictionary from the source,
+        the cell automatically resolves <code>Id</code>→<code>Text</code> with no extra
+        <code>Display</code> parameter or denormalized column required.
     </p>
     <NxGrid T="ProductRow" Data="@colorRows" OnUpdate="@HandleColorUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
@@ -63,8 +60,7 @@
         <NxGridColumn Property="@(x => x.Product)" Width="160" Editable="false" />
         <NxGridColumn Property="@(x => x.ColorId)"
                       Title="Color"
-                      Display="@(x => x.ColorName)"
-                      ComboBoxItems="@(_ => NxGridComboItem.From(ColorOptions, c => c.Id.ToString(), c => c.Name))" />
+                      ComboBoxSource="@(NxGridComboSource.FixedList(ColorOptions, c => c.Id, c => c.Name))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@keyDisplayCode</pre>
 </div>
@@ -72,18 +68,18 @@
 <div class="doc-section">
     <h2>Custom Item Template</h2>
     <p class="doc-note">
-        <code>ComboBoxItemTemplate</code> replaces the plain <code>Display</code> string in
-        each dropdown row. The <code>Value</code> committed on selection is unchanged.
+        <code>ComboBoxItemTemplate</code> replaces the plain <code>Text</code> string in
+        each dropdown row. The <code>Id</code> committed on selection is unchanged.
     </p>
     <NxGrid T="TaskRow" Data="@templateRows" OnUpdate="@HandleTemplateUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)"       Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Employee)" Width="140" Editable="false" />
         <NxGridColumn Property="@(x => x.TaskName)" Title="Task" Width="220"
-                      ComboBoxItems="@(_ => NxGridComboItem.From(TaskOptions, t => t.Name, t => t.Name))">
+                      ComboBoxSource="@(NxGridComboSource.FixedList(TaskOptions, t => t.Code, t => t.Name))">
             <ComboBoxItemTemplate Context="item">
-                <span class="demo-combo-code">@item.Value</span>
-                <span class="demo-combo-name">@item.Display</span>
+                <span class="demo-combo-code">@item.Id</span>
+                <span class="demo-combo-name">@item.Text</span>
             </ComboBoxItemTemplate>
         </NxGridColumn>
         <NxGridColumn Property="@(x => x.Hours)" Width="80" Alignment="NxGridColumnAlignment.Right" />
@@ -94,17 +90,17 @@
 <div class="doc-section">
     <h2>Per-Row Options</h2>
     <p class="doc-note">
-        The function receives the row, so the list can depend on any property.
-        Here each team has its own skill set — open the dropdown on any row and the options
-        change based on that row's <strong>Team</strong>.
+        <code>NxGridComboSource.VariableList</code> receives the row, so the list can depend on any
+        property. Type the row parameter explicitly so C# can infer the row type —
+        <code>(ScheduleRow r) =&gt; …</code>. Here each team has its own skill set — open the
+        dropdown on any row and the options change based on that row's <strong>Team</strong>.
     </p>
     <NxGrid T="ScheduleRow" Data="@scheduleRows" OnUpdate="@HandleScheduleUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Employee)" Width="150" Editable="false" />
         <NxGridColumn Property="@(x => x.Team)"     Width="120" Editable="false" />
         <NxGridColumn Property="@(x => x.Skill)"    Width="180"
-                      ComboBoxItems="@(row => SkillsByTeam.GetValueOrDefault(row.Team, [])
-                                               .Select(s => new NxGridComboItem { Value = s, Display = s }))" />
+                      ComboBoxSource="@(NxGridComboSource.VariableList((ScheduleRow r) => SkillsByTeam.GetValueOrDefault(r.Team, []), s => s))" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@perRowCode</pre>
 </div>
@@ -115,20 +111,23 @@
         <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
             <tr>
-                <td>ComboBoxItems</td>
-                <td>Func&lt;T, IEnumerable&lt;NxGridComboItem&gt;&gt;?</td>
+                <td>ComboBoxSource</td>
+                <td>NxGridComboSource?</td>
                 <td>
-                    Turns the column into a combo-box editor. Receives the row object so the list can vary per row;
-                    called fresh on each open. Use <code>NxGridComboItem.From(source, value, display)</code> to
-                    project any typed collection, or <code>NxGridComboItem.From(stringList)</code> when value and
-                    display are the same. The selected item's <code>Value</code> is committed via
-                    <code>Property</code> and shown in the cell; <code>Display</code> is used only in the dropdown.
+                    Turns the column into a combo-box editor. Use
+                    <code>NxGridComboSource.FixedList(source, id, text)</code> for a fixed list —
+                    the selected item's <code>Id</code> is committed via <code>Property</code> and
+                    its <code>Text</code> is shown in the cell automatically.
+                    Use <code>FixedList(source, id)</code> when id and text are the same value, or
+                    <code>FixedList("a", "b", "c")</code> for a plain string list.
+                    Use <code>NxGridComboSource.VariableList((Row r) =&gt; …, id, text)</code> when
+                    the list depends on the row; omit <code>text</code> when it equals <code>id</code>.
                 </td>
             </tr>
             <tr>
                 <td>ComboBoxItemTemplate</td>
                 <td>RenderFragment&lt;NxGridComboItem&gt;?</td>
-                <td>Custom markup for each dropdown item. Replaces the plain <code>Display</code> string. The committed value is unchanged.</td>
+                <td>Custom markup for each dropdown item. Replaces the plain <code>Text</code> string. The committed <code>Id</code> is unchanged.</td>
             </tr>
         </tbody>
     </table>
@@ -190,12 +189,12 @@
 
     List<TaskRow> templateRows =
     [
-        new() { Id = 1, Employee = "Alice Johnson",  TaskName = "Development",       Hours = 6 },
-        new() { Id = 2, Employee = "Bob Smith",      TaskName = "Quality Assurance", Hours = 4 },
-        new() { Id = 3, Employee = "Carol Williams", TaskName = "Project Management",Hours = 3 },
-        new() { Id = 4, Employee = "David Brown",    TaskName = "Development",       Hours = 8 },
-        new() { Id = 5, Employee = "Eve Davis",      TaskName = "Documentation",     Hours = 2 },
-        new() { Id = 6, Employee = "Frank Miller",   TaskName = "Meetings",          Hours = 1 },
+        new() { Id = 1, Employee = "Alice Johnson",  TaskName = "DEV", Hours = 6 },
+        new() { Id = 2, Employee = "Bob Smith",      TaskName = "QA",  Hours = 4 },
+        new() { Id = 3, Employee = "Carol Williams", TaskName = "MGT", Hours = 3 },
+        new() { Id = 4, Employee = "David Brown",    TaskName = "DEV", Hours = 8 },
+        new() { Id = 5, Employee = "Eve Davis",      TaskName = "DOC", Hours = 2 },
+        new() { Id = 6, Employee = "Frank Miller",   TaskName = "MTG", Hours = 1 },
     ];
 
     record ColorOption(int Id, string Name);
@@ -215,29 +214,25 @@
         public int    Id        { get; set; }
         public string Product   { get; set; } = "";
         public int    ColorId   { get; set; }
-        public string ColorName { get; set; } = "";
     }
 
     List<ProductRow> colorRows =
     [
-        new() { Id = 1, Product = "Interior Matt",  ColorId = 1, ColorName = "Crimson Red"   },
-        new() { Id = 2, Product = "Exterior Gloss", ColorId = 2, ColorName = "Sky Blue"      },
-        new() { Id = 3, Product = "Primer",         ColorId = 3, ColorName = "Forest Green"  },
-        new() { Id = 4, Product = "Chalk Paint",    ColorId = 4, ColorName = "Sunset Orange" },
-        new() { Id = 5, Product = "Spray Can",      ColorId = 5, ColorName = "Violet Purple" },
-        new() { Id = 6, Product = "Enamel",         ColorId = 6, ColorName = "Golden Yellow" },
-        new() { Id = 7, Product = "Undercoat",      ColorId = 1, ColorName = "Crimson Red"   },
-        new() { Id = 8, Product = "Varnish",        ColorId = 2, ColorName = "Sky Blue"      },
+        new() { Id = 1, Product = "Interior Matt",  ColorId = 1 },
+        new() { Id = 2, Product = "Exterior Gloss", ColorId = 2 },
+        new() { Id = 3, Product = "Primer",         ColorId = 3 },
+        new() { Id = 4, Product = "Chalk Paint",    ColorId = 4 },
+        new() { Id = 5, Product = "Spray Can",      ColorId = 5 },
+        new() { Id = 6, Product = "Enamel",         ColorId = 6 },
+        new() { Id = 7, Product = "Undercoat",      ColorId = 1 },
+        new() { Id = 8, Product = "Varnish",        ColorId = 2 },
     ];
 
     async Task HandleColorUpdate(NxGridUpdateArgs<ProductRow> args)
     {
         foreach (var rowArgs in args.Rows)
             foreach (var change in rowArgs.Changes)
-            {
                 change.Apply(rowArgs.Row);
-                rowArgs.Row.ColorName = ColorOptions.FirstOrDefault(c => c.Id == rowArgs.Row.ColorId)?.Name ?? "";
-            }
         await Task.CompletedTask;
     }
 
