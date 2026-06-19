@@ -1,7 +1,16 @@
-﻿// Parse a CSS rgb/rgba string → [r, g, b], or null on failure.
+﻿// Parse a CSS rgb/rgba string → [r, g, b], or null on failure or when fully transparent (alpha 0).
 function parseRgbStr(str) {
-    const m = str && str.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
-    return m ? [+m[1], +m[2], +m[3]] : null;
+    const m = str && str.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?/);
+    if (!m) return null;
+    const alpha = m[4] !== undefined ? parseFloat(m[4]) : 1;
+    if (alpha === 0) return null;
+    return [+m[1], +m[2], +m[3]];
+}
+
+// Returns the alpha channel of a CSS rgba() string, or 1.0 for rgb() / unparseable.
+function getCssAlpha(str) {
+    const m = str && str.match(/rgba\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([\d.]+)/);
+    return m ? parseFloat(m[1]) : 1;
 }
 
 // Parse a CSS hex color (#rgb or #rrggbb) → [r, g, b], or null on failure.
@@ -377,13 +386,27 @@ class NxGrid {
                     // color — this also resolves CSS var() references to their actual rgb value.
                     if (/background-color\s*:/i.test(cell.getAttribute('style') || '')) {
                         if (nowSelected && !wasSelected) {
-                            const cellRgb = parseRgbStr(getComputedStyle(cell).backgroundColor);
-                            if (cellRgb && selRgb) {
+                            const cellBgStr = getComputedStyle(cell).backgroundColor;
+                            const cellRgb = parseRgbStr(cellBgStr);
+                            const cellAlpha = getCssAlpha(cellBgStr);
+                            if (selRgb) {
                                 cell.dataset.selSavedStyle = cell.getAttribute('style');
-                                const r = (cellRgb[0] + selRgb[0]) >> 1;
-                                const g = (cellRgb[1] + selRgb[1]) >> 1;
-                                const b = (cellRgb[2] + selRgb[2]) >> 1;
-                                cell.style.setProperty('background-color', `rgb(${r},${g},${b})`);
+                                if (!cellRgb) {
+                                    // Fully transparent — remove inline bg-color so the
+                                    // selection CSS class can show through.
+                                    cell.style.removeProperty('background-color');
+                                } else if (cellAlpha < 1) {
+                                    // Semi-transparent — add a selection overlay while preserving
+                                    // the original partially-transparent background.
+                                    cell.style.setProperty('background-image',
+                                        `linear-gradient(rgba(${selRgb[0]},${selRgb[1]},${selRgb[2]},0.5),rgba(${selRgb[0]},${selRgb[1]},${selRgb[2]},0.5))`);
+                                } else {
+                                    // Fully opaque — blend background with selection color.
+                                    const r = (cellRgb[0] + selRgb[0]) >> 1;
+                                    const g = (cellRgb[1] + selRgb[1]) >> 1;
+                                    const b = (cellRgb[2] + selRgb[2]) >> 1;
+                                    cell.style.setProperty('background-color', `rgb(${r},${g},${b})`);
+                                }
                             }
                         } else if (!nowSelected && wasSelected && cell.dataset.selSavedStyle != null) {
                             cell.setAttribute('style', cell.dataset.selSavedStyle);

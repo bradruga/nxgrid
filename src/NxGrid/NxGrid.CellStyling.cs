@@ -17,7 +17,7 @@ public partial class NxGrid<T>
     private readonly HashSet<string> _pendingCssVars = new();
 
     private static readonly Regex RgbRegex =
-        new(@"rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex BgColorRemoveRegex =
         new(@"background-color\s*:[^;]+;?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -42,20 +42,36 @@ public partial class NxGrid<T>
             var varName = varMatch.Groups[1].Value.Trim();
             if (_cssVarColors.TryGetValue(varName, out var resolvedHex))
             {
-                // Resolved value on hand — blend exactly like a hex background
+                if (!TryParseHex(resolvedHex, out _))
+                    return RemoveBgColorFromStyle(baseStyle);  // fully transparent — CSS class handles
+                if (IsPartiallyTransparent(resolvedHex))
+                {
+                    // Semi-transparent — overlay preserves the custom bg, matches the unresolved fallback
+                    if (TryParseHex(selectionColor, out var sc))
+                        return baseStyle + $"background-image:linear-gradient(rgba({sc.r},{sc.g},{sc.b},0.5),rgba({sc.r},{sc.g},{sc.b},0.5));";
+                    return baseStyle;
+                }
                 var blended = BlendHexColors(resolvedHex, selectionColor);
                 return RemoveBgColorFromStyle(baseStyle) + $"background-color:{blended};";
             }
             // Not yet resolved — queue for JS lookup after this render, use overlay as one-frame fallback
             _pendingCssVars.Add(varName);
-            if (TryParseHex(selectionColor, out var sc))
-                return baseStyle + $"background-image:linear-gradient(rgba({sc.r},{sc.g},{sc.b},0.5),rgba({sc.r},{sc.g},{sc.b},0.5));";
+            if (TryParseHex(selectionColor, out var selRgb))
+                return baseStyle + $"background-image:linear-gradient(rgba({selRgb.r},{selRgb.g},{selRgb.b},0.5),rgba({selRgb.r},{selRgb.g},{selRgb.b},0.5));";
             return baseStyle;
         }
 
         var hasBg = TryExtractHexBgColor(baseStyle, out var cellHex);
         if (!hasBg) return baseStyle;  // no custom bg — CSS class handles selection color
 
+        if (!TryParseHex(cellHex!, out _))
+            return RemoveBgColorFromStyle(baseStyle);  // fully transparent — CSS class handles
+        if (IsPartiallyTransparent(cellHex!))
+        {
+            if (TryParseHex(selectionColor, out var sc))
+                return baseStyle + $"background-image:linear-gradient(rgba({sc.r},{sc.g},{sc.b},0.5),rgba({sc.r},{sc.g},{sc.b},0.5));";
+            return baseStyle;
+        }
         var blendedHex = BlendHexColors(cellHex!, selectionColor);
         return RemoveBgColorFromStyle(baseStyle) + $"background-color:{blendedHex};";
     }
@@ -84,6 +100,14 @@ public partial class NxGrid<T>
     private static string RemoveBgColorFromStyle(string style) =>
         BgColorRemoveRegex.Replace(style, "").Trim();
 
+    private static bool IsPartiallyTransparent(string hex)
+    {
+        var m = RgbRegex.Match(hex.Trim());
+        if (!m.Success || !m.Groups[4].Success) return false;
+        return float.TryParse(m.Groups[4].Value, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var a) && a > 0f && a < 1f;
+    }
+
     private static string BlendHexColors(string hex1, string hex2)
     {
         if (!TryParseHex(hex1, out var c1) || !TryParseHex(hex2, out var c2))
@@ -97,9 +121,16 @@ public partial class NxGrid<T>
     {
         result = default;
         var trimmed = hex.Trim();
+        if (trimmed.Equals("transparent", StringComparison.OrdinalIgnoreCase))
+            return false;
         var m = RgbRegex.Match(trimmed);
         if (m.Success)
         {
+            if (m.Groups[4].Success &&
+                float.TryParse(m.Groups[4].Value, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var alpha) &&
+                alpha == 0f)
+                return false;
             result = (int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value), int.Parse(m.Groups[3].Value));
             return true;
         }

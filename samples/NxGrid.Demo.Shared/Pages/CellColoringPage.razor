@@ -39,7 +39,7 @@
         making it easy to override from a parent stylesheet or dark-mode rule.
     </p>
     <NxGrid T="OrderRow" Data="@orders" CellStyle="@OrderCellStyle"
-            style="--delivered-bg: #dcfce7;"
+            style="--delivered-bg: #dcfce7;--shipped-bg: rgba(0, 150, 255, 0.2);"
             RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell">
         <NxGridColumn Property="@(x => x.OrderId)"  Title="Order"    Width="90" />
         <NxGridColumn Property="@(x => x.Customer)" Title="Customer" Width="160" />
@@ -122,7 +122,7 @@
         return row.Status switch
         {
             "Delivered"  => new NxGridCellStyle { Style = "background-color:var(--delivered-bg);color:#166534;" },
-            "Shipped"    => new NxGridCellStyle { Style = "background-color:#dbeafe;color:#1e40af;" },
+            "Shipped"    => new NxGridCellStyle { Style = "background-color:var(--shipped-bg);color:#1e40af;" },
             "Processing" => new NxGridCellStyle { Style = "background-color:#fef9c3;color:#854d0e;" },
             "On Hold"    => new NxGridCellStyle { Style = "background-color:#ffedd5;color:#9a3412;" },
             "Cancelled"  => new NxGridCellStyle { Style = "background-color:#fee2e2;color:#991b1b;" },

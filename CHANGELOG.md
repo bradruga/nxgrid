@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Selection color blending now correctly handles cells with semi-transparent custom backgrounds (`rgba` with alpha between 0 and 1 exclusive): both the JS drag state and the Blazor render state apply a selection overlay on top of the original background rather than blending as if the color were opaque, eliminating the visible difference between the two states.
+- Cells with a fully transparent custom background (`transparent` keyword or `rgba(r,g,b,0)`) no longer show a dark blended color during JS drag selection; both paths now remove the inline `background-color` so the selection CSS class shows through.
+
 ### Changed
 
 - **Breaking:** `NxGridComboItem.Value` renamed to `Id`; `NxGridComboItem.Display` renamed to `Text`.
