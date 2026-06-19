@@ -478,6 +478,7 @@ public partial class NxGrid<T>
     private bool isComboOpen;
     private bool comboNeedsPositioning;
     private int comboHighlightIndex = -1;
+    private bool comboItemSelected;
     private List<NxGridComboItem> comboAllItems = [];
     private List<NxGridComboItem> comboFilteredOptions = [];
     private double comboDropdownTop;

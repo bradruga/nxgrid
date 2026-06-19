@@ -13,6 +13,12 @@ public abstract class NxGridComboSource
     internal abstract string? LookupText(object row, string? id);
 
     /// <summary>
+    /// Given a pasted string that may be either an Id or a display Text, returns the
+    /// canonical Id string to store. Falls back to the input unchanged when no match is found.
+    /// </summary>
+    internal abstract string? ResolveId(object row, string? textOrId);
+
+    /// <summary>
     /// Creates a fixed combo source from a typed collection — the same list for every row.
     /// A lookup dictionary is built once so Id→Text resolution is O(1). Fixed-list columns
     /// automatically show the looked-up <see cref="NxGridComboItem.Text"/> in non-editing cells;
@@ -99,17 +105,29 @@ public sealed class NxGridFixedComboSource : NxGridComboSource
 {
     internal List<NxGridComboItem> Items { get; }
     private IReadOnlyDictionary<string, string> Lookup { get; }
+    private IReadOnlyDictionary<string, string> ReverseLookup { get; }
 
     internal NxGridFixedComboSource(List<NxGridComboItem> items, Dictionary<string, string> lookup)
     {
         Items  = items;
         Lookup = lookup;
+        var rev = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in items.Where(i => i.Id != null && i.Text != null))
+            rev.TryAdd(item.Text!, item.Id!);
+        ReverseLookup = rev;
     }
 
     internal override List<NxGridComboItem> GetItems(object row) => Items;
 
     internal override string? LookupText(object row, string? id) =>
         id != null && Lookup.TryGetValue(id, out var text) ? text : id;
+
+    internal override string? ResolveId(object row, string? textOrId)
+    {
+        if (textOrId == null) return null;
+        if (Lookup.ContainsKey(textOrId)) return textOrId;
+        return ReverseLookup.TryGetValue(textOrId, out var id) ? id : textOrId;
+    }
 }
 
 /// <summary>
@@ -128,4 +146,13 @@ public sealed class NxGridVariableComboSource<T> : NxGridComboSource
     internal override List<NxGridComboItem> GetItems(object row) => _getItems((T)row);
 
     internal override string? LookupText(object row, string? id) => id;
+
+    internal override string? ResolveId(object row, string? textOrId)
+    {
+        if (textOrId == null) return null;
+        var items = GetItems(row);
+        if (items.Any(i => string.Equals(i.Id, textOrId, StringComparison.Ordinal))) return textOrId;
+        var byText = items.FirstOrDefault(i => string.Equals(i.Text, textOrId, StringComparison.OrdinalIgnoreCase));
+        return byText?.Id ?? textOrId;
+    }
 }

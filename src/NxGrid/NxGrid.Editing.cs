@@ -91,6 +91,23 @@ public partial class NxGrid<T>
         var column = visibleColumns[col];
         var rowData = filteredData[row];
 
+        // For combo columns: the user must have explicitly selected an item from the dropdown,
+        // OR the typed text must exactly match an item's display Text. Raw-typed values that
+        // coincidentally equal a stored Id (e.g. typing "2" into a foreign-key int column)
+        // are rejected to prevent bypassing the display-text contract.
+        if (column.IsComboColumn && !comboItemSelected)
+        {
+            var match = comboAllItems.FirstOrDefault(i =>
+                string.Equals(i.Text, editValue, StringComparison.OrdinalIgnoreCase));
+            if (match != null)
+                editValue = match.Id ?? editValue;
+            else
+            {
+                await CancelEdit();
+                return;
+            }
+        }
+
         if (OnUpdate.HasDelegate)
         {
             var oldValue = column.EffectiveValueGetter?.Invoke(rowData);
@@ -391,6 +408,7 @@ public partial class NxGrid<T>
         pickCurrentEndCol = -1;
         isComboOpen = false;
         comboHighlightIndex = -1;
+        comboItemSelected = false;
         comboAllItems = [];
         comboFilteredOptions = [];
         isDatePickerOpen = false;
@@ -408,6 +426,7 @@ public partial class NxGrid<T>
         editValue = comboFilteredOptions[index].Id ?? "";
         isComboOpen = false;
         comboHighlightIndex = -1;
+        comboItemSelected = true;
     }
 
     private void TrySelectComboByHighlightOrExactMatch()
@@ -482,6 +501,10 @@ public partial class NxGrid<T>
 
     private string? GetColumnDefaultString(NxGridColumn<T> column)
     {
+        // A combo column has no valid "empty" option — returning null produces a no-op
+        // for non-nullable properties, so DEL leaves the cell unchanged.
+        if (column.IsComboColumn) return null;
+
         var getter = column.EffectiveValueGetter;
         if (getter == null) return null;
 
@@ -593,9 +616,12 @@ public partial class NxGrid<T>
             list = [];
             rowChanges[rowIdx] = list;
         }
-        var oldValue = visibleColumns[colIdx].EffectiveValueGetter?.Invoke(filteredData[rowIdx]);
-        var (typedValue, applyAction) = visibleColumns[colIdx].ParseAndBuildApply(newValue);
-        list.Add(new NxGridCellChange<T> { Column = visibleColumns[colIdx], OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction });
+        var column = visibleColumns[colIdx];
+        if (column.ComboBoxSource != null && newValue != null)
+            newValue = column.ComboBoxSource.ResolveId(filteredData[rowIdx]!, newValue);
+        var oldValue = column.EffectiveValueGetter?.Invoke(filteredData[rowIdx]);
+        var (typedValue, applyAction) = column.ParseAndBuildApply(newValue);
+        list.Add(new NxGridCellChange<T> { Column = column, OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction });
     }
 
     private async Task OnCheckboxToggleCell(int row, int col)

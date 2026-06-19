@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `NxGridColumn.Visible` — programmer-controlled gate that excludes a column from rendering and from the column chooser. Unlike `Hidden`, it is not user-controllable and is never persisted; use it for authorization-based column visibility (e.g., show a column only to certain roles).
 
+### Fixed
+
+- Pasting into a Key/Text combo column (where the stored property is a foreign-key Id such as `int`) now resolves the clipboard's display text (e.g. `"Crimson Red"`) back to the matching Id before writing. Previously the display text was passed directly to the property setter, which silently failed for non-string types.
+- Dragging the fill handle on a combo column no longer increments the stored Id as if it were a numeric series. The value is now copied verbatim, consistent with how text columns behave.
+- Typing a value that coincidentally matches a stored Id (e.g. typing `"2"` into a Key/Text int combo) no longer commits that raw Id. Only explicit dropdown selection or typing the full display text is accepted; anything else cancels the edit.
+- Pressing <kbd>Delete</kbd> on a non-nullable combo column cell no longer writes `0` to the property. Because no valid empty selection exists, the key is now a no-op for non-nullable combo columns. Nullable combo columns continue to clear to `null`.
+
 ## [0.1.9] - 2026-06-19
 
 ### Fixed

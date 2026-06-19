@@ -101,7 +101,7 @@ public partial class NxGrid<T>
                 var col = visibleColumns[c];
                 if (!IsColumnEditable(col)) continue;
                 var src = GetVerticalSourceValues(col, minRow, maxRow, reverse: false);
-                var vals = ComputeFillValues(src, fillCount);
+                var vals = ComputeFillValues(src, fillCount, forceRepeat: col.IsComboColumn);
                 for (var i = 0; i < fillCount; i++)
                 {
                     var tr = maxRow + 1 + i;
@@ -118,7 +118,7 @@ public partial class NxGrid<T>
                 var col = visibleColumns[c];
                 if (!IsColumnEditable(col)) continue;
                 var src = GetVerticalSourceValues(col, minRow, maxRow, reverse: true);
-                var vals = ComputeFillValues(src, fillCount);
+                var vals = ComputeFillValues(src, fillCount, forceRepeat: col.IsComboColumn);
                 for (var i = 0; i < fillCount; i++)
                 {
                     var tr = minRow - 1 - i;
@@ -141,7 +141,7 @@ public partial class NxGrid<T>
                     var col = visibleColumns[tc];
                     if (!IsColumnEditable(col)) continue;
                     if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], col)) continue;
-                    AccumulateFillChange(rowChanges, r, tc, vals[i]);
+                    AccumulateFillChange(rowChanges, r, tc, col.IsComboColumn ? src[^1] : vals[i]);
                 }
             }
         }
@@ -158,7 +158,7 @@ public partial class NxGrid<T>
                     var col = visibleColumns[tc];
                     if (!IsColumnEditable(col)) continue;
                     if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], col)) continue;
-                    AccumulateFillChange(rowChanges, r, tc, vals[i]);
+                    AccumulateFillChange(rowChanges, r, tc, col.IsComboColumn ? src[^1] : vals[i]);
                 }
             }
         }
@@ -200,14 +200,14 @@ public partial class NxGrid<T>
         return list;
     }
 
-    private static List<object?> ComputeFillValues(List<object?> sourceValues, int count)
+    private static List<object?> ComputeFillValues(List<object?> sourceValues, int count, bool forceRepeat = false)
     {
         if (sourceValues.Count == 0)
             return Enumerable.Repeat<object?>(null, count).ToList();
 
         var result = new List<object?>(count);
 
-        if (TryExtractNumeric(sourceValues, out var numericSeries))
+        if (!forceRepeat && TryExtractNumeric(sourceValues, out var numericSeries))
         {
             var step = sourceValues.Count == 1 ? 1.0
                 : (numericSeries[^1] - numericSeries[0]) / (numericSeries.Count - 1);
@@ -219,7 +219,7 @@ public partial class NxGrid<T>
                 result.Add(isIntSeries ? (object)(long)Math.Round(val) : val);
             }
         }
-        else if (TryExtractDates(sourceValues, out var dateSeries))
+        else if (!forceRepeat && TryExtractDates(sourceValues, out var dateSeries))
         {
             var lastDate = dateSeries[^1];
             var step = dateSeries.Count == 1
