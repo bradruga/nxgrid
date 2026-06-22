@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Combo column cells no longer flash the raw key/id value while an `OnUpdate` handler is awaiting (e.g. saving to a database). The display text is now shown in the input throughout the async operation.
+
 ### Changed
 
 - `StateKey` persistence now stores state under the namespaced key `nxgrid:{StateKey}` in `localStorage` to avoid collisions with other apps sharing the same storage origin.

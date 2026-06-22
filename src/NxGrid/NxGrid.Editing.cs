@@ -91,27 +91,34 @@ public partial class NxGrid<T>
         var column = visibleColumns[col];
         var rowData = filteredData[row];
 
-        // For combo columns: the user must have explicitly selected an item from the dropdown,
-        // OR the typed text must exactly match an item's display Text. Raw-typed values that
-        // coincidentally equal a stored Id (e.g. typing "2" into a foreign-key int column)
-        // are rejected to prevent bypassing the display-text contract.
-        if (column.IsComboColumn && !comboItemSelected)
+        // For combo columns: resolve the display text in editValue to the underlying key/id
+        // that will be passed to ParseAndBuildApply. We keep editValue as the display text
+        // so the input continues to show the human-readable label throughout the await.
+        string valueToCommit = editValue;
+        if (column.IsComboColumn)
         {
-            var match = comboAllItems.FirstOrDefault(i =>
-                string.Equals(i.Text, editValue, StringComparison.OrdinalIgnoreCase));
-            if (match != null)
-                editValue = match.Id ?? editValue;
+            if (comboItemSelected)
+            {
+                valueToCommit = comboSelectedId ?? editValue;
+            }
             else
             {
-                await CancelEdit();
-                return;
+                var match = comboAllItems.FirstOrDefault(i =>
+                    string.Equals(i.Text, editValue, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                    valueToCommit = match.Id ?? editValue;
+                else
+                {
+                    await CancelEdit();
+                    return;
+                }
             }
         }
 
         if (OnUpdate.HasDelegate)
         {
             var oldValue = column.EffectiveValueGetter?.Invoke(rowData);
-            var (typedValue, applyAction) = column.ParseAndBuildApply(editValue);
+            var (typedValue, applyAction) = column.ParseAndBuildApply(valueToCommit);
             await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T>
             {
                 Rows = [new NxGridRowChange<T>
@@ -409,6 +416,7 @@ public partial class NxGrid<T>
         isComboOpen = false;
         comboHighlightIndex = -1;
         comboItemSelected = false;
+        comboSelectedId = null;
         comboAllItems = [];
         comboFilteredOptions = [];
         isDatePickerOpen = false;
@@ -423,7 +431,8 @@ public partial class NxGrid<T>
     private void SelectComboOption(int index)
     {
         if (index < 0 || index >= comboFilteredOptions.Count) return;
-        editValue = comboFilteredOptions[index].Id ?? "";
+        comboSelectedId = comboFilteredOptions[index].Id ?? "";
+        editValue = comboFilteredOptions[index].Text ?? comboSelectedId;
         isComboOpen = false;
         comboHighlightIndex = -1;
         comboItemSelected = true;
