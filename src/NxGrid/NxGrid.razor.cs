@@ -812,7 +812,9 @@ public partial class NxGrid<T>
             else
             {
                 // Flex columns can compress; their floor is the effective CSS min-width.
+                // For FitContent columns FitWidth is also a lower bound (set as min-width on the cell).
                 var floor = Math.Max(col.FlexMinWidth ?? 0, col.MinWidth ?? 0);
+                if (col.FitWidth.HasValue) floor = Math.Max(floor, col.FitWidth.Value);
                 totalWidth += floor;
             }
         }
