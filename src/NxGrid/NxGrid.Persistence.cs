@@ -40,6 +40,8 @@ public partial class NxGrid<T>
     private NxGridColumn<T>? FindColumn(string id)
         => ActiveColumns.FirstOrDefault(c => GetColumnId(c) == id);
 
+    private string StorageKey => $"nxgrid:{StateKey}";
+
     private async Task SaveStateAsync()
     {
         if (string.IsNullOrEmpty(StateKey) || jsInterop == null) return;
@@ -68,14 +70,14 @@ public partial class NxGrid<T>
         }
 
         var json = JsonSerializer.Serialize(state, JsonOptions);
-        await jsInterop.LocalStorageSet(StateKey, json);
+        await jsInterop.LocalStorageSet(StorageKey, json);
     }
 
     private async Task RestoreStateAsync()
     {
         if (string.IsNullOrEmpty(StateKey) || jsInterop == null) return;
 
-        var json = await jsInterop.LocalStorageGet(StateKey);
+        var json = await jsInterop.LocalStorageGet(StorageKey);
         if (string.IsNullOrEmpty(json)) return;
 
         PersistedState? state;
@@ -141,7 +143,7 @@ public partial class NxGrid<T>
         if (string.IsNullOrEmpty(StateKey)) return;
 
         if (jsInterop != null)
-            await jsInterop.LocalStorageRemove(StateKey);
+            await jsInterop.LocalStorageRemove(StorageKey);
 
         manualMode = false;
         sortHistory.Clear();

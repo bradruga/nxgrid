@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `StateKey` persistence now stores state under the namespaced key `nxgrid:{StateKey}` in `localStorage` to avoid collisions with other apps sharing the same storage origin.
+
 ## [0.2.0] - 2026-06-19
 
 ### Added
