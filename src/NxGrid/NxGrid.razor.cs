@@ -426,6 +426,7 @@ public partial class NxGrid<T>
     private int lastColumnCount;
     private string rowStyle = "";
     private string headerRowStyle = "";
+    private int contentWidth;
 
     private bool showColumnChooser;
     private double chooserTop;
@@ -818,6 +819,7 @@ public partial class NxGrid<T>
                 totalWidth += floor;
             }
         }
+        contentWidth = totalWidth;
         var minWidthPart = $"min-width:{totalWidth}px";
         headerRowStyle = $"min-height:{RowHeight}px;{minWidthPart}";
         var heightProp = HasMultiLineColumns ? "min-height" : "height";

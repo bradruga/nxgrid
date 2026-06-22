@@ -79,6 +79,13 @@ $nx-grid-menu-icon:       $nx-grid-accent    !default;
     user-select: none;
 }
 
+// Blazor Virtualize spacer divs have no class and aria-hidden="true".
+// Give them the same minimum width as the content rows so the IntersectionObserver
+// that drives virtualization keeps firing even when the grid is scrolled far right.
+.nx-grid > [aria-hidden="true"]:not([class]) {
+    min-width: var(--nx-grid-content-width, 0);
+}
+
 .nx-grid-header-row {
     border-bottom: 1px solid var(--nx-grid-border);
     font-weight: bold;

@@ -45,6 +45,10 @@
   user-select: none;
 }
 
+.nx-grid > [aria-hidden="true"]:not([class]) {
+  min-width: var(--nx-grid-content-width, 0);
+}
+
 .nx-grid-header-row {
   border-bottom: 1px solid var(--nx-grid-border);
   font-weight: bold;

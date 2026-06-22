@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Row and header background colors now extend across the full scrollable width when FitContent columns are used and the grid is wider than its container.
+- Fixed virtualization breaking when the grid is scrolled horizontally beyond its original viewport width; Blazor Virtualize spacer divs now span the full content width so the IntersectionObserver keeps firing.
 - Combo column cells no longer flash the raw key/id value while an `OnUpdate` handler is awaiting (e.g. saving to a database). The display text is now shown in the input throughout the async operation.
 
 ### Changed
