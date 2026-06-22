@@ -496,6 +496,9 @@ $nx-grid-menu-icon:       $nx-grid-accent    !default;
     cursor: pointer;
     font-size: 13px;
     line-height: 1.4;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .nx-grid-filter-footer {

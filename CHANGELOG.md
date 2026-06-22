@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `ClearSelection()` public method to programmatically clear the grid selection.
 
+### Fixed
+
+- Filter listbox no longer jumps when scrolling through columns that have long or multiline values. Labels are now truncated with an ellipsis and a tooltip shows the full value on hover.
+
 ## [0.2.1] - 2026-06-22
 
 ### Added

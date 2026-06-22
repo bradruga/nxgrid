@@ -58,13 +58,13 @@
             </label>
         </div>
 
-        <Virtualize Items="@filteredItems">
+        <Virtualize Items="@filteredItems" ItemSize="22">
             <div class="nx-grid-filter-item">
                 <input id="@context.Id"
                        type="checkbox"
                        checked="@context.Selected"
                        @oninput="@(args => OnItemChanged(context, args))"/>
-                <label for="@context.Id">
+                <label for="@context.Id" title="@context.Label">
                     @context.Label
                 </label>
             </div>
