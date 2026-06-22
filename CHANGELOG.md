@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Drag-to-select now auto-scrolls the grid when the cursor is dragged past any edge (top, bottom, left, or right). The selection extends to cover newly visible rows and columns as the grid scrolls, with scroll speed proportional to how far outside the edge the cursor is.
+- Right-clicking anywhere on a column header now opens the column menu (when `HasColumnMenu` is `true`), in addition to clicking the chevron button.
 
 ### Fixed
 

@@ -28,6 +28,8 @@
                  aria-label="@column.EffectiveTitle"
                  @onmousedown="@(args => OnColumnHeaderMouseDown(args, column))"
                  @onmousedown:preventDefault
+                 @oncontextmenu="@(() => { if (HasColumnMenu) OnColumnButtonClick(column); })"
+                 @oncontextmenu:preventDefault="@HasColumnMenu"
                  @onmouseenter="@(args => OnColumnHeaderMouseEnter(args, column))"
                  @onmouseleave="@(() => HideHeaderTooltip())">
                 <div class="nx-grid-column-title-wrap">
