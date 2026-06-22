@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-22
+
 ### Added
 
 - Drag-to-select now auto-scrolls the grid when the cursor is dragged past any edge (top, bottom, left, or right). The selection extends to cover newly visible rows and columns as the grid scrolls, with scroll speed proportional to how far outside the edge the cursor is.
