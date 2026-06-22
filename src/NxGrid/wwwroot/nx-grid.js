@@ -437,8 +437,19 @@ class NxGrid {
 
         applyClasses(anchorRow, anchorCol);
 
-        const mouseMoveHandler = (e) => {
-            const target = document.elementFromPoint(e.clientX, e.clientY);
+        let lastClientX = null;
+        let lastClientY = null;
+        let scrollInterval = null;
+
+        const clearAutoScroll = () => {
+            if (scrollInterval !== null) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+        };
+
+        const tryUpdateSelection = (clientX, clientY) => {
+            const target = document.elementFromPoint(clientX, clientY);
             if (!target) return;
             const cellEl = target.closest('.nx-grid-cell[data-col]');
             if (!cellEl || !gridElement.contains(cellEl)) return;
@@ -452,12 +463,93 @@ class NxGrid {
             applyClasses(endRow, endCol);
         };
 
+        // Reapply selection after Blazor re-renders rows (e.g. virtualization during auto-scroll).
+        // When the cursor is outside the grid, endRow/endCol are snapped to the visible edge so
+        // the selection advances with each batch of newly rendered rows. childList-only so the
+        // attribute/style mutations made by applyClasses itself don't re-trigger the observer.
+        const rowObserver = new MutationObserver(() => {
+            if (lastClientX !== null && lastClientY !== null) {
+                const gr = gridElement.getBoundingClientRect();
+                const headerRow = gridElement.querySelector('.nx-grid-header-row');
+                const headerHeight = headerRow ? headerRow.offsetHeight : 0;
+                const rows = gridElement.querySelectorAll('.nx-grid-row[data-row]');
+                if (rows.length > 0) {
+                    if (lastClientY < gr.top + headerHeight)
+                        endRow = +rows[0].dataset.row;
+                    else if (lastClientY >= gr.bottom)
+                        endRow = +rows[rows.length - 1].dataset.row;
+                    else {
+                        // Cursor is inside the grid vertically — find the row now at the cursor
+                        // (needed when auto-scrolling with the cursor near but inside the edge)
+                        const target = document.elementFromPoint(lastClientX, lastClientY);
+                        const cellEl = target && target.closest('.nx-grid-cell[data-col]');
+                        if (cellEl && gridElement.contains(cellEl)) {
+                            const rowEl = cellEl.closest('.nx-grid-row[data-row]');
+                            if (rowEl) endRow = +rowEl.dataset.row;
+                        }
+                    }
+                    if (!isRowMode) {
+                        if (lastClientX < gr.left) endCol = 0;
+                        else if (lastClientX >= gr.right) endCol = maxCol;
+                    }
+                }
+            }
+            applyClasses(endRow, endCol);
+        });
+        rowObserver.observe(gridElement, { childList: true, subtree: true });
+
+        const updateAutoScroll = (clientX, clientY) => {
+            clearAutoScroll();
+            const gridRect = gridElement.getBoundingClientRect();
+            const autoScrollZone = 40;
+            const relX = clientX - gridRect.left;
+            const relY = clientY - gridRect.top;
+            const maxScrollTop  = gridElement.scrollHeight - gridElement.clientHeight;
+            const maxScrollLeft = gridElement.scrollWidth  - gridElement.clientWidth;
+
+            let speedY = 0;
+            let speedX = 0;
+            if (relY < autoScrollZone && gridElement.scrollTop > 0)
+                speedY = -(autoScrollZone - Math.max(0, relY)) / autoScrollZone * 10;
+            else if (relY > gridRect.height - autoScrollZone && gridElement.scrollTop < maxScrollTop)
+                speedY = (relY - (gridRect.height - autoScrollZone)) / autoScrollZone * 10;
+
+            if (relX < autoScrollZone && gridElement.scrollLeft > 0)
+                speedX = -(autoScrollZone - Math.max(0, relX)) / autoScrollZone * 10;
+            else if (relX > gridRect.width - autoScrollZone && gridElement.scrollLeft < maxScrollLeft)
+                speedX = (relX - (gridRect.width - autoScrollZone)) / autoScrollZone * 10;
+
+            if (speedX === 0 && speedY === 0) return;
+
+            scrollInterval = setInterval(() => {
+                let didScroll = false;
+                if (speedY !== 0) {
+                    const newTop = Math.max(0, Math.min(maxScrollTop, gridElement.scrollTop + speedY));
+                    if (newTop !== gridElement.scrollTop) { gridElement.scrollTop = newTop; didScroll = true; }
+                }
+                if (speedX !== 0) {
+                    const newLeft = Math.max(0, Math.min(maxScrollLeft, gridElement.scrollLeft + speedX));
+                    if (newLeft !== gridElement.scrollLeft) { gridElement.scrollLeft = newLeft; didScroll = true; }
+                }
+                if (!didScroll) clearAutoScroll();
+            }, 16);
+        };
+
+        const mouseMoveHandler = (e) => {
+            lastClientX = e.clientX;
+            lastClientY = e.clientY;
+            tryUpdateSelection(e.clientX, e.clientY);
+            updateAutoScroll(e.clientX, e.clientY);
+        };
+
         document.body.style.userSelect = 'none';
         document.addEventListener('mousemove', mouseMoveHandler);
 
         return new Promise(resolve => {
             document.addEventListener('mouseup', () => {
                 document.removeEventListener('mousemove', mouseMoveHandler);
+                clearAutoScroll();
+                rowObserver.disconnect();
                 document.body.style.userSelect = '';
                 resolve({ endRow, endCol });
             }, { once: true });
