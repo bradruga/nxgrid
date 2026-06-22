@@ -559,6 +559,14 @@ public partial class NxGrid<T>
             StateHasChanged();
     }
 
+    /// <summary>Clears the current selection. No-op when nothing is selected.</summary>
+    public void ClearSelection()
+    {
+        if (selectedRanges.Count == 0) return;
+        selectedRanges = [];
+        StateHasChanged();
+    }
+
     /// <summary>Scrolls the grid to the last row in the filtered data set.</summary>
     public async Task ScrollToEnd()
     {

@@ -159,6 +159,7 @@ Task  SelectRowByKey(object? keyValue)             // select and scroll to the f
 Task  ClearAllFilters()                            // clear all column filters and re-apply sort; saves state when StateKey is set; fires OnFilterChanged; column widths/sort/frozen/hidden are preserved
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title; no-op when hidden=false and column.Visible=false
+void  ClearSelection()                              // clear the current selection; no-op when nothing is selected
 void  SetEditValue(string value)                   // replace the active edit input's text; no-op when not editing. Use in an OnCellPickedWhileEditing handler
 Task  ResetColumnWidths()                          // clear all user-dragged widths, restoring every column to its declared Width parameter; also resets manualMode so flex columns resume auto-sizing; re-measures FitContent columns
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
