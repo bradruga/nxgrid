@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-23
+
 ### Added
 
 - Grid root element now renders `data-state-key="..."` when `StateKey` is set, enabling Playwright locators to target a grid by its state key.
