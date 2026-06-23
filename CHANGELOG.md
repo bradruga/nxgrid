@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Filter menu search now matches enum display names (e.g. `[Display(Name = "In Progress")]`) rather than raw member names (e.g. `InProgress`).
 - `CellStyle` callback: `Style` strings that do not end with a semicolon no longer produce malformed CSS.
 - Frozen columns with a semi-transparent `background-color` (e.g. `rgba(255, 0, 0, 0.1)`) no longer show scrolled content bleeding through; the transparent tint is converted to a `background-image` overlay so the sticky cell remains opaque.
 - Selected frozen cells with a semi-transparent `--nx-grid-selection-bg` no longer bleed through during both Blazor rendering and mouse drag-selection; the selection color is applied as a `background-image` overlay over `background-color:inherit` in both the C# and JavaScript paths.

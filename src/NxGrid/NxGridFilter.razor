@@ -127,6 +127,7 @@
                 Key = x.Key.Value,
                 Id = x.Key.Value?.ToString()?.ToLower().Replace(" ", "-") ?? "",
                 Name = x.Key.Value?.ToString() ?? "(Blanks)",
+                DisplayName = x.Key.Value == null ? "(Blanks)" : x.Key.Text,
                 Label = x.Key.Value == null ? $"(Blanks) ({x.Count():#,0})" : $"{x.Key.Text} ({x.Count():#,0})",
                 Selected = Column.FilterState.Count == 0 || Column.FilterState.Select(v => v?.ToString()).Contains(x.Key.Value?.ToString())
             })
@@ -187,6 +188,7 @@
         public object? Key { get; set; }
         public string Id { get; set; } = "";
         public string Name { get; set; } = "";
+        public string DisplayName { get; set; } = "";
         public string Label { get; set; } = "";
         public bool Selected { get; set; }
     }
@@ -237,7 +239,7 @@
         {
             filteredItems = string.IsNullOrWhiteSpace(searchText)
                 ? filterItems
-                : filterItems.Where(x => x.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToList();
+                : filterItems.Where(x => x.DisplayName.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToList();
         }
         else
         {
