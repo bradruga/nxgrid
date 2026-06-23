@@ -80,6 +80,7 @@ public partial class NxGrid<T>
     {
         if (s == null) return null;
         var css = s.Style ?? "";
+        if (css.Length > 0 && css[^1] != ';') css += ";";
         if (s.Border       != null) css += $"border:{s.Border};";
         if (s.BorderTop    != null) css += $"border-top:{s.BorderTop};";
         if (s.BorderRight  != null) css += $"border-right:{s.BorderRight};";
