@@ -8,6 +8,7 @@
 </CascadingValue>
 
 <div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @(HasMultiLineColumns ? "nx-grid-multiline" : "") @(HasTemplateHeaders ? "nx-grid-template-header" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px;--nx-grid-content-width:@(contentWidth)px"
+     data-state-key="@StateKey"
      tabindex="0"
      @onkeydown="@OnGridKeyDown">
     @if (ShowHeader)
