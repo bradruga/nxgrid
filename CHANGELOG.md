@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frozen columns with a semi-transparent `background-color` (e.g. `rgba(255, 0, 0, 0.1)`) no longer show scrolled content bleeding through; the transparent tint is converted to a `background-image` overlay so the sticky cell remains opaque.
 - Selected frozen cells with a semi-transparent `--nx-grid-selection-bg` no longer bleed through during both Blazor rendering and mouse drag-selection; the selection color is applied as a `background-image` overlay over `background-color:inherit` in both the C# and JavaScript paths.
 - Removed the drop shadow from the right edge of frozen columns.
+- Column menu now closes when the page is scrolled, preventing the menu from appearing detached from its header cell.
+- Column menu no longer overflows off the bottom of the screen; it flips above the header cell when there is not enough room below.
+- On narrow viewports (≤ 768 px) the column menu is displayed as a centered dialog with a translucent backdrop instead of a dropdown below the column header.
 
 ### Added
 

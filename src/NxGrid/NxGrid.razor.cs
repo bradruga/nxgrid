@@ -512,6 +512,7 @@ public partial class NxGrid<T>
     private bool menuNeedsPositioning;
     private double menuTop;
     private double menuLeft;
+    private bool menuIsMobile;
 
     private bool showContextMenu;
     private double contextMenuX;
@@ -784,6 +785,7 @@ public partial class NxGrid<T>
                 var pos = await jsInterop.PositionColumnMenu(menuIndex);
                 menuTop = pos.Top;
                 menuLeft = pos.Left;
+                menuIsMobile = pos.IsMobile;
             }
             StateHasChanged();
         }

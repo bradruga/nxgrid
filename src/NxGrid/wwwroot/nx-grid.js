@@ -108,6 +108,18 @@ class NxGrid {
         };
         document.addEventListener('click', this._menuClickHandler);
 
+        // Close the column menu when the page (outside the grid) scrolls.
+        // The menu is position:fixed so its pixel coords are viewport-relative, but
+        // the header it points to scrolls with the page, making the menu appear detached.
+        this._pageScrollHandler = () => {
+            const gridElement = document.getElementById(this.id);
+            if (!gridElement) return;
+            if (gridElement.querySelector('.nx-grid-column-menu')) {
+                this.dotNetObjectReference.invokeMethodAsync('OnColumnMenuLostFocus');
+            }
+        };
+        window.addEventListener('scroll', this._pageScrollHandler, { passive: true, capture: true });
+
         this._fillHandleAnchor = null;
         this._scrollHandler = () => this._repositionFillHandle();
 
@@ -162,24 +174,35 @@ class NxGrid {
 
     positionColumnMenu(columnIndex) {
         const gridElement = document.getElementById(this.id);
-        if (!gridElement) return { top: 0, left: 0 };
+        if (!gridElement) return { top: 0, left: 0, isMobile: false };
 
         const menuElement = gridElement.querySelector('.nx-grid-column-menu');
-        if (!menuElement) return { top: 0, left: 0 };
+        if (!menuElement) return { top: 0, left: 0, isMobile: false };
+
+        // On narrow screens show as a centered dialog instead of a dropdown
+        if (window.innerWidth <= 768) {
+            const menuHeight = menuElement.offsetHeight;
+            const menuWidth = menuElement.offsetWidth;
+            return {
+                top: Math.max(10, (window.innerHeight - menuHeight) / 2),
+                left: Math.max(10, (window.innerWidth - menuWidth) / 2),
+                isMobile: true
+            };
+        }
 
         const headerRow = gridElement.querySelector('.nx-grid-header-row');
-        if (!headerRow) return { top: 0, left: 0 };
+        if (!headerRow) return { top: 0, left: 0, isMobile: false };
 
         const headerCells = headerRow.querySelectorAll('.nx-grid-cell');
-        if (columnIndex < 0 || columnIndex >= headerCells.length) return { top: 0, left: 0 };
+        if (columnIndex < 0 || columnIndex >= headerCells.length) return { top: 0, left: 0, isMobile: false };
 
         const targetCell = headerCells[columnIndex];
         const cellRect = targetCell.getBoundingClientRect();
 
-        const top = cellRect.bottom;
+        let top = cellRect.bottom;
         let left = cellRect.left - 1;
 
-        // Clamp to screen edges (menu is visibility:hidden so offsetWidth is still valid)
+        // Clamp horizontally (menu is visibility:hidden so offsetWidth is still valid)
         const menuWidth = menuElement.offsetWidth;
         if (left + menuWidth > window.innerWidth) {
             left = window.innerWidth - menuWidth - 10;
@@ -188,7 +211,14 @@ class NxGrid {
             left = 10;
         }
 
-        return { top, left };
+        // Clamp vertically: flip above the header cell when the menu would overflow the bottom
+        const menuHeight = menuElement.offsetHeight;
+        if (top + menuHeight > window.innerHeight) {
+            top = cellRect.top - menuHeight;
+            if (top < 0) top = Math.max(10, window.innerHeight - menuHeight - 10);
+        }
+
+        return { top, left, isMobile: false };
     }
     
     getPageRowCount(rowHeight) {
@@ -587,6 +617,10 @@ class NxGrid {
         if (this._menuClickHandler) {
             document.removeEventListener('click', this._menuClickHandler);
             this._menuClickHandler = null;
+        }
+        if (this._pageScrollHandler) {
+            window.removeEventListener('scroll', this._pageScrollHandler, { capture: true });
+            this._pageScrollHandler = null;
         }
         if (this._scrollHandlerAttached) {
             const gridElement = document.getElementById(this.id);

@@ -320,6 +320,18 @@ $nx-grid-menu-icon:       $nx-grid-accent    !default;
     color: var(--nx-grid-accent-dark);
 }
 
+.nx-grid-menu-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+
+    @media (max-width: 768px) {
+        display: block;
+        background: rgba(0, 0, 0, 0.3);
+    }
+}
+
 .nx-grid-column-menu {
     width: 300px;
     background-color: var(--nx-grid-menu-bg);
@@ -328,6 +340,12 @@ $nx-grid-menu-icon:       $nx-grid-accent    !default;
     position: fixed;
     z-index: 1000;
     padding: 4px 0;
+}
+
+.nx-grid-column-menu-mobile {
+    border-radius: 8px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .nx-grid-resize-grip {

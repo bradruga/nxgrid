@@ -189,7 +189,8 @@
 
     @if (openColumn != null)
     {
-        <div class="nx-grid-column-menu" style="top:@(menuTop)px;left:@(menuLeft)px;@(menuNeedsPositioning ? "visibility:hidden;" : "")">
+        <div class="nx-grid-menu-backdrop"></div>
+        <div class="nx-grid-column-menu @(menuIsMobile ? "nx-grid-column-menu-mobile" : "")" style="top:@(menuTop)px;left:@(menuLeft)px;@(menuNeedsPositioning ? "visibility:hidden;" : "")">
             <button type="button" class="nx-grid-menu-item"
                     @onclick="@(() => ApplySortState(1))">
                 <span class="nx-grid-menu-item-icon">
