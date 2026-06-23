@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `CellStyle` callback: `Style` strings that do not end with a semicolon no longer produce malformed CSS.
+- Frozen columns with a semi-transparent `background-color` (e.g. `rgba(255, 0, 0, 0.1)`) no longer show scrolled content bleeding through; the transparent tint is converted to a `background-image` overlay so the sticky cell remains opaque.
 
 ### Added
 

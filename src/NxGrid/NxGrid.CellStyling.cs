@@ -32,6 +32,28 @@ public partial class NxGrid<T>
                 baseStyle += BuildCellStyleCss(s);
         }
 
+        // Frozen columns need an opaque background to block content scrolling behind them.
+        // If the effective background-color is semi-transparent (last declaration wins in CSS),
+        // convert it to a background-image overlay so background-color:inherit stays opaque.
+        if (column.StickyLeft != null || column.StickyRight != null)
+        {
+            if (!CssVarNameRegex.IsMatch(baseStyle) &&
+                TryExtractLastHexBgColor(baseStyle, out var frozenHex) &&
+                IsPartiallyTransparent(frozenHex!))
+            {
+                var m = RgbRegex.Match(frozenHex!.Trim());
+                if (m.Success)
+                {
+                    var r = m.Groups[1].Value;
+                    var g = m.Groups[2].Value;
+                    var b = m.Groups[3].Value;
+                    var a = m.Groups[4].Success ? m.Groups[4].Value : "1";
+                    baseStyle = RemoveBgColorFromStyle(baseStyle) +
+                        $"background-color:inherit;background-image:linear-gradient(rgba({r},{g},{b},{a}),rgba({r},{g},{b},{a}));";
+                }
+            }
+        }
+
         if (!selected) return baseStyle;
 
         // CSS variable backgrounds must be checked before TryExtractHexBgColor — the named-color
@@ -95,6 +117,17 @@ public partial class NxGrid<T>
         var m = BgColorExtractRegex.Match(style);
         if (!m.Success) return false;
         hex = m.Groups[1].Value;
+        return true;
+    }
+
+    // Returns the LAST background-color value in a style string, matching CSS cascade
+    // order where a later declaration overrides an earlier one in inline styles.
+    private static bool TryExtractLastHexBgColor(string style, out string? hex)
+    {
+        hex = null;
+        var matches = BgColorExtractRegex.Matches(style);
+        if (matches.Count == 0) return false;
+        hex = matches[matches.Count - 1].Groups[1].Value;
         return true;
     }
 
