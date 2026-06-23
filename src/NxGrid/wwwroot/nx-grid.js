@@ -364,6 +364,7 @@ class NxGrid {
             // parseRgbStr fallback handles rgba() values; null means transparent/unparseable → skip blend.
             const selHex = getComputedStyle(gridElement).getPropertyValue('--nx-grid-selection-bg').trim();
             const selRgb = parseRgbHex(selHex) || parseRgbStr(selHex);
+            const selAlpha = getCssAlpha(selHex);
 
             for (const rowEl of gridElement.querySelectorAll('.nx-grid-row[data-row]')) {
                 const ri = +rowEl.dataset.row;
@@ -374,6 +375,7 @@ class NxGrid {
                     const isAnch = !isRowMode && ri === anchorRow && ci === anchorCol;
                     const wasSelected = cell.classList.contains(selClass);
                     const nowSelected = inRange && !isAnch;
+                    const isFrozen = /position\s*:\s*sticky/i.test(cell.getAttribute('style') || '');
 
                     cell.classList.toggle(selClass, nowSelected);
                     cell.classList.toggle(anchorClass, isAnch);
@@ -391,7 +393,20 @@ class NxGrid {
                             const cellAlpha = getCssAlpha(cellBgStr);
                             if (selRgb) {
                                 cell.dataset.selSavedStyle = cell.getAttribute('style');
-                                if (!cellRgb) {
+                                if (isFrozen) {
+                                    // Frozen (sticky) cells need an opaque base so scrolled content
+                                    // can't bleed through. Keep background-color:inherit and apply
+                                    // selection + any existing tint as stacked background-image layers.
+                                    const curStyle = cell.getAttribute('style') || '';
+                                    const existingImg = curStyle.match(/background-image\s*:\s*([^;]+)/i);
+                                    const selGradient = `linear-gradient(rgba(${selRgb[0]},${selRgb[1]},${selRgb[2]},${selAlpha}),rgba(${selRgb[0]},${selRgb[1]},${selRgb[2]},${selAlpha}))`;
+                                    const bgImage = existingImg ? `${selGradient},${existingImg[1].trim()}` : selGradient;
+                                    const cleaned = curStyle
+                                        .replace(/background-color\s*:[^;]+;?/gi, '')
+                                        .replace(/background-image\s*:[^;]+;?/gi, '')
+                                        .trim();
+                                    cell.setAttribute('style', (cleaned ? cleaned + ';' : '') + `background-color:inherit;background-image:${bgImage};`);
+                                } else if (!cellRgb) {
                                     // Fully transparent — remove inline bg-color so the
                                     // selection CSS class can show through.
                                     cell.style.removeProperty('background-color');

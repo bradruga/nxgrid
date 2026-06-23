@@ -22,6 +22,12 @@ public partial class NxGrid<T>
     private static readonly Regex BgColorRemoveRegex =
         new(@"background-color\s*:[^;]+;?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex BgImageExtractRegex =
+        new(@"background-image\s*:\s*([^;]+);?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex BgImageRemoveRegex =
+        new(@"background-image\s*:[^;]+;?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     private string GetCellStyle(T item, NxGridColumn<T> column, bool selected)
     {
         var baseStyle = column.CellStyle ?? "";
@@ -32,10 +38,12 @@ public partial class NxGrid<T>
                 baseStyle += BuildCellStyleCss(s);
         }
 
+        var isFrozen = column.StickyLeft != null || column.StickyRight != null;
+
         // Frozen columns need an opaque background to block content scrolling behind them.
         // If the effective background-color is semi-transparent (last declaration wins in CSS),
         // convert it to a background-image overlay so background-color:inherit stays opaque.
-        if (column.StickyLeft != null || column.StickyRight != null)
+        if (isFrozen)
         {
             if (!CssVarNameRegex.IsMatch(baseStyle) &&
                 TryExtractLastHexBgColor(baseStyle, out var frozenHex) &&
@@ -87,7 +95,23 @@ public partial class NxGrid<T>
         if (!hasBg) return baseStyle;  // no custom bg — CSS class handles selection color
 
         if (!TryParseHex(cellHex!, out _))
-            return RemoveBgColorFromStyle(baseStyle);  // fully transparent — CSS class handles
+        {
+            // "inherit" or fully transparent — normally the CSS class handles selection color.
+            // For frozen (sticky) cells the CSS class color may be semi-transparent, which lets
+            // scrolled content bleed through. Keep background-color:inherit as an opaque base and
+            // render the selection as a background-image overlay instead.
+            if (isFrozen && TryParseHex(selectionColor, out var selFrozen))
+            {
+                var selM = RgbRegex.Match(selectionColor.Trim());
+                var selAlpha = selM.Success && selM.Groups[4].Success ? selM.Groups[4].Value : "1";
+                var selGradient = $"linear-gradient(rgba({selFrozen.r},{selFrozen.g},{selFrozen.b},{selAlpha}),rgba({selFrozen.r},{selFrozen.g},{selFrozen.b},{selAlpha}))";
+                var existingImg = BgImageExtractRegex.Match(baseStyle);
+                var bgImage = existingImg.Success ? $"{selGradient},{existingImg.Groups[1].Value.Trim()}" : selGradient;
+                var clean = BgImageRemoveRegex.Replace(RemoveBgColorFromStyle(baseStyle), "").Trim();
+                return clean + $"background-color:inherit;background-image:{bgImage};";
+            }
+            return RemoveBgColorFromStyle(baseStyle);  // CSS class handles
+        }
         if (IsPartiallyTransparent(cellHex!))
         {
             if (TryParseHex(selectionColor, out var sc))
