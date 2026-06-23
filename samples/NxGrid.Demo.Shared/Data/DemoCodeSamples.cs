@@ -447,6 +447,26 @@ void OnSignalRRowReceived(Person newRow)
 // after every user change and restored on the next visit.
 """;
 
+    public static readonly string PersistenceScope = """
+// Persist only column widths and sort — skip filters, frozen, and hidden.
+<NxGrid T="Person" Data="@people" StateKey="my-grid"
+        PersistenceScope="NxGridPersistenceScope.Widths | NxGridPersistenceScope.Sort">
+    ...
+</NxGrid>
+
+// Available flags (combine with |):
+//   NxGridPersistenceScope.Widths   — user-dragged column widths
+//   NxGridPersistenceScope.Sort     — sort column and direction
+//   NxGridPersistenceScope.Filters  — column filter selections
+//   NxGridPersistenceScope.Frozen   — user-toggled frozen column state
+//   NxGridPersistenceScope.Hidden   — user-toggled hidden column state
+//
+// Pre-built composites:
+//   NxGridPersistenceScope.Layout   — Widths | Frozen | Hidden (column layout, no data state)
+//   NxGridPersistenceScope.All      — everything (default)
+//   NxGridPersistenceScope.None     — nothing
+""";
+
     public static readonly string ClearSavedState = """
 <button @onclick="@(async () => await grid.ClearSavedState())">Reset columns</button>
 

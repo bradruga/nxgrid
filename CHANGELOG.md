@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `PersistenceScope` parameter (`NxGridPersistenceScope` flags enum) to control which parts of the grid state are included in `StateKey` persistence. Flags: `Widths`, `Sort`, `Filters`, `Frozen`, `Hidden`. Default is `All` (existing behavior unchanged).
+
 ## [0.2.3] - 2026-06-23
 
 ### Added

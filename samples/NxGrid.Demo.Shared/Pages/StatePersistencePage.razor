@@ -6,8 +6,9 @@
 <h1>State Persistence</h1>
 <p class="doc-intro">
     Set <code>StateKey</code> on the grid and it automatically saves column widths, sort order,
-    and filter selections to <code>localStorage</code> after every user change, restoring them
-    on the next visit — across page navigations and full browser refreshes.
+    filter selections, and frozen/hidden column state to <code>localStorage</code> after every
+    user change, restoring them on the next visit — across page navigations and full browser
+    refreshes. Use <code>PersistenceScope</code> to control exactly what gets saved.
 </p>
 
 <div class="doc-section">
@@ -36,12 +37,21 @@
     @if (savedJson != null)
     {
         <div style="margin-top:12px;">
-            <div style="font-size:12px;color:#666;margin-bottom:4px;">localStorage["demo-state-persistence"]</div>
+            <div style="font-size:12px;color:#666;margin-bottom:4px;">localStorage["nxgrid:demo-state-persistence"]</div>
             <pre class="doc-code">@savedJson</pre>
         </div>
     }
 
     <pre class="doc-code" style="margin-top:12px">@persistenceCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>PersistenceScope</h2>
+    <p class="doc-note">
+        By default all state is persisted. Use <code>PersistenceScope</code> to limit what gets
+        saved. Combine flags with <code>|</code>:
+    </p>
+    <pre class="doc-code">@persistenceScopeCode</pre>
 </div>
 
 <div class="doc-section">
@@ -100,7 +110,7 @@
 
     async Task RefreshSavedState()
     {
-        var raw = await JS.InvokeAsync<string?>("localStorage.getItem", "demo-state-persistence");
+        var raw = await JS.InvokeAsync<string?>("localStorage.getItem", "nxgrid:demo-state-persistence");
         if (raw == null)
         {
             savedJson = "(no saved state)";
@@ -118,6 +128,7 @@
         }
     }
 
-    string persistenceCode = DemoCodeSamples.StatePersistence;
-    string clearCode       = DemoCodeSamples.ClearSavedState;
+    string persistenceCode      = DemoCodeSamples.StatePersistence;
+    string persistenceScopeCode = DemoCodeSamples.PersistenceScope;
+    string clearCode            = DemoCodeSamples.ClearSavedState;
 }

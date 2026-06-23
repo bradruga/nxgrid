@@ -48,25 +48,44 @@ public partial class NxGrid<T>
 
         var state = new PersistedState();
 
-        foreach (var column in ActiveColumns)
+        bool saveWidths  = PersistenceScope.HasFlag(NxGridPersistenceScope.Widths);
+        bool saveFrozen  = PersistenceScope.HasFlag(NxGridPersistenceScope.Frozen);
+        bool saveHidden  = PersistenceScope.HasFlag(NxGridPersistenceScope.Hidden);
+
+        if (saveWidths || saveFrozen || saveHidden)
         {
-            var id = GetColumnId(column);
-            if (id == null) continue;
-            state.Columns.Add(new PersistedColumnState { Id = id, Width = column.UserWidth, Frozen = column.UserFrozen, Hidden = column.UserHidden });
+            foreach (var column in ActiveColumns)
+            {
+                var id = GetColumnId(column);
+                if (id == null) continue;
+                state.Columns.Add(new PersistedColumnState
+                {
+                    Id     = id,
+                    Width  = saveWidths ? column.UserWidth  : null,
+                    Frozen = saveFrozen ? column.UserFrozen : null,
+                    Hidden = saveHidden ? column.UserHidden : null,
+                });
+            }
         }
 
-        foreach (var col in sortHistory)
+        if (PersistenceScope.HasFlag(NxGridPersistenceScope.Sort))
         {
-            var id = GetColumnId(col);
-            if (id != null)
-                state.Sorts.Add(new PersistedSortState { ColumnId = id, Direction = col.SortState });
+            foreach (var col in sortHistory)
+            {
+                var id = GetColumnId(col);
+                if (id != null)
+                    state.Sorts.Add(new PersistedSortState { ColumnId = id, Direction = col.SortState });
+            }
         }
 
-        foreach (var column in ActiveColumns)
+        if (PersistenceScope.HasFlag(NxGridPersistenceScope.Filters))
         {
-            var id = GetColumnId(column);
-            if (id == null || column.FilterState.Count == 0) continue;
-            state.Filters[id] = column.FilterState.Select(v => v?.ToString()).ToList();
+            foreach (var column in ActiveColumns)
+            {
+                var id = GetColumnId(column);
+                if (id == null || column.FilterState.Count == 0) continue;
+                state.Filters[id] = column.FilterState.Select(v => v?.ToString()).ToList();
+            }
         }
 
         var json = JsonSerializer.Serialize(state, JsonOptions);
@@ -85,19 +104,23 @@ public partial class NxGrid<T>
         catch { return; }
         if (state == null) return;
 
+        bool restoreWidths  = PersistenceScope.HasFlag(NxGridPersistenceScope.Widths);
+        bool restoreFrozen  = PersistenceScope.HasFlag(NxGridPersistenceScope.Frozen);
+        bool restoreHidden  = PersistenceScope.HasFlag(NxGridPersistenceScope.Hidden);
+
         foreach (var savedCol in state.Columns)
         {
             var column = FindColumn(savedCol.Id);
             if (column == null) continue;
-            if (savedCol.Width != null)
+            if (restoreWidths && savedCol.Width != null)
             {
                 var w = savedCol.Width.Value;
                 if (column.MinWidth.HasValue) w = Math.Max(w, column.MinWidth.Value);
                 if (column.MaxWidth.HasValue) w = Math.Min(w, column.MaxWidth.Value);
                 column.UserWidth = w;
             }
-            if (savedCol.Frozen != null) column.UserFrozen = savedCol.Frozen;
-            if (savedCol.Hidden != null) column.UserHidden = savedCol.Hidden;
+            if (restoreFrozen && savedCol.Frozen != null) column.UserFrozen = savedCol.Frozen;
+            if (restoreHidden && savedCol.Hidden != null) column.UserHidden = savedCol.Hidden;
         }
 
         if (ActiveColumns.Any(c => c.UserWidth.HasValue))
@@ -105,27 +128,33 @@ public partial class NxGrid<T>
 
         ComputeFrozenOffsets();
 
-        sortHistory.Clear();
-        foreach (var c in ActiveColumns) c.SortState = 0;
-        foreach (var savedSort in state.Sorts)
+        if (PersistenceScope.HasFlag(NxGridPersistenceScope.Sort))
         {
-            var col = FindColumn(savedSort.ColumnId);
-            if (col == null) continue;
-            col.SortState = savedSort.Direction;
-            sortHistory.Add(col);
+            sortHistory.Clear();
+            foreach (var c in ActiveColumns) c.SortState = 0;
+            foreach (var savedSort in state.Sorts)
+            {
+                var col = FindColumn(savedSort.ColumnId);
+                if (col == null) continue;
+                col.SortState = savedSort.Direction;
+                sortHistory.Add(col);
+            }
         }
 
-        foreach (var (colId, storedValues) in state.Filters)
+        if (PersistenceScope.HasFlag(NxGridPersistenceScope.Filters))
         {
-            var column = FindColumn(colId);
-            if (column == null) continue;
+            foreach (var (colId, storedValues) in state.Filters)
+            {
+                var column = FindColumn(colId);
+                if (column == null) continue;
 
-            var valueSet = storedValues.ToHashSet();
-            column.FilterState = Data
-                .Select(row => column.GetNormalizedValue(row))
-                .Distinct()
-                .Where(v => valueSet.Contains(v?.ToString()))
-                .ToList();
+                var valueSet = storedValues.ToHashSet();
+                column.FilterState = Data
+                    .Select(row => column.GetNormalizedValue(row))
+                    .Distinct()
+                    .Where(v => valueSet.Contains(v?.ToString()))
+                    .ToList();
+            }
         }
 
         ApplyFilterAndSort();

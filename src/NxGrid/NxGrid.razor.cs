@@ -136,6 +136,12 @@ public partial class NxGrid<T>
     [Parameter] public string? StateKey { get; set; }
 
     /// <summary>
+    /// Controls which parts of the grid state are included in <see cref="StateKey"/> persistence.
+    /// Default is <see cref="NxGridPersistenceScope.All"/>. Has no effect when <see cref="StateKey"/> is not set.
+    /// </summary>
+    [Parameter] public NxGridPersistenceScope PersistenceScope { get; set; } = NxGridPersistenceScope.All;
+
+    /// <summary>
     /// When <c>true</c> (default), rows are rendered with Blazor's <c>&lt;Virtualize&gt;</c>
     /// so only visible rows are in the DOM. Set to <c>false</c> to render all rows — useful for
     /// small grids, browser Ctrl+F search, accessibility tools, or print.
