@@ -914,11 +914,6 @@ $nx-grid-menu-icon:       $nx-grid-accent    !default;
     bottom: 26px;
 }
 
-// ── Frozen columns ────────────────────────────────────────────────────────────
-
-.nx-grid-cell-frozen-last {
-    box-shadow: 2px 0 4px var(--nx-grid-shadow);
-}
 
 // ── Column chooser ────────────────────────────────────────────────────────────
 
