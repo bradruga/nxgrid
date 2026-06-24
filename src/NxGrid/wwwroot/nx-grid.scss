@@ -168,6 +168,7 @@ $nx-grid-menu-icon:       $nx-grid-accent    !default;
     flex: 1;
     display: flex;
     align-items: center;
+    justify-content: inherit;
 }
 
 .nx-grid-header-row {
