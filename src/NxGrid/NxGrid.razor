@@ -302,7 +302,33 @@
 
     @if (showContextMenu)
     {
+        var headerItems        = contextMenuItems.Where(i => i.Section == NxGridMenuSection.Header).ToList();
+        var beforeFocusItems   = contextMenuItems.Where(i => i.Section == NxGridMenuSection.BeforeFocusCell).ToList();
+        var footerItems        = contextMenuItems.Where(i => i.Section == NxGridMenuSection.Footer).ToList();
+        var hasFocusCell       = AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell;
+
         <div class="nx-grid-context-menu" style="position:fixed;left:@(contextMenuX)px;top:@(contextMenuY)px;z-index:1000;">
+            @for (var i = 0; i < headerItems.Count; i++)
+            {
+                var capturedItem = headerItems[i];
+                @if (capturedItem.Separator && i > 0)
+                {
+                    <div class="nx-grid-menu-divider"></div>
+                }
+                <button type="button" class="nx-grid-context-item @(capturedItem.Disabled ? "nx-grid-context-item-disabled" : "")"
+                        disabled="@capturedItem.Disabled"
+                        @onclick="@(() => OnCustomContextMenuItemClick(capturedItem))">
+                    <span>@capturedItem.Label</span>
+                    @if (capturedItem.Shortcut != null)
+                    {
+                        <span class="nx-grid-context-shortcut">@capturedItem.Shortcut</span>
+                    }
+                </button>
+            }
+            @if (headerItems.Count > 0)
+            {
+                <div class="nx-grid-menu-divider"></div>
+            }
             <button type="button" class="nx-grid-context-item"
                     @onclick="@OnContextMenuCopyClick">
                 <span>Copy</span><span class="nx-grid-context-shortcut">Ctrl+C</span>
@@ -318,7 +344,24 @@
                     Paste
                 </button>
             }
-            @if (AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell)
+            @for (var i = 0; i < beforeFocusItems.Count; i++)
+            {
+                var capturedItem = beforeFocusItems[i];
+                @if (capturedItem.Separator && i > 0)
+                {
+                    <div class="nx-grid-menu-divider"></div>
+                }
+                <button type="button" class="nx-grid-context-item @(capturedItem.Disabled ? "nx-grid-context-item-disabled" : "")"
+                        disabled="@capturedItem.Disabled"
+                        @onclick="@(() => OnCustomContextMenuItemClick(capturedItem))">
+                    <span>@capturedItem.Label</span>
+                    @if (capturedItem.Shortcut != null)
+                    {
+                        <span class="nx-grid-context-shortcut">@capturedItem.Shortcut</span>
+                    }
+                </button>
+            }
+            @if (hasFocusCell)
             {
                 <div class="nx-grid-menu-divider"></div>
                 <button type="button" class="nx-grid-context-item"
@@ -327,10 +370,14 @@
                     Focus Cell
                 </button>
             }
-            @foreach (var menuItem in contextMenuItems)
+            @if (footerItems.Count > 0)
             {
-                var capturedItem = menuItem;
-                @if (capturedItem.Separator)
+                <div class="nx-grid-menu-divider"></div>
+            }
+            @for (var i = 0; i < footerItems.Count; i++)
+            {
+                var capturedItem = footerItems[i];
+                @if (capturedItem.Separator && i > 0)
                 {
                     <div class="nx-grid-menu-divider"></div>
                 }

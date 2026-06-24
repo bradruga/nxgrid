@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Cell Templates sample page (`/cell-template`) demonstrating `Template` with `Alignment`.
+- `NxGridMenuSection` enum (`Header`, `BeforeFocusCell`, `Footer`) and a `Section` property on `NxGridContextMenuItem` let custom context menu items be placed above the built-in Copy/Paste items, between Paste and Focus Cell, or below all built-ins (the default). Section boundaries are automatically separated by a divider when both sides have content.
 
 ## [0.2.4] - 2026-06-23
 

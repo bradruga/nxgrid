@@ -53,6 +53,31 @@
 </div>
 
 <div class="doc-section">
+    <h2>Item sections</h2>
+    <p class="doc-note">
+        Use <code>Section</code> on any <code>NxGridContextMenuItem</code> to control placement.
+        <strong>Header</strong> items appear above Copy. <strong>BeforeFocusCell</strong> items appear between Paste and Focus Cell.
+        <strong>Footer</strong> items (the default) appear below all built-ins.
+        Section boundaries receive a divider automatically — right-click any cell to see all three sections in action.
+        <em>Delete</em> is disabled for Engineering rows.
+    </p>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;">Last action: <strong>@sectionsLog</strong></span>
+    </div>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()"
+            AllowFocusCellMode="true"
+            OnContextMenuShowing="@BuildSectionsMenu"
+            OnContextMenuItemClicked="@HandleSectionsClick">
+        <NxGridColumn Property="@(x => x.Id)"         MinWidth="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" Width="160" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@sectionsCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Copy with headers and Paste</h2>
     <p class="doc-note">
         <strong>Copy with headers</strong> is always available — it prepends a tab-separated header row to the
@@ -135,13 +160,19 @@
                 <td>string?</td>
                 <td>Optional keyboard shortcut hint displayed on the right side of the item (e.g. <code>"Ctrl+Z"</code>). Purely decorative — the grid does not wire up the shortcut automatically.</td>
             </tr>
+            <tr>
+                <td>Section</td>
+                <td>NxGridMenuSection</td>
+                <td>Controls placement relative to built-in items. <code>Header</code> — above Copy. <code>BeforeFocusCell</code> — between Paste and Focus Cell. <code>Footer</code> — below all built-ins (default). Section boundaries receive a divider automatically.</td>
+            </tr>
         </tbody>
     </table>
 </div>
 
 @code {
-    string basicLog   = "none";
-    string dynamicLog = "none";
+    string basicLog    = "none";
+    string dynamicLog  = "none";
+    string sectionsLog = "none";
 
     List<Person> pasteData = SampleData.People.Take(6).Select(p => new Person
     {
@@ -201,8 +232,31 @@
         };
     }
 
+    void BuildSectionsMenu(NxGridContextMenuArgs<Person> args)
+    {
+        args.Items.Add(new NxGridContextMenuItem { Id = "open",         Label = "Open profile",  Section = NxGridMenuSection.Header });
+        args.Items.Add(new NxGridContextMenuItem { Id = "send-message", Label = "Send message",  Section = NxGridMenuSection.Header, Separator = true });
+        args.Items.Add(new NxGridContextMenuItem { Id = "flag",         Label = "Flag row",      Section = NxGridMenuSection.BeforeFocusCell });
+        args.Items.Add(new NxGridContextMenuItem { Id = "export",       Label = "Export row",    Section = NxGridMenuSection.Footer });
+        args.Items.Add(new NxGridContextMenuItem { Id = "delete",       Label = "Delete",        Section = NxGridMenuSection.Footer, Separator = true, Disabled = args.Row.Department == "Engineering" });
+    }
+
+    void HandleSectionsClick(NxGridContextMenuItemArgs<Person> args)
+    {
+        sectionsLog = args.Item.Id switch
+        {
+            "open"         => $"Opened profile — {args.Row.FirstName} {args.Row.LastName}",
+            "send-message" => $"Message sent to {args.Row.FirstName} {args.Row.LastName}",
+            "flag"         => $"Flagged {args.Row.FirstName} {args.Row.LastName}",
+            "export"       => $"Exported {args.Row.FirstName} {args.Row.LastName}",
+            "delete"       => $"Deleted {args.Row.FirstName} {args.Row.LastName}",
+            _              => args.Item.Id
+        };
+    }
+
     string basicCode     = DemoCodeSamples.ContextMenuBasic;
     string dynamicCode   = DemoCodeSamples.ContextMenuDynamic;
+    string sectionsCode  = DemoCodeSamples.ContextMenuSections;
     string focusCellCode = """
         <NxGrid T="Person" Data="@people">
             <NxGridColumn Property="@(x => x.FirstName)" />

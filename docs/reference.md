@@ -792,6 +792,13 @@ public sealed class NxGridColumnResizedArgs
     public int NewWidth { get; init; }
 }
 
+public enum NxGridMenuSection
+{
+    Header,         // above Copy / Copy with headers / Paste
+    BeforeFocusCell, // between Paste and Focus Cell
+    Footer,         // below all built-ins (default)
+}
+
 public sealed class NxGridContextMenuArgs<T>
 {
     public T Row { get; init; }
@@ -801,11 +808,12 @@ public sealed class NxGridContextMenuArgs<T>
 
 public sealed class NxGridContextMenuItem
 {
-    public string Id { get; init; }       // returned in OnContextMenuItemClicked
-    public string Label { get; init; }    // text shown in the menu
-    public bool Disabled { get; init; }   // renders the item grayed out and non-clickable
-    public bool Separator { get; init; }  // renders a divider line above this item
-    public string? Shortcut { get; init; } // optional shortcut hint shown on the right, e.g. "Ctrl+Z"
+    public string Id { get; init; }               // returned in OnContextMenuItemClicked
+    public string Label { get; init; }            // text shown in the menu
+    public bool Disabled { get; init; }           // renders the item grayed out and non-clickable
+    public bool Separator { get; init; }          // renders a divider line above this item; not a standalone item — set this on the first item of a new group within a section
+    public string? Shortcut { get; init; }        // optional shortcut hint shown on the right, e.g. "Ctrl+Z"
+    public NxGridMenuSection Section { get; init; } // controls placement relative to built-ins; defaults to Footer
 }
 
 public sealed class NxGridContextMenuItemArgs<T>

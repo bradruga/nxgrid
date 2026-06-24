@@ -569,14 +569,22 @@ When `StateKey` is non-null, the grid serialises its current column configuratio
 
 Right-clicking any cell opens a context menu at the cursor position. The built-in **Copy** item is always first and always present.
 
-**Custom items** are added via `OnContextMenuShowing`. The handler is called synchronously before the menu opens — append `NxGridContextMenuItem` entries to `args.Items` to add items after Copy, in the order appended.
+**Custom items** are added via `OnContextMenuShowing`. The handler is called synchronously before the menu opens — append `NxGridContextMenuItem` entries to `args.Items`. Use the `Section` property to control where each item appears relative to the built-ins:
 
 ```
-Copy           ← always present, always first
-─────────────  ← separator (if Separator=true on the next item)
-View details   ← custom items, in order appended
-Copy full name
+[Header items]           ← NxGridMenuSection.Header
+─────────────            ← auto divider (when Header items present)
+Copy                     ← always present
+Copy with headers        ← always present
+Paste                    ← when cell is editable
+[BeforeFocusCell items]  ← NxGridMenuSection.BeforeFocusCell
+─────────────            ← always present before Focus Cell
+Focus Cell               ← when AllowFocusCellMode and Cell selection mode
+─────────────            ← auto divider (when Footer items present)
+[Footer items]           ← NxGridMenuSection.Footer (default)
 ```
+
+Section boundaries are automatically separated by a `<hr>` divider whenever both sides are non-empty. `Separator = true` on an individual item adds an extra divider within a section to sub-group items.
 
 **Selection during right-click:** if there is no active selection, the right-clicked cell is selected before the menu opens. If there is already a selection, it is preserved unchanged. `args.Row` and `args.Column` always refer to the cell that was right-clicked, regardless of the selection state.
 
@@ -584,7 +592,7 @@ Copy full name
 
 **Disabled items** (`Disabled = true`) are rendered grayed out and cannot be clicked. They appear in the menu but do nothing when selected.
 
-**Separators** (`Separator = true` on an item) render a `<hr>` divider above that item.
+**Separators** (`Separator = true` on an item) render a `<hr>` divider above that item within its section.
 
 The menu is positioned with `position:fixed` at the mouse coordinates. It closes when it loses focus (via a JS callback).
 

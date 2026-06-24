@@ -3,7 +3,8 @@ namespace NxGrid;
 /// <summary>
 /// Passed to <see cref="NxGrid{T}.OnContextMenuShowing"/> synchronously just before the context
 /// menu opens. Append <see cref="NxGridContextMenuItem"/> entries to <see cref="Items"/> to add
-/// custom items after the built-in ones (Copy, Copy with headers, Paste, Focus Cell).
+/// custom items. Use <see cref="NxGridContextMenuItem.Section"/> to control placement relative
+/// to the built-in items (Copy, Copy with headers, Paste, Focus Cell).
 /// </summary>
 public sealed class NxGridContextMenuArgs<T>
 {
@@ -14,8 +15,8 @@ public sealed class NxGridContextMenuArgs<T>
     public required NxGridColumn<T> Column { get; init; }
 
     /// <summary>
-    /// The mutable list of context menu items. Built-in items are already present;
-    /// append custom <see cref="NxGridContextMenuItem"/> entries to add them after the defaults.
+    /// The mutable list of context menu items. Append <see cref="NxGridContextMenuItem"/> entries
+    /// here; use <see cref="NxGridContextMenuItem.Section"/> to control where each item appears.
     /// </summary>
     public List<NxGridContextMenuItem> Items { get; init; } = [];
 }
@@ -39,11 +40,20 @@ public sealed class NxGridContextMenuItem
     /// <summary>When <c>true</c>, the item is rendered grayed out and cannot be clicked.</summary>
     public bool Disabled { get; init; }
 
-    /// <summary>When <c>true</c>, a divider line is rendered above this item.</summary>
+    /// <summary>
+    /// When <c>true</c>, a divider line is rendered above this item. Not a standalone item —
+    /// set this on the first item of a new group within the same section.
+    /// </summary>
     public bool Separator { get; init; }
 
     /// <summary>Optional keyboard shortcut hint displayed on the right side of the item (e.g. "Ctrl+Z").</summary>
     public string? Shortcut { get; init; }
+
+    /// <summary>
+    /// Controls where this item appears relative to the built-in menu items.
+    /// Defaults to <see cref="NxGridMenuSection.Footer"/> (below all built-ins).
+    /// </summary>
+    public NxGridMenuSection Section { get; init; } = NxGridMenuSection.Footer;
 }
 
 /// <summary>

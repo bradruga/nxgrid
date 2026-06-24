@@ -577,6 +577,44 @@ async Task HandleMenuClick(NxGridContextMenuItemArgs<ProjectDto> args)
 
 `OnContextMenuShowing` is called synchronously, so it should use already-loaded data. `args.Row` and `args.Column` tell you exactly what was right-clicked.
 
+### Item placement (Section)
+
+By default, custom items appear below all built-in items. Use the `Section` property to place them elsewhere:
+
+| `Section` value | Placement |
+|---|---|
+| `Footer` | Below all built-ins (default) |
+| `Header` | Above Copy / Copy with headers / Paste |
+| `BeforeFocusCell` | Between Paste and Focus Cell |
+
+A `<hr>` divider is automatically inserted at each section boundary whenever both sides have content — you don't need to add one manually.
+
+```csharp
+void BuildMenu(NxGridContextMenuArgs<ProjectDto> args)
+{
+    // Appears at the very top, above Copy
+    args.Items.Add(new NxGridContextMenuItem
+    {
+        Id      = "open",
+        Label   = "Open project",
+        Section = NxGridMenuSection.Header,
+    });
+
+    // Appears below all built-ins (default)
+    args.Items.Add(new NxGridContextMenuItem { Id = "archive", Label = "Archive" });
+}
+// Menu renders:
+//   Open project
+//   ───────────    ← auto boundary divider
+//   Copy
+//   Copy with headers
+//   Paste
+//   ───────────
+//   Focus Cell
+//   ───────────    ← auto boundary divider
+//   Archive
+```
+
 ### Conditional and disabled items
 
 Use `args.Row` to add items only for certain rows, or set `Disabled = true` to show an item grayed out when the action is unavailable:
@@ -599,15 +637,37 @@ void BuildMenu(NxGridContextMenuArgs<ProjectDto> args)
 }
 ```
 
-### Separator
+### Separators
 
-Set `Separator = true` on an item to render a `<hr>` divider above it. Use separators to group related items visually.
+There is no standalone separator item type. `Separator` is a `bool` property on a regular `NxGridContextMenuItem`. Setting it to `true` renders a `<hr>` divider **above that item** within its section; the item itself is still fully clickable.
+
+```csharp
+args.Items.Add(new NxGridContextMenuItem { Id = "view",      Label = "View details" });
+args.Items.Add(new NxGridContextMenuItem { Id = "copy-name", Label = "Copy full name", Separator = true });
+// Menu renders:
+//   View details
+//   ───────────
+//   Copy full name   ← separator appears above this item, not as a separate entry
+```
+
+To divide items into multiple groups within a section, set `Separator = true` on the first item of each new group:
+
+```csharp
+args.Items.Add(new NxGridContextMenuItem { Id = "edit",   Label = "Edit" });
+args.Items.Add(new NxGridContextMenuItem { Id = "copy",   Label = "Copy" });
+args.Items.Add(new NxGridContextMenuItem { Id = "delete", Label = "Delete", Separator = true });
+// Menu renders:
+//   Edit
+//   Copy
+//   ───────────
+//   Delete
+```
 
 ### What `OnContextMenuItemClicked` receives
 
 The callback is an `EventCallback<NxGridContextMenuItemArgs<T>>`. The args carry:
 
-- `args.Item` — the `NxGridContextMenuItem` that was clicked, including its `Id`, `Label`, `Disabled`, and `Separator` properties.
+- `args.Item` — the `NxGridContextMenuItem` that was clicked, including its `Id`, `Label`, `Disabled`, `Separator`, and `Section` properties.
 - `args.Row` — the row object that was right-clicked.
 - `args.Column` — the `NxGridColumn<T>` that was right-clicked.
 

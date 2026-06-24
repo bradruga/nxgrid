@@ -988,6 +988,52 @@ void HandleMenuClick(NxGridContextMenuItemArgs<Person> args)
 }
 """;
 
+    public static readonly string ContextMenuSections = """
+// Use Section to place custom items anywhere in the menu.
+// Section boundaries get a divider automatically — no Separator needed at the edges.
+void BuildMenu(NxGridContextMenuArgs<Person> args)
+{
+    // Header: appears above Copy
+    args.Items.Add(new NxGridContextMenuItem
+    {
+        Id      = "open",
+        Label   = "Open profile",
+        Section = NxGridMenuSection.Header,
+    });
+    args.Items.Add(new NxGridContextMenuItem
+    {
+        Id        = "send-message",
+        Label     = "Send message",
+        Section   = NxGridMenuSection.Header,
+        Separator = true,
+    });
+
+    // BeforeFocusCell: appears between Paste and Focus Cell
+    args.Items.Add(new NxGridContextMenuItem
+    {
+        Id      = "flag",
+        Label   = "Flag row",
+        Section = NxGridMenuSection.BeforeFocusCell,
+    });
+
+    // Footer: appears below all built-ins (default)
+    args.Items.Add(new NxGridContextMenuItem
+    {
+        Id      = "export",
+        Label   = "Export row",
+        Section = NxGridMenuSection.Footer,
+    });
+    args.Items.Add(new NxGridContextMenuItem
+    {
+        Id       = "delete",
+        Label    = "Delete",
+        Section  = NxGridMenuSection.Footer,
+        Disabled = args.Row.Department == "Engineering",
+        Separator = true,
+    });
+}
+""";
+
     public static readonly string PrintBasic = """
 // Add @ref to the grid and call PrintAsync from a button.
 // The title argument is optional — omit it to print with no heading.
