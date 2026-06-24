@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-06-24
+
 ### Fixed
 
 - `Alignment` (Center/Right) is now respected for columns that use a `Template`. Previously the template content was always pinned to the left because only `text-align` was set on the cell; `justify-content` is now also applied so flex positioning works correctly.
