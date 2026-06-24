@@ -706,8 +706,8 @@
     {
         var style = BuildWidthStyle();
         if (CheckBox) style += "justify-content:center;";
-        else if (Alignment == NxGridColumnAlignment.Center) style += "text-align:center;";
-        else if (Alignment == NxGridColumnAlignment.Right) style += "text-align:right;";
+        else if (Alignment == NxGridColumnAlignment.Center) style += "justify-content:center;text-align:center;";
+        else if (Alignment == NxGridColumnAlignment.Right) style += "justify-content:flex-end;text-align:right;";
         if (StickyLeft is int left)
         {
             var right = StickyRight is int r ? $"right:{r}px;" : "";

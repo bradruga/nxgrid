@@ -1364,4 +1364,26 @@ NxGridCellStyle? VarianceCellStyle(BudgetEntry row, NxGridColumn<BudgetEntry> co
     </NxGridColumn>
 </NxGrid>
 """;
+
+    public static readonly string CellTemplate = """
+// Template replaces the default text renderer with arbitrary markup.
+// Alignment is respected — Center and Right work with templates too.
+<NxGrid T="PlayerRow" Data="@players" Cursor="NxGridCursor.Cell">
+    <NxGridColumn Property="@(x => x.Name)" Title="Player" Width="160" />
+
+    @* Template column — centered badge *@
+    <NxGridColumn Title="Status" Width="120" Alignment="NxGridColumnAlignment.Center">
+        <Template Context="p">
+            <span style="@BadgeStyle(p.Status)">@p.Status</span>
+        </Template>
+    </NxGridColumn>
+
+    @* Template column — right-aligned number *@
+    <NxGridColumn Title="Score" Width="140" Alignment="NxGridColumnAlignment.Right">
+        <Template Context="p">
+            <span style="font-variant-numeric:tabular-nums">@p.Score.ToString("N0")</span>
+        </Template>
+    </NxGridColumn>
+</NxGrid>
+""";
 }

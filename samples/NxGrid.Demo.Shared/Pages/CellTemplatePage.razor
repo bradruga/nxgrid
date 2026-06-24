@@ -1,0 +1,95 @@
+@page "/cell-template"
+
+<PageTitle>Cell Templates — NxGrid</PageTitle>
+
+<h1>Cell Templates</h1>
+<p class="doc-intro">
+    <code>Template</code> replaces a column's default text renderer with arbitrary markup —
+    badges, icons, progress bars, or any other Blazor content. The cell container (padding,
+    border, selection highlight) is still rendered by the grid; the template fills the inner area.
+    <code>Alignment</code> is respected even when a template is in use.
+</p>
+
+<div class="doc-section">
+    <h2>Alignment with Templates</h2>
+    <p class="doc-note">
+        Text columns and template columns respond identically to <code>Alignment</code>.
+        The "Status" column (center) and "Score" column (right) show badges rendered via
+        <code>Template</code> — they align the same way as the plain-text columns alongside them.
+    </p>
+    <NxGrid T="PlayerRow" Data="@players" Cursor="NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.Name)" Title="Player" Width="160" />
+        <NxGridColumn Property="@(x => x.Level)" Title="Level"
+                      Width="80" Alignment="NxGridColumnAlignment.Center" />
+        <NxGridColumn Title="Status" Width="120" Alignment="NxGridColumnAlignment.Center">
+            <Template Context="p">
+                <span style="@StatusBadgeStyle(p.Status) padding:1px 8px;border-radius:10px;font-size:12px;white-space:nowrap">
+                    @p.Status
+                </span>
+            </Template>
+        </NxGridColumn>
+        <NxGridColumn Property="@(x => x.Score)" Title="Score (text)"
+                      Display="@(x => x.Score.ToString("N0"))"
+                      Width="120" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Score (template)" Width="140" Alignment="NxGridColumnAlignment.Right">
+            <Template Context="p">
+                <span style="font-variant-numeric:tabular-nums;font-weight:600">@p.Score.ToString("N0")</span>
+            </Template>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@sampleCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>API reference</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Parameter</th><th>Type</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Template</code></td>
+                <td><code>RenderFragment&lt;T&gt;?</code></td>
+                <td>
+                    Custom markup for each body cell. The grid still renders the cell container
+                    (padding, borders, selection highlight). <code>Alignment</code> is applied
+                    to the cell container so template content is positioned correctly. When both
+                    <code>Template</code> and <code>CheckBox</code> are set, <code>Template</code>
+                    takes priority.
+                </td>
+            </tr>
+            <tr>
+                <td><code>Alignment</code></td>
+                <td><code>NxGridColumnAlignment</code></td>
+                <td>
+                    <code>Left</code> (default), <code>Center</code>, or <code>Right</code>.
+                    Controls both the horizontal position of template content within the cell
+                    and the text alignment within plain-text cells.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    record PlayerRow(string Name, int Level, string Status, int Score);
+
+    List<PlayerRow> players =
+    [
+        new("Alice Mercer",   42, "Active",   98_420),
+        new("Bob Tanaka",     37, "Away",     74_110),
+        new("Carol Voss",     55, "Active",  142_800),
+        new("David Park",     19, "Inactive",  8_995),
+        new("Eva Lindqvist",  61, "Active",  201_340),
+        new("Frank Osei",     28, "Away",     31_600),
+    ];
+
+    static string StatusBadgeStyle(string status) => status switch
+    {
+        "Active"   => "background:rgba(34,197,94,0.15);color:#166534;",
+        "Away"     => "background:rgba(234,179,8,0.15);color:#854d0e;",
+        _          => "background:rgba(148,163,184,0.15);color:#475569;",
+    };
+
+    string sampleCode = DemoCodeSamples.CellTemplate;
+}
