@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-06-24
+
 ### Fixed
 
 - Template content in centered or right-aligned columns was always left-aligned. The `.nx-grid-cell-template` wrapper now inherits `justify-content` from the cell so template content aligns correctly.
