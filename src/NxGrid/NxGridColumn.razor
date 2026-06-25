@@ -454,6 +454,17 @@
                 };
                 return;
             }
+            if (underlying == typeof(TimeOnly))
+            {
+                var baseGetter = compiledPropertyGetter;
+                var fmt = DateFormat;
+                dateFormatGetter = row =>
+                {
+                    var val = baseGetter(row);
+                    return val is TimeOnly to ? to.ToString(fmt) : val;
+                };
+                return;
+            }
         }
         dateFormatGetter = null;
     }
@@ -543,6 +554,40 @@
         }
     }
 
+    // Parses shorthand time strings such as "8p", "830a", "1230".
+    // Accepts H, HH, HMM, HHMM with an optional a/am/p/pm suffix.
+    // No suffix: hours 12 and 1–4 default to PM; hours 5–11 default to AM.
+    // Returns null when the input is not a recognised shorthand.
+    internal static (int hours, int minutes)? TryParseShorthandTime(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        var s = input.Trim().ToLowerInvariant().Replace(" ", "");
+
+        bool? isPm = null;
+        if      (s.EndsWith("pm")) { isPm = true;  s = s[..^2]; }
+        else if (s.EndsWith("am")) { isPm = false; s = s[..^2]; }
+        else if (s.EndsWith("p"))  { isPm = true;  s = s[..^1]; }
+        else if (s.EndsWith("a"))  { isPm = false; s = s[..^1]; }
+
+        if (s.Length is 0 or > 4 || !s.All(char.IsDigit)) return null;
+
+        var n = int.Parse(s);
+        int hours, minutes;
+        if (s.Length <= 2)      { hours = n;       minutes = 0;       }
+        else if (s.Length == 3) { hours = n / 100; minutes = n % 100; }
+        else                    { hours = n / 100; minutes = n % 100; }
+
+        if (hours is < 0 or > 12 || minutes is < 0 or >= 60) return null;
+
+        if (isPm == null)
+            isPm = hours == 12 || hours is >= 1 and <= 4;
+
+        if (isPm == true  && hours != 12) hours += 12;
+        if (isPm == false && hours == 12) hours  = 0;
+
+        return (hours, minutes);
+    }
+
     internal static string SplitPascalCase(string name)
     {
         if (string.IsNullOrEmpty(name)) return name;
@@ -577,7 +622,8 @@
 
     // Parses rawValue to the property's CLR type and returns a pre-bound apply action.
     // Returns (rawValue, null) when Property is not set or parsing fails — Apply is a no-op.
-    public (object? typedValue, Action<T>? apply) ParseAndBuildApply(string? rawValue)
+    // existingValue is the cell's current value; used to preserve the date when parsing time shorthands.
+    public (object? typedValue, Action<T>? apply) ParseAndBuildApply(string? rawValue, object? existingValue = null)
     {
         if (compiledPropertySetter == null || propertyType == null)
             return (rawValue, null);
@@ -617,6 +663,32 @@
             { typed = dtFmt; parsed = true; }
             else if (DateTime.TryParse(rawValue, out var dt))
             { typed = dt; parsed = true; }
+            else
+            {
+                var hm = TryParseShorthandTime(rawValue);
+                if (hm.HasValue)
+                {
+                    var baseDate = existingValue is DateTime evDt ? evDt.Date : DateTime.Today;
+                    typed = baseDate.AddHours(hm.Value.hours).AddMinutes(hm.Value.minutes);
+                    parsed = true;
+                }
+            }
+        }
+        else if (underlying == typeof(TimeOnly))
+        {
+            if (!string.IsNullOrEmpty(DateFormat) &&
+                TimeOnly.TryParseExact(rawValue, DateFormat,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    System.Globalization.DateTimeStyles.None, out var toFmt))
+            { typed = toFmt; parsed = true; }
+            else if (TimeOnly.TryParse(rawValue, out var to))
+            { typed = to; parsed = true; }
+            else
+            {
+                var hm = TryParseShorthandTime(rawValue);
+                if (hm.HasValue)
+                { typed = new TimeOnly(hm.Value.hours, hm.Value.minutes); parsed = true; }
+            }
         }
 
         if (!parsed) return (rawValue, null);

@@ -44,6 +44,10 @@ public partial class NxGrid<T>
                     : null);
             currentText = fmt != null ? dt.ToString(fmt) : dt.ToString();
         }
+        else if (rawValue is TimeOnly to)
+        {
+            currentText = to.ToString(column.DateFormat ?? "h:mm tt");
+        }
         else
         {
             currentText = rawValue?.ToString() ?? "";
@@ -118,7 +122,7 @@ public partial class NxGrid<T>
         if (OnUpdate.HasDelegate)
         {
             var oldValue = column.EffectiveValueGetter?.Invoke(rowData);
-            var (typedValue, applyAction) = column.ParseAndBuildApply(valueToCommit);
+            var (typedValue, applyAction) = column.ParseAndBuildApply(valueToCommit, oldValue);
             await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T>
             {
                 Rows = [new NxGridRowChange<T>
@@ -243,7 +247,7 @@ public partial class NxGrid<T>
                         if (!IsColumnEditable(visibleColumns[c])) continue;
                         if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], visibleColumns[c])) continue;
                         var oldValue = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
-                        var (typedValue, applyAction) = visibleColumns[c].ParseAndBuildApply(editValue);
+                        var (typedValue, applyAction) = visibleColumns[c].ParseAndBuildApply(editValue, oldValue);
                         if (!rowChanges.TryGetValue(r, out var changes))
                         {
                             changes = [];
@@ -629,7 +633,7 @@ public partial class NxGrid<T>
         if (column.ComboBoxSource != null && newValue != null)
             newValue = column.ComboBoxSource.ResolveId(filteredData[rowIdx]!, newValue);
         var oldValue = column.EffectiveValueGetter?.Invoke(filteredData[rowIdx]);
-        var (typedValue, applyAction) = column.ParseAndBuildApply(newValue);
+        var (typedValue, applyAction) = column.ParseAndBuildApply(newValue, oldValue);
         list.Add(new NxGridCellChange<T> { Column = column, OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction });
     }
 

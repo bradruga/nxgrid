@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Time shorthand parsing (`8p`, `830a`, `1230`, etc.) is now built into the component for `DateTime`/`DateTime?` columns. No custom `OnUpdate` logic is needed — inputs that cannot be parsed by `DateFormat` or `TryParse` are automatically tried against the shorthand rules. For `DateTime` columns, the date component of the existing cell value is preserved.
+- `TimeOnly`/`TimeOnly?` property types are now supported. `DateFormat`, shorthand parsing, and standard `TimeOnly.TryParse` all work the same way as for `DateTime` columns.
+
 ## [0.2.6] - 2026-06-24
 
 ### Fixed
