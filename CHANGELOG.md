@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fill handle drifted when the page was scrolled — page scroll now triggers a reposition.
+- Fill handle drifted when content above the grid changed height (e.g. an accordion opened) — a `ResizeObserver` on `document.body` now repositions the handle whenever the page layout shifts.
+
 ### Added
 
 - Time shorthand parsing (`8p`, `830a`, `1230`, etc.) is now built into the component for `DateTime`/`DateTime?` columns. No custom `OnUpdate` logic is needed — inputs that cannot be parsed by `DateFormat` or `TryParse` are automatically tried against the shorthand rules. For `DateTime` columns, the date component of the existing cell value is preserved.

@@ -117,6 +117,7 @@ class NxGrid {
             if (gridElement.querySelector('.nx-grid-column-menu')) {
                 this.dotNetObjectReference.invokeMethodAsync('OnColumnMenuLostFocus');
             }
+            this._repositionFillHandle();
         };
         window.addEventListener('scroll', this._pageScrollHandler, { passive: true, capture: true });
 
@@ -132,10 +133,18 @@ class NxGrid {
             gridElement.addEventListener('scroll', this._scrollHandler, { passive: true });
             this._scrollHandlerAttached = true;
         }
+        if (!this._layoutObserver) {
+            this._layoutObserver = new ResizeObserver(() => this._repositionFillHandle());
+            this._layoutObserver.observe(document.body);
+        }
     }
 
     clearFillHandleAnchor() {
         this._fillHandleAnchor = null;
+        if (this._layoutObserver) {
+            this._layoutObserver.disconnect();
+            this._layoutObserver = null;
+        }
     }
 
     _repositionFillHandle() {
@@ -626,6 +635,10 @@ class NxGrid {
             const gridElement = document.getElementById(this.id);
             if (gridElement) gridElement.removeEventListener('scroll', this._scrollHandler);
             this._scrollHandlerAttached = false;
+        }
+        if (this._layoutObserver) {
+            this._layoutObserver.disconnect();
+            this._layoutObserver = null;
         }
     }
 
