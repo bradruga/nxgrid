@@ -122,6 +122,25 @@
                         </button>
                     </div>
                 }
+                else if (col.IsColorPickerColumn)
+                {
+                    <div class="nx-grid-colorpicker-wrapper">
+                        <input class="nx-grid-colorpicker-input"
+                               @ref="editInputRef"
+                               value="@EditValue"
+                               @oninput="@(e => OnEditInput?.Invoke(e))"
+                               @onkeydown="@(e => HandleEditKeyDown(e))"
+                               @onkeydown:stopPropagation
+                               @onmousedown:stopPropagation
+                               @onmouseup:stopPropagation />
+                        <button type="button" class="nx-grid-colorpicker-swatch-button"
+                                style="background-color:@EditValue"
+                                @onmousedown="@(() => OnColorPickerButtonClick != null ? OnColorPickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                                @onmousedown:stopPropagation
+                                @onmousedown:preventDefault>
+                        </button>
+                    </div>
+                }
                 else if (isMultiLineGrid)
                 {
                     @* Textarea in single-line mode: fills height so text is top-aligned (input always centers) *@
@@ -192,7 +211,17 @@
                 var cellDisplay = col.MultiLine && cellValue is string sv && sv.EndsWith('\n')
                     ? (object?)(sv + "​")
                     : cellValue;
-                <span class="nx-grid-cell-text @(col.MultiLine ? "nx-grid-cell-text-multiline" : "")">@cellDisplay</span>
+                @if (col.IsColorPickerColumn && col.Display == null)
+                {
+                    var colorStr = rawValue?.ToString() ?? "";
+                    <span class="nx-grid-cell-text nx-grid-cell-text-color">
+                        <span class="nx-grid-colorpicker-cell-swatch" style="background-color:@colorStr" aria-hidden="true"></span>@colorStr
+                    </span>
+                }
+                else
+                {
+                    <span class="nx-grid-cell-text @(col.MultiLine ? "nx-grid-cell-text-multiline" : "")">@cellDisplay</span>
+                }
                 @if (col.IsComboColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
                      && (col.Editable ?? GridEditable)
                      && (CellEditableGetter == null || CellEditableGetter(Row, col)))
@@ -218,6 +247,18 @@
                             <line x1="8" y1="2" x2="8" y2="6"/>
                             <line x1="3" y1="10" x2="21" y2="10"/>
                         </svg>
+                    </button>
+                }
+                @if (col.IsColorPickerColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
+                     && (col.Editable ?? GridEditable)
+                     && (CellEditableGetter == null || CellEditableGetter(Row, col)))
+                {
+                    var idleColor = rawValue?.ToString() ?? "";
+                    <button type="button" class="nx-grid-colorpicker-swatch-button nx-grid-colorpicker-swatch-button-idle"
+                            style="background-color:@idleColor"
+                            @onmousedown="@(() => OnColorPickerButtonClick != null ? OnColorPickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                            @onmousedown:stopPropagation
+                            @onmousedown:preventDefault>
                     </button>
                 }
             }
@@ -253,6 +294,7 @@
     [Parameter] public Func<MouseEventArgs, int, Task>? OnDragHandleMouseDown { get; set; }
     [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnDatePickerButtonClick { get; set; }
+    [Parameter] public Func<int, int, Task>? OnColorPickerButtonClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnCheckboxToggle { get; set; }
     [Parameter] public NxGridCursor Cursor { get; set; }
     [Parameter] public int RenderToken { get; set; }

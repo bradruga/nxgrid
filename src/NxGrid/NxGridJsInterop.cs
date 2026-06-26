@@ -7,6 +7,7 @@ public record NxComboDropdownPosition(double Top, double Left, double Width);
 public record NxCharWidths(Dictionary<string, double> Normal, Dictionary<string, double> Bold);
 public record NxMenuPosition(double Top, double Left, bool IsMobile = false);
 public record NxDatePickerPosition(double Top, double Left);
+public record NxColorPickerPosition(double Top, double Left);
 public record NxFillHandlePosition(double Top, double Left);
 public record NxDragFillResult(string Direction, int FillCount);
 public record NxDragSelectResult(int EndRow, int EndCol);
@@ -111,6 +112,12 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     {
         return jsObject.InvokeAsync<NxDatePickerPosition>("getDatePickerPosition").AsTask();
     }
+
+    public Task<NxColorPickerPosition> GetColorPickerPosition()
+        => jsObject.InvokeAsync<NxColorPickerPosition>("getColorPickerPosition").AsTask();
+
+    public Task SetupColorPickerGradient()
+        => jsObject.InvokeVoidAsync("setupColorPickerGradient").AsTask();
 
     public Task<string?> LocalStorageGet(string key)
         => module.InvokeAsync<string?>("localStorageGet", key).AsTask();

@@ -1,0 +1,96 @@
+@page "/color-picker"
+
+<PageTitle>Color Picker — NxGrid</PageTitle>
+
+<h1>Color Picker</h1>
+<p class="doc-intro">
+    Set <code>ColorPicker="true"</code> on an editable column whose <code>Property</code> points
+    to a <code>string</code> holding a CSS color value. The inline editor becomes a text input
+    with a color swatch button that opens a picker popup. You can type a color directly (hex,
+    <code>rgb()</code>, or a CSS named color) or use the popup's palette or custom view.
+    Use <code>ColorFormat</code> to control the output format on commit.
+</p>
+
+<div class="doc-section">
+    <h2>Basic Usage</h2>
+    <p class="doc-note">
+        Click any cell in the <strong>Color</strong> column to edit.
+        Type a hex, <code>rgb()</code>, or named color, or click the swatch button to open the picker.
+        Press <kbd class="doc-kbd">↓</kbd> while editing to open the picker via keyboard.
+    </p>
+    <NxGrid T="ColorRow" Data="@rows" OnUpdate="@HandleUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Label)" Title="Label" Width="160" Editable="false" />
+        <NxGridColumn Property="@(x => x.Color)" Title="Color" Width="200" ColorPicker="true" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Output Formats</h2>
+    <p class="doc-note">
+        <code>ColorFormat</code> controls how the committed value is written back to the data.
+        <code>"hex"</code> (default) writes <code>#RRGGBB</code>, <code>"rgb"</code> writes
+        <code>rgb(R, G, B)</code>, and <code>"name"</code> writes a CSS color name when one
+        matches, otherwise falls back to hex.
+    </p>
+    <NxGrid T="FormatRow" Data="@formatRows" OnUpdate="@HandleFormatUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Format)" Title="ColorFormat" Width="90" Editable="false" />
+        <NxGridColumn Property="@(x => x.Color)"  Title="Color (hex)"  Width="200" ColorPicker="true" ColorFormat="hex" />
+        <NxGridColumn Property="@(x => x.ColorRgb)"  Title="Color (rgb)"  Width="220" ColorPicker="true" ColorFormat="rgb" />
+        <NxGridColumn Property="@(x => x.ColorName)" Title="Color (name)" Width="200" ColorPicker="true" ColorFormat="name" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@formatCode</pre>
+</div>
+
+@code {
+    private record ColorRow(int Id, string Label) { public string Color { get; set; } = "#4169E1"; }
+    private record FormatRow(int Id, string Format) { public string Color { get; set; } = "#FF5733"; public string ColorRgb { get; set; } = "#FF5733"; public string ColorName { get; set; } = "#FF5733"; }
+
+    private List<ColorRow> rows =
+    [
+        new(1, "Primary accent"),
+        new(2, "Background") { Color = "#F0F8FF" },
+        new(3, "Border")     { Color = "#CCCCCC" },
+        new(4, "Warning")    { Color = "#FF8800" },
+        new(5, "Success")    { Color = "#228B22" },
+        new(6, "Danger")     { Color = "#DC143C" },
+    ];
+
+    private List<FormatRow> formatRows =
+    [
+        new(1, "hex/rgb/name") { Color = "#FF5733", ColorRgb = "#FF5733", ColorName = "royalblue" },
+        new(2, "hex/rgb/name") { Color = "#4169E1", ColorRgb = "rgb(0, 128, 0)", ColorName = "crimson" },
+        new(3, "hex/rgb/name") { Color = "#008000", ColorRgb = "#FFFF00", ColorName = "#FF8800" },
+    ];
+
+    private void HandleUpdate(NxGridUpdateArgs<ColorRow> args)
+    {
+        foreach (var rowChange in args.Rows)
+            foreach (var cell in rowChange.Changes)
+                cell.Apply(rowChange.Row);
+    }
+
+    private void HandleFormatUpdate(NxGridUpdateArgs<FormatRow> args)
+    {
+        foreach (var rowChange in args.Rows)
+            foreach (var cell in rowChange.Changes)
+                cell.Apply(rowChange.Row);
+    }
+
+    private const string basicCode =
+        """
+        <NxGrid T="Row" Data="@rows" OnUpdate="@HandleUpdate" Editable="true">
+            <NxGridColumn Property="@(x => x.Label)" Title="Label" Editable="false" />
+            <NxGridColumn Property="@(x => x.Color)" Title="Color" ColorPicker="true" />
+        </NxGrid>
+        """;
+
+    private const string formatCode =
+        """
+        <NxGridColumn Property="@(x => x.Color)"     Title="Hex"  ColorPicker="true" ColorFormat="hex" />
+        <NxGridColumn Property="@(x => x.ColorRgb)"  Title="RGB"  ColorPicker="true" ColorFormat="rgb" />
+        <NxGridColumn Property="@(x => x.ColorName)" Title="Name" ColorPicker="true" ColorFormat="name" />
+        """;
+}

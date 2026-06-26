@@ -762,6 +762,267 @@
   background-color: var(--nx-grid-accent-dark);
 }
 
+/* ── Color picker ──────────────────────────────────────────────────────────── */
+
+.nx-grid-cell-text-color {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.nx-grid-colorpicker-cell-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid var(--nx-grid-border);
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.nx-grid-colorpicker-wrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  border: 2px solid var(--nx-grid-selection-border);
+  box-sizing: border-box;
+  background: var(--nx-grid-surface);
+  z-index: 2;
+}
+
+.nx-grid-colorpicker-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  outline: none;
+}
+
+.nx-grid-colorpicker-swatch-button {
+  border: none;
+  border-left: 1px solid var(--nx-grid-border);
+  padding: 0;
+  width: var(--nx-grid-row-height);
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 1;
+}
+.nx-grid-colorpicker-swatch-button:hover { opacity: 0.85; }
+.nx-grid-colorpicker-swatch-button:active { opacity: 0.7; }
+
+.nx-grid-colorpicker-swatch-button-idle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--nx-grid-row-height);
+  border: none;
+  border-left: 1px solid var(--nx-grid-border);
+  border-radius: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+.nx-grid-colorpicker-swatch-button-idle:hover { opacity: 0.85; }
+
+.nx-grid-colorpicker-popup {
+  background: var(--nx-grid-surface);
+  border: 1px solid var(--nx-grid-border);
+  box-shadow: 0 2px 8px var(--nx-grid-shadow);
+  width: 256px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nx-grid-colorpicker-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--nx-grid-border);
+}
+
+.nx-grid-colorpicker-tab {
+  flex: 1;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--nx-grid-muted-fg);
+  cursor: pointer;
+}
+.nx-grid-colorpicker-tab:hover {
+  color: var(--nx-grid-fg);
+  background-color: var(--nx-grid-hover-bg);
+}
+
+.nx-grid-colorpicker-tab-active {
+  color: var(--nx-grid-accent);
+  border-bottom-color: var(--nx-grid-accent);
+  font-weight: 600;
+}
+
+.nx-grid-colorpicker-palette {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  padding: 8px;
+  gap: 3px;
+}
+
+.nx-grid-colorpicker-swatch {
+  aspect-ratio: 1;
+  border: 1px solid var(--nx-grid-border);
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+.nx-grid-colorpicker-swatch:hover {
+  transform: scale(1.15);
+  z-index: 1;
+  position: relative;
+  border-color: var(--nx-grid-fg);
+}
+
+.nx-grid-colorpicker-custom {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.nx-grid-colorpicker-gradient {
+  position: relative;
+  height: 120px;
+  cursor: crosshair;
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.nx-grid-colorpicker-gradient-thumb {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.nx-grid-colorpicker-hue-track {
+  margin-top: 6px;
+  padding: 3px 0;
+}
+
+.nx-grid-colorpicker-hue-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right,
+    hsl(0,100%,50%), hsl(30,100%,50%), hsl(60,100%,50%), hsl(90,100%,50%),
+    hsl(120,100%,50%), hsl(150,100%,50%), hsl(180,100%,50%), hsl(210,100%,50%),
+    hsl(240,100%,50%), hsl(270,100%,50%), hsl(300,100%,50%), hsl(330,100%,50%),
+    hsl(360,100%,50%));
+  outline: none;
+  cursor: pointer;
+  display: block;
+}
+.nx-grid-colorpicker-hue-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--nx-grid-border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+.nx-grid-colorpicker-hue-input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  cursor: pointer;
+  border: none;
+}
+
+.nx-grid-colorpicker-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--nx-grid-border);
+}
+
+.nx-grid-colorpicker-preview {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  border: 1px solid var(--nx-grid-border);
+  flex-shrink: 0;
+}
+
+.nx-grid-colorpicker-inputs-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nx-grid-colorpicker-input-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--nx-grid-muted-fg);
+}
+
+.nx-grid-colorpicker-text-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 1px solid var(--nx-grid-border);
+  background: var(--nx-grid-surface);
+  color: inherit;
+  font-size: 12px;
+  font-family: monospace;
+  border-radius: 2px;
+  outline: none;
+}
+.nx-grid-colorpicker-text-input:focus { border-color: var(--nx-grid-accent); }
+
+.nx-grid-colorpicker-rgb-row {
+  display: flex;
+  gap: 4px;
+}
+
+.nx-grid-colorpicker-rgb-input {
+  width: 44px;
+  padding: 2px 4px;
+  border: 1px solid var(--nx-grid-border);
+  background: var(--nx-grid-surface);
+  color: inherit;
+  font-size: 12px;
+  border-radius: 2px;
+  outline: none;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.nx-grid-colorpicker-rgb-input:focus { border-color: var(--nx-grid-accent); }
+.nx-grid-colorpicker-rgb-input::-webkit-inner-spin-button,
+.nx-grid-colorpicker-rgb-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
 .nx-grid-checkbox-wrap {
   display: inline-flex;
   align-items: center;

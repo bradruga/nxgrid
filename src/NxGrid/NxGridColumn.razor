@@ -294,6 +294,23 @@
     /// </summary>
     [Parameter] public string? DateFormat { get; set; }
 
+    /// <summary>
+    /// When <c>true</c> and the column is editable, the inline editor renders a free-text input
+    /// alongside a color swatch button that opens a color picker popup with palette and custom
+    /// views. The <see cref="Property"/> should resolve to a <c>string</c> containing a CSS color
+    /// value (e.g. <c>"#FF5733"</c>, <c>"rgb(255,87,51)"</c>, or <c>"tomato"</c>).
+    /// Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool ColorPicker { get; set; }
+
+    /// <summary>
+    /// Controls how the selected color is written to the property on commit.
+    /// Accepted values: <c>"hex"</c> (default, e.g. <c>"#FF5733"</c>),
+    /// <c>"rgb"</c> (e.g. <c>"rgb(255, 87, 51)"</c>), or
+    /// <c>"name"</c> (CSS named color when one matches, otherwise hex).
+    /// </summary>
+    [Parameter] public string? ColorFormat { get; set; }
+
     // ── Runtime state ─────────────────────────────────────────────────────────
 
     /// <summary>Pre-computed CSS for the header cell (width, sticky offset). Rebuilt on each parameter set.</summary>
@@ -361,6 +378,9 @@
 
     /// <summary><c>true</c> when <see cref="DatePicker"/> is set.</summary>
     public bool IsDatePickerColumn => DatePicker;
+
+    /// <summary><c>true</c> when <see cref="ColorPicker"/> is set.</summary>
+    public bool IsColorPickerColumn => ColorPicker;
 
     /// <summary>
     /// The effective display getter: <see cref="Display"/> takes priority, then the combo-source

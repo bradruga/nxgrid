@@ -152,4 +152,14 @@ public partial class NxGrid<T>
         showContextMenu = false;
         StateHasChanged();
     }
+
+    /// <summary>Called by JavaScript during a drag on the color picker gradient area.</summary>
+    [JSInvokable]
+    public void OnColorPickerGradientMove(double x, double y)
+    {
+        colorPickerS = Math.Clamp((int)Math.Round(x * 100), 0, 100);
+        colorPickerV = Math.Clamp((int)Math.Round((1 - y) * 100), 0, 100);
+        UpdateEditValueFromColorPicker();
+        StateHasChanged();
+    }
 }

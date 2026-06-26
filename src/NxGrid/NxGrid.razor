@@ -474,6 +474,88 @@
         </div>
     }
 
+    @if (isEditing && editCol >= 0 && editCol < visibleColumns.Count
+         && visibleColumns[editCol].IsColorPickerColumn && isColorPickerOpen)
+    {
+        <div class="nx-grid-colorpicker-popup"
+             style="position:fixed;top:@(colorPickerTop)px;left:@(colorPickerLeft)px;z-index:1001;@(colorPickerNeedsPositioning ? "visibility:hidden;" : "")"
+             @onmousedown:stopPropagation>
+            <div class="nx-grid-colorpicker-tabs">
+                <button type="button" class="nx-grid-colorpicker-tab @(!colorPickerCustomView ? "nx-grid-colorpicker-tab-active" : "")"
+                        @onmousedown="@(() => { colorPickerCustomView = false; StateHasChanged(); })"
+                        @onmousedown:stopPropagation @onmousedown:preventDefault>Palette</button>
+                <button type="button" class="nx-grid-colorpicker-tab @(colorPickerCustomView ? "nx-grid-colorpicker-tab-active" : "")"
+                        @onmousedown="@(() => { colorPickerCustomView = true; colorPickerNeedsGradientSetup = true; StateHasChanged(); })"
+                        @onmousedown:stopPropagation @onmousedown:preventDefault>Custom</button>
+            </div>
+            @{ var (cpR, cpG, cpB) = HsvToRgb(colorPickerH, colorPickerS, colorPickerV); var cpHex = RgbToHex(cpR, cpG, cpB); }
+            @if (!colorPickerCustomView)
+            {
+                <div class="nx-grid-colorpicker-palette">
+                    @foreach (var paletteColor in ColorPickerPalette)
+                    {
+                        var capturedColor = paletteColor;
+                        <button type="button" class="nx-grid-colorpicker-swatch"
+                                style="background-color:@capturedColor"
+                                title="@capturedColor"
+                                @onmousedown="@(() => OnColorPickerPaletteClick(capturedColor))"
+                                @onmousedown:stopPropagation @onmousedown:preventDefault>
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="nx-grid-colorpicker-custom">
+                    <div class="nx-grid-colorpicker-gradient"
+                         style="background:linear-gradient(to bottom,transparent,#000),linear-gradient(to right,#fff,hsl(@(colorPickerH),100%,50%))">
+                        <div class="nx-grid-colorpicker-gradient-thumb"
+                             style="left:@(colorPickerS)%;top:@(100 - colorPickerV)%">
+                        </div>
+                    </div>
+                    <div class="nx-grid-colorpicker-hue-track">
+                        <input type="range" class="nx-grid-colorpicker-hue-input"
+                               min="0" max="360" value="@colorPickerH"
+                               @oninput="OnColorPickerHueInput"
+                               @oninput:stopPropagation
+                               @onmousedown:stopPropagation
+                               @onmouseup:stopPropagation
+                               @onkeydown:stopPropagation />
+                    </div>
+                    <div class="nx-grid-colorpicker-inputs">
+                        <div class="nx-grid-colorpicker-preview" style="background-color:@cpHex"></div>
+                        <div class="nx-grid-colorpicker-inputs-group">
+                            <label class="nx-grid-colorpicker-input-label">
+                                Hex
+                                <input class="nx-grid-colorpicker-text-input"
+                                       value="@cpHex"
+                                       @onchange="OnColorPickerHexInput"
+                                       @onmousedown:stopPropagation @onmouseup:stopPropagation @onkeydown:stopPropagation />
+                            </label>
+                            <div class="nx-grid-colorpicker-rgb-row">
+                                <label class="nx-grid-colorpicker-input-label">
+                                    R<input class="nx-grid-colorpicker-rgb-input" type="number" min="0" max="255" value="@cpR"
+                                            @onchange="@((e) => OnColorPickerRgbInput(e, 'r', cpG, cpB))"
+                                            @onmousedown:stopPropagation @onmouseup:stopPropagation @onkeydown:stopPropagation />
+                                </label>
+                                <label class="nx-grid-colorpicker-input-label">
+                                    G<input class="nx-grid-colorpicker-rgb-input" type="number" min="0" max="255" value="@cpG"
+                                            @onchange="@((e) => OnColorPickerRgbInput(e, 'g', cpR, cpB))"
+                                            @onmousedown:stopPropagation @onmouseup:stopPropagation @onkeydown:stopPropagation />
+                                </label>
+                                <label class="nx-grid-colorpicker-input-label">
+                                    B<input class="nx-grid-colorpicker-rgb-input" type="number" min="0" max="255" value="@cpB"
+                                            @onchange="@((e) => OnColorPickerRgbInput(e, 'b', cpR, cpG))"
+                                            @onmousedown:stopPropagation @onmouseup:stopPropagation @onkeydown:stopPropagation />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
     @if (ShowFillHandle)
     {
         <div class="nx-grid-fill-handle"
@@ -654,6 +736,7 @@
         OnDragHandleMouseDown="@OnDragHandleMouseDown"
         OnComboButtonClick="@OnComboButtonClick"
         OnDatePickerButtonClick="@OnDatePickerButtonClick"
+        OnColorPickerButtonClick="@OnColorPickerButtonClick"
         OnCheckboxToggle="@OnCheckboxToggleCell"
         Cursor="@Cursor"
         RenderToken="@renderToken"

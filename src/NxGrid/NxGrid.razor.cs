@@ -501,6 +501,17 @@ public partial class NxGrid<T>
     private double datePickerTop;
     private double datePickerLeft;
 
+    // Color picker state
+    private bool isColorPickerOpen;
+    private bool colorPickerNeedsPositioning;
+    private bool colorPickerNeedsGradientSetup;
+    private double colorPickerTop;
+    private double colorPickerLeft;
+    private bool colorPickerCustomView;
+    private int colorPickerH;
+    private int colorPickerS;
+    private int colorPickerV;
+
     private bool manualMode;
     internal bool IsManualMode => manualMode;
 
@@ -776,6 +787,19 @@ public partial class NxGrid<T>
             StateHasChanged();
         }
 
+        if (colorPickerNeedsPositioning && jsInterop != null)
+        {
+            colorPickerNeedsPositioning = false;
+            await PositionColorPicker();
+            StateHasChanged();
+        }
+
+        if (colorPickerNeedsGradientSetup && jsInterop != null)
+        {
+            colorPickerNeedsGradientSetup = false;
+            await jsInterop.SetupColorPickerGradient();
+        }
+
         if (menuNeedsPositioning && jsInterop != null)
         {
             menuNeedsPositioning = false;
@@ -975,5 +999,209 @@ public partial class NxGrid<T>
                 date.Date == selectedDate));
         }
         return days;
+    }
+
+    // ── Color picker ───────────────────────────────────────────────────────────
+
+    private static readonly string[] ColorPickerPalette =
+    [
+        "#FF0000", "#FF8000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#8000FF", "#FF00FF",
+        "#CC0000", "#CC6600", "#CCCC00", "#00CC00", "#00CCCC", "#0000CC", "#6600CC", "#CC00CC",
+        "#880000", "#884400", "#888800", "#008800", "#008888", "#000088", "#440088", "#880088",
+        "#FF8888", "#FFB888", "#FFFF88", "#88FF88", "#88FFFF", "#8888FF", "#BB88FF", "#FF88FF",
+        "#000000", "#333333", "#666666", "#999999", "#BBBBBB", "#DDDDDD", "#F0F0F0", "#FFFFFF",
+    ];
+
+    private static readonly Dictionary<string, string> ColorNameToHex = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["black"] = "#000000", ["white"] = "#ffffff", ["red"] = "#ff0000", ["lime"] = "#00ff00",
+        ["blue"] = "#0000ff", ["yellow"] = "#ffff00", ["cyan"] = "#00ffff", ["aqua"] = "#00ffff",
+        ["magenta"] = "#ff00ff", ["fuchsia"] = "#ff00ff", ["silver"] = "#c0c0c0", ["gray"] = "#808080",
+        ["grey"] = "#808080", ["maroon"] = "#800000", ["olive"] = "#808000", ["green"] = "#008000",
+        ["purple"] = "#800080", ["teal"] = "#008080", ["navy"] = "#000080", ["orange"] = "#ffa500",
+        ["orangered"] = "#ff4500", ["crimson"] = "#dc143c", ["gold"] = "#ffd700", ["coral"] = "#ff7f50",
+        ["salmon"] = "#fa8072", ["tomato"] = "#ff6347", ["hotpink"] = "#ff69b4", ["deeppink"] = "#ff1493",
+        ["violet"] = "#ee82ee", ["orchid"] = "#da70d6", ["plum"] = "#dda0dd", ["pink"] = "#ffc0cb",
+        ["mediumpurple"] = "#9370db", ["indigo"] = "#4b0082", ["royalblue"] = "#4169e1",
+        ["dodgerblue"] = "#1e90ff", ["deepskyblue"] = "#00bfff", ["skyblue"] = "#87ceeb",
+        ["lightblue"] = "#add8e6", ["steelblue"] = "#4682b4", ["mediumblue"] = "#0000cd",
+        ["darkblue"] = "#00008b", ["midnightblue"] = "#191970", ["turquoise"] = "#40e0d0",
+        ["mediumturquoise"] = "#48d1cc", ["lightgreen"] = "#90ee90", ["limegreen"] = "#32cd32",
+        ["lawngreen"] = "#7cfc00", ["greenyellow"] = "#adff2f", ["palegreen"] = "#98fb98",
+        ["springgreen"] = "#00ff7f", ["mediumseagreen"] = "#3cb371", ["seagreen"] = "#2e8b57",
+        ["forestgreen"] = "#228b22", ["darkgreen"] = "#006400", ["yellowgreen"] = "#9acd32",
+        ["khaki"] = "#f0e68c", ["palegoldenrod"] = "#eee8aa", ["goldenrod"] = "#daa520",
+        ["sandybrown"] = "#f4a460", ["peru"] = "#cd853f", ["chocolate"] = "#d2691e",
+        ["saddlebrown"] = "#8b4513", ["sienna"] = "#a0522d", ["brown"] = "#a52a2a",
+        ["firebrick"] = "#b22222", ["darkred"] = "#8b0000", ["rosybrown"] = "#bc8f8f",
+        ["tan"] = "#d2b48c", ["wheat"] = "#f5deb3", ["beige"] = "#f5f5dc", ["ivory"] = "#fffff0",
+        ["lavender"] = "#e6e6fa", ["mistyrose"] = "#ffe4e1", ["lemonchiffon"] = "#fffacd",
+        ["lightyellow"] = "#ffffe0", ["lightcyan"] = "#e0ffff", ["aliceblue"] = "#f0f8ff",
+        ["ghostwhite"] = "#f8f8ff", ["whitesmoke"] = "#f5f5f5", ["snow"] = "#fffafa",
+        ["mintcream"] = "#f5fffa", ["honeydew"] = "#f0fff0", ["azure"] = "#f0ffff",
+        ["chartreuse"] = "#7fff00",
+    };
+
+    private static readonly Dictionary<string, string> HexToColorName =
+        ColorNameToHex
+            .GroupBy(kvp => kvp.Value.ToUpperInvariant())
+            .ToDictionary(g => g.Key, g => g.First().Key);
+
+    private static (int R, int G, int B) HsvToRgb(int h, int s, int v)
+    {
+        var hf = h / 360.0; var sf = s / 100.0; var vf = v / 100.0;
+        if (sf == 0) { var c = (int)Math.Round(vf * 255); return (c, c, c); }
+        var hi = (int)(hf * 6) % 6;
+        var f = hf * 6 - Math.Floor(hf * 6);
+        var p = vf * (1 - sf); var q = vf * (1 - f * sf); var t = vf * (1 - (1 - f) * sf);
+        var (r, g, b) = hi switch
+        {
+            0 => (vf, t, p), 1 => (q, vf, p), 2 => (p, vf, t),
+            3 => (p, q, vf), 4 => (t, p, vf), _ => (vf, p, q)
+        };
+        return ((int)Math.Round(r * 255), (int)Math.Round(g * 255), (int)Math.Round(b * 255));
+    }
+
+    private static (int H, int S, int V) RgbToHsv(int r, int g, int b)
+    {
+        var rf = r / 255.0; var gf = g / 255.0; var bf = b / 255.0;
+        var max = Math.Max(rf, Math.Max(gf, bf));
+        var min = Math.Min(rf, Math.Min(gf, bf));
+        var delta = max - min;
+        var v = (int)Math.Round(max * 100);
+        var s = max == 0 ? 0 : (int)Math.Round(delta / max * 100);
+        int h;
+        if (delta == 0) h = 0;
+        else if (max == rf) h = (int)Math.Round(60 * (((gf - bf) / delta % 6 + 6) % 6));
+        else if (max == gf) h = (int)Math.Round(60 * ((bf - rf) / delta + 2));
+        else               h = (int)Math.Round(60 * ((rf - gf) / delta + 4));
+        if (h < 0) h += 360;
+        if (h >= 360) h -= 360;
+        return (h, s, v);
+    }
+
+    private static string RgbToHex(int r, int g, int b) => $"#{r:X2}{g:X2}{b:X2}";
+
+    private static (int R, int G, int B)? HexToRgb(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return null;
+        var s = hex.Trim().TrimStart('#');
+        if (s.Length == 3) s = $"{s[0]}{s[0]}{s[1]}{s[1]}{s[2]}{s[2]}";
+        if (s.Length != 6) return null;
+        if (!int.TryParse(s, System.Globalization.NumberStyles.HexNumber, null, out var rgb)) return null;
+        return ((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+    }
+
+    internal static (int R, int G, int B)? ParseColorToRgb(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        input = input.Trim();
+        if (input.StartsWith('#')) return HexToRgb(input);
+        if (input.StartsWith("rgb(", StringComparison.OrdinalIgnoreCase) && input.EndsWith(')'))
+        {
+            var parts = input[4..^1].Split(',');
+            if (parts.Length == 3 &&
+                int.TryParse(parts[0].Trim(), out var pr) &&
+                int.TryParse(parts[1].Trim(), out var pg) &&
+                int.TryParse(parts[2].Trim(), out var pb))
+                return (pr, pg, pb);
+        }
+        if (ColorNameToHex.TryGetValue(input, out var namedHex)) return HexToRgb(namedHex);
+        return null;
+    }
+
+    private string FormatColorPickerOutput(string? format)
+    {
+        var (r, g, b) = HsvToRgb(colorPickerH, colorPickerS, colorPickerV);
+        var hex = RgbToHex(r, g, b);
+        return (format ?? "hex").ToLowerInvariant() switch
+        {
+            "rgb"  => $"rgb({r}, {g}, {b})",
+            "name" => HexToColorName.TryGetValue(hex.ToUpperInvariant(), out var n) ? n : hex,
+            _      => hex
+        };
+    }
+
+    private void SetColorPickerFromText(string? text)
+    {
+        var rgb = ParseColorToRgb(text);
+        if (!rgb.HasValue) return;
+        var (h, s, v) = RgbToHsv(rgb.Value.R, rgb.Value.G, rgb.Value.B);
+        colorPickerH = h; colorPickerS = s; colorPickerV = v;
+    }
+
+    internal void UpdateEditValueFromColorPicker()
+    {
+        if (!isEditing || editCol < 0 || editCol >= visibleColumns.Count) return;
+        editValue = FormatColorPickerOutput(visibleColumns[editCol].ColorFormat);
+    }
+
+    private async Task OnColorPickerButtonClick(int row, int col)
+    {
+        if (!isEditing || editRow != row || editCol != col)
+            await StartEditing(row, col, initialChar: null);
+
+        if (!isColorPickerOpen)
+        {
+            SetColorPickerFromText(editValue);
+            isColorPickerOpen = true;
+            colorPickerCustomView = false;
+            colorPickerNeedsPositioning = true;
+        }
+        else
+        {
+            isColorPickerOpen = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task PositionColorPicker()
+    {
+        if (jsInterop == null) return;
+        var pos = await jsInterop.GetColorPickerPosition();
+        colorPickerTop = pos.Top;
+        colorPickerLeft = pos.Left;
+    }
+
+    private async Task OnColorPickerPaletteClick(string hex)
+    {
+        var rgb = HexToRgb(hex);
+        if (rgb.HasValue)
+        {
+            var (h, s, v) = RgbToHsv(rgb.Value.R, rgb.Value.G, rgb.Value.B);
+            colorPickerH = h; colorPickerS = s; colorPickerV = v;
+        }
+        isColorPickerOpen = false;
+        UpdateEditValueFromColorPicker();
+        await CommitEdit();
+    }
+
+    private void OnColorPickerHueInput(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var h)) return;
+        colorPickerH = Math.Clamp(h, 0, 360);
+        UpdateEditValueFromColorPicker();
+        StateHasChanged();
+    }
+
+    private void OnColorPickerHexInput(ChangeEventArgs e)
+    {
+        var rgb = HexToRgb(e.Value?.ToString());
+        if (!rgb.HasValue) return;
+        var (h, s, v) = RgbToHsv(rgb.Value.R, rgb.Value.G, rgb.Value.B);
+        colorPickerH = h; colorPickerS = s; colorPickerV = v;
+        UpdateEditValueFromColorPicker();
+        StateHasChanged();
+    }
+
+    private void OnColorPickerRgbInput(ChangeEventArgs e, char channel, int other1, int other2)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var val)) return;
+        val = Math.Clamp(val, 0, 255);
+        var (r, g, b) = channel switch { 'r' => (val, other1, other2), 'g' => (other1, val, other2), _ => (other1, other2, val) };
+        var (h, s, v) = RgbToHsv(r, g, b);
+        colorPickerH = h; colorPickerS = s; colorPickerV = v;
+        UpdateEditValueFromColorPicker();
+        StateHasChanged();
     }
 }

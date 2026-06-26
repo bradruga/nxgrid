@@ -37,6 +37,7 @@ class NxGrid {
                 (cls.contains('nx-grid-edit-input') ||
                  cls.contains('nx-grid-combo-input') ||
                  cls.contains('nx-grid-datepicker-input') ||
+                 cls.contains('nx-grid-colorpicker-input') ||
                  cls.contains('nx-grid-edit-textarea') ||
                  cls.contains('nx-grid-edit-textarea-sl'))) {
                 event.preventDefault();
@@ -365,6 +366,72 @@ class NxGrid {
         return { top: rect.bottom, left };
     }
 
+    getColorPickerPosition() {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return { top: 0, left: 0 };
+
+        const wrapper = gridElement.querySelector('.nx-grid-colorpicker-wrapper');
+        if (!wrapper) return { top: 0, left: 0 };
+
+        const rect = wrapper.getBoundingClientRect();
+        const popupWidth = 256;
+        let left = rect.left;
+
+        if (left + popupWidth > window.innerWidth) left = window.innerWidth - popupWidth - 10;
+        if (left < 0) left = 0;
+
+        return { top: rect.bottom, left };
+    }
+
+    setupColorPickerGradient() {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return;
+
+        const gradient = gridElement.querySelector('.nx-grid-colorpicker-gradient');
+        if (!gradient) return;
+
+        if (this._colorPickerMouseDown) {
+            gradient.removeEventListener('mousedown', this._colorPickerMouseDown);
+        }
+
+        let rafId = null;
+        let pendingX = 0, pendingY = 0, hasPending = false;
+
+        const flushMove = () => {
+            if (!hasPending) return;
+            hasPending = false;
+            this.dotNetObjectReference.invokeMethodAsync('OnColorPickerGradientMove', pendingX, pendingY);
+        };
+
+        const handleMove = (e) => {
+            const rect = gradient.getBoundingClientRect();
+            pendingX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            pendingY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+            hasPending = true;
+            if (!rafId) {
+                rafId = requestAnimationFrame(() => { rafId = null; flushMove(); });
+            }
+        };
+
+        this._colorPickerMouseDown = (e) => {
+            e.preventDefault();
+            handleMove(e);
+
+            const handleMouseMove = (ev) => handleMove(ev);
+            const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+                flushMove();
+            };
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        };
+
+        gradient.addEventListener('mousedown', this._colorPickerMouseDown);
+    }
+
     getComboDropdownPosition() {
         const gridElement = document.getElementById(this.id);
         if (!gridElement) return { top: 0, left: 0, width: 150 };
@@ -618,6 +685,12 @@ class NxGrid {
         if (this._gridKeyHandler) {
             document.removeEventListener('keydown', this._gridKeyHandler, true);
             this._gridKeyHandler = null;
+        }
+        if (this._colorPickerMouseDown) {
+            const gridElement = document.getElementById(this.id);
+            const gradient = gridElement && gridElement.querySelector('.nx-grid-colorpicker-gradient');
+            if (gradient) gradient.removeEventListener('mousedown', this._colorPickerMouseDown);
+            this._colorPickerMouseDown = null;
         }
         if (this._editInputHandler) {
             document.removeEventListener('input', this._editInputHandler, true);

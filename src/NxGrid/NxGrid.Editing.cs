@@ -221,6 +221,11 @@ public partial class NxGrid<T>
             // allowing the row to grow/shrink in real time as the user types.
             StateHasChanged();
         }
+        else if (isEditing && editCol >= 0 && visibleColumns[editCol].IsColorPickerColumn && isColorPickerOpen)
+        {
+            SetColorPickerFromText(editValue);
+            StateHasChanged();
+        }
     }
 
     private async Task CommitEditToSelection()
@@ -277,9 +282,10 @@ public partial class NxGrid<T>
 
     private async Task OnEditInputKeyDown(KeyboardEventArgs args)
     {
-        var isComboColumn      = isEditing && editCol >= 0 && visibleColumns[editCol].IsComboColumn;
-        var isMultiLineColumn  = isEditing && editCol >= 0 && visibleColumns[editCol].IsMultiLineColumn;
-        var isDatePickerColumn = isEditing && editCol >= 0 && visibleColumns[editCol].IsDatePickerColumn;
+        var isComboColumn        = isEditing && editCol >= 0 && visibleColumns[editCol].IsComboColumn;
+        var isMultiLineColumn    = isEditing && editCol >= 0 && visibleColumns[editCol].IsMultiLineColumn;
+        var isDatePickerColumn   = isEditing && editCol >= 0 && visibleColumns[editCol].IsDatePickerColumn;
+        var isColorPickerColumn  = isEditing && editCol >= 0 && visibleColumns[editCol].IsColorPickerColumn;
 
         switch (args.Key)
         {
@@ -313,7 +319,12 @@ public partial class NxGrid<T>
                 break;
 
             case KeyEscape:
-                if (isDatePickerColumn && isDatePickerOpen)
+                if (isColorPickerColumn && isColorPickerOpen)
+                {
+                    isColorPickerOpen = false;
+                    StateHasChanged();
+                }
+                else if (isDatePickerColumn && isDatePickerOpen)
                 {
                     isDatePickerOpen = false;
                     datePickerHighlightDate = null;
@@ -342,7 +353,15 @@ public partial class NxGrid<T>
                 break;
 
             case KeyArrowDown:
-                if (isDatePickerColumn && isDatePickerOpen)
+                if (isColorPickerColumn && !isColorPickerOpen)
+                {
+                    SetColorPickerFromText(editValue);
+                    isColorPickerOpen = true;
+                    colorPickerCustomView = false;
+                    colorPickerNeedsPositioning = true;
+                    StateHasChanged();
+                }
+                else if (isDatePickerColumn && isDatePickerOpen)
                 {
                     NavigateCalendar(7);
                 }
@@ -425,6 +444,9 @@ public partial class NxGrid<T>
         comboFilteredOptions = [];
         isDatePickerOpen = false;
         datePickerHighlightDate = null;
+        isColorPickerOpen = false;
+        colorPickerNeedsPositioning = false;
+        colorPickerNeedsGradientSetup = false;
         isEditing = false;
         editRow = -1;
         editCol = -1;
