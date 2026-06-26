@@ -2,7 +2,7 @@
 @implements IDisposable
 
 <div class="nav-header">
-    <a href="/">NxGrid</a>
+    <a href="">NxGrid</a>
 </div>
 <nav>
     <button class="nav-group-label" @onclick="@(() => Toggle("Guide"))">
@@ -11,8 +11,8 @@
     </button>
     @if (!IsCollapsed("Guide"))
     {
-        <NavLink href="/" Match="NavLinkMatch.All">Overview</NavLink>
-        <NavLink href="/getting-started">Getting Started</NavLink>
+        <NavLink href="" Match="NavLinkMatch.All">Overview</NavLink>
+        <NavLink href="getting-started">Getting Started</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Reference"))">
@@ -21,9 +21,9 @@
     </button>
     @if (!IsCollapsed("Reference"))
     {
-        <NavLink href="/reference/nxgrid">NxGrid</NavLink>
-        <NavLink href="/reference/nxgrid-column">NxGridColumn</NavLink>
-        <NavLink href="/reference/types">Types</NavLink>
+        <NavLink href="reference/nxgrid">NxGrid</NavLink>
+        <NavLink href="reference/nxgrid-column">NxGridColumn</NavLink>
+        <NavLink href="reference/types">Types</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Selection"))">
@@ -32,8 +32,8 @@
     </button>
     @if (!IsCollapsed("Selection"))
     {
-        <NavLink href="/selection">Selection</NavLink>
-        <NavLink href="/selection-math">Selection Math</NavLink>
+        <NavLink href="selection">Selection</NavLink>
+        <NavLink href="selection-math">Selection Math</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Editing"))">
@@ -42,16 +42,16 @@
     </button>
     @if (!IsCollapsed("Editing"))
     {
-        <NavLink href="/editing">Editing</NavLink>
-        <NavLink href="/drag-fill">Drag to Fill</NavLink>
-        <NavLink href="/multi-line">Multi-Line Editing</NavLink>
-        <NavLink href="/math-expression">Math Expressions</NavLink>
-        <NavLink href="/combo-box">Combo Box</NavLink>
-        <NavLink href="/date-picker">Date Picker</NavLink>
-        <NavLink href="/color-picker">Color Picker</NavLink>
-        <NavLink href="/time-entry">Time Entry</NavLink>
-        <NavLink href="/checkbox">Checkbox Columns</NavLink>
-        <NavLink href="/batch-update">Batch Update</NavLink>
+        <NavLink href="editing">Editing</NavLink>
+        <NavLink href="drag-fill">Drag to Fill</NavLink>
+        <NavLink href="multi-line">Multi-Line Editing</NavLink>
+        <NavLink href="math-expression">Math Expressions</NavLink>
+        <NavLink href="combo-box">Combo Box</NavLink>
+        <NavLink href="date-picker">Date Picker</NavLink>
+        <NavLink href="color-picker">Color Picker</NavLink>
+        <NavLink href="time-entry">Time Entry</NavLink>
+        <NavLink href="checkbox">Checkbox Columns</NavLink>
+        <NavLink href="batch-update">Batch Update</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Columns"))">
@@ -60,13 +60,13 @@
     </button>
     @if (!IsCollapsed("Columns"))
     {
-        <NavLink href="/columns">Columns</NavLink>
-        <NavLink href="/frozen-columns">Frozen Columns</NavLink>
-        <NavLink href="/hidden-columns">Hidden Columns</NavLink>
-        <NavLink href="/visible-columns">Visible Columns</NavLink>
-        <NavLink href="/header-template">Header Templates</NavLink>
-        <NavLink href="/footer-template">Footer Template</NavLink>
-        <NavLink href="/cell-template">Cell Templates</NavLink>
+        <NavLink href="columns">Columns</NavLink>
+        <NavLink href="frozen-columns">Frozen Columns</NavLink>
+        <NavLink href="hidden-columns">Hidden Columns</NavLink>
+        <NavLink href="visible-columns">Visible Columns</NavLink>
+        <NavLink href="header-template">Header Templates</NavLink>
+        <NavLink href="footer-template">Footer Template</NavLink>
+        <NavLink href="cell-template">Cell Templates</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Rows"))">
@@ -75,9 +75,9 @@
     </button>
     @if (!IsCollapsed("Rows"))
     {
-        <NavLink href="/grouping">Row Grouping</NavLink>
-        <NavLink href="/row-drag-drop">Row Drag-and-Drop</NavLink>
-        <NavLink href="/empty-state">Empty &amp; Loading State</NavLink>
+        <NavLink href="grouping">Row Grouping</NavLink>
+        <NavLink href="row-drag-drop">Row Drag-and-Drop</NavLink>
+        <NavLink href="empty-state">Empty &amp; Loading State</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Interaction"))">
@@ -86,10 +86,10 @@
     </button>
     @if (!IsCollapsed("Interaction"))
     {
-        <NavLink href="/keyboard">Keyboard</NavLink>
-        <NavLink href="/context-menu">Context Menu</NavLink>
-        <NavLink href="/tooltips">Tooltips</NavLink>
-        <NavLink href="/filter-sort-events">Filter &amp; Sort Events</NavLink>
+        <NavLink href="keyboard">Keyboard</NavLink>
+        <NavLink href="context-menu">Context Menu</NavLink>
+        <NavLink href="tooltips">Tooltips</NavLink>
+        <NavLink href="filter-sort-events">Filter &amp; Sort Events</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Appearance"))">
@@ -98,9 +98,9 @@
     </button>
     @if (!IsCollapsed("Appearance"))
     {
-        <NavLink href="/layout">Layout Options</NavLink>
-        <NavLink href="/cell-coloring">Cell Coloring</NavLink>
-        <NavLink href="/theming">Theming</NavLink>
+        <NavLink href="layout">Layout Options</NavLink>
+        <NavLink href="cell-coloring">Cell Coloring</NavLink>
+        <NavLink href="theming">Theming</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Advanced"))">
@@ -109,10 +109,10 @@
     </button>
     @if (!IsCollapsed("Advanced"))
     {
-        <NavLink href="/state-persistence">State Persistence</NavLink>
-        <NavLink href="/print">Print</NavLink>
-        <NavLink href="/large-data">Large Data</NavLink>
-        <NavLink href="/stress-test">Stress Test</NavLink>
+        <NavLink href="state-persistence">State Persistence</NavLink>
+        <NavLink href="print">Print</NavLink>
+        <NavLink href="large-data">Large Data</NavLink>
+        <NavLink href="stress-test">Stress Test</NavLink>
     }
 
     <button class="nav-group-label" @onclick="@(() => Toggle("Examples"))">
@@ -121,9 +121,9 @@
     </button>
     @if (!IsCollapsed("Examples"))
     {
-        <NavLink href="/spreadsheet">Spreadsheet</NavLink>
-        <NavLink href="/trading-desk">Trading Desk</NavLink>
-        <NavLink href="/airport-departures">Airport Departures</NavLink>
+        <NavLink href="spreadsheet">Spreadsheet</NavLink>
+        <NavLink href="trading-desk">Trading Desk</NavLink>
+        <NavLink href="airport-departures">Airport Departures</NavLink>
     }
 </nav>
 
