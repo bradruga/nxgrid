@@ -6,6 +6,8 @@ A high-performance, virtualised data grid component for Blazor.
 [![CI](https://github.com/bradruga/nxgrid/actions/workflows/ci.yml/badge.svg)](https://github.com/bradruga/nxgrid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+> ⚡ **[Live Demo — see it in action →](https://bradruga.github.io/nxgrid/)**
+
 ## Features
 
 - **Zero config** — just pass a `List<T>` and get a fully functional grid; columns are generated from your model automatically
