@@ -1,83 +1,183 @@
 @page "/"
+@layout LandingLayout
 
-<PageTitle>NxGrid — Live Documentation</PageTitle>
+<PageTitle>NxGrid — High-performance Blazor data grid</PageTitle>
 
-<h1>NxGrid</h1>
-<p class="doc-intro">
-    A high-performance, virtualized data grid for Blazor (.NET 10). Supports sorting, filtering,
-    multi-cell rectangular selection, inline editing, copy/paste, and full keyboard navigation.
-    Published as a NuGet package.
-</p>
-
-<div class="doc-section">
-    <h2>Zero Config</h2>
-    <p class="doc-note">
-        No column declarations needed. Pass a <code>List&lt;T&gt;</code> and the grid generates columns
-        from your model's public properties — names split on PascalCase boundaries, numeric types
-        right-aligned, <code>[Display]</code> attributes respected.
+<section class="hero-section">
+    <a href="https://www.nuget.org/packages/NxGrid" class="hero-badge" target="_blank" rel="noopener">
+        v0.2.7 — Available on NuGet →
+    </a>
+    <h1 class="hero-headline">High-performance<br />data grid for Blazor.</h1>
+    <p class="hero-sub">
+        Virtualized rendering, multi-cell selection, inline editing, sorting, filtering,
+        and full keyboard navigation — as a single NuGet package.
     </p>
-    <pre class="doc-code">@autoColumnsCode</pre>
-    <NxGrid T="Person" Data="@SampleData.People.ToList()" RowGutter="NxGridRowGutter.Numbers" Style="margin-top:12px" />
+    <div class="hero-actions">
+        <a href="getting-started" class="hero-btn-primary">Get Started →</a>
+        <a href="playground" class="hero-btn-secondary">Try Playground</a>
+    </div>
+</section>
+
+<div class="hero-mockup-wrap">
+    <div class="browser-frame @(isShaking ? "browser-frame-shaking" : "") @(isMaximizing ? "browser-frame-maximizing" : "") @(isMinimizing ? "browser-frame-minimizing" : "")">
+        <div class="browser-frame-bar">
+            <div class="browser-bar-left">
+                <span class="browser-app-icon">N</span>
+                <span class="browser-win-title">nxgrid — demo</span>
+            </div>
+            <div class="browser-win-controls">
+                <span class="browser-btn browser-btn-min" @onclick="OnMinimize" @onclick:stopPropagation="true">
+                    <svg width="8" height="2" viewBox="0 0 8 2" fill="none" aria-hidden="true">
+                        <line x1="0" y1="1" x2="8" y2="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="browser-btn browser-btn-max" @onclick="OnMaximize" @onclick:stopPropagation="true">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+                        <rect x="0.75" y="0.75" width="6.5" height="6.5" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </span>
+                <span class="browser-btn browser-btn-close" @onclick="OnClose" @onclick:stopPropagation="true">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+                        <line x1="1" y1="1" x2="7" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="7" y1="1" x2="1" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </span>
+            </div>
+        </div>
+        <div class="browser-frame-body">
+                <NxGrid T="Supercar" Data="@heroCars" OnUpdate="@HandleHeroUpdate"
+                        Cursor="NxGridCursor.Cell"
+                        RowGutter="NxGridRowGutter.Numbers"
+                        Editable="true"
+                        RowBanding="true">
+                    <NxGridColumn Title="Make"      Property="@(x => x.Make)"      Width="140" />
+                    <NxGridColumn Title="Model"     Property="@(x => x.Model)"     Width="175" />
+                    <NxGridColumn Title="HP"        Property="@(x => x.HP)" Display="@(x => x.HP.ToString("N0"))" Width="65"  Alignment="NxGridColumnAlignment.Right" Editable="false" />
+                    <NxGridColumn Title="0–60s"     Property="@(x => x.ZeroSixty)" Width="70"  Alignment="NxGridColumnAlignment.Right" />
+                    <NxGridColumn Title="Top Speed" Property="@(x => x.TopSpeed)"  Width="90"  Alignment="NxGridColumnAlignment.Right" />
+                    <NxGridColumn Title="Origin"    Property="@(x => x.Origin)"    Width="110"
+                                  ComboBoxSource="@(NxGridComboSource.FixedList("Croatia", "France", "Germany", "Italy", "Sweden", "UK"))" />
+                </NxGrid>
+            </div>
+    </div>
+    @if (closeMsg != null)
+    {
+        <div class="browser-close-toast">@closeMsg</div>
+    }
 </div>
 
-<div class="doc-section">
-    <h2>With Declared Columns</h2>
-    <p class="doc-note">Add <code>&lt;NxGridColumn&gt;</code> children for full control — titles, widths, editing, combo-boxes, templates, and more. Click any cell to select it. Use the column headers to sort or filter. Double-click or press <kbd class="doc-kbd">F2</kbd> to edit a cell.</p>
-    <pre class="doc-code">@quickStartCode</pre>
-    <NxGrid T="Person" Data="@homePeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true" Style="margin-top:12px">
-        <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50" Editable="false" />
-        <NxGridColumn Title="First" Property="@(x => x.FirstName)" Width="120" />
-        <NxGridColumn Title="Last"  Property="@(x => x.LastName)"  Width="120" />
-        <NxGridColumn Property="@(x => x.Age)"       Width="70"  Alignment="NxGridColumnAlignment.Right" />
-        <NxGridColumn Property="@(x => x.Department)"
-                      ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
-    </NxGrid>
-</div>
-
-<div class="doc-section">
-    <h2>Feature Pages</h2>
-    <div class="feature-grid">
-        <a href="selection" class="feature-card">
-            <div class="feature-card-title">Selection</div>
-            <div class="feature-card-desc">Rectangular range selection, OnSelectionChanged event, programmatic SelectRow</div>
+<section class="landing-section">
+    <div class="landing-section-label">Features</div>
+    <h2 class="landing-section-headline">Everything you need, out of the box.</h2>
+    <div class="landing-feat-grid">
+        <a href="large-data" class="landing-feat-card">
+            <span class="landing-feat-icon">⚡</span>
+            <div class="landing-feat-title">Virtual Rendering</div>
+            <div class="landing-feat-desc">Handle 500,000+ rows with constant-time scrolling via Blazor Virtualize.</div>
         </a>
-        <a href="editing" class="feature-card">
-            <div class="feature-card-title">Editing</div>
-            <div class="feature-card-desc">Inline cell editing, combo-box dropdowns, per-row editability, TransformPastedValue</div>
+        <a href="editing" class="landing-feat-card">
+            <span class="landing-feat-icon">✏</span>
+            <div class="landing-feat-title">Inline Editing</div>
+            <div class="landing-feat-desc">Cell editing, combo-box dropdowns, date/color/time pickers, drag-to-fill.</div>
         </a>
-        <a href="columns" class="feature-card">
-            <div class="feature-card-title">Columns</div>
-            <div class="feature-card-desc">Custom templates, alignment, Property + Display, width constraints, column menu</div>
+        <a href="selection" class="landing-feat-card">
+            <span class="landing-feat-icon">▦</span>
+            <div class="landing-feat-title">Multi-Cell Selection</div>
+            <div class="landing-feat-desc">Excel-style rectangular range selection with copy/paste to the clipboard.</div>
         </a>
-        <a href="keyboard" class="feature-card">
-            <div class="feature-card-title">Keyboard</div>
-            <div class="feature-card-desc">All keyboard shortcuts: navigation, editing, copy/paste, and custom OnKeyPressed hotkeys</div>
+        <a href="keyboard" class="landing-feat-card">
+            <span class="landing-feat-icon">⌨</span>
+            <div class="landing-feat-title">Keyboard Navigation</div>
+            <div class="landing-feat-desc">Arrow keys, Tab, Enter, F2, Escape — just like a real spreadsheet.</div>
         </a>
-        <a href="large-data" class="feature-card">
-            <div class="feature-card-title">Large Data</div>
-            <div class="feature-card-desc">Virtualized rendering of thousands of rows, ScrollToEnd, ForceRerender</div>
+        <a href="columns" class="landing-feat-card">
+            <span class="landing-feat-icon">⊞</span>
+            <div class="landing-feat-title">Flexible Columns</div>
+            <div class="landing-feat-desc">Resizable, sortable, filterable, freezable, hideable — with custom templates.</div>
         </a>
-        <a href="stress-test" class="feature-card">
-            <div class="feature-card-title">Stress Test</div>
-            <div class="feature-card-desc">500,000 rows × 50 columns — 25 million cells rendered with constant-time scrolling</div>
+        <a href="theming" class="landing-feat-card">
+            <span class="landing-feat-icon">◑</span>
+            <div class="landing-feat-title">Themeable</div>
+            <div class="landing-feat-desc">Full CSS custom property theming. Light and dark mode built in.</div>
         </a>
-        <a href="layout" class="feature-card">
-            <div class="feature-card-title">Layout Options</div>
-            <div class="feature-card-desc">Row numbers, banding, column menu toggle, cursor style, header-click selection, overlays</div>
+        <a href="getting-started" class="landing-feat-card">
+            <span class="landing-feat-icon">◈</span>
+            <div class="landing-feat-title">Zero Config Start</div>
+            <div class="landing-feat-desc">Pass a <code>List&lt;T&gt;</code> and get a working grid. Columns auto-generated from your model.</div>
         </a>
-        <a href="theming" class="feature-card">
-            <div class="feature-card-title">Theming</div>
-            <div class="feature-card-desc">All CSS custom properties, live dark-mode toggle, CellStyle per-cell styling</div>
+        <a href="state-persistence" class="landing-feat-card">
+            <span class="landing-feat-icon">◷</span>
+            <div class="landing-feat-title">State Persistence</div>
+            <div class="landing-feat-desc">Save and restore sorts, filters, column widths, and hidden columns via localStorage.</div>
         </a>
     </div>
+</section>
+
+<div class="landing-cta-strip">
+    <h2>Start in minutes.</h2>
+    <p>Install from NuGet and drop in your first grid with a single component tag.</p>
+    <a href="getting-started" class="hero-btn-primary">Read the Docs →</a>
 </div>
 
 @code {
-    List<Person> homePeople = SampleData.GetPeopleCopy();
-    string autoColumnsCode = DemoCodeSamples.AutoColumns;
-    string quickStartCode = DemoCodeSamples.QuickStart;
+    class Supercar
+    {
+        public string Make      { get; set; } = "";
+        public string Model     { get; set; } = "";
+        public int    HP        { get; set; }
+        public double ZeroSixty { get; set; }
+        public int    TopSpeed  { get; set; }
+        public string Origin    { get; set; } = "";
+    }
 
-    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
+    List<Supercar> heroCars = new()
+    {
+        new() { Make = "Rimac",        Model = "Nevera",             HP = 1888, ZeroSixty = 1.9, TopSpeed = 258, Origin = "Croatia"  },
+        new() { Make = "Koenigsegg",   Model = "Jesko Absolut",      HP = 1600, ZeroSixty = 2.5, TopSpeed = 330, Origin = "Sweden"   },
+        new() { Make = "Bugatti",      Model = "Chiron Super Sport", HP = 1577, ZeroSixty = 2.3, TopSpeed = 273, Origin = "France"   },
+        new() { Make = "Aston Martin", Model = "Valkyrie",           HP = 1160, ZeroSixty = 2.5, TopSpeed = 250, Origin = "UK"       },
+        new() { Make = "Mercedes-AMG", Model = "ONE",                HP = 1063, ZeroSixty = 2.9, TopSpeed = 219, Origin = "Germany"  },
+        new() { Make = "Pagani",       Model = "Huayra R",           HP = 850,  ZeroSixty = 2.7, TopSpeed = 238, Origin = "Italy"    },
+        new() { Make = "McLaren",      Model = "765LT",              HP = 765,  ZeroSixty = 2.7, TopSpeed = 205, Origin = "UK"       },
+        new() { Make = "Ferrari",      Model = "SF90 Stradale",      HP = 986,  ZeroSixty = 2.5, TopSpeed = 211, Origin = "Italy"    },
+        new() { Make = "Lamborghini",  Model = "Huracán STO",        HP = 640,  ZeroSixty = 3.0, TopSpeed = 202, Origin = "Italy"    },
+        new() { Make = "Porsche",      Model = "911 GT3 RS",         HP = 518,  ZeroSixty = 3.2, TopSpeed = 184, Origin = "Germany"  },
+    };
+
+    bool isMinimizing = false;
+    bool isShaking = false;
+    bool isMaximizing = false;
+    string? closeMsg = null;
+
+    async Task OnMinimize()
+    {
+        isMinimizing = true;
+        StateHasChanged();
+        await Task.Delay(450);
+        isMinimizing = false;
+    }
+
+    async Task OnMaximize()
+    {
+        isMaximizing = true;
+        StateHasChanged();
+        await Task.Delay(450);
+        isMaximizing = false;
+    }
+
+    async Task OnClose()
+    {
+        isShaking = true;
+        closeMsg = "Nice try! 😄";
+        StateHasChanged();
+        await Task.Delay(550);
+        isShaking = false;
+        StateHasChanged();
+        await Task.Delay(1800);
+        closeMsg = null;
+    }
+
+    async Task HandleHeroUpdate(NxGridUpdateArgs<Supercar> args)
     {
         foreach (var rowArgs in args.Rows)
             foreach (var change in rowArgs.Changes)

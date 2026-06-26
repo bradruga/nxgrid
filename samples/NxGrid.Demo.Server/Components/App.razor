@@ -6,6 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    <link rel="icon" type="image/svg+xml" href="_content/NxGrid.Demo.Shared/favicon.svg" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["NxGrid.Demo.Server.styles.css"]" />
@@ -13,6 +14,7 @@
     <link rel="stylesheet" href="_content/NxGrid.Demo.Shared/demo.css" />
     <ImportMap />
     <HeadOutlet @rendermode="InteractiveServer" />
+    <script>window.__nxSetDark=d=>document.documentElement.classList[d?'add':'remove']('site-dark');if(localStorage.getItem('nxgrid-demo-theme')==='dark')document.documentElement.classList.add('site-dark');</script>
 </head>
 
 <body>

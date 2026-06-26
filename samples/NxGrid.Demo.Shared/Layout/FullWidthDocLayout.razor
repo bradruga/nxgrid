@@ -1,16 +1,10 @@
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
-@inject NavigationManager Nav
 @implements IDisposable
 
-<div class="layout-container @(isDarkMode ? "site-dark" : "") @(isMobileNavOpen ? "nav-open" : "")">
+<div class="layout-container @(isDarkMode ? "site-dark" : "")">
     <header class="landing-nav">
         <div class="nav-inner">
-            <button class="doc-hamburger" @onclick="ToggleNav" aria-label="Open navigation">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
             <a href="" class="landing-nav-logo">
                 <span class="nav-logo-mark">N</span>
                 NxGrid
@@ -31,32 +25,13 @@
             </div>
         </div>
     </header>
-
-    <div class="doc-body">
-        <div class="nav-overlay" @onclick="CloseNav"></div>
-        <nav class="nav-sidebar">
-            <NavMenu />
-        </nav>
-        <main class="main-content">
-            @Body
-        </main>
-    </div>
-</div>
-
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <main class="main-content full-doc-content">
+        @Body
+    </main>
 </div>
 
 @code {
     bool isDarkMode;
-    bool isMobileNavOpen;
-
-    protected override void OnInitialized()
-    {
-        Nav.LocationChanged += OnLocationChanged;
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -71,12 +46,6 @@
         }
     }
 
-    void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-    {
-        isMobileNavOpen = false;
-        InvokeAsync(StateHasChanged);
-    }
-
     async Task ToggleDark()
     {
         isDarkMode = !isDarkMode;
@@ -84,8 +53,5 @@
         await JS.InvokeVoidAsync("__nxSetDark", isDarkMode);
     }
 
-    void ToggleNav() => isMobileNavOpen = !isMobileNavOpen;
-    void CloseNav() => isMobileNavOpen = false;
-
-    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+    public void Dispose() { }
 }

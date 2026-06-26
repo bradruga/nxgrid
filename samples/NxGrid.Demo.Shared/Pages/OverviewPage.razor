@@ -1,0 +1,87 @@
+@page "/overview"
+
+<PageTitle>NxGrid — Overview</PageTitle>
+
+<h1>NxGrid</h1>
+<p class="doc-intro">
+    A high-performance, virtualized data grid for Blazor (.NET 10). Supports sorting, filtering,
+    multi-cell rectangular selection, inline editing, copy/paste, and full keyboard navigation.
+    Published as a NuGet package.
+</p>
+
+<div class="doc-section">
+    <h2>Zero Config</h2>
+    <p class="doc-note">
+        No column declarations needed. Pass a <code>List&lt;T&gt;</code> and the grid generates columns
+        from your model's public properties — names split on PascalCase boundaries, numeric types
+        right-aligned, <code>[Display]</code> attributes respected.
+    </p>
+    <pre class="doc-code">@autoColumnsCode</pre>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" RowGutter="NxGridRowGutter.Numbers" Style="margin-top:12px" />
+</div>
+
+<div class="doc-section">
+    <h2>With Declared Columns</h2>
+    <p class="doc-note">Add <code>&lt;NxGridColumn&gt;</code> children for full control — titles, widths, editing, combo-boxes, templates, and more. Click any cell to select it. Use the column headers to sort or filter. Double-click or press <kbd class="doc-kbd">F2</kbd> to edit a cell.</p>
+    <pre class="doc-code">@quickStartCode</pre>
+    <NxGrid T="Person" Data="@overviewPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true" Style="margin-top:12px">
+        <NxGridColumn Property="@(x => x.Id)"          Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Title="First" Property="@(x => x.FirstName)" Width="120" />
+        <NxGridColumn Title="Last"  Property="@(x => x.LastName)"  Width="120" />
+        <NxGridColumn Property="@(x => x.Age)"       Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)"
+                      ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>Feature Pages</h2>
+    <div class="feature-grid">
+        <a href="selection" class="feature-card">
+            <div class="feature-card-title">Selection</div>
+            <div class="feature-card-desc">Rectangular range selection, OnSelectionChanged event, programmatic SelectRow</div>
+        </a>
+        <a href="editing" class="feature-card">
+            <div class="feature-card-title">Editing</div>
+            <div class="feature-card-desc">Inline cell editing, combo-box dropdowns, per-row editability, TransformPastedValue</div>
+        </a>
+        <a href="columns" class="feature-card">
+            <div class="feature-card-title">Columns</div>
+            <div class="feature-card-desc">Custom templates, alignment, Property + Display, width constraints, column menu</div>
+        </a>
+        <a href="keyboard" class="feature-card">
+            <div class="feature-card-title">Keyboard</div>
+            <div class="feature-card-desc">All keyboard shortcuts: navigation, editing, copy/paste, and custom OnKeyPressed hotkeys</div>
+        </a>
+        <a href="large-data" class="feature-card">
+            <div class="feature-card-title">Large Data</div>
+            <div class="feature-card-desc">Virtualized rendering of thousands of rows, ScrollToEnd, ForceRerender</div>
+        </a>
+        <a href="stress-test" class="feature-card">
+            <div class="feature-card-title">Stress Test</div>
+            <div class="feature-card-desc">500,000 rows × 50 columns — 25 million cells rendered with constant-time scrolling</div>
+        </a>
+        <a href="layout" class="feature-card">
+            <div class="feature-card-title">Layout Options</div>
+            <div class="feature-card-desc">Row numbers, banding, column menu toggle, cursor style, header-click selection, overlays</div>
+        </a>
+        <a href="theming" class="feature-card">
+            <div class="feature-card-title">Theming</div>
+            <div class="feature-card-desc">All CSS custom properties, live dark-mode toggle, CellStyle per-cell styling</div>
+        </a>
+    </div>
+</div>
+
+@code {
+    List<Person> overviewPeople = SampleData.GetPeopleCopy();
+    string autoColumnsCode = DemoCodeSamples.AutoColumns;
+    string quickStartCode = DemoCodeSamples.QuickStart;
+
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+}

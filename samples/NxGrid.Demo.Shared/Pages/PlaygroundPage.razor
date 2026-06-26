@@ -1,0 +1,342 @@
+@page "/playground"
+@layout FullWidthDocLayout
+
+<PageTitle>NxGrid — Playground</PageTitle>
+
+<h1>Playground</h1>
+<p class="doc-intro">
+    Configure NxGrid live and see the results instantly. Adjust the settings in the panel,
+    then click, edit, and scroll in the grid to explore how it behaves.
+</p>
+
+<div class="doc-section">
+    <div class="playground-layout">
+        <aside class="playground-panel">
+
+            <div class="pg-tabs">
+                <button class="pg-tab @(activeTab == "grid" ? "is-active" : "")" @onclick="@(() => activeTab = "grid")">Grid</button>
+                <button class="pg-tab @(activeTab == "cols" ? "is-active" : "")" @onclick="@(() => activeTab = "cols")">Columns</button>
+            </div>
+
+            @if (activeTab == "grid")
+            {
+
+            <div class="pg-control-group">
+                <div class="pg-control-label">Data</div>
+                <label class="pg-radio"><input type="radio" name="pg-rows" @onchange="@(_ => SetRows(50))"   checked="@(rowCount == 50)"   /> 50</label>
+                <label class="pg-radio"><input type="radio" name="pg-rows" @onchange="@(_ => SetRows(500))"  checked="@(rowCount == 500)"  /> 500</label>
+                <label class="pg-radio"><input type="radio" name="pg-rows" @onchange="@(_ => SetRows(5000))" checked="@(rowCount == 5000)" /> 5,000</label>
+            </div>
+
+            <div class="pg-inline-field">
+                <span class="pg-control-label" style="margin-bottom:0; flex-shrink:0;">Row Height</span>
+                <input class="pg-input pg-input-narrow" type="number" min="18" max="80" value="@rowHeight"
+                       @onchange="@(e => rowHeight = int.TryParse(e.Value?.ToString(), out var v) ? v : rowHeight)" />
+            </div>
+
+            <hr class="pg-divider" />
+
+            <div class="pg-control-group">
+                <div class="pg-control-label">Features</div>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => editable = (bool)(e.Value ?? false))" checked="@editable" /><span>Editing</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => enableDragFill = (bool)(e.Value ?? false))" checked="@enableDragFill" /><span>Drag Fill</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => rowBanding = (bool)(e.Value ?? false))" checked="@rowBanding" /><span>Row Banding</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => hasColumnMenu = (bool)(e.Value ?? false))" checked="@hasColumnMenu" /><span>Column Menu</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => showHeader = (bool)(e.Value ?? false))" checked="@showHeader" /><span>Show Header</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => allowFocusCellMode = (bool)(e.Value ?? false))" checked="@allowFocusCellMode" /><span>Focus Cell Mode</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => enableSelectionMath = (bool)(e.Value ?? false))" checked="@enableSelectionMath" /><span>Selection Math</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => virtualize = (bool)(e.Value ?? false))" checked="@virtualize" /><span>Virtualize</span></label>
+            </div>
+
+            <hr class="pg-divider" />
+
+            <div class="pg-control-group">
+                <div class="pg-control-label">Selection Mode</div>
+                <select class="pg-select" @onchange="@(e => selectionMode = Enum.Parse<NxGridSelectionMode>(e.Value!.ToString()!))">
+                    <option value="Cell"      selected="@(selectionMode == NxGridSelectionMode.Cell)">Cell</option>
+                    <option value="MultiRow"  selected="@(selectionMode == NxGridSelectionMode.MultiRow)">Multi Row</option>
+                    <option value="SingleRow" selected="@(selectionMode == NxGridSelectionMode.SingleRow)">Single Row</option>
+                    <option value="None"      selected="@(selectionMode == NxGridSelectionMode.None)">None</option>
+                </select>
+            </div>
+
+            <div class="pg-control-group">
+                <div class="pg-control-label">Row Gutter</div>
+                <select class="pg-select" @onchange="@(e => rowGutter = Enum.Parse<NxGridRowGutter>(e.Value!.ToString()!))">
+                    <option value="Hidden"     selected="@(rowGutter == NxGridRowGutter.Hidden)">None</option>
+                    <option value="Blank"      selected="@(rowGutter == NxGridRowGutter.Blank)">Blank</option>
+                    <option value="Numbers"    selected="@(rowGutter == NxGridRowGutter.Numbers)">Numbers</option>
+                    <option value="DragHandle" selected="@(rowGutter == NxGridRowGutter.DragHandle)">Drag Handle</option>
+                </select>
+            </div>
+
+            <div class="pg-control-group">
+                <div class="pg-control-label">Cursor</div>
+                <select class="pg-select" @onchange="@(e => cursor = Enum.Parse<NxGridCursor>(e.Value!.ToString()!))">
+                    <option value="Cell"    selected="@(cursor == NxGridCursor.Cell)">Cell</option>
+                    <option value="Default" selected="@(cursor == NxGridCursor.Default)">Default</option>
+                    <option value="Pointer" selected="@(cursor == NxGridCursor.Pointer)">Pointer</option>
+                </select>
+            </div>
+
+            } @* end grid tab *@
+
+            @if (activeTab == "cols")
+            {
+
+            @foreach (var col in cols)
+            {
+                var isOpen = expandedCol == col.Key;
+                <div class="pg-col-accordion">
+                    <button class="pg-col-trigger @(isOpen ? "is-open" : "")" @onclick="@(() => ToggleCol(col.Key))">
+                        <span class="pg-col-arrow">@(isOpen ? "▾" : "▸")</span>
+                        <span>@col.Title</span>
+                        @if (col.Hidden) { <span class="pg-col-badge">hidden</span> }
+                    </button>
+                    @if (isOpen)
+                    {
+                        <div class="pg-col-fields">
+                            <div class="pg-field">
+                                <label class="pg-field-label">Title</label>
+                                <input class="pg-input" type="text" value="@col.Title"
+                                       @onchange="@(e => col.Title = e.Value?.ToString() ?? col.Title)" />
+                            </div>
+
+                            <div class="pg-field-row">
+                                <div class="pg-field">
+                                    <label class="pg-field-label">Width</label>
+                                    <input class="pg-input" type="number" min="30" max="800" value="@col.Width"
+                                           @onchange="@(e => { if (int.TryParse(e.Value?.ToString(), out var w)) col.Width = w; })" />
+                                </div>
+                                @if (col.HasMaxWidth)
+                                {
+                                    <div class="pg-field">
+                                        <label class="pg-field-label">Max W</label>
+                                        <input class="pg-input" type="number" min="30" max="800" value="@(col.MaxWidth?.ToString() ?? "")"
+                                               @onchange="@(e => col.MaxWidth = int.TryParse(e.Value?.ToString(), out var w) ? w : (int?)null)" />
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="pg-field">
+                                <label class="pg-field-label">Alignment</label>
+                                <select class="pg-select" @onchange="@(e => col.Alignment = Enum.Parse<NxGridColumnAlignment>(e.Value!.ToString()!))">
+                                    <option value="Left"   selected="@(col.Alignment == NxGridColumnAlignment.Left)">Left</option>
+                                    <option value="Center" selected="@(col.Alignment == NxGridColumnAlignment.Center)">Center</option>
+                                    <option value="Right"  selected="@(col.Alignment == NxGridColumnAlignment.Right)">Right</option>
+                                </select>
+                            </div>
+
+                            <div class="pg-field-checks">
+                                @if (!col.EditLocked)
+                                {
+                                    <label class="pg-toggle">
+                                        <input type="checkbox" checked="@col.Editable"
+                                               @onchange="@(e => col.Editable = (bool)(e.Value ?? false))" />
+                                        <span>Editable</span>
+                                    </label>
+                                }
+                                <label class="pg-toggle">
+                                    <input type="checkbox" checked="@col.Frozen"
+                                           @onchange="@(e => col.Frozen = (bool)(e.Value ?? false))" />
+                                    <span>Frozen</span>
+                                </label>
+                                <label class="pg-toggle">
+                                    <input type="checkbox" checked="@col.Hidden"
+                                           @onchange="@(e => col.Hidden = (bool)(e.Value ?? false))" />
+                                    <span>Hidden</span>
+                                </label>
+                                <label class="pg-toggle">
+                                    <input type="checkbox" checked="@col.Nullable"
+                                           @onchange="@(e => col.Nullable = (bool)(e.Value ?? false))" />
+                                    <span>Nullable</span>
+                                </label>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            } @* end cols tab *@
+        </aside>
+
+        <div class="playground-grid">
+            <NxGrid T="Person" Data="@data" OnUpdate="@HandleUpdate"
+                    Editable="@editable"
+                    RowBanding="@rowBanding"
+                    HasColumnMenu="@hasColumnMenu"
+                    ShowHeader="@showHeader"
+                    Virtualize="@virtualize"
+                    EnableDragFill="@enableDragFill"
+                    AllowFocusCellMode="@allowFocusCellMode"
+                    EnableSelectionMath="@enableSelectionMath"
+                    SelectionMode="@selectionMode"
+                    RowGutter="@rowGutter"
+                    Cursor="@cursor"
+                    RowHeight="@rowHeight">
+                <NxGridColumn Title="@cols[0].Title" Property="@(x => x.Id)"
+                              Width="@cols[0].Width" MaxWidth="@cols[0].MaxWidth"
+                              Alignment="@cols[0].Alignment"
+                              Editable="false"
+                              Frozen="@cols[0].Frozen" Hidden="@cols[0].Hidden" />
+                <NxGridColumn Title="@cols[1].Title" Property="@(x => x.FirstName)"
+                              Width="@cols[1].Width"
+                              Alignment="@cols[1].Alignment"
+                              Editable="@cols[1].Editable"
+                              Frozen="@cols[1].Frozen" Hidden="@cols[1].Hidden"
+                              Nullable="@cols[1].Nullable" />
+                <NxGridColumn Title="@cols[2].Title" Property="@(x => x.LastName)"
+                              Width="@cols[2].Width"
+                              Alignment="@cols[2].Alignment"
+                              Editable="@cols[2].Editable"
+                              Frozen="@cols[2].Frozen" Hidden="@cols[2].Hidden"
+                              Nullable="@cols[2].Nullable" />
+                <NxGridColumn Title="@cols[3].Title" Property="@(x => x.Age)"
+                              Width="@cols[3].Width"
+                              Alignment="@cols[3].Alignment"
+                              Editable="@cols[3].Editable"
+                              Frozen="@cols[3].Frozen" Hidden="@cols[3].Hidden"
+                              Nullable="@cols[3].Nullable" />
+                <NxGridColumn Title="@cols[4].Title" Property="@(x => x.Department)"
+                              Width="@cols[4].Width"
+                              Alignment="@cols[4].Alignment"
+                              Editable="@cols[4].Editable"
+                              Frozen="@cols[4].Frozen" Hidden="@cols[4].Hidden"
+                              Nullable="@cols[4].Nullable"
+                              ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
+            </NxGrid>
+        </div>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>Generated Code</h2>
+    <p class="doc-note">This snippet reflects the current playground configuration.</p>
+    <pre class="doc-code">@GenerateCode()</pre>
+</div>
+
+@code {
+    class ColConfig
+    {
+        public required string Key { get; set; }
+        public string Title { get; set; } = "";
+        public int Width { get; set; } = 100;
+        public int? MaxWidth { get; set; }
+        public NxGridColumnAlignment Alignment { get; set; } = NxGridColumnAlignment.Left;
+        public bool Editable { get; set; } = true;
+        public bool EditLocked { get; set; }
+        public bool Frozen { get; set; }
+        public bool Hidden { get; set; }
+        public bool Nullable { get; set; }
+        public bool HasMaxWidth { get; set; }
+        public bool HasComboBox { get; set; }
+    }
+
+    List<Person> data = SampleData.GetPeopleCopy().Take(50).ToList();
+    int rowCount = 50;
+    int rowHeight = 28;
+    bool editable = true;
+    bool rowBanding = true;
+    bool hasColumnMenu = true;
+    bool showHeader = true;
+    bool virtualize = true;
+    bool enableDragFill = true;
+    bool allowFocusCellMode = true;
+    bool enableSelectionMath = false;
+    NxGridSelectionMode selectionMode = NxGridSelectionMode.Cell;
+    NxGridRowGutter rowGutter = NxGridRowGutter.Numbers;
+    NxGridCursor cursor = NxGridCursor.Cell;
+
+    string activeTab = "grid";
+    string? expandedCol;
+
+    List<ColConfig> cols = new()
+    {
+        new ColConfig { Key = "id",    Title = "ID",          Width = 50,  MaxWidth = 50, EditLocked = true, HasMaxWidth = true, Alignment = NxGridColumnAlignment.Right },
+        new ColConfig { Key = "first", Title = "First",       Width = 130 },
+        new ColConfig { Key = "last",  Title = "Last",        Width = 130 },
+        new ColConfig { Key = "age",   Title = "Age",         Width = 70,  Alignment = NxGridColumnAlignment.Right },
+        new ColConfig { Key = "dept",  Title = "Department",  Width = 150, HasComboBox = true },
+    };
+
+    void ToggleCol(string key) =>
+        expandedCol = expandedCol == key ? null : key;
+
+    void SetRows(int count)
+    {
+        rowCount = count;
+        var source = SampleData.GetPeopleCopy();
+        if (count <= source.Count)
+        {
+            data = source.Take(count).ToList();
+        }
+        else
+        {
+            var extended = new List<Person>(count);
+            for (int i = 0; i < count; i++)
+            {
+                var template = source[i % source.Count];
+                extended.Add(new Person
+                {
+                    Id = i + 1,
+                    FirstName = template.FirstName,
+                    LastName = template.LastName,
+                    Age = template.Age,
+                    Department = template.Department
+                });
+            }
+            data = extended;
+        }
+    }
+
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    string GenerateCode()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<NxGrid T=\"Person\" Data=\"@data\"");
+        if (editable)            sb.Append("\n        Editable=\"true\"");
+        if (!enableDragFill)     sb.Append("\n        EnableDragFill=\"false\"");
+        if (!rowBanding)         sb.Append("\n        RowBanding=\"false\"");
+        if (!hasColumnMenu)      sb.Append("\n        HasColumnMenu=\"false\"");
+        if (!showHeader)         sb.Append("\n        ShowHeader=\"false\"");
+        if (!allowFocusCellMode) sb.Append("\n        AllowFocusCellMode=\"false\"");
+        if (enableSelectionMath) sb.Append("\n        EnableSelectionMath=\"true\"");
+        if (!virtualize)         sb.Append("\n        Virtualize=\"false\"");
+        if (rowHeight != 28)     sb.Append($"\n        RowHeight=\"{rowHeight}\"");
+        if (selectionMode != NxGridSelectionMode.Cell)
+            sb.Append($"\n        SelectionMode=\"NxGridSelectionMode.{selectionMode}\"");
+        if (rowGutter != NxGridRowGutter.Numbers)
+            sb.Append($"\n        RowGutter=\"NxGridRowGutter.{rowGutter}\"");
+        if (cursor != NxGridCursor.Cell)
+            sb.Append($"\n        Cursor=\"NxGridCursor.{cursor}\"");
+        sb.AppendLine("\n        OnUpdate=\"@HandleUpdate\">");
+
+        var colProps = new[] { "x => x.Id", "x => x.FirstName", "x => x.LastName", "x => x.Age", "x => x.Department" };
+        for (int i = 0; i < cols.Count; i++)
+        {
+            var col = cols[i];
+            sb.Append($"    <NxGridColumn Title=\"{col.Title}\" Property=\"@({colProps[i]})\" Width=\"{col.Width}\"");
+            if (col.MaxWidth != null)
+                sb.Append($" MaxWidth=\"{col.MaxWidth}\"");
+            if (col.Alignment != NxGridColumnAlignment.Left)
+                sb.Append($" Alignment=\"NxGridColumnAlignment.{col.Alignment}\"");
+            if (col.EditLocked || !col.Editable)
+                sb.Append(" Editable=\"false\"");
+            if (col.Frozen)   sb.Append(" Frozen=\"true\"");
+            if (col.Hidden)   sb.Append(" Hidden=\"true\"");
+            if (col.Nullable) sb.Append(" Nullable=\"true\"");
+            if (col.HasComboBox)
+                sb.Append("\n                  ComboBoxSource=\"@(NxGridComboSource.FixedList(...))\"");
+            sb.AppendLine(" />");
+        }
+
+        sb.Append("</NxGrid>");
+        return sb.ToString();
+    }
+}

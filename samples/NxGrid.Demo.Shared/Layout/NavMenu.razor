@@ -1,9 +1,6 @@
 @inject NavigationManager Nav
 @implements IDisposable
 
-<div class="nav-header">
-    <a href="">NxGrid</a>
-</div>
 <nav>
     <button class="nav-group-label" @onclick="@(() => Toggle("Guide"))">
         <span>Guide</span>
@@ -11,7 +8,7 @@
     </button>
     @if (!IsCollapsed("Guide"))
     {
-        <NavLink href="" Match="NavLinkMatch.All">Overview</NavLink>
+        <NavLink href="overview">Overview</NavLink>
         <NavLink href="getting-started">Getting Started</NavLink>
     }
 
@@ -130,7 +127,7 @@
 @code {
     static readonly Dictionary<string, string[]> GroupRoutes = new()
     {
-        ["Guide"]       = ["", "getting-started"],
+        ["Guide"]       = ["overview", "getting-started"],
         ["Reference"]   = ["reference/nxgrid", "reference/nxgrid-column", "reference/types"],
         ["Selection"]   = ["selection", "selection-math"],
         ["Editing"]     = ["editing", "drag-fill", "multi-line", "math-expression", "combo-box", "date-picker", "color-picker", "time-entry", "checkbox", "batch-update"],
