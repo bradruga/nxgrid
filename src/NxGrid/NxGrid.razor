@@ -154,7 +154,7 @@
         </Virtualize>
     }
 
-    @if (HasFooterRow)
+    @if (HasFooterRow && filteredData.Count > 0)
     {
         <div class="nx-grid-footer-row" style="@headerRowStyle">
             @if (RowGutter != NxGridRowGutter.Hidden)
