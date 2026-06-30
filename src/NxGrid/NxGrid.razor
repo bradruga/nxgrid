@@ -626,7 +626,11 @@
             <div class="nx-print-dialog" @onclick:stopPropagation>
                 <div class="nx-print-dialog-header">
                     <span class="nx-print-dialog-title">Print</span>
-                    <button type="button" class="nx-print-dialog-close" @onclick="ClosePrintDialog">✕</button>
+                    <button type="button" class="nx-print-dialog-close" @onclick="ClosePrintDialog">
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                            <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="nx-print-dialog-body">
                     <div class="nx-print-dialog-options">

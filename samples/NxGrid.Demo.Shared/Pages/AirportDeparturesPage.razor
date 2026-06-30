@@ -20,7 +20,11 @@
     @* ── Header ── *@
     <div class="ab-header">
         <div class="ab-header-left">
-            <span class="ab-plane">✈</span>
+            <span class="ab-plane">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                </svg>
+            </span>
             <span class="ab-airport-name">KORD — CHICAGO O'HARE</span>
             <span class="ab-divider">|</span>
             <span class="ab-label">DEPARTURES</span>
@@ -37,13 +41,43 @@
     @* ── Toolbar ── *@
     <div class="ab-toolbar">
         <button class="ab-btn" @onclick="ToggleLive">
-            @(isLive ? "⏸ Pause" : "▶ Resume")
+            @if (isLive) {
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle">
+                    <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                </svg>
+                @: Pause
+            } else {
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+                @: Resume
+            }
         </button>
         <div class="ab-sep-v"></div>
-        <button class="ab-btn ab-btn-delay"   @onclick="DelaySelectedFlight"   disabled="@(!CanDelay)">⏱ Delay 30 min</button>
-        <button class="ab-btn ab-btn-board"   @onclick="BoardSelectedFlight"   disabled="@(!CanBoard)">🚪 Board Now</button>
-        <button class="ab-btn ab-btn-ontime"  @onclick="MarkSelectedOnTime"    disabled="@(!CanMarkOnTime)">✓ Back On Time</button>
-        <button class="ab-btn ab-btn-gate"    @onclick="ReassignSelectedGate"  disabled="@(selectedFlight == null || selectedFlight.Status == FlightStatus.Departed)">🚧 Reassign Gate</button>
+        <button class="ab-btn ab-btn-delay" @onclick="DelaySelectedFlight" disabled="@(!CanDelay)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle">
+                <path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61 1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A9 9 0 0 0 12 4a9 9 0 1 0 9 9c0-2.12-.74-4.07-1.97-5.61zM12 20a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/>
+            </svg>
+            Delay 30 min
+        </button>
+        <button class="ab-btn ab-btn-board" @onclick="BoardSelectedFlight" disabled="@(!CanBoard)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle">
+                <path d="M17 1H7c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm-3 12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+            </svg>
+            Board Now
+        </button>
+        <button class="ab-btn ab-btn-ontime" @onclick="MarkSelectedOnTime" disabled="@(!CanMarkOnTime)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+            </svg>
+            Back On Time
+        </button>
+        <button class="ab-btn ab-btn-gate" @onclick="ReassignSelectedGate" disabled="@(selectedFlight == null || selectedFlight.Status == FlightStatus.Departed)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </svg>
+            Reassign Gate
+        </button>
         <div class="ab-sep-v"></div>
         <span class="ab-stat"><strong class="ab-stat-val">@onTimeCount</strong> on time</span>
         <span class="ab-stat"><strong class="ab-stat-val ab-col-board">@boardingCount</strong> boarding</span>

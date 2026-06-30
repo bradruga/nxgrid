@@ -551,7 +551,7 @@
                             <input type="color" value="@(editRule.BackgroundColor ?? "#ffffff")"
                                    style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;"
                                    @onchange="@(e => { editRule.BackgroundColor = e.Value?.ToString(); OnCondFmtChanged(); })" />
-                            <button type="button" class="ss-btn" @onclick="@(() => { editRule.BackgroundColor = null; OnCondFmtChanged(); })">✕</button>
+                            <button type="button" class="ss-btn" @onclick="@(() => { editRule.BackgroundColor = null; OnCondFmtChanged(); })"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg></button>
                             <span style="color:#aaa; font-family:monospace;">@(editRule.BackgroundColor ?? "none")</span>
                         </div>
 
@@ -560,7 +560,7 @@
                             <input type="color" value="@(editRule.TextColor ?? "#000000")"
                                    style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;"
                                    @onchange="@(e => { editRule.TextColor = e.Value?.ToString(); OnCondFmtChanged(); })" />
-                            <button type="button" class="ss-btn" @onclick="@(() => { editRule.TextColor = null; OnCondFmtChanged(); })">✕</button>
+                            <button type="button" class="ss-btn" @onclick="@(() => { editRule.TextColor = null; OnCondFmtChanged(); })"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg></button>
                             <span style="color:#aaa; font-family:monospace;">@(editRule.TextColor ?? "none")</span>
                         </div>
 
