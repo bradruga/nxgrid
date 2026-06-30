@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-06-30
+
 ### Added
 
 - Four CSS custom properties for checkbox colors: `--nx-grid-checkbox-border`, `--nx-grid-checkbox-bg`, `--nx-grid-checkbox-fill`, and `--nx-grid-checkbox-check`. These apply to both grid-row boolean checkboxes and the native checkboxes in the filter panel and column chooser.
