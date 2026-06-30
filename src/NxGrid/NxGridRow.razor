@@ -40,6 +40,11 @@
     {
         var col = Columns[ci];
         var colIdx = ci;
+        var alignStyle = col.Alignment switch {
+            NxGridColumnAlignment.Center => "text-align:center;",
+            NxGridColumnAlignment.Right  => "text-align:right;",
+            _                            => ""
+        };
         var isAnchor = SelectionMode == NxGridSelectionMode.Cell
             && AdditionalRanges.Count <= 1
             && SelectedRange != null && RowIndex == SelectedRange.StartRow && ci == SelectedRange.StartCol;
@@ -70,6 +75,7 @@
                         <input class="nx-grid-combo-input"
                                @ref="editInputRef"
                                value="@EditValue"
+                               style="@alignStyle"
                                @oninput="@(e => OnEditInput?.Invoke(e))"
                                @onkeydown="@(e => HandleEditKeyDown(e))"
                                @onkeydown:stopPropagation
@@ -92,6 +98,7 @@
                     <textarea class="nx-grid-edit-textarea"
                               @ref="editInputRef"
                               value="@EditValue"
+                              style="@alignStyle"
                               @oninput="@(e => OnEditInput?.Invoke(e))"
                               @onkeydown="@(e => HandleEditKeyDown(e))"
                               @onkeydown:stopPropagation
@@ -104,6 +111,7 @@
                         <input class="nx-grid-datepicker-input"
                                @ref="editInputRef"
                                value="@EditValue"
+                               style="@alignStyle"
                                @oninput="@(e => OnEditInput?.Invoke(e))"
                                @onkeydown="@(e => HandleEditKeyDown(e))"
                                @onkeydown:stopPropagation
@@ -128,6 +136,7 @@
                         <input class="nx-grid-colorpicker-input"
                                @ref="editInputRef"
                                value="@EditValue"
+                               style="@alignStyle"
                                @oninput="@(e => OnEditInput?.Invoke(e))"
                                @onkeydown="@(e => HandleEditKeyDown(e))"
                                @onkeydown:stopPropagation
@@ -147,6 +156,7 @@
                     <textarea class="nx-grid-edit-textarea-sl"
                               @ref="editInputRef"
                               value="@EditValue"
+                              style="@alignStyle"
                               @oninput="@(e => OnEditInput?.Invoke(e))"
                               @onkeydown="@(e => HandleEditKeyDown(e))"
                               @onkeydown:stopPropagation
@@ -158,6 +168,7 @@
                     <input class="nx-grid-edit-input"
                            @ref="editInputRef"
                            value="@EditValue"
+                           style="@alignStyle"
                            @oninput="@(e => OnEditInput?.Invoke(e))"
                            @onkeydown="@(e => HandleEditKeyDown(e))"
                            @onkeydown:stopPropagation

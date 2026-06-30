@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Edit inputs now respect the column's `Alignment` setting — center- and right-aligned columns display their editor text at the correct alignment.
+
 ## [0.2.8] - 2026-06-30
 
 ### Fixed
