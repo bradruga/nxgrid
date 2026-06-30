@@ -135,6 +135,14 @@ public partial class NxGrid<T>
     //
     // JS Invokable Methods
     //
+    /// <summary>Called by JavaScript when focus moves outside the grid while a cell is being edited. Commits the edit without returning focus to the grid.</summary>
+    [JSInvokable]
+    public async Task OnGridFocusLost()
+    {
+        if (!isEditing) return;
+        await CommitEdit(refocusGrid: false);
+    }
+
     /// <summary>Called by JavaScript when the column header dropdown menu loses focus. Closes the open menu.</summary>
     [JSInvokable]
     public void OnColumnMenuLostFocus()

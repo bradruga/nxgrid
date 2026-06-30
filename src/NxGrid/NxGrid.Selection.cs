@@ -356,6 +356,7 @@ public partial class NxGrid<T>
 
     private async Task OnColumnHeaderMouseDown(MouseEventArgs args, NxGridColumn<T> column)
     {
+        if (isEditing) await CommitEdit();
         if (!HeaderClickSelects || isResizing || SelectionMode != NxGridSelectionMode.Cell) return;
         if (args.Button != MouseButtonLeft) return;
 

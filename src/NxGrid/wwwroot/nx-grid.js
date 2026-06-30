@@ -125,6 +125,21 @@ class NxGrid {
         this._fillHandleAnchor = null;
         this._scrollHandler = () => this._repositionFillHandle();
 
+        // Commit the active edit when focus leaves the grid entirely.
+        const editInputSel = '.nx-grid-edit-input,.nx-grid-combo-input,.nx-grid-datepicker-input,.nx-grid-colorpicker-input,.nx-grid-edit-textarea,.nx-grid-edit-textarea-sl';
+        this._gridFocusOutHandler = (e) => {
+            const gridEl = document.getElementById(this.id);
+            if (!gridEl) return;
+            // Ignore if focus is moving to another element still inside the grid.
+            const newFocus = e.relatedTarget;
+            if (newFocus && gridEl.contains(newFocus)) return;
+            // Only act when an edit input is present (isEditing on C# side).
+            if (!gridEl.querySelector(editInputSel)) return;
+            this.dotNetObjectReference.invokeMethodAsync('OnGridFocusLost');
+        };
+        const gridEl = document.getElementById(this.id);
+        if (gridEl) gridEl.addEventListener('focusout', this._gridFocusOutHandler);
+
     }
 
     updateFillHandle(maxRow, maxCol, rowHeight) {
@@ -714,6 +729,11 @@ class NxGrid {
             const gridElement = document.getElementById(this.id);
             if (gridElement) gridElement.removeEventListener('scroll', this._scrollHandler);
             this._scrollHandlerAttached = false;
+        }
+        if (this._gridFocusOutHandler) {
+            const gridElement = document.getElementById(this.id);
+            if (gridElement) gridElement.removeEventListener('focusout', this._gridFocusOutHandler);
+            this._gridFocusOutHandler = null;
         }
         if (this._layoutObserver) {
             this._layoutObserver.disconnect();

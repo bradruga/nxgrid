@@ -83,6 +83,7 @@ public partial class NxGrid<T>
     private async Task OnColumnClick(NxGridColumn<T> column)
     {
         if (HeaderClickSelects) return;
+        if (isEditing) await CommitEdit();
 
         if (IsPrimarySort(column))
         {

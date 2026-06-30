@@ -88,7 +88,7 @@ public partial class NxGrid<T>
         }
     }
 
-    private async Task CommitEdit(string? moveKey = null)
+    private async Task CommitEdit(string? moveKey = null, bool refocusGrid = true)
     {
         if (!isEditing) return;
 
@@ -186,7 +186,7 @@ public partial class NxGrid<T>
 
         StateHasChanged();
 
-        if (jsInterop != null) await jsInterop.FocusGrid();
+        if (jsInterop != null && refocusGrid) await jsInterop.FocusGrid();
 
         if (moveKey != null)
         {
