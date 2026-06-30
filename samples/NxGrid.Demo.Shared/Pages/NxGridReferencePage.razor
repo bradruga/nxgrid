@@ -26,7 +26,7 @@
                 <td>Func&lt;T, object?&gt;?</td>
                 <td>—</td>
                 <td>Row identity function. When set, selection is preserved when Data is replaced by matching rows on key value instead of reference equality. Also enables <code>SelectRowByKey</code> and <code>@@bind-SelectedItems</code> reconciliation on reload.</td>
-                <td><a href="/selection">Selection</a></td>
+                <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
                 <td>RowHeight</td>
@@ -63,49 +63,49 @@
                 <td>bool</td>
                 <td>true</td>
                 <td>When false, the column header row is not rendered; sort, filter, resize, and the column menu are unavailable.</td>
-                <td><a href="/layout">Layout</a></td>
+                <td><a href="layout">Layout</a></td>
             </tr>
             <tr>
                 <td>RowGutter</td>
                 <td>NxGridRowGutter</td>
                 <td>Blank</td>
                 <td>Controls the leftmost gutter column: <code>Blank</code> (default), <code>Hidden</code>, <code>Numbers</code> (1-based row numbers), or <code>DragHandle</code> (requires <code>OnRowDrop</code>).</td>
-                <td><a href="/layout">Layout</a><br /><a href="/row-drag-drop">Row Drag &amp; Drop</a></td>
+                <td><a href="layout">Layout</a><br /><a href="row-drag-drop">Row Drag &amp; Drop</a></td>
             </tr>
             <tr>
                 <td>RowBanding</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>Alternates even/odd row background colors.</td>
-                <td><a href="/layout">Layout</a></td>
+                <td><a href="layout">Layout</a></td>
             </tr>
             <tr>
                 <td>HasColumnMenu</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>Shows the ▾ menu button in each column header for sort, filter, freeze, and hide.</td>
-                <td><a href="/layout">Layout</a></td>
+                <td><a href="layout">Layout</a></td>
             </tr>
             <tr>
                 <td>HeaderClickSelects</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>When true, clicking a column header selects the full column; clicking the row-number gutter selects the full row.</td>
-                <td><a href="/selection">Selection</a></td>
+                <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
                 <td>Cursor</td>
                 <td>NxGridCursor</td>
                 <td>Default</td>
                 <td>CSS cursor applied to body cells: <code>Default</code>, <code>Cell</code>, or <code>Pointer</code>.</td>
-                <td><a href="/layout">Layout</a></td>
+                <td><a href="layout">Layout</a></td>
             </tr>
             <tr>
                 <td>SelectionMode</td>
                 <td>NxGridSelectionMode</td>
                 <td>Cell</td>
                 <td><code>Cell</code> — rectangular range; <code>MultiRow</code> — entire row, Shift/Ctrl multi-range; <code>SingleRow</code> — entire row, one row only (Shift/Ctrl ignored); <code>None</code> — no selection.</td>
-                <td><a href="/selection">Selection</a></td>
+                <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
                 <td>AllowFocusCellMode</td>
@@ -119,56 +119,56 @@
                 <td>string?</td>
                 <td>—</td>
                 <td>When set, saves column widths, sort state, and filter state to localStorage and restores on next visit.</td>
-                <td><a href="/state-persistence">State Persistence</a></td>
+                <td><a href="state-persistence">State Persistence</a></td>
             </tr>
             <tr>
                 <td>PersistenceScope</td>
                 <td>NxGridPersistenceScope</td>
                 <td>All</td>
                 <td>Controls which parts of state are saved/restored by StateKey. Combine flags: <code>Widths | Sort | Filters | Frozen | Hidden</code>. Default is All.</td>
-                <td><a href="/state-persistence">State Persistence</a></td>
+                <td><a href="state-persistence">State Persistence</a></td>
             </tr>
             <tr>
                 <td>Virtualize</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>When true, renders only visible rows via Blazor's Virtualize component. Set false for small grids where Ctrl+F or print need all rows in the DOM.</td>
-                <td><a href="/large-data">Large Data</a></td>
+                <td><a href="large-data">Large Data</a></td>
             </tr>
             <tr>
                 <td>EnableSelectionMath</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>Shows a Sum / Avg / Count status bar below the grid body for the current selection.</td>
-                <td><a href="/selection-math">Selection Math</a></td>
+                <td><a href="selection-math">Selection Math</a></td>
             </tr>
             <tr>
                 <td>GroupBy</td>
                 <td>Func&lt;T, object?&gt;?</td>
                 <td>—</td>
                 <td>Groups rows by this function's return value after filtering. Disables virtualization.</td>
-                <td><a href="/grouping">Row Grouping</a></td>
+                <td><a href="grouping">Row Grouping</a></td>
             </tr>
             <tr>
                 <td>GroupHeaderTemplate</td>
                 <td>RenderFragment&lt;NxGridGroupHeaderArgs&lt;T&gt;&gt;?</td>
                 <td>—</td>
                 <td>Custom markup for each group header row. When omitted renders "{GroupValue} ({Count})".</td>
-                <td><a href="/grouping">Row Grouping</a></td>
+                <td><a href="grouping">Row Grouping</a></td>
             </tr>
             <tr>
                 <td>GroupsCollapsible</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>When true, clicking a group header collapses or expands that group.</td>
-                <td><a href="/grouping">Row Grouping</a></td>
+                <td><a href="grouping">Row Grouping</a></td>
             </tr>
             <tr>
                 <td>GroupCollapsedWhen</td>
                 <td>Func&lt;object?, bool&gt;?</td>
                 <td>—</td>
                 <td>Called once per group at first render to set the initial collapsed state.</td>
-                <td><a href="/grouping">Row Grouping</a></td>
+                <td><a href="grouping">Row Grouping</a></td>
             </tr>
         </tbody>
     </table>
@@ -191,28 +191,28 @@
                 <td>RenderFragment?</td>
                 <td>—</td>
                 <td>Rendered centered in the grid body when there are no rows and <code>IsLoading</code> is false.</td>
-                <td><a href="/empty-state">Empty &amp; Loading State</a></td>
+                <td><a href="empty-state">Empty &amp; Loading State</a></td>
             </tr>
             <tr>
                 <td>LoadingTemplate</td>
                 <td>RenderFragment?</td>
                 <td>—</td>
                 <td>Rendered when <code>IsLoading</code> is true. With no rows it fills the body; with rows present it is shown as an overlay on top of the data (<code>pointer-events:none</code>).</td>
-                <td><a href="/empty-state">Empty &amp; Loading State</a></td>
+                <td><a href="empty-state">Empty &amp; Loading State</a></td>
             </tr>
             <tr>
                 <td>IsLoading</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>When true, suppresses <code>EmptyTemplate</code> and shows <code>LoadingTemplate</code>. With rows already present the rows stay visible and <code>LoadingTemplate</code> overlays them. Set while an async fetch is in-flight to prevent an empty-state flash.</td>
-                <td><a href="/empty-state">Empty &amp; Loading State</a></td>
+                <td><a href="empty-state">Empty &amp; Loading State</a></td>
             </tr>
             <tr>
                 <td>Overlays</td>
                 <td>RenderFragment?</td>
                 <td>—</td>
                 <td>Rendered in an absolute-positioned, pointer-events-none layer above the grid — useful for custom row highlights.</td>
-                <td><a href="/layout">Layout</a></td>
+                <td><a href="layout">Layout</a></td>
             </tr>
         </tbody>
     </table>
@@ -228,14 +228,14 @@
                 <td>Func&lt;T, NxGridColumn&lt;T&gt;, Task&lt;object?&gt;&gt;?</td>
                 <td>—</td>
                 <td>Called after a 500 ms hover delay on body cells. Return any value to show a tooltip, or null to suppress.</td>
-                <td><a href="/tooltips">Tooltips</a></td>
+                <td><a href="tooltips">Tooltips</a></td>
             </tr>
             <tr>
                 <td>TooltipTemplate</td>
                 <td>RenderFragment&lt;NxGridTooltipContext&lt;T&gt;&gt;?</td>
                 <td>—</td>
                 <td>Custom markup for body-cell tooltips; <code>ctx.Data</code> holds whatever <code>CellTooltip</code> returned.</td>
-                <td><a href="/tooltips">Tooltips</a></td>
+                <td><a href="tooltips">Tooltips</a></td>
             </tr>
         </tbody>
     </table>
@@ -250,19 +250,19 @@
                 <td>OnSelectionChanged</td>
                 <td>EventCallback&lt;NxGridSelectionArgs&lt;T&gt;&gt;</td>
                 <td>Fires on every selection change — mouse, keyboard, or programmatic.</td>
-                <td><a href="/selection">Selection</a></td>
+                <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
                 <td>SelectedItems</td>
                 <td>List&lt;T&gt;?</td>
                 <td>Two-way bindable list of all currently selected row objects (all ranges combined, deduplicated). Use <code>@@bind-SelectedItems="@@myList"</code> as a shorthand for <code>OnSelectionChanged</code>. Setting this externally also updates the visual selection.</td>
-                <td><a href="/selection">Selection</a></td>
+                <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
                 <td>OnCellClicked</td>
                 <td>EventCallback&lt;NxGridCellClickArgs&lt;T&gt;&gt;</td>
                 <td>Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Does not fire on right-click, header click, keyboard navigation, or <code>SelectRow()</code>. Fires after <code>OnSelectionChanged</code>.</td>
-                <td><a href="/selection">Selection</a></td>
+                <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
                 <td>OnFilterChanged</td>
@@ -280,7 +280,7 @@
                 <td>OnKeyPressed</td>
                 <td>EventCallback&lt;NxGridKeyPressedArgs&gt;</td>
                 <td>Fires for keyboard events the grid does not handle internally, letting the host page react to custom hotkeys.</td>
-                <td><a href="/keyboard">Keyboard</a></td>
+                <td><a href="keyboard">Keyboard</a></td>
             </tr>
             <tr>
                 <td>OnColumnResized</td>
@@ -292,25 +292,25 @@
                 <td>OnCellDoubleClicked</td>
                 <td>EventCallback&lt;NxGridCellClickArgs&lt;T&gt;&gt;</td>
                 <td>Fires on double-click for non-editable columns, passing <code>Row</code> and <code>Column</code>.</td>
-                <td><a href="/editing">Editing</a></td>
+                <td><a href="editing">Editing</a></td>
             </tr>
             <tr>
                 <td>OnContextMenuShowing</td>
                 <td>Action&lt;NxGridContextMenuArgs&lt;T&gt;&gt;?</td>
                 <td>Called synchronously before the context menu opens; append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code> to add custom items.</td>
-                <td><a href="/context-menu">Context Menu</a></td>
+                <td><a href="context-menu">Context Menu</a></td>
             </tr>
             <tr>
                 <td>OnContextMenuItemClicked</td>
                 <td>EventCallback&lt;NxGridContextMenuItemArgs&lt;T&gt;&gt;</td>
                 <td>Fires when the user selects a custom context menu item.</td>
-                <td><a href="/context-menu">Context Menu</a></td>
+                <td><a href="context-menu">Context Menu</a></td>
             </tr>
             <tr>
                 <td>OnRowDrop</td>
                 <td>EventCallback&lt;NxGridRowDropArgs&lt;T&gt;&gt;</td>
                 <td>Fires after a successful row drag. The host must reorder <code>Data</code> in this handler.</td>
-                <td><a href="/row-drag-drop">Row Drag &amp; Drop</a></td>
+                <td><a href="row-drag-drop">Row Drag &amp; Drop</a></td>
             </tr>
         </tbody>
     </table>
@@ -326,7 +326,7 @@
                 <td>Func&lt;T, NxGridColumn&lt;T&gt;, NxGridCellStyle?&gt;?</td>
                 <td>—</td>
                 <td>Return per-cell style overrides. Set <code>Style</code> for arbitrary inline CSS, <code>Border</code> for a full-cell outline, or individual sides (<code>BorderTop</code>, <code>BorderRight</code>, <code>BorderBottom</code>, <code>BorderLeft</code>). Individual sides override <code>Border</code>. Applied before selection blending so background colors mix correctly.</td>
-                <td><a href="/theming">Theming</a></td>
+                <td><a href="theming">Theming</a></td>
             </tr>
         </tbody>
     </table>
@@ -342,91 +342,91 @@
                 <td>bool</td>
                 <td>false</td>
                 <td>Default editability for all columns. Individual columns can override with their own <code>Editable</code> parameter. Requires <code>OnUpdate</code>.</td>
-                <td><a href="/editing">Editing</a></td>
+                <td><a href="editing">Editing</a></td>
             </tr>
             <tr>
                 <td>CellEditableGetter</td>
                 <td>Func&lt;T, NxGridColumn&lt;T&gt;, bool&gt;?</td>
                 <td>—</td>
                 <td>Per-cell editability guard evaluated after column-level <code>Editable</code>. Returning false blocks direct edits (fires <code>OnEditBlocked</code>) and silently skips bulk operations.</td>
-                <td><a href="/editing">Editing</a></td>
+                <td><a href="editing">Editing</a></td>
             </tr>
             <tr>
                 <td>OnEditing</td>
                 <td>EventCallback&lt;NxGridEditingArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
                 <td>Fires just before a cell enters edit mode; set <code>args.Cancel = true</code> to prevent the editor from opening.</td>
-                <td><a href="/editing">Editing</a></td>
+                <td><a href="editing">Editing</a></td>
             </tr>
             <tr>
                 <td>OnEditBlocked</td>
                 <td>EventCallback&lt;NxGridEditBlockedArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
                 <td>Fires when a user directly tries to edit a cell blocked by <code>CellEditableGetter</code>. Does not fire for bulk operations.</td>
-                <td><a href="/editing">Editing</a></td>
+                <td><a href="editing">Editing</a></td>
             </tr>
             <tr>
                 <td>OnEditValueChanged</td>
                 <td>EventCallback&lt;NxGridEditValueChangedArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
                 <td>Fires when the in-cell edit value changes — once when a cell first enters edit mode (initial value) and again on every subsequent keystroke.</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>OnEditCancelled</td>
                 <td>EventCallback&lt;NxGridEditCancelledArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
                 <td>Fires when the user cancels an in-progress cell edit (e.g. Escape).</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>EditPickPredicate</td>
                 <td>Func&lt;string, bool&gt;?</td>
                 <td>—</td>
                 <td>When set, the grid enters edit-pick mode while editing whenever this returns <code>true</code> for the current edit value. In that mode, clicking another cell fires <code>OnCellPickedWhileEditing</code> instead of committing the edit.</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>OnCellPickedWhileEditing</td>
                 <td>EventCallback&lt;NxGridEditCellPickArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
                 <td>Fires on mouseup when the user clicks or click-drags a range while edit-pick mode is active. Args carry <code>StartRow</code>/<code>StartColumn</code>/<code>EndRow</code>/<code>EndColumn</code> — end equals start for a single click. Call <code>SetEditValue</code> from this handler to inject content into the edit input.</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>TransformPastedValue</td>
                 <td>Func&lt;string, int, int, string&gt;?</td>
                 <td>—</td>
                 <td>(rawValue, rowDelta, colDelta) — rewrites pasted text before it is committed, e.g. for formula-style adjustments.</td>
-                <td><a href="/editing">Editing</a></td>
+                <td><a href="editing">Editing</a></td>
             </tr>
             <tr>
                 <td>OnCopied</td>
                 <td>EventCallback&lt;NxGridCopiedArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
                 <td>Fires after the selection is written to the clipboard. <code>args</code> exposes <code>MinRow</code>, <code>MaxRow</code>, <code>MinCol</code>, <code>MaxCol</code> — the bounding box of the copied range. Use to capture side-channel data (e.g. cell styles) alongside the OS clipboard text.</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>OnPasted</td>
                 <td>EventCallback&lt;NxGridPastedArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
                 <td>Fires after a paste completes (after <code>OnUpdate</code>). <code>args</code> exposes <code>OriginRow</code>/<code>OriginCol</code> (top-left of the paste destination), <code>SelectionEndRow</code>/<code>SelectionEndCol</code> (for single-cell fill extent), and <code>ClipboardRows</code>/<code>ClipboardCols</code> (clipboard dimensions). Use alongside <code>OnCopied</code> to apply side-channel data to the paste destination.</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>OnUpdate</td>
                 <td>EventCallback&lt;NxGridUpdateArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
                 <td>Fires after any edit — single-cell commit, paste, delete, Ctrl+Enter fill, or drag-fill. Required for editing to be enabled.</td>
-                <td><a href="/editing">Editing</a><br /><a href="/batch-update">Batch Update</a></td>
+                <td><a href="editing">Editing</a><br /><a href="batch-update">Batch Update</a></td>
             </tr>
             <tr>
                 <td>EnableDragFill</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>Enables the fill handle — a small square at the bottom-right corner of the active selection. Drag in any direction to fill adjacent editable cells. Auto-disabled when SelectionMode is MultiRow, SingleRow, or None. Only visible when exactly one range is active and OnUpdate is set.</td>
-                <td><a href="/drag-fill">Drag to Fill</a></td>
+                <td><a href="drag-fill">Drag to Fill</a></td>
             </tr>
         </tbody>
     </table>
@@ -440,52 +440,52 @@
             <tr>
                 <td>void ForceRerender()</td>
                 <td>Re-runs the filter/sort pipeline and forces every visible row to re-render. Use after externally mutating properties on rows in <code>Data</code>.</td>
-                <td><a href="/large-data">Large Data</a></td>
+                <td><a href="large-data">Large Data</a></td>
             </tr>
             <tr>
                 <td>Task ScrollToEnd()</td>
                 <td>Scrolls to the last row without changing the selection. Safe to call immediately after adding a row.</td>
-                <td><a href="/large-data">Large Data</a></td>
+                <td><a href="large-data">Large Data</a></td>
             </tr>
             <tr>
                 <td>Task SelectRow(T row)</td>
                 <td>Programmatically selects a row (all columns), fires <code>OnSelectionChanged</code>, and scrolls it into view. No-op if the row is filtered out.</td>
-                <td><a href="/selection">Selection</a></td>
+                <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
                 <td>Task SelectRowByKey(object? keyValue)</td>
                 <td>Selects the first row in the current filtered data whose <code>KeyProperty</code> value equals <code>keyValue</code> and scrolls it into view. Logs a warning and is a no-op when <code>KeyProperty</code> is not set or no match is found.</td>
-                <td><a href="/selection">Selection</a></td>
+                <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
                 <td>Task ClearSavedState()</td>
                 <td>Removes the localStorage entry for <code>StateKey</code> and resets all column state to declared defaults immediately — no page reload required.</td>
-                <td><a href="/state-persistence">State Persistence</a></td>
+                <td><a href="state-persistence">State Persistence</a></td>
             </tr>
             <tr>
                 <td>void SetColumnHidden(string columnId, bool hidden)</td>
                 <td>Shows or hides a column by <code>Id</code> (falling back to <code>Title</code>). Takes effect immediately and persists when <code>StateKey</code> is set.</td>
-                <td><a href="/hidden-columns">Hidden Columns</a></td>
+                <td><a href="hidden-columns">Hidden Columns</a></td>
             </tr>
             <tr>
                 <td>void SetEditValue(string value)</td>
                 <td>Replaces the active edit input's text and moves the cursor to the end. No-op when the grid is not in edit mode. Use inside an <code>OnCellPickedWhileEditing</code> handler to inject content.</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>Task ResetColumnWidths()</td>
                 <td>Clears all user-dragged column widths, restoring every column to its declared <code>Width</code> parameter.</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>Task PrintAsync(string? title = null)</td>
                 <td>Opens the print dialog with a filtered/sorted table preview. Offers Print everything or Print selection.</td>
-                <td><a href="/print">Print</a></td>
+                <td><a href="print">Print</a></td>
             </tr>
             <tr>
                 <td>Task FitColumnsAsync()</td>
                 <td>Recomputes content-fit widths for all columns whose effective <code>FitContent</code> resolves to <code>true</code> (<code>Always</code>, or <code>Auto</code> without a fixed Width override) and redistributes remaining space via flex. Columns the user has manually resized are skipped.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
         </tbody>
     </table>

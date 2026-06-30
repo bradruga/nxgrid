@@ -20,28 +20,28 @@
                 <td>Expression&lt;Func&lt;T, object?&gt;&gt;?</td>
                 <td>—</td>
                 <td>Member expression (e.g. <code>x =&gt; x.Age</code>). Used for display, sort/filter, and as the target for <code>change.Apply(row)</code>. Get-only properties are supported for display/sort but are not editable.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>Display</td>
                 <td>Func&lt;T, object?&gt;?</td>
                 <td>—</td>
                 <td>Display value override — takes priority over <code>Property</code> for rendering. <code>Property</code> is still used for sort/filter when <code>Display</code> is set. Clipboard copy uses this value unless <code>CopyGetter</code> is also set.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>CopyGetter</td>
                 <td>Func&lt;T, object?&gt;?</td>
                 <td>—</td>
                 <td>Override for the value placed on the clipboard during copy. Takes priority over <code>Display</code> and <code>Property</code> for copy only. Use when the rendered display differs from what should be pasted (e.g. copy a raw formula while displaying the evaluated result).</td>
-                <td><a href="/spreadsheet">Spreadsheet</a></td>
+                <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>Editable</td>
                 <td>bool?</td>
                 <td>—</td>
                 <td>Makes the column editable when true, read-only when false. When not set, falls back to the grid-level <code>Editable</code> parameter. Requires <code>OnUpdate</code> on the grid.</td>
-                <td><a href="/editing">Editing</a></td>
+                <td><a href="editing">Editing</a></td>
             </tr>
         </tbody>
     </table>
@@ -57,7 +57,7 @@
                 <td>string?</td>
                 <td>—</td>
                 <td>Stable identity used for state persistence and <code>SetColumnHidden</code>. Falls back to <code>Title</code> when not set. Always set <code>Id</code> on columns you control programmatically or that use <code>StateKey</code>.</td>
-                <td><a href="/state-persistence">State Persistence</a><br /><a href="/hidden-columns">Hidden Columns</a></td>
+                <td><a href="state-persistence">State Persistence</a><br /><a href="hidden-columns">Hidden Columns</a></td>
             </tr>
         </tbody>
     </table>
@@ -80,133 +80,133 @@
                 <td>int?</td>
                 <td>—</td>
                 <td>Declared width in pixels. When set on a <code>Sizing="Fixed"</code> column, disables auto-measurement (<code>FitContent="Auto"</code> infers <code>Never</code>) — the column renders at exactly this width. When set on a <code>Sizing="Flex"</code> column, acts as the flex-basis / initial render placeholder while measurement still runs. When null (default), the column auto-measures its content. Not a minimum — without <code>MinWidth</code>, the column can be dragged narrower.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>MinWidth</td>
                 <td>int?</td>
                 <td>—</td>
                 <td>Hard minimum in pixels, enforced during drag and in auto mode.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>MaxWidth</td>
                 <td>int?</td>
                 <td>—</td>
                 <td>Hard maximum in pixels. When null, the column uses flex-grow in auto mode so extra space is distributed proportionally.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>Alignment</td>
                 <td>NxGridColumnAlignment</td>
                 <td>Left</td>
                 <td><code>Left</code>, <code>Center</code>, or <code>Right</code> cell alignment.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>Frozen</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>Pins the column sticky to the left of the scroll area. Multiple frozen columns stack in declaration order.</td>
-                <td><a href="/frozen-columns">Frozen Columns</a></td>
+                <td><a href="frozen-columns">Frozen Columns</a></td>
             </tr>
             <tr>
                 <td>Freezable</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>When true, the column menu shows a Freeze / Unfreeze toggle.</td>
-                <td><a href="/frozen-columns">Frozen Columns</a></td>
+                <td><a href="frozen-columns">Frozen Columns</a></td>
             </tr>
             <tr>
                 <td>Hidden</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>Excludes the column from rendering. A hidden column still participates in sort and filter.</td>
-                <td><a href="/hidden-columns">Hidden Columns</a></td>
+                <td><a href="hidden-columns">Hidden Columns</a></td>
             </tr>
             <tr>
                 <td>Hideable</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>When true, the column menu shows Hide column and Manage columns….</td>
-                <td><a href="/hidden-columns">Hidden Columns</a></td>
+                <td><a href="hidden-columns">Hidden Columns</a></td>
             </tr>
             <tr>
                 <td>Visible</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>Programmer-controlled gate. When false, the column is excluded from rendering and from the column chooser — the user cannot show it. Unlike <code>Hidden</code>, this is not user-controllable and is never persisted. Use for authorization-based column visibility (e.g. show a column only to certain roles).</td>
-                <td><a href="/visible-columns">Visible Columns</a></td>
+                <td><a href="visible-columns">Visible Columns</a></td>
             </tr>
             <tr>
                 <td>FitContent</td>
                 <td>NxGridFitContent</td>
                 <td>Auto</td>
                 <td><code>Auto</code> — infers behavior: measurement is disabled when Sizing="Fixed" and Width is set (declared width is final); measurement runs in all other cases. <code>Always</code> — always measure regardless of Sizing or Width. <code>Never</code> — never measure; renders at Width (or 100 px when unset). With Sizing="Flex" the declared Width becomes the flex-basis. FlexMinWidth / FlexMaxWidth bound the measurement. Columns the user has manually resized are not re-measured.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>AutoSizable</td>
                 <td>bool</td>
                 <td>true</td>
                 <td>When true, double-clicking the column's resize grip auto-sizes it to fit the widest content in the current filtered dataset. Obeys MinWidth / MaxWidth. Set to false to disable double-click auto-size for this column without affecting drag resize.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>Sizing</td>
                 <td>NxGridColumnSizing</td>
                 <td>Flex</td>
                 <td><code>Flex</code> (default) — participates in CSS flex layout; Width (or the measured content width) is the flex-basis. <code>Fixed</code> — pinned at an exact pixel width with no flex. When Sizing="Fixed" and Width is set, <code>FitContent="Auto"</code> automatically disables measurement.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>FlexMinWidth</td>
                 <td>int?</td>
                 <td>—</td>
                 <td>Minimum width in pixels during automatic flex distribution. Only applies when Sizing="Flex" and the column has not been manually resized. Independent of MinWidth, which enforces the floor during drag-resize. When both are set the larger value applies.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>FlexMaxWidth</td>
                 <td>int?</td>
                 <td>—</td>
                 <td>Maximum width in pixels during automatic flex distribution. Only applies when Sizing="Flex" and the column has not been manually resized. Also clamps the width computed by FitContent. Independent of MaxWidth, which enforces the ceiling during drag-resize. When both are set the smaller value applies.</td>
-                <td><a href="/columns">Columns</a></td>
+                <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
                 <td>Template</td>
                 <td>RenderFragment&lt;T&gt;?</td>
                 <td>—</td>
                 <td>Custom cell content. The grid still renders the cell container (padding, selection highlight, alignment).</td>
-                <td><a href="/cell-template">Cell Templates</a></td>
+                <td><a href="cell-template">Cell Templates</a></td>
             </tr>
             <tr>
                 <td>CheckBox</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>Renders bool/bool? cells as checkboxes. Clicking or pressing Space toggles immediately and fires <code>OnUpdate</code> — no F2 required.</td>
-                <td><a href="/checkbox">Checkbox</a></td>
+                <td><a href="checkbox">Checkbox</a></td>
             </tr>
             <tr>
                 <td>HeaderTemplate</td>
                 <td>RenderFragment?</td>
                 <td>—</td>
                 <td>Custom markup inside the column header cell. Sort/filter icons and the menu button still appear.</td>
-                <td><a href="/header-template">Header Template</a></td>
+                <td><a href="header-template">Header Template</a></td>
             </tr>
             <tr>
                 <td>HeaderTooltip</td>
                 <td>string?</td>
                 <td>—</td>
                 <td>Static tooltip shown immediately on header hover.</td>
-                <td><a href="/tooltips">Tooltips</a></td>
+                <td><a href="tooltips">Tooltips</a></td>
             </tr>
             <tr>
                 <td>HeaderTooltipTemplate</td>
                 <td>RenderFragment?</td>
                 <td>—</td>
                 <td>Custom tooltip markup for the column header. Overrides <code>HeaderTooltip</code>.</td>
-                <td><a href="/tooltips">Tooltips</a></td>
+                <td><a href="tooltips">Tooltips</a></td>
             </tr>
         </tbody>
     </table>
@@ -222,49 +222,49 @@
                 <td>bool</td>
                 <td>false</td>
                 <td>When true, Delete clears the cell to null instead of 0 or "".</td>
-                <td><a href="/editing">Editing</a></td>
+                <td><a href="editing">Editing</a></td>
             </tr>
             <tr>
                 <td>MathExpression</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>When true, the committed value is evaluated as an arithmetic expression (+ - * / parentheses) before being passed to <code>OnUpdate</code>. Falls back to the raw string on failure.</td>
-                <td><a href="/math-expression">Math Expression</a></td>
+                <td><a href="math-expression">Math Expression</a></td>
             </tr>
             <tr>
                 <td>MultiLine</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>Uses a growing textarea editor. Shift+Enter inserts a newline; Enter commits. Disables virtualization for the entire grid. Silently ignored when <code>ComboBoxSource</code> is also set.</td>
-                <td><a href="/multi-line">Multi-Line</a></td>
+                <td><a href="multi-line">Multi-Line</a></td>
             </tr>
             <tr>
                 <td>ComboBoxSource</td>
                 <td>NxGridComboSource?</td>
                 <td>—</td>
                 <td>Turns the inline editor into a combo-box dropdown. Use <code>NxGridComboSource.FixedList(source, id, text)</code> for a fixed list — Id→Text is resolved automatically for cell display. Use <code>NxGridComboSource.FixedList(stringList)</code> when id and text are the same. Use <code>NxGridComboSource.VariableList((Row r) =&gt; …, id, text)</code> when the list depends on the row.</td>
-                <td><a href="/combo-box">Combo Box</a></td>
+                <td><a href="combo-box">Combo Box</a></td>
             </tr>
             <tr>
                 <td>ComboBoxItemTemplate</td>
                 <td>RenderFragment&lt;NxGridComboItem&gt;?</td>
                 <td>—</td>
                 <td>Custom markup for each dropdown item. Overrides the plain <code>Text</code> string.</td>
-                <td><a href="/combo-box">Combo Box</a></td>
+                <td><a href="combo-box">Combo Box</a></td>
             </tr>
             <tr>
                 <td>DatePicker</td>
                 <td>bool</td>
                 <td>false</td>
                 <td>Adds a calendar button and month-view popup to the inline editor. <code>Property</code> should resolve to <code>DateTime</code> or <code>DateTime?</code>.</td>
-                <td><a href="/date-picker">Date Picker</a></td>
+                <td><a href="date-picker">Date Picker</a></td>
             </tr>
             <tr>
                 <td>Format</td>
                 <td>string?</td>
                 <td>—</td>
                 <td>Standard or custom .NET format string (e.g. <code>"MM/dd/yyyy"</code>, <code>"#,0.00"</code>) applied to any <code>IFormattable</code> property — numbers as well as <code>DateTime</code>/<code>DateTime?</code> and <code>TimeOnly</code>/<code>TimeOnly?</code>. Governs cell display and editor pre-population on F2/double-click; for date/time columns it's also the first parse attempt on commit before falling back to <code>TryParse</code> and then the built-in time shorthand parser. When <code>DatePicker="true"</code> and unset, falls back to the thread's short-date culture pattern.</td>
-                <td><a href="/number-format">Number Formatting</a>, <a href="/date-picker">Date Picker</a>, <a href="/time-entry">Time Entry</a>, <a href="/trading-desk">Trading Desk</a></td>
+                <td><a href="number-format">Number Formatting</a>, <a href="date-picker">Date Picker</a>, <a href="time-entry">Time Entry</a>, <a href="trading-desk">Trading Desk</a></td>
             </tr>
         </tbody>
     </table>
