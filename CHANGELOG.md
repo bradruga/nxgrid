@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-06-30
+
 ### Fixed
 
 - Clicking outside the grid while a cell is being edited (e.g. a Save button) now commits the edit. Previously focus left the grid but the edit stayed open.
