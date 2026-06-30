@@ -10,7 +10,7 @@ public partial class NxGrid<T>
     private const string KeyShiftEnter = "ShiftEnter";
     private const string KeyShiftTab   = "ShiftTab";
 
-    private async Task StartEditing(int row, int col, string? initialChar)
+    private async Task StartEditing(int row, int col, string? initialChar, bool initiatedByF2 = false)
     {
         if (SelectionMode == NxGridSelectionMode.None) return;
         var column = visibleColumns[col];
@@ -57,6 +57,8 @@ public partial class NxGrid<T>
         editRow = row;
         editCol = col;
         editOriginalValue = currentText;
+        editInitiatedByF2 = initiatedByF2;
+        editInitiatedByChar = initialChar != null;
         // initialChar == null → F2/double-click mode (show existing value)
         // initialChar != null → typing mode (replace with first typed char)
         editValue = initialChar ?? currentText;
@@ -160,6 +162,26 @@ public partial class NxGrid<T>
             newCol = col - 1;
             if (newCol < 0) { newCol = visibleColumns.Count - 1; newRow = row - 1; if (newRow < 0) newRow = filteredData.Count - 1; }
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol }];
+        }
+        else if (moveKey == KeyArrowUp)
+        {
+            newRow = Math.Clamp(row - 1, 0, filteredData.Count - 1);
+            selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col }];
+        }
+        else if (moveKey == KeyArrowDown)
+        {
+            newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1);
+            selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col }];
+        }
+        else if (moveKey == KeyArrowLeft)
+        {
+            newCol = Math.Clamp(col - 1, 0, visibleColumns.Count - 1);
+            selectedRanges = [new NxGridRange { StartRow = row, StartCol = newCol, EndRow = row, EndCol = newCol }];
+        }
+        else if (moveKey == KeyArrowRight)
+        {
+            newCol = Math.Clamp(col + 1, 0, visibleColumns.Count - 1);
+            selectedRanges = [new NxGridRange { StartRow = row, StartCol = newCol, EndRow = row, EndCol = newCol }];
         }
 
         StateHasChanged();
@@ -345,11 +367,15 @@ public partial class NxGrid<T>
             case KeyArrowLeft:
                 if (isDatePickerColumn && isDatePickerOpen)
                     NavigateCalendar(-1);
+                else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
+                    await CommitEdit(KeyArrowLeft);
                 break;
 
             case KeyArrowRight:
                 if (isDatePickerColumn && isDatePickerOpen)
                     NavigateCalendar(1);
+                else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
+                    await CommitEdit(KeyArrowRight);
                 break;
 
             case KeyArrowDown:
@@ -392,6 +418,8 @@ public partial class NxGrid<T>
                         StateHasChanged();
                     }
                 }
+                else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
+                    await CommitEdit(KeyArrowDown);
                 break;
 
             case KeyArrowUp:
@@ -402,6 +430,8 @@ public partial class NxGrid<T>
                     comboHighlightIndex = Math.Max(comboHighlightIndex - 1, 0);
                     StateHasChanged();
                 }
+                else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
+                    await CommitEdit(KeyArrowUp);
                 break;
 
             case KeyPageUp:
@@ -448,6 +478,8 @@ public partial class NxGrid<T>
         colorPickerNeedsPositioning = false;
         colorPickerNeedsGradientSetup = false;
         isEditing = false;
+        editInitiatedByF2 = false;
+        editInitiatedByChar = false;
         editRow = -1;
         editCol = -1;
         prevEditPickMode = false;

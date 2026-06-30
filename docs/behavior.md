@@ -233,8 +233,21 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 | Trigger | Post-commit navigation |
 |---|---|
 | Enter | Move down one row (clamped, no wrap) |
+| Shift+Enter | Move up one row (clamped, no wrap) |
 | Tab | Move right (wraps like the Tab navigation key) |
+| Shift+Tab | Move left (wraps like the Shift+Tab navigation key) |
+| Arrow key (see below) | Move one cell in that direction |
 | Click another cell | No navigation; selection moves to the clicked cell |
+
+**Arrow keys commit and move unless editing was started by F2.** Specifically, arrow keys commit the edit and move the selection when:
+
+- Editing was initiated by **typing a printable character** (whether the cell was empty or not), or
+- Editing was initiated by **double-click** and the cell was empty.
+
+Arrow keys move the cursor within the text input when:
+
+- Editing was initiated by **F2** (regardless of cell content), or
+- Editing was initiated by **double-click** and the cell already had content.
 
 On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. When `MathExpression = true` on the column, the raw input string is evaluated as an arithmetic expression before type-parsing runs (see [Math expression evaluation](#math-expression-evaluation)). `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with a `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
 

@@ -87,7 +87,7 @@ public partial class NxGrid<T>
             // F2 → edit showing existing value
             if (args.Key == KeyF2 && ActiveRange != null)
             {
-                await StartEditing(ActiveRange.StartRow, ActiveRange.StartCol, initialChar: null);
+                await StartEditing(ActiveRange.StartRow, ActiveRange.StartCol, initialChar: null, initiatedByF2: true);
                 return;
             }
 

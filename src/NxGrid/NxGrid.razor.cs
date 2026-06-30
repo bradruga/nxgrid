@@ -456,6 +456,8 @@ public partial class NxGrid<T>
     private int editCol = -1;
     private string editValue = "";
     private string editOriginalValue = "";
+    private bool editInitiatedByF2;
+    private bool editInitiatedByChar;
     private bool prevEditPickMode;
     private bool IsEditPickMode => isEditing && EditPickPredicate?.Invoke(editValue) == true;
 

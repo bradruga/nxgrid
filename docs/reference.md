@@ -363,7 +363,7 @@ Keys are compared with `object.Equals`. Duplicate key values in `Data` produce u
 
 | Key | Action |
 |---|---|
-| Arrow keys | Move selection one cell |
+| Arrow keys | Move selection one cell (navigation) / commit and move — when cell was empty at start of edit and editing was not started by F2 (editing) |
 | Shift + Arrow | Extend selection |
 | Ctrl/⌘ + Arrow | Jump to edge of data block (Excel-style) |
 | Home / End | Jump to first/last column |
@@ -407,6 +407,7 @@ When any column in the grid has `MultiLine = true`, every editable column in tha
 | Shift+Enter (single-line cell) | Commit and move up |
 | Tab | Commit and move right |
 | Shift+Tab | Commit and move left |
+| Arrow keys | Commit and move — when cell was empty at start of edit and editing was not started by F2; otherwise move cursor in the text input |
 | Ctrl/⌘+Enter | Fill the selection with the current value |
 | Escape | Cancel and restore the original value |
 
