@@ -1,3 +1,34 @@
+export function isMacOs() {
+    return navigator.platform.startsWith('Mac') || /Mac/.test(navigator.userAgent);
+}
+
+export function registerSearchShortcut() {
+    if (window.__searchShortcutRegistered) return;
+    window.__searchShortcutRegistered = true;
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            document.getElementById('site-search-input')?.focus();
+        }
+    });
+}
+
+export function scrollToHeading(text) {
+    const normalized = text.trim().toLowerCase();
+    const headings = document.querySelectorAll('h1, h2, h3');
+    for (const h of headings) {
+        if (h.textContent.trim().toLowerCase() === normalized) {
+            h.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            h.classList.remove('search-highlight-active');
+            void h.offsetWidth; // force reflow to restart animation
+            h.classList.add('search-highlight-active');
+            setTimeout(() => h.classList.remove('search-highlight-active'), 2200);
+            return true;
+        }
+    }
+    return false;
+}
+
 export function startChartDrag(dotNetRef, clientX, clientY, startX, startY) {
     const onMove = (e) => {
         dotNetRef.invokeMethodAsync('OnDragMove', startX + e.clientX - clientX, startY + e.clientY - clientY);

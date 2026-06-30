@@ -1,0 +1,166 @@
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="site-search" @onkeydown="OnContainerKeyDown" @onfocusout="OnFocusOut">
+    <div class="site-search-input-wrap">
+        <svg class="site-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input id="site-search-input"
+               @ref="inputRef"
+               class="site-search-input"
+               type="search"
+               placeholder="Search..."
+               autocomplete="off"
+               value="@query"
+               @oninput="OnInput"
+               @onfocus="OnFocus" />
+        <span class="site-search-hint">@(isMac ? "⌘K" : "Ctrl K")</span>
+    </div>
+    @if (isOpen && results.Count > 0)
+    {
+        <div class="site-search-results" role="listbox">
+            @for (int i = 0; i < results.Count; i++)
+            {
+                var item = results[i];
+                var idx = i;
+                <button class="site-search-result @(idx == activeIndex ? "is-active" : "")"
+                        role="option"
+                        @onclick="() => SelectItem(item)"
+                        @onmouseenter="() => activeIndex = idx">
+                    <span class="site-search-result-title">@item.Title</span>
+                    <span class="site-search-result-cat">@item.Category</span>
+                </button>
+            }
+        </div>
+    }
+    else if (isOpen && query.Length > 0)
+    {
+        <div class="site-search-results site-search-empty">@($"No results for \"{query}\"")</div>
+    }
+</div>
+
+@code {
+    ElementReference inputRef;
+    IJSObjectReference? module;
+
+    string query = "";
+    bool isOpen;
+    int activeIndex;
+    bool isMac;
+    string? pendingSection;
+    List<SearchItem> results = [];
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/NxGrid.Demo.Shared/demo.js");
+            isMac = await module.InvokeAsync<bool>("isMacOs");
+            await module.InvokeVoidAsync("registerSearchShortcut");
+            StateHasChanged();
+        }
+
+        if (pendingSection != null)
+        {
+            var section = pendingSection;
+            pendingSection = null;
+            await Task.Delay(200);
+            if (module != null)
+                await module.InvokeVoidAsync("scrollToHeading", section);
+        }
+    }
+
+    void OnFocus()
+    {
+        isOpen = true;
+        RunSearch();
+    }
+
+    async Task OnFocusOut()
+    {
+        await Task.Delay(150);
+        isOpen = false;
+        StateHasChanged();
+    }
+
+    void OnInput(ChangeEventArgs e)
+    {
+        query = e.Value?.ToString() ?? "";
+        RunSearch();
+    }
+
+    void OnContainerKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                activeIndex = Math.Min(activeIndex + 1, results.Count - 1);
+                break;
+            case "ArrowUp":
+                activeIndex = Math.Max(activeIndex - 1, 0);
+                break;
+            case "Enter" when results.Count > 0:
+                _ = SelectItem(results[activeIndex]);
+                break;
+            case "Escape":
+                CloseSearch();
+                break;
+        }
+    }
+
+    void RunSearch()
+    {
+        results = SearchIndex.Search(query).ToList();
+        activeIndex = 0;
+    }
+
+    async Task SelectItem(SearchItem item)
+    {
+        CloseSearch();
+
+        var current = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].TrimEnd('/');
+        var target = item.Route.TrimEnd('/');
+
+        if (item.Section != null)
+        {
+            if (string.Equals(current, target, StringComparison.OrdinalIgnoreCase))
+            {
+                if (module != null)
+                    await module.InvokeVoidAsync("scrollToHeading", item.Section);
+            }
+            else
+            {
+                pendingSection = item.Section;
+                Nav.NavigateTo(item.Route);
+            }
+        }
+        else
+        {
+            Nav.NavigateTo(item.Route);
+        }
+    }
+
+    void CloseSearch()
+    {
+        isOpen = false;
+        query = "";
+        results = [];
+    }
+
+    void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+        => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        if (module != null)
+            _ = module.DisposeAsync();
+    }
+}
