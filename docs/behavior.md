@@ -367,16 +367,16 @@ Date picker editing applies to columns that have `DatePicker = true` set. The co
 
 **Date display format:**
 
-When `DateFormat` is set (e.g. `"MM/dd/yyyy"`), that format is used:
+When `Format` is set (e.g. `"MM/dd/yyyy"`), that format is used:
 - In the non-editing cell (read-only display)
 - To pre-populate the editor when F2 or double-click opens it
 - As the first parse format on commit (before falling back to `DateTime.TryParse`)
 
-When `DateFormat` is not set, the thread's current culture short-date pattern is used.
+When `Format` is not set, the thread's current culture short-date pattern is used.
 
 **Typing a date:**
 
-The user can type any date string into the text input. On commit, the grid tries `DateFormat` first (if set) via `DateTime.TryParseExact`, then falls back to `DateTime.TryParse`. Unrecognizable strings are passed to `OnUpdate` as raw strings (same as any un-parseable typed value).
+The user can type any date string into the text input. On commit, the grid tries `Format` first (if set) via `DateTime.TryParseExact`, then falls back to `DateTime.TryParse`. Unrecognizable strings are passed to `OnUpdate` as raw strings (same as any un-parseable typed value).
 
 **Keyboard while calendar is open:**
 

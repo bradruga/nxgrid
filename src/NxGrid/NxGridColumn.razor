@@ -287,12 +287,16 @@
     [Parameter] public bool DatePicker { get; set; }
 
     /// <summary>
-    /// Format string used both to display the date in the non-editing cell and to pre-populate
-    /// the editor on F2 / double-click (e.g. <c>"MM/dd/yyyy"</c>). Also used as the first
-    /// parse format on commit before falling back to <c>DateTime.TryParse</c>. Defaults to the
-    /// thread's current culture short-date pattern when not set.
+    /// Standard or custom .NET format string applied to the property's value (e.g.
+    /// <c>"MM/dd/yyyy"</c> for a date, <c>"#,0.00"</c> for a number). Governs the non-editing
+    /// cell display, pre-populates the editor on F2 / double-click with the same formatted text,
+    /// and — for <c>DateTime</c>/<c>TimeOnly</c> columns — is tried first via <c>TryParseExact</c>
+    /// on commit before falling back to <c>TryParse</c>. Applies to any property type that
+    /// implements <see cref="IFormattable"/> (numeric types, <c>DateTime</c>, <c>TimeOnly</c>, etc.).
+    /// For <c>DateTime</c>/<c>TimeOnly</c> columns left unset, <see cref="DatePicker"/> columns fall
+    /// back to the thread's current culture short-date pattern for display.
     /// </summary>
-    [Parameter] public string? DateFormat { get; set; }
+    [Parameter] public string? Format { get; set; }
 
     /// <summary>
     /// When <c>true</c> and the column is editable, the inline editor renders a free-text input
@@ -385,10 +389,10 @@
     /// <summary>
     /// The effective display getter: <see cref="Display"/> takes priority, then the combo-source
     /// lookup (when <see cref="ComboBoxSource"/> is set and <see cref="Display"/> is not), then
-    /// an enum wrapper, date formatter, or the compiled <see cref="Property"/> getter.
+    /// an enum wrapper, the <see cref="Format"/> formatter, or the compiled <see cref="Property"/> getter.
     /// Used for rendering, filter labels, column fit measurement, and clipboard copy fallback.
     /// </summary>
-    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (comboDisplayGetter ?? enumDisplayGetter ?? dateFormatGetter ?? compiledPropertyGetter);
+    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (comboDisplayGetter ?? enumDisplayGetter ?? formatGetter ?? compiledPropertyGetter);
 
     /// <summary>
     /// The effective copy getter: <see cref="CopyGetter"/> takes priority, then
@@ -411,7 +415,7 @@
 
     private Func<T, object?>? compiledPropertyGetter;
     private Func<T, object?>? enumDisplayGetter;
-    private Func<T, object?>? dateFormatGetter;
+    private Func<T, object?>? formatGetter;
     private Func<T, object?>? comboDisplayGetter;
     private Action<T, object?>? compiledPropertySetter;
     private Type? propertyType;
@@ -438,7 +442,7 @@
             _lastBuiltProperty = Property;
             BuildPropertyAccessors();
         }
-        RebuildDateFormatGetter();
+        RebuildFormatGetter();
         RebuildComboDisplayGetter();
         HeaderCellStyle = BuildHeaderCellStyle();
         CellStyle = BuildCellStyle();
@@ -458,35 +462,22 @@
         }
     }
 
-    private void RebuildDateFormatGetter()
+    private void RebuildFormatGetter()
     {
-        if (compiledPropertyGetter != null && !string.IsNullOrEmpty(DateFormat) && propertyType != null)
+        if (compiledPropertyGetter != null && !string.IsNullOrEmpty(Format))
         {
-            var underlying = System.Nullable.GetUnderlyingType(propertyType) ?? propertyType;
-            if (underlying == typeof(DateTime))
+            var baseGetter = compiledPropertyGetter;
+            var fmt = Format;
+            formatGetter = row =>
             {
-                var baseGetter = compiledPropertyGetter;
-                var fmt = DateFormat;
-                dateFormatGetter = row =>
-                {
-                    var val = baseGetter(row);
-                    return val is DateTime dt ? dt.ToString(fmt) : val;
-                };
-                return;
-            }
-            if (underlying == typeof(TimeOnly))
-            {
-                var baseGetter = compiledPropertyGetter;
-                var fmt = DateFormat;
-                dateFormatGetter = row =>
-                {
-                    var val = baseGetter(row);
-                    return val is TimeOnly to ? to.ToString(fmt) : val;
-                };
-                return;
-            }
+                var val = baseGetter(row);
+                return val is IFormattable formattable
+                    ? formattable.ToString(fmt, System.Globalization.CultureInfo.CurrentCulture)
+                    : val;
+            };
+            return;
         }
-        dateFormatGetter = null;
+        formatGetter = null;
     }
 
     public void BuildStyles()
@@ -667,17 +658,20 @@
         object? typed = null;
         bool    parsed = false;
 
-        if      (underlying == typeof(string))                                               { typed = rawValue; parsed = true; }
-        else if (underlying == typeof(int)      && int.TryParse(rawValue,     out var i))    { typed = i; parsed = true; }
-        else if (underlying == typeof(long)     && long.TryParse(rawValue,    out var l))    { typed = l; parsed = true; }
+        var numberStyles = System.Globalization.NumberStyles.Integer | System.Globalization.NumberStyles.AllowThousands;
+        var culture      = System.Globalization.CultureInfo.CurrentCulture;
+
+        if      (underlying == typeof(string))                                                                { typed = rawValue; parsed = true; }
+        else if (underlying == typeof(int)      && int.TryParse(rawValue,  numberStyles, culture, out var i)) { typed = i; parsed = true; }
+        else if (underlying == typeof(long)     && long.TryParse(rawValue, numberStyles, culture, out var l)) { typed = l; parsed = true; }
         else if (underlying == typeof(double)   && double.TryParse(rawValue,  out var dbl))  { typed = dbl; parsed = true; }
         else if (underlying == typeof(float)    && float.TryParse(rawValue,   out var flt))  { typed = flt; parsed = true; }
         else if (underlying == typeof(decimal)  && decimal.TryParse(rawValue, out var dec))  { typed = dec; parsed = true; }
         else if (underlying == typeof(bool)     && bool.TryParse(rawValue,    out var b))    { typed = b; parsed = true; }
         else if (underlying == typeof(DateTime))
         {
-            if (!string.IsNullOrEmpty(DateFormat) &&
-                DateTime.TryParseExact(rawValue, DateFormat,
+            if (!string.IsNullOrEmpty(Format) &&
+                DateTime.TryParseExact(rawValue, Format,
                     System.Globalization.CultureInfo.CurrentCulture,
                     System.Globalization.DateTimeStyles.None, out var dtFmt))
             { typed = dtFmt; parsed = true; }
@@ -696,8 +690,8 @@
         }
         else if (underlying == typeof(TimeOnly))
         {
-            if (!string.IsNullOrEmpty(DateFormat) &&
-                TimeOnly.TryParseExact(rawValue, DateFormat,
+            if (!string.IsNullOrEmpty(Format) &&
+                TimeOnly.TryParseExact(rawValue, Format,
                     System.Globalization.CultureInfo.CurrentCulture,
                     System.Globalization.DateTimeStyles.None, out var toFmt))
             { typed = toFmt; parsed = true; }
@@ -824,7 +818,7 @@
     public string? FormatDateValue(object? value)
     {
         if (value is not DateTime dt) return null;
-        var fmt = DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+        var fmt = Format ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
         return dt.ToString(fmt);
     }
 

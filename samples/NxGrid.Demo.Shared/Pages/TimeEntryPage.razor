@@ -21,9 +21,9 @@
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Name)"  Title="Name"  Width="180" Editable="false" />
         <NxGridColumn Property="@(x => x.Start)" Title="Start" Width="110"
-                      DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
+                      Format="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn Property="@(x => x.End)"   Title="End"   Width="110"
-                      DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
+                      Format="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn Title="Duration"
                       Display="@(x => FormatDuration(x.End - x.Start))"
                       Width="100" Editable="false" Alignment="NxGridColumnAlignment.Right" />
@@ -57,16 +57,16 @@
     <h2>TimeOnly columns</h2>
     <p class="doc-note">
         Use <code>TimeOnly</code> (or <code>TimeOnly?</code>) instead of <code>DateTime</code>
-        when the property stores only a time of day. The same shorthands and <code>DateFormat</code>
+        when the property stores only a time of day. The same shorthands and <code>Format</code>
         apply — no separate configuration needed.
     </p>
     <NxGrid T="AppointmentRow" Data="@appointments" OnUpdate="HandleAppointmentUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Name)"  Title="Name"      Width="180" Editable="false" />
         <NxGridColumn Property="@(x => x.Start)" Title="Start"     Width="110"
-                      DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
+                      Format="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
         <NxGridColumn Property="@(x => x.End)"   Title="End"       Width="110"
-                      DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
+                      Format="h:mm tt" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@timeOnlyCode</pre>
 </div>
@@ -74,7 +74,7 @@
 <div class="doc-section">
     <h2>How it works</h2>
     <p class="doc-note">
-        <code>DateFormat="h:mm tt"</code> governs two things: the display string shown in
+        <code>Format="h:mm tt"</code> governs two things: the display string shown in
         non-editing cells, and the value pre-loaded into the editor on F2/double-click.
         On commit the grid first tries <code>TryParseExact(input, "h:mm tt")</code>
         then <code>TryParse(input)</code>, then its built-in shorthand parser.

@@ -7,7 +7,7 @@
     Set <code>DatePicker="true"</code> on an editable column whose <code>Property</code> points
     to a <code>DateTime</code> or <code>DateTime?</code>. The inline editor becomes a text input
     with a calendar button that opens a month-view popup. The user can type a date directly or
-    click a day to commit. Use <code>DateFormat</code> to control display and parsing.
+    click a day to commit. Use <code>Format</code> to control display and parsing.
 </p>
 
 <div class="doc-section">
@@ -23,7 +23,7 @@
         <NxGridColumn Property="@(x => x.Id)"        Title="ID"    Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Name)"      Title="Event" Width="220" />
         <NxGridColumn Property="@(x => x.EventDate)" Title="Date"  Width="160"
-                      DatePicker="true" DateFormat="MM/dd/yyyy" />
+                      DatePicker="true" Format="MM/dd/yyyy" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
 </div>
@@ -40,9 +40,9 @@
         <NxGridColumn Property="@(x => x.Id)"          Title="ID"          Width="50"  MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Description)" Title="Task"        Width="220" />
         <NxGridColumn Property="@(x => x.DueDate)"     Title="Due Date"    Width="160"
-                      DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
+                      DatePicker="true" Format="MM/dd/yyyy" Nullable="true" />
         <NxGridColumn Property="@(x => x.CompletedOn)" Title="Completed"   Width="160"
-                      DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
+                      DatePicker="true" Format="MM/dd/yyyy" Nullable="true" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@nullableCode</pre>
 </div>
@@ -50,7 +50,7 @@
 <div class="doc-section">
     <h2>Custom Date Format</h2>
     <p class="doc-note">
-        <code>DateFormat</code> controls display in the non-editing cell, the value placed
+        <code>Format</code> controls display in the non-editing cell, the value placed
         in the text input on F2/double-click, and the first parse attempt on commit.
         The grid falls back to <code>DateTime.TryParse</code> if the format does not match.
     </p>
@@ -59,9 +59,9 @@
         <NxGridColumn Property="@(x => x.Id)"           Title="ID"          Width="50" MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.Name)"         Title="Milestone"   Width="180" />
         <NxGridColumn Property="@(x => x.PlannedDate)"  Title="Planned (ISO)"     Width="160"
-                      DatePicker="true" DateFormat="yyyy-MM-dd" />
+                      DatePicker="true" Format="yyyy-MM-dd" />
         <NxGridColumn Property="@(x => x.ActualDate)"   Title="Actual (Long)"     Width="190"
-                      DatePicker="true" DateFormat="MMMM d, yyyy" Nullable="true" />
+                      DatePicker="true" Format="MMMM d, yyyy" Nullable="true" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@customFormatCode</pre>
 </div>
@@ -103,7 +103,7 @@
                 </td>
             </tr>
             <tr>
-                <td>DateFormat</td>
+                <td>Format</td>
                 <td>string?</td>
                 <td>—</td>
                 <td>

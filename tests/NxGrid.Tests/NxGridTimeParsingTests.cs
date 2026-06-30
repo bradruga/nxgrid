@@ -41,7 +41,7 @@ public class NxGridTimeParsingTests : BunitContext
             .AddChildContent<NxGridColumn<DateTimeRow>>(col =>
             {
                 col.Add(x => x.Property, (Expression<Func<DateTimeRow, object?>>)(r => r.Start));
-                if (dateFormat != null) col.Add(x => x.DateFormat, dateFormat);
+                if (dateFormat != null) col.Add(x => x.Format, dateFormat);
             }));
         return builder.FindComponent<NxGridColumn<DateTimeRow>>().Instance;
     }
@@ -55,12 +55,12 @@ public class NxGridTimeParsingTests : BunitContext
             .AddChildContent<NxGridColumn<TimeOnlyRow>>(col =>
             {
                 col.Add(x => x.Property, (Expression<Func<TimeOnlyRow, object?>>)(r => r.Start));
-                if (dateFormat != null) col.Add(x => x.DateFormat, dateFormat);
+                if (dateFormat != null) col.Add(x => x.Format, dateFormat);
             }));
         return builder.FindComponent<NxGridColumn<TimeOnlyRow>>().Instance;
     }
 
-    // ── ParseAndBuildApply — DateTime with DateFormat ────────────────────────
+    // ── ParseAndBuildApply — DateTime with Format ────────────────────────────
 
     [Test]
     public void ParseAndBuildApply_DateTime_StandardFormat_ReturnsParsedDateTime()
@@ -224,7 +224,7 @@ public class NxGridTimeParsingTests : BunitContext
                 this, args => captured = args))
             .AddChildContent<NxGridColumn<DateTimeRow>>(col => col
                 .Add(x => x.Property, (Expression<Func<DateTimeRow, object?>>)(r => r.Start))
-                .Add(x => x.DateFormat, "h:mm tt")));
+                .Add(x => x.Format, "h:mm tt")));
 
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[0]
             .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
@@ -257,7 +257,7 @@ public class NxGridTimeParsingTests : BunitContext
                 this, args => captured = args))
             .AddChildContent<NxGridColumn<DateTimeRow>>(col => col
                 .Add(x => x.Property, (Expression<Func<DateTimeRow, object?>>)(r => r.Start))
-                .Add(x => x.DateFormat, "h:mm tt")));
+                .Add(x => x.Format, "h:mm tt")));
 
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[0]
             .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
@@ -291,7 +291,7 @@ public class NxGridTimeParsingTests : BunitContext
                 this, args => captured = args))
             .AddChildContent<NxGridColumn<TimeOnlyRow>>(col => col
                 .Add(x => x.Property, (Expression<Func<TimeOnlyRow, object?>>)(r => r.Start))
-                .Add(x => x.DateFormat, "h:mm tt")));
+                .Add(x => x.Format, "h:mm tt")));
 
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[0]
             .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
@@ -323,7 +323,7 @@ public class NxGridTimeParsingTests : BunitContext
                 this, args => captured = args))
             .AddChildContent<NxGridColumn<TimeOnlyRow>>(col => col
                 .Add(x => x.Property, (Expression<Func<TimeOnlyRow, object?>>)(r => r.Start))
-                .Add(x => x.DateFormat, "h:mm tt")));
+                .Add(x => x.Format, "h:mm tt")));
 
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[0]
             .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });

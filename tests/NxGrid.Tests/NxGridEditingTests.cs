@@ -210,4 +210,80 @@ public class NxGridEditingTests : BunitContext
         Assert.That(captured!.Rows.Count, Is.EqualTo(1), "Regular Enter should only commit the editing cell");
         Assert.That(captured.Rows[0].Row, Is.SameAs(rows[0]));
     }
+
+    // ── Format (numeric) ─────────────────────────────────────────────────────
+
+    private class PriceRow
+    {
+        public decimal Price { get; set; }
+    }
+
+    [Test]
+    public async Task Format_OnNumericColumn_FormatsNonEditingCellDisplay()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var rows = new List<PriceRow> { new() { Price = 0m } };
+
+        var cut = Render<NxGrid<PriceRow>>(p => p
+            .Add(x => x.Data, rows)
+            .AddChildContent<NxGridColumn<PriceRow>>(col => col
+                .Add(x => x.Property, (Expression<Func<PriceRow, object?>>)(r => r.Price))
+                .Add(x => x.Format, "#,0.00")));
+
+        Assert.That(cut.Find(".nx-grid-cell-text").TextContent, Is.EqualTo("0.00"));
+    }
+
+    [Test]
+    public async Task Format_OnNumericColumn_PrePopulatesEditorWithFormattedValue()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var rows = new List<PriceRow> { new() { Price = 0m } };
+
+        var cut = Render<NxGrid<PriceRow>>(p => p
+            .Add(x => x.Data, rows)
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate,
+                EventCallback.Factory.Create<NxGridUpdateArgs<PriceRow>>(this, _ => { }))
+            .AddChildContent<NxGridColumn<PriceRow>>(col => col
+                .Add(x => x.Property, (Expression<Func<PriceRow, object?>>)(r => r.Price))
+                .Add(x => x.Format, "#,0.00")));
+
+        await cut.FindAll(".nx-grid-row .nx-grid-cell")[0]
+            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "F2" });
+
+        var input = cut.Find(".nx-grid-edit-input");
+        Assert.That(input.GetAttribute("value"), Is.EqualTo("0.00"),
+            "Editor should pre-populate with the Format-applied text, not the raw '0'");
+    }
+
+    [Test]
+    public async Task Format_OnNumericColumn_RoundTripsThroughCommit()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var rows = new List<PriceRow> { new() { Price = 1234.5m } };
+        NxGridUpdateArgs<PriceRow>? captured = null;
+
+        var cut = Render<NxGrid<PriceRow>>(p => p
+            .Add(x => x.Data, rows)
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate, EventCallback.Factory.Create<NxGridUpdateArgs<PriceRow>>(
+                this, args => captured = args))
+            .AddChildContent<NxGridColumn<PriceRow>>(col => col
+                .Add(x => x.Property, (Expression<Func<PriceRow, object?>>)(r => r.Price))
+                .Add(x => x.Format, "#,0.00")));
+
+        await cut.FindAll(".nx-grid-row .nx-grid-cell")[0]
+            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "F2" });
+
+        var input = cut.Find(".nx-grid-edit-input");
+        Assert.That(input.GetAttribute("value"), Is.EqualTo("1,234.50"));
+
+        await input.TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "Enter" });
+
+        Assert.That(captured, Is.Not.Null, "OnUpdate was not called");
+        Assert.That(captured!.Rows[0].Changes[0].NewValue, Is.EqualTo(1234.5m),
+            "Committing without changes should round-trip back to the original decimal value");
+    }
 }

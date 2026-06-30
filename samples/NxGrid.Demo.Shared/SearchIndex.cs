@@ -66,7 +66,7 @@ public static class SearchIndex
         // Reference — NxGridColumn
         new("NxGridColumn Reference",              "reference/nxgrid-column", Category: "Reference", Keywords: "column api parameters"),
         new("NxGridColumn — Display Parameters",   "reference/nxgrid-column", Section: "Display",   Category: "Reference", Keywords: "Title Width MinWidth MaxWidth Alignment Frozen Hidden Template CheckBox HeaderTemplate"),
-        new("NxGridColumn — Editing Parameters",   "reference/nxgrid-column", Section: "Editing",   Category: "Reference", Keywords: "Nullable MathExpression MultiLine ComboBoxSource DatePicker DateFormat"),
+        new("NxGridColumn — Editing Parameters",   "reference/nxgrid-column", Section: "Editing",   Category: "Reference", Keywords: "Nullable MathExpression MultiLine ComboBoxSource DatePicker Format"),
         new("NxGridColumn — Data Binding",         "reference/nxgrid-column", Section: "Data binding", Category: "Reference", Keywords: "Property Getter Setter ValueGetter Display CopyGetter"),
 
         // Reference — Types
@@ -89,6 +89,7 @@ public static class SearchIndex
         new("Multi-Line Editing",   "multi-line",       Category: "Editing", Keywords: "multiline newline textarea"),
         new("Math Expressions",     "math-expression",  Category: "Editing", Keywords: "formula arithmetic expression evaluate"),
         new("Combo Box",            "combo-box",        Category: "Editing", Keywords: "dropdown select combobox list"),
+        new("Number Formatting",    "number-format",    Category: "Editing", Keywords: "format currency decimal number thousands"),
         new("Date Picker",          "date-picker",      Category: "Editing", Keywords: "calendar date datetime"),
         new("Color Picker",         "color-picker",     Category: "Editing", Keywords: "color colour rgb"),
         new("Time Entry",           "time-entry",       Category: "Editing", Keywords: "time hours minutes"),

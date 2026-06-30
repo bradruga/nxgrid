@@ -18,6 +18,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to allow arithmetic expressions in editable cells](#how-to-allow-arithmetic-expressions-in-editable-cells)
 - [How to show Sum, Avg, and Count for the selected range](#how-to-show-sum-avg-and-count-for-the-selected-range)
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
+- [How to format numbers and dates in a column](#how-to-format-numbers-and-dates-in-a-column)
 - [How to add a date picker to a column](#how-to-add-a-date-picker-to-a-column)
 - [How to enable multi-line text in cells](#how-to-enable-multi-line-text-in-cells)
 - [How to show a message when the grid is empty or loading](#how-to-show-a-message-when-the-grid-is-empty-or-loading)
@@ -675,6 +676,30 @@ The built-in Copy item does not fire `OnContextMenuItemClicked` — only custom 
 
 ---
 
+## How to format numbers and dates in a column
+
+Set `Format` to a standard or custom .NET format string. It applies to any property type that
+implements `IFormattable` — numbers (`int`, `decimal`, `double`, etc.) as well as `DateTime` and
+`TimeOnly` — and governs both the read-only cell display and the text the editor pre-populates
+with on F2 / double-click.
+
+```razor
+<NxGridColumn Property="@(x => x.UnitCost)" Format="#,0.00" Width="100"
+              Alignment="NxGridColumnAlignment.Right" />
+```
+
+Without `Format`, an editable numeric column shows its formatted value in the cell only if you
+supply a separate `Display` lambda — but `Display` is display-only, so double-clicking to edit
+re-populates the input from the raw property value (e.g. the cell reads `0.00` but the editor
+opens with `0`). Setting `Format` instead keeps cell display and edit pre-population in sync,
+since both read from the same formatted getter.
+
+`Format` works the same way for `DateTime`/`TimeOnly` columns — see
+[How to add a date picker to a column](#how-to-add-a-date-picker-to-a-column) for the date-specific
+parsing behavior on commit.
+
+---
+
 ## How to add a date picker to a column
 
 Set `DatePicker="true"` on an editable column whose `Property` points to a `DateTime` or `DateTime?`. The inline editor becomes a text input with a calendar button that opens a month-view popup.
@@ -684,7 +709,7 @@ Set `DatePicker="true"` on an editable column whose `Property` points to a `Date
     <NxGridColumn Property="@(x => x.Name)"      Width="200" />
     <NxGridColumn Property="@(x => x.EventDate)" Width="160"
                   DatePicker="true"
-                  DateFormat="MM/dd/yyyy" />
+                  Format="MM/dd/yyyy" />
 </NxGrid>
 
 @code {
@@ -703,12 +728,12 @@ Set `Nullable="true"` to allow the cell to be cleared. When the user deletes the
 
 ```razor
 <NxGridColumn Property="@(x => x.CompletedDate)" Width="160"
-              DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
+              DatePicker="true" Format="MM/dd/yyyy" Nullable="true" />
 ```
 
-### DateFormat
+### Format
 
-`DateFormat` is optional. It controls:
+`Format` is optional. It controls:
 
 - **Display** — how the date is shown in the non-editing cell.
 - **Edit pre-population** — the formatted value placed in the text input when F2 or double-click opens the editor.

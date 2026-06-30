@@ -1,0 +1,127 @@
+@page "/number-format"
+
+<PageTitle>Number Formatting — NxGrid</PageTitle>
+
+<h1>Number Formatting</h1>
+<p class="doc-intro">
+    <code>Format</code> accepts a standard or custom .NET format string (e.g. <code>"#,0.00"</code>)
+    and applies it to any property type that implements <code>IFormattable</code> — numbers
+    (<code>int</code>, <code>decimal</code>, <code>double</code>, etc.) as well as
+    <code>DateTime</code> and <code>TimeOnly</code> (see <a href="/date-picker">Date Picker</a>).
+    It governs both the non-editing cell display and the text the editor pre-populates with on
+    F2 / double-click, so the two always match.
+</p>
+
+<div class="doc-section">
+    <h2>Basic Usage</h2>
+    <p class="doc-note">
+        Double-click a cell in <strong>Unit Price</strong> or <strong>Qty On Hand</strong> —
+        the editor opens with the same formatted text shown in the cell.
+    </p>
+    <NxGrid T="Product" Data="@products" Editable="true" OnUpdate="@HandleUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
+        <NxGridColumn Property="@(x => x.Id)"             Title="ID"   Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Name)"           Title="Name" Width="180" />
+        <NxGridColumn Property="@(x => x.UnitPrice)"      Title="Unit Price"    Width="110"
+                      Format="#,0.00" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.QuantityOnHand)" Title="Qty On Hand"   Width="110"
+                      Format="#,0" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Display vs. Format</h2>
+    <p class="doc-note">
+        Both columns below show the same <strong>Price</strong> value as <code>"1,500.50"</code>.
+        Double-click the <strong>Display only</strong> column — the editor opens with the raw,
+        unformatted value (<code>1500.5</code>) because <code>Display</code> only affects the
+        read-only cell. Double-click <strong>Format</strong> — the editor opens already showing
+        <code>1,500.50</code>, because cell display and edit pre-population read from the same
+        formatted getter.
+    </p>
+    <NxGrid T="ComparisonRow" Data="@comparisonRows" Editable="true" OnUpdate="@HandleComparisonUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers">
+        <NxGridColumn Property="@(x => x.Id)"    Title="ID"   Width="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Label)" Title="Item" Width="140" Editable="false" />
+        <NxGridColumn Property="@(x => x.Price)"
+                      Display="@(x => x.Price.ToString("#,0.00"))"
+                      Title="Display only" Width="140" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Price)"
+                      Format="#,0.00"
+                      Title="Format" Width="140" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@comparisonCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Parameters</h2>
+    <table class="doc-table">
+        <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Format</td>
+                <td>string?</td>
+                <td>—</td>
+                <td>
+                    Standard or custom .NET format string (e.g. <code>"#,0.00"</code>) applied to
+                    any <code>IFormattable</code> property. Governs the non-editing cell display
+                    and the value placed in the editor on F2 / double-click. For
+                    <code>DateTime</code>/<code>TimeOnly</code> columns it's also tried first via
+                    <code>TryParseExact</code> on commit — see <a href="/date-picker">Date Picker</a>
+                    for date-specific parsing behavior.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    class Product
+    {
+        public int     Id              { get; set; }
+        public string  Name            { get; set; } = "";
+        public decimal UnitPrice       { get; set; }
+        public int     QuantityOnHand  { get; set; }
+    }
+
+    class ComparisonRow
+    {
+        public int     Id    { get; set; }
+        public string  Label { get; set; } = "";
+        public decimal Price { get; set; }
+    }
+
+    List<Product> products =
+    [
+        new() { Id = 1, Name = "Widget",     UnitPrice = 1500.5m, QuantityOnHand = 12000 },
+        new() { Id = 2, Name = "Gadget",     UnitPrice = 42m,     QuantityOnHand = 3400  },
+        new() { Id = 3, Name = "Doohickey",  UnitPrice = 9.99m,   QuantityOnHand = 87    },
+        new() { Id = 4, Name = "Thingamajig",UnitPrice = 0m,      QuantityOnHand = 0     },
+    ];
+
+    List<ComparisonRow> comparisonRows =
+    [
+        new() { Id = 1, Label = "Sample A", Price = 1500.5m },
+        new() { Id = 2, Label = "Sample B", Price = 0m },
+    ];
+
+    async Task HandleUpdate(NxGridUpdateArgs<Product> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    async Task HandleComparisonUpdate(NxGridUpdateArgs<ComparisonRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    string basicCode      = DemoCodeSamples.NumberFormatBasic;
+    string comparisonCode = DemoCodeSamples.NumberFormatComparison;
+}

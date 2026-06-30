@@ -937,8 +937,8 @@ public partial class NxGrid<T>
         if (!isEditing || editCol < 0 || editCol >= visibleColumns.Count) return null;
         var col = visibleColumns[editCol];
         if (!col.IsDatePickerColumn) return null;
-        if (!string.IsNullOrEmpty(col.DateFormat) &&
-            DateTime.TryParseExact(editValue, col.DateFormat,
+        if (!string.IsNullOrEmpty(col.Format) &&
+            DateTime.TryParseExact(editValue, col.Format,
                 System.Globalization.CultureInfo.CurrentCulture,
                 System.Globalization.DateTimeStyles.None, out var dtFmt))
             return dtFmt;
@@ -962,7 +962,7 @@ public partial class NxGrid<T>
     private async Task OnDatePickerDayMouseDown(DateTime date)
     {
         var col = visibleColumns[editCol];
-        var fmt = col.DateFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+        var fmt = col.Format ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
         editValue = date.ToString(fmt);
         isDatePickerOpen = false;
         await CommitEdit();

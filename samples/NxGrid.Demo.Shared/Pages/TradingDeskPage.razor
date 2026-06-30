@@ -102,7 +102,7 @@
 
         <NxGridColumn T="StockRow" Title="Price"
                       Property="@(x => x.Price)"
-                      Display="@(x => x.Price.ToString("F2"))"
+                      Format="F2"
                       Width="88" Alignment="NxGridColumnAlignment.Right" />
 
         <NxGridColumn T="StockRow" Title="Change"
@@ -126,7 +126,9 @@
                       Width="82" Alignment="NxGridColumnAlignment.Right" />
 
         <NxGridColumn T="StockRow" Title="Target"
-                      Display="@(x => x.Target.HasValue ? x.Target.Value.ToString("F2") : "")"
+                      Property="@(x => x.Target)"
+                      Format="F2"
+                      Nullable="true"
                       Width="76" Alignment="NxGridColumnAlignment.Right" />
 
         <NxGridColumn T="StockRow" Title="Trend"
@@ -517,9 +519,7 @@
     {
         foreach (var rowArgs in args.Rows)
             foreach (var change in rowArgs.Changes)
-                if (change.Column.Title == "Target")
-                    rowArgs.Row.Target = decimal.TryParse(
-                        change.NewValue?.ToString(), out var d) ? d : (decimal?)null;
+                change.Apply(rowArgs.Row);
     }
 
     // ── Cell styling ──────────────────────────────────────────────────────────

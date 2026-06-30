@@ -39,7 +39,8 @@ public partial class TradingDeskPage
 
         // 4. Editable price target — turns green when reached
         <NxGridColumn T="StockRow" Title="Target"
-                      Display="@(x => x.Target.HasValue ? x.Target.Value.ToString("F2") : "")" />
+                      Property="@(x => x.Target)"
+                      Format="F2" Nullable="true" />
 
         CellEditableGetter="@((row, col) => col.Title == "Target")"
         OnUpdate="@HandleUpdate"

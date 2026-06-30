@@ -283,10 +283,13 @@ public partial class NxGrid<T>
         var oldValue = col.EffectiveValueGetter?.Invoke(filteredData[rowIdx]);
 
         string? stringValue;
-        if (fillValue is DateTime dt)
+        if (!string.IsNullOrEmpty(col.Format) && fillValue is IFormattable formattable)
         {
-            var fmt = col.DateFormat
-                ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+            stringValue = formattable.ToString(col.Format, System.Globalization.CultureInfo.CurrentCulture);
+        }
+        else if (fillValue is DateTime dt)
+        {
+            var fmt = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
             stringValue = dt.ToString(fmt);
         }
         else

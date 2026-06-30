@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Four CSS custom properties for checkbox colors: `--nx-grid-checkbox-border`, `--nx-grid-checkbox-bg`, `--nx-grid-checkbox-fill`, and `--nx-grid-checkbox-check`. These apply to both grid-row boolean checkboxes and the native checkboxes in the filter panel and column chooser.
 
+### Changed
+
+- **Breaking:** `NxGridColumn<T>.DateFormat` is renamed to `Format` and now applies to any `IFormattable` property, not just `DateTime`/`TimeOnly` — e.g. `Format="#,0.00"` on a `decimal` column. `Format` governs cell display and editor pre-population the same way `DateFormat` did for dates. This fixes a mismatch where an editable numeric column showing a formatted value (e.g. `0.00` via a separate `Display` lambda) would re-populate the editor with the unformatted raw value (`0`) on F2/double-click — setting `Format` keeps both in sync because they now read from the same formatted getter.
+
 ### Fixed
 
 - Footer row is now hidden when the grid has no data, preventing it from floating awkwardly below the header on empty grids.

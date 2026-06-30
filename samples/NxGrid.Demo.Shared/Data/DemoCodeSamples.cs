@@ -1140,7 +1140,7 @@ private async Task OnPrintClick()
     <NxGridColumn Property="@(x => x.Name)"      Width="200" />
     <NxGridColumn Property="@(x => x.EventDate)" Width="160"
                   DatePicker="true"
-                  DateFormat="MM/dd/yyyy" />
+                  Format="MM/dd/yyyy" />
 </NxGrid>
 
 @code {
@@ -1157,7 +1157,7 @@ private async Task OnPrintClick()
 // Nullable="true" allows the date to be cleared.
 // When the user deletes the value and commits, NewValue is null.
 <NxGridColumn Property="@(x => x.CompletedDate)" Width="160"
-              DatePicker="true" DateFormat="MM/dd/yyyy" Nullable="true" />
+              DatePicker="true" Format="MM/dd/yyyy" Nullable="true" />
 """;
 
     public static readonly string KeyPropertySaveRefresh = """
@@ -1207,17 +1207,53 @@ private async Task OnPrintClick()
 """;
 
     public static readonly string DatePickerCustomFormat = """
-// DateFormat controls display, editor pre-population, and commit parsing.
+// Format controls display, editor pre-population, and commit parsing.
 // The grid tries TryParseExact first, then falls back to DateTime.TryParse.
 
 // Short US date:
-<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" DateFormat="MM/dd/yyyy" />
+<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" Format="MM/dd/yyyy" />
 
 // ISO 8601:
-<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" DateFormat="yyyy-MM-dd" />
+<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" Format="yyyy-MM-dd" />
 
 // Long day name:
-<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" DateFormat="MMMM d, yyyy" />
+<NxGridColumn Property="@(x => x.StartDate)" DatePicker="true" Format="MMMM d, yyyy" />
+""";
+
+    public static readonly string NumberFormatBasic = """
+// Format applies to any IFormattable property — numbers as well as dates.
+// It governs both the non-editing cell display and the text the editor
+// pre-populates with on F2 / double-click.
+<NxGrid T="Product" Data="@products" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn Property="@(x => x.Name)" Width="180" />
+    <NxGridColumn Property="@(x => x.UnitPrice)" Width="110"
+                  Format="#,0.00" Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.QuantityOnHand)" Width="110"
+                  Format="#,0" Alignment="NxGridColumnAlignment.Right" />
+</NxGrid>
+
+@code {
+    async Task HandleUpdate(NxGridUpdateArgs<Product> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+}
+""";
+
+    public static readonly string NumberFormatComparison = """
+// Before Format existed, the only way to format a number for display was a
+// separate Display lambda — but Display is display-only, so the editor
+// re-populates from the raw Property value:
+<NxGridColumn Property="@(x => x.Price)"
+              Display="@(x => x.Price.ToString("#,0.00"))" />
+// Cell shows "1,500.50" — double-click to edit and the input shows "1500.5".
+
+// Format keeps cell display and edit pre-population in sync because both
+// read from the same formatted getter:
+<NxGridColumn Property="@(x => x.Price)" Format="#,0.00" />
+// Cell shows "1,500.50" — double-click to edit and the input shows "1,500.50".
 """;
 
     public static readonly string GettingStartedEditable = """
@@ -1243,14 +1279,14 @@ private async Task OnPrintClick()
 """;
 
     public static readonly string TimeEntry = """
-// DateFormat governs display and edit pre-population.
+// Format governs display and edit pre-population.
 // The grid parses standard formats, then falls back to shorthands automatically.
 <NxGrid T="ShiftRow" Data="@shifts" OnUpdate="HandleUpdate" Editable="true">
     <NxGridColumn Property="@(x => x.Name)"  Width="180" Editable="false" />
     <NxGridColumn Property="@(x => x.Start)" Title="Start"
-                  DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
+                  Format="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
     <NxGridColumn Property="@(x => x.End)"   Title="End"
-                  DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
+                  Format="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
 </NxGrid>
 
 @code {
@@ -1270,9 +1306,9 @@ private async Task OnPrintClick()
 <NxGrid T="AppointmentRow" Data="@appointments" OnUpdate="HandleUpdate" Editable="true">
     <NxGridColumn Property="@(x => x.Name)"  Width="180" Editable="false" />
     <NxGridColumn Property="@(x => x.Start)" Title="Start"
-                  DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
+                  Format="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
     <NxGridColumn Property="@(x => x.End)"   Title="End"
-                  DateFormat="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
+                  Format="h:mm tt" Alignment="NxGridColumnAlignment.Right" Width="110" />
 </NxGrid>
 
 @code {

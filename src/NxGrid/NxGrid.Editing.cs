@@ -36,17 +36,20 @@ public partial class NxGrid<T>
         var getter = column.IsComboColumn ? column.EffectiveGetter : column.EffectiveValueGetter;
         var rawValue = getter != null ? getter(filteredData[row]) : null;
         string currentText;
-        if (rawValue is DateTime dt)
+        if (!string.IsNullOrEmpty(column.Format) && rawValue is IFormattable formattable)
         {
-            var fmt = column.DateFormat
-                ?? (column.IsDatePickerColumn
-                    ? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern
-                    : null);
+            currentText = formattable.ToString(column.Format, System.Globalization.CultureInfo.CurrentCulture);
+        }
+        else if (rawValue is DateTime dt)
+        {
+            var fmt = column.IsDatePickerColumn
+                ? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern
+                : null;
             currentText = fmt != null ? dt.ToString(fmt) : dt.ToString();
         }
         else if (rawValue is TimeOnly to)
         {
-            currentText = to.ToString(column.DateFormat ?? "h:mm tt");
+            currentText = to.ToString("h:mm tt");
         }
         else
         {
