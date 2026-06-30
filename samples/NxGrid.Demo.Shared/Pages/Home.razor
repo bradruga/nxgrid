@@ -1,11 +1,12 @@
 @page "/"
 @layout LandingLayout
+@using System.Reflection
 
 <PageTitle>NxGrid — High-performance Blazor data grid</PageTitle>
 
 <section class="hero-section">
     <a href="https://www.nuget.org/packages/NxGrid" class="hero-badge" target="_blank" rel="noopener">
-        v0.2.8 — Available on NuGet →
+        v@(nxGridVersion) — Available on NuGet →
     </a>
     <h1 class="hero-headline">High-performance<br />data grid for Blazor.</h1>
     <p class="hero-sub">
@@ -128,6 +129,10 @@
 </div>
 
 @code {
+    string nxGridVersion = (typeof(NxGridSelectionMode).Assembly
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?")
+        .Split('+')[0];
+
     class Supercar
     {
         public string Make      { get; set; } = "";
