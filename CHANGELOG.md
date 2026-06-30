@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fill handle no longer stays at its old position after filtering or sorting — it now repositions correctly whenever the visible row set changes.
+- Fill handle position is now owned entirely by JavaScript; Blazor no longer writes inline `top`/`left` style values that could conflict with the JS-driven scroll and resize repositioning.
 - Arrow keys now commit and move in two cases: (1) editing was initiated by typing a printable character (whether the cell was empty or not), or (2) editing was initiated by double-click on an empty cell. F2 always keeps arrow keys as cursor navigation within the input.
 
 ## [0.2.7] - 2026-06-26

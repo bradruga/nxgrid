@@ -1523,6 +1523,7 @@ $nx-grid-menu-icon:       $nx-grid-accent    !default;
 
 .nx-grid-fill-handle {
     position: fixed;
+    visibility: hidden;
     width: 7px;
     height: 7px;
     background-color: var(--nx-grid-selection-border);

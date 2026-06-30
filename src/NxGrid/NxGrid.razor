@@ -559,7 +559,6 @@
     @if (ShowFillHandle)
     {
         <div class="nx-grid-fill-handle"
-             style="top:@(fillHandleTop)px;left:@(fillHandleLeft)px;@(fillHandleNeedsPositioning || !fillHandleVisible ? "visibility:hidden;" : "")"
              @onmousedown="OnFillHandleMouseDown"
              @onmousedown:preventDefault
              @onmousedown:stopPropagation>

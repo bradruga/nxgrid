@@ -127,7 +127,7 @@ class NxGrid {
 
     }
 
-    setFillHandleAnchor(maxRow, maxCol, rowHeight) {
+    updateFillHandle(maxRow, maxCol, rowHeight) {
         this._fillHandleAnchor = { maxRow, maxCol, rowHeight };
         const gridElement = document.getElementById(this.id);
         if (gridElement && !this._scrollHandlerAttached) {
@@ -138,10 +138,16 @@ class NxGrid {
             this._layoutObserver = new ResizeObserver(() => this._repositionFillHandle());
             this._layoutObserver.observe(document.body);
         }
+        this._repositionFillHandle();
     }
 
     clearFillHandleAnchor() {
         this._fillHandleAnchor = null;
+        const gridElement = document.getElementById(this.id);
+        if (gridElement) {
+            const handle = gridElement.querySelector('.nx-grid-fill-handle');
+            if (handle) handle.style.visibility = 'hidden';
+        }
         if (this._layoutObserver) {
             this._layoutObserver.disconnect();
             this._layoutObserver = null;
@@ -159,7 +165,7 @@ class NxGrid {
         if (pos) {
             handle.style.top = pos.top + 'px';
             handle.style.left = pos.left + 'px';
-            handle.style.visibility = '';
+            handle.style.visibility = 'visible';
         } else {
             handle.style.visibility = 'hidden';
         }

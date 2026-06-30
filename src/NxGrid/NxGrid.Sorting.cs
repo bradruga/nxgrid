@@ -124,6 +124,8 @@ public partial class NxGrid<T>
 
     private void ApplyFilterAndSort()
     {
+        _fillHandleUpdatePending = true;
+
         var data = Data;
 
         foreach (var column in ActiveColumns)

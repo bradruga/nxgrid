@@ -8,7 +8,6 @@ public record NxCharWidths(Dictionary<string, double> Normal, Dictionary<string,
 public record NxMenuPosition(double Top, double Left, bool IsMobile = false);
 public record NxDatePickerPosition(double Top, double Left);
 public record NxColorPickerPosition(double Top, double Left);
-public record NxFillHandlePosition(double Top, double Left);
 public record NxDragFillResult(string Direction, int FillCount);
 public record NxDragSelectResult(int EndRow, int EndCol);
 
@@ -134,11 +133,8 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public Task<int> DragRow(int startRowIndex, int rowCount, int rowHeight)
         => jsObject.InvokeAsync<int>("dragRow", startRowIndex, rowCount, rowHeight).AsTask();
 
-    public Task<NxFillHandlePosition?> GetFillHandlePosition(int maxRow, int maxCol, int rowHeight)
-        => jsObject.InvokeAsync<NxFillHandlePosition?>("getFillHandlePosition", maxRow, maxCol, rowHeight).AsTask();
-
-    public Task SetFillHandleAnchor(int maxRow, int maxCol, int rowHeight)
-        => jsObject.InvokeVoidAsync("setFillHandleAnchor", maxRow, maxCol, rowHeight).AsTask();
+    public Task UpdateFillHandle(int maxRow, int maxCol, int rowHeight)
+        => jsObject.InvokeVoidAsync("updateFillHandle", maxRow, maxCol, rowHeight).AsTask();
 
     public Task ClearFillHandleAnchor()
         => jsObject.InvokeVoidAsync("clearFillHandleAnchor").AsTask();

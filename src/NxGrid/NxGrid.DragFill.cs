@@ -33,36 +33,27 @@ public partial class NxGrid<T>
         return false;
     }
 
-    private double fillHandleTop;
-    private double fillHandleLeft;
-    private bool fillHandleVisible;
-    private bool fillHandleNeedsPositioning;
+    // JS owns the fill handle's position and visibility. This flag signals that the
+    // JS anchor needs to be refreshed (new selection, filter change, column resize, etc.)
+    private bool _fillHandleUpdatePending;
+    // Tracks the last ShowFillHandle value so we detect transitions to/from visible.
+    private bool _prevShowFillHandle;
 
-    private async Task PositionFillHandleAsync()
+    // Tells the JS side where the fill handle should be, or clears it if the handle
+    // should be hidden. Called from OnAfterRenderAsync — no StateHasChanged needed.
+    private async Task SyncFillHandleAsync()
     {
-        if (!ShowFillHandle || jsInterop == null || ActiveRange == null)
+        if (jsInterop == null) return;
+
+        if (!ShowFillHandle || ActiveRange == null)
         {
-            fillHandleVisible = false;
-            if (jsInterop != null) await jsInterop.ClearFillHandleAnchor();
+            await jsInterop.ClearFillHandleAnchor();
             return;
         }
 
-        var maxRow = Math.Max(ActiveRange.StartRow, ActiveRange.EndRow);
+        var maxRow = Math.Min(Math.Max(ActiveRange.StartRow, ActiveRange.EndRow), filteredData.Count - 1);
         var maxCol = Math.Max(ActiveRange.StartCol, ActiveRange.EndCol);
-
-        var pos = await jsInterop.GetFillHandlePosition(maxRow, maxCol, RowHeight);
-        if (pos != null)
-        {
-            fillHandleTop = pos.Top;
-            fillHandleLeft = pos.Left;
-            fillHandleVisible = true;
-            await jsInterop.SetFillHandleAnchor(maxRow, maxCol, RowHeight);
-        }
-        else
-        {
-            fillHandleVisible = false;
-            await jsInterop.ClearFillHandleAnchor();
-        }
+        await jsInterop.UpdateFillHandle(maxRow, maxCol, RowHeight);
     }
 
     private async Task OnFillHandleMouseDown(MouseEventArgs args)
@@ -70,7 +61,8 @@ public partial class NxGrid<T>
         if (args.Button != MouseButtonLeft) return;
         if (ActiveRange == null || jsInterop == null) return;
 
-        fillHandleVisible = false;
+        // Hide immediately while dragging; JS will restore after fill completes.
+        await jsInterop.ClearFillHandleAnchor();
         StateHasChanged();
 
         var minRow = Math.Min(ActiveRange.StartRow, ActiveRange.EndRow);
@@ -84,7 +76,7 @@ public partial class NxGrid<T>
             await ApplyDragFill(minRow, maxRow, minCol, maxCol, result.Direction, result.FillCount);
 
         renderToken++;
-        fillHandleNeedsPositioning = true;
+        _fillHandleUpdatePending = true;
         StateHasChanged();
     }
 

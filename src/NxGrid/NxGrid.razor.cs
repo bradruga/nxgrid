@@ -816,11 +816,14 @@ public partial class NxGrid<T>
             StateHasChanged();
         }
 
-        if (fillHandleNeedsPositioning && jsInterop != null)
+        // Sync fill handle: runs when pending update or ShowFillHandle visibility changed.
+        // JS owns the element's style — no StateHasChanged() needed after this call.
+        var showHandle = ShowFillHandle;
+        if ((_fillHandleUpdatePending || showHandle != _prevShowFillHandle) && jsInterop != null)
         {
-            fillHandleNeedsPositioning = false;
-            await PositionFillHandleAsync();
-            StateHasChanged();
+            _prevShowFillHandle = showHandle;
+            _fillHandleUpdatePending = false;
+            await SyncFillHandleAsync();
         }
 
         if (pendingKeyRestorationChanged)
