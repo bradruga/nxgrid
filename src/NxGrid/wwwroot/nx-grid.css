@@ -67,6 +67,8 @@
 }
 
 .nx-grid-column-title-template {
+  display: block;
+  width: 100%;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;

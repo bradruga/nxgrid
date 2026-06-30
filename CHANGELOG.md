@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Edit inputs now respect the column's `Alignment` setting — center- and right-aligned columns display their editor text at the correct alignment.
+- `HeaderTemplate` content can now be centered using `justify-content` — the template wrapper is now a full-width block element, so child elements can use `width:100%` and flex layout as expected.
 
 ## [0.2.8] - 2026-06-30
 
