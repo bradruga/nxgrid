@@ -49,6 +49,9 @@
     --nx-grid-pick-border:      #16A34A;
     --nx-grid-item-hover-bg:    rgba(22, 163, 74, 0.07);
     --nx-grid-menu-icon:        #16A34A;
+    --nx-grid-checkbox-border:  #D0D0D8;
+    --nx-grid-checkbox-fill:    #16A34A;
+    --nx-grid-checkbox-check:   #ffffff;
 }
 
 /* ── Design tokens (dark mode) ─────────────────────────────────────────────── */
@@ -110,6 +113,10 @@ html.site-dark, .site-dark {
     --nx-grid-footer-bg:        #161618;
     --nx-grid-menu-bg:          #1C1C1F;
     --nx-grid-menu-icon:        #4ADE80;
+    --nx-grid-checkbox-border:  #3A3A48;
+    --nx-grid-checkbox-bg:      #1C1C1F;
+    --nx-grid-checkbox-fill:    #4ADE80;
+    --nx-grid-checkbox-check:   #0F0F11;
 }
 
 /* ── Reset & base ──────────────────────────────────────────────────────────── */

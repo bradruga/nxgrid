@@ -930,6 +930,10 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-font-size:        14px;     /* grid base font size */
     --nx-grid-menu-bg:          #fff;     /* background of column menu and context menu */
     --nx-grid-menu-icon:        #0078d4;  /* icon color in column menu (independent of accent and checkboxes) */
+    --nx-grid-checkbox-border:  #c0c0c0;  /* border of unchecked checkbox */
+    --nx-grid-checkbox-bg:      #fff;     /* background of unchecked checkbox */
+    --nx-grid-checkbox-fill:    #0078d4;  /* background and border of checked checkbox; also accent-color for filter/chooser native checkboxes */
+    --nx-grid-checkbox-check:   #ffffff;  /* checkmark color inside a checked checkbox */
 }
 ```
 
