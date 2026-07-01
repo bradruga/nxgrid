@@ -3,8 +3,8 @@ $nx-grid-fg:            inherit   !default;
 $nx-grid-border:        #E0E0E0   !default;
 $nx-grid-header-bg:     #F0F0F0   !default;
 $nx-grid-header-border: #999999   !default;
-$nx-grid-row-even-bg:   #e7e7e7   !default;
-$nx-grid-row-odd-bg:    #ececec   !default;
+$nx-grid-row-even-bg:   #f5f5f5   !default;
+$nx-grid-row-odd-bg:    #ffffff   !default;
 $nx-grid-surface:       #fff      !default;
 $nx-grid-selection-bg:          #C7C7C7   !default;
 $nx-grid-selected-border:       #AFAFAF   !default;
@@ -32,6 +32,7 @@ $nx-grid-checkbox-border: #c0c0c0            !default;
 $nx-grid-checkbox-bg:     $nx-grid-surface   !default;
 $nx-grid-checkbox-fill:   $nx-grid-accent    !default;
 $nx-grid-checkbox-check:  #ffffff            !default;
+$nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
 
 // ── CSS custom properties (override these in your own CSS) ────────────────────
 :root {
@@ -68,6 +69,7 @@ $nx-grid-checkbox-check:  #ffffff            !default;
     --nx-grid-checkbox-bg:     #{$nx-grid-checkbox-bg};
     --nx-grid-checkbox-fill:   #{$nx-grid-checkbox-fill};
     --nx-grid-checkbox-check:  #{$nx-grid-checkbox-check};
+    --nx-grid-readonly-bg:     #{$nx-grid-readonly-bg};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -13,7 +13,7 @@
 
 <div class="doc-section">
     <h2>Text Editing and Combo-Box</h2>
-    <p class="doc-note">First, Last, Age, and Department are all editable. Department uses a combo-box dropdown — type to filter, then press <kbd class="doc-kbd">↓</kbd> or click to select.</p>
+    <p class="doc-note">First, Last, Age, and Department are all editable. Department uses a combo-box dropdown — type to filter, then press <kbd class="doc-kbd">↓</kbd> or click to select. Id is not editable, so it shows the automatic read-only tint (see <code>ShowReadOnlyStyling</code> below).</p>
     <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
         <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
@@ -64,6 +64,29 @@
                       Width="90" Alignment="NxGridColumnAlignment.Center" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@cellEditableGetterCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>ShowReadOnlyStyling — Automatic Read-Only Tint</h2>
+    <p class="doc-note">
+        Cells that cannot be edited — a non-editable column, or a cell blocked by <code>CellEditableGetter</code> —
+        are automatically tinted with the <code>--nx-grid-readonly-bg</code> CSS variable, so users can tell which
+        cells accept input without double-clicking around. This is on by default; set
+        <code>ShowReadOnlyStyling="false"</code> to turn it off. A cell's own <code>CellStyle</code> background
+        always takes precedence over the tint.
+    </p>
+    <div class="doc-controls">
+        <label style="font-size:13px;"><input type="checkbox" @bind="showReadOnlyStyling" /> ShowReadOnlyStyling</label>
+    </div>
+    <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers"
+            Editable="true" ShowReadOnlyStyling="@showReadOnlyStyling"
+            CellEditableGetter="@((row, col) => row.Department != "Finance")">
+        <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@readOnlyStylingCode</pre>
 </div>
 
 <div class="doc-section">
@@ -131,6 +154,7 @@
     List<Person> fillPeople = SampleData.GetPeopleCopy();
     string doubleClickLog = "none";
     string cellEditBlockedLog = "none";
+    bool showReadOnlyStyling = true;
 
     void OnCellDoubleClicked(NxGridCellClickArgs<Person> args)
     {
@@ -161,6 +185,7 @@
     string basicEditCode            = DemoCodeSamples.BasicEdit;
     string ctrlEnterFillCode        = DemoCodeSamples.CtrlEnterFill;
     string cellEditableGetterCode   = DemoCodeSamples.CellEditableGetter;
+    string readOnlyStylingCode      = DemoCodeSamples.ReadOnlyStyling;
     string doubleClickCode          = DemoCodeSamples.DoubleClick;
     string transformCode            = DemoCodeSamples.TransformPasted;
 }

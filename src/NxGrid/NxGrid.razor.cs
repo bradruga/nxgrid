@@ -338,6 +338,14 @@ public partial class NxGrid<T>
     [Parameter] public Func<T, NxGridColumn<T>, bool>? CellEditableGetter { get; set; }
 
     /// <summary>
+    /// When <c>true</c> (default), cells that cannot be edited — because their column is not
+    /// editable, or <see cref="CellEditableGetter"/> blocks them — are tinted with
+    /// <c>--nx-grid-readonly-bg</c> so users can tell at a glance which cells accept input.
+    /// Has no effect when <see cref="OnUpdate"/> has no delegate, since no cell is editable then.
+    /// </summary>
+    [Parameter] public bool ShowReadOnlyStyling { get; set; } = true;
+
+    /// <summary>
     /// Fires just before a cell enters edit mode (after all editability checks pass).
     /// Set <see cref="NxGridEditingArgs{T}.Cancel"/> to <c>true</c> to prevent the editor opening.
     /// </summary>
@@ -425,6 +433,7 @@ public partial class NxGrid<T>
 
     private List<T> loadedData = [];
     private int loadedDataCount;
+    private bool prevShowReadOnlyStyling = true;
     private List<T> filteredData = [];
     private List<int> rowIndices = [];
     private List<NxGridColumn<T>> columns = [];
@@ -656,6 +665,12 @@ public partial class NxGrid<T>
 
         ComputeFrozenOffsets();
 
+        if (ShowReadOnlyStyling != prevShowReadOnlyStyling)
+        {
+            prevShowReadOnlyStyling = ShowReadOnlyStyling;
+            renderToken++;
+        }
+
         if (Data.Count != loadedDataCount || !ReferenceEquals(Data, loadedData))
         {
             HashSet<object?>? selectedKeys = null;
@@ -746,13 +761,15 @@ public partial class NxGrid<T>
             var names = _pendingCssVars.ToArray();
             _pendingCssVars.Clear();
             var resolved = await jsInterop.GetCssVars(names);
-            foreach (var (name, value) in resolved)
+            if (resolved != null && resolved.Count > 0)
             {
-                if (!string.IsNullOrEmpty(value))
-                    _cssVarColors[name] = value;
-            }
-            if (resolved.Count > 0)
+                foreach (var (name, value) in resolved)
+                {
+                    if (!string.IsNullOrEmpty(value))
+                        _cssVarColors[name] = value;
+                }
                 StateHasChanged();
+            }
         }
 
         if (columns.Count != lastColumnCount)

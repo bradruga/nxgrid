@@ -218,6 +218,10 @@ A column is editable when `Editable` is set (either at the column level or via t
 
 For bulk operations (paste, delete, Ctrl+Enter), `CellEditableGetter` is evaluated but `OnEditing` and `OnEditBlocked` are not — blocked cells are silently skipped.
 
+### Read-only cell styling
+
+When `ShowReadOnlyStyling` is `true` (the default) and the grid has an `OnUpdate` handler, any cell that fails the column-level `Editable` check or is blocked by `CellEditableGetter` is tinted with the `--nx-grid-readonly-bg` CSS variable — no configuration needed per column. This lets users see which cells accept input without double-clicking around to find out. The default is a neutral mid-grey semi-transparent overlay, which darkens light surfaces and lightens dark surfaces automatically — no separate light/dark default is needed. The tint is painted as a `background-image`, not `background-color`, so it composites on top of whatever's already there (row striping, the selection highlight) instead of replacing it — a readonly cell that gets selected still shows the normal selection color, just with the tint layered over it. A cell's own background from `CellStyle`/`column.CellStyle` always takes precedence over the tint (it is skipped entirely for that cell). If the grid has no `OnUpdate` handler at all, no cell is editable, so the tint is skipped everywhere rather than greying out the whole grid. Set `ShowReadOnlyStyling="false"` to disable this and style read-only cells manually.
+
 ### Entering edit mode
 
 | Trigger | Initial edit value |

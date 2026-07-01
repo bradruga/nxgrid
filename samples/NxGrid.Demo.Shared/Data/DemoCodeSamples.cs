@@ -167,6 +167,18 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string ReadOnlyStyling = """
+// ShowReadOnlyStyling is true by default: cells blocked by column Editable or
+// CellEditableGetter are tinted with the --nx-grid-readonly-bg CSS variable.
+// A cell's own CellStyle background always wins over the tint.
+<NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate"
+        ShowReadOnlyStyling="false"
+        CellEditableGetter="@((row, col) => row.Department != "Finance")">
+    <NxGridColumn Property="@(x => x.Id)" Editable="false" />
+    <NxGridColumn Property="@(x => x.Department)" />
+</NxGrid>
+""";
+
     public static readonly string DoubleClick = """
 // Fires for columns that are not editable (no Editable="true" on column or grid)
 <NxGrid T="Person" Data="@people"

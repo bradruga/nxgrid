@@ -3,8 +3,8 @@
   --nx-grid-border: #E0E0E0;
   --nx-grid-header-bg: #F0F0F0;
   --nx-grid-header-border: #999999;
-  --nx-grid-row-even-bg: #e7e7e7;
-  --nx-grid-row-odd-bg: #ececec;
+  --nx-grid-row-even-bg: #f5f5f5;
+  --nx-grid-row-odd-bg: #ffffff;
   --nx-grid-surface: #fff;
   --nx-grid-selection-bg: #C7C7C7;
   --nx-grid-selected-border: #AFAFAF;
@@ -32,6 +32,7 @@
   --nx-grid-checkbox-bg: #fff;
   --nx-grid-checkbox-fill: #0078d4;
   --nx-grid-checkbox-check: #ffffff;
+  --nx-grid-readonly-bg: rgba(128, 128, 128, 0.14);
 }
 
 .nx-grid {

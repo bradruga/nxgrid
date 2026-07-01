@@ -138,6 +138,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 |---|---|---|
 | `Editable` | `bool` | `false` | Default editability for all columns. Individual columns can override with their own `Editable` parameter. Has no effect without `OnUpdate`. |
 | `CellEditableGetter` | `Func<T, NxGridColumn<T>, bool>?` | Grid-level per-cell editability guard. When supplied, cells where this returns `false` cannot enter edit mode regardless of column-level `Editable`. Evaluated after column editability. Direct edit attempts (F2, typing, double-click) on a blocked cell fire `OnEditBlocked`; bulk operations (paste, delete, Ctrl+Enter) silently skip blocked cells. |
+| `ShowReadOnlyStyling` | `bool` | `true` by default. Tints cells that cannot be edited — because their column isn't editable, or `CellEditableGetter` blocks them — with the `--nx-grid-readonly-bg` CSS variable, so users can tell which cells accept input without trial-and-error. Applied as a `background-image` overlay, so it composites naturally on top of row striping, custom `CellStyle` backgrounds are left alone (a cell's own background always takes precedence over the tint), and it blends correctly with the selection color when a readonly cell is selected. Skipped entirely when `OnUpdate` has no delegate, since no cell is editable then. |
 | `OnEditing` | `EventCallback<NxGridEditingArgs<T>>` | Fires just before a cell enters edit mode (after all editability checks pass). Set `args.Cancel = true` to prevent the editor from opening. |
 | `OnEditBlocked` | `EventCallback<NxGridEditBlockedArgs<T>>` | Fires when a user directly tries to edit a cell blocked by `CellEditableGetter`. Receives `args.Row` and `args.Column`. Does **not** fire for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells. |
 | `OnEditValueChanged` | `EventCallback<NxGridEditValueChangedArgs<T>>` | Fires when the in-cell edit value changes — once when a cell first enters edit mode (initial value) and again on every subsequent keystroke. |
@@ -905,8 +906,8 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-border:           #E0E0E0;
     --nx-grid-header-bg:        #F0F0F0;
     --nx-grid-header-border:    #999999;  /* header cell borders (darker than body) */
-    --nx-grid-row-even-bg:      #e7e7e7;
-    --nx-grid-row-odd-bg:       #ececec;
+    --nx-grid-row-even-bg:      #f5f5f5;
+    --nx-grid-row-odd-bg:       #ffffff;
     --nx-grid-surface:          #fff;
     --nx-grid-selection-bg:     #C7C7C7;  /* selected cell background */
     --nx-grid-focus-cell-bg:    #d6f5e3;  /* Focus Cell row/column highlight */
@@ -934,6 +935,7 @@ All colors are overridable. Set these on `:root` or any ancestor element:
     --nx-grid-checkbox-bg:      #fff;     /* background of unchecked checkbox */
     --nx-grid-checkbox-fill:    #0078d4;  /* background and border of checked checkbox; also accent-color for filter/chooser native checkboxes */
     --nx-grid-checkbox-check:   #ffffff;  /* checkmark color inside a checked checkbox */
+    --nx-grid-readonly-bg:      rgba(128, 128, 128, 0.14);  /* tint on non-editable cells; see ShowReadOnlyStyling */
 }
 ```
 

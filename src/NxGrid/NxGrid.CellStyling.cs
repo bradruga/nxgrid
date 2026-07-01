@@ -28,6 +28,13 @@ public partial class NxGrid<T>
     private static readonly Regex BgImageRemoveRegex =
         new(@"background-image\s*:[^;]+;?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private bool IsCellReadOnly(T item, NxGridColumn<T> column)
+    {
+        if (!ShowReadOnlyStyling || !OnUpdate.HasDelegate) return false;
+        if (!IsColumnEditable(column)) return true;
+        return CellEditableGetter != null && !CellEditableGetter(item, column);
+    }
+
     private string GetCellStyle(T item, NxGridColumn<T> column, bool selected)
     {
         var baseStyle = column.CellStyle ?? "";
@@ -37,6 +44,14 @@ public partial class NxGrid<T>
             if (s != null)
                 baseStyle += BuildCellStyleCss(s);
         }
+
+        // Painted as a background-image overlay (not background-color) so it composites on top
+        // of whatever background-color is already active — row stripe, custom CellStyle color, or
+        // the .nx-grid-cell-selected class — without needing to special-case selection at all.
+        // Only tint when the developer hasn't already set a background themselves — custom
+        // styles always win over the automatic readonly indicator.
+        if (!BgColorExtractRegex.IsMatch(baseStyle) && !BgImageExtractRegex.IsMatch(baseStyle) && IsCellReadOnly(item, column))
+            baseStyle += "background-image:linear-gradient(var(--nx-grid-readonly-bg),var(--nx-grid-readonly-bg));";
 
         var isFrozen = column.StickyLeft != null || column.StickyRight != null;
 
