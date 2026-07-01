@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-01
+
 ### Added
 
 - Non-editable cells are now automatically tinted so users can tell at a glance which cells accept input, instead of discovering it by double-clicking. Controlled by the new `ShowReadOnlyStyling` grid parameter (default `true`) and the `--nx-grid-readonly-bg` CSS variable. The tint is applied as a `background-image` overlay so it composites correctly with row striping, custom `CellStyle` backgrounds (which always take precedence), and the selection highlight.
