@@ -99,10 +99,12 @@ When the grid has no `ChildContent` (no `<NxGridColumn>` children declared), it 
 **Sort key:** `Property` is the primary sort key. If `Property` is not set but `Display` is, `Display` is used as the sort key. If neither is set, the column cannot be sorted.
 
 **Two ways to change sort:**
-- Click the column title (only when `HasColumnMenu = true`; cycles 0 → 1 → 2 → 0, promoting the column to primary on each non-zero state).
-- Use the column menu (Sort Ascending / Sort Descending / Clear Sort), which sets the state directly.
+- Click the column title (cycles 0 → 1 → 2 → 0, promoting the column to primary on each non-zero state). Available regardless of `HasColumnMenu`.
+- Use the column menu (Sort Ascending / Sort Descending / Clear Sort), which sets the state directly. Requires `HasColumnMenu = true`.
 
 When `HeaderClickSelects = true`, clicking a column header selects the full column instead of cycling sort. Sort cycling via title click is disabled in that mode.
+
+The column title shows a pointer cursor only when clicking it can change sort — i.e. `HeaderClickSelects = false` and the column has a sort key (see above). Otherwise the cursor is the default arrow.
 
 A sort icon (↑ or ↓) appears in the column header of the primary sort column only. A filter icon appears when FilterState is non-empty.
 

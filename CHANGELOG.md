@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Default row banding is lighter: one row is now pure white (`--nx-grid-row-odd-bg`) and the other a subtle light grey (`--nx-grid-row-even-bg`), replacing the previous pair of similar mid-grey tones.
+- Column header titles now only show a pointer cursor when clicking them can actually change sort; unsortable columns and grids with `HeaderClickSelects = true` show the default cursor instead.
+
+### Fixed
+
+- Clicking a column title now cycles sort even when `HasColumnMenu = false`. Previously `HasColumnMenu` unintentionally disabled sorting entirely instead of just hiding the ▾ menu button.
 
 ## [0.2.9] - 2026-06-30
 

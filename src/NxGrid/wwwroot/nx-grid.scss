@@ -111,6 +111,10 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    &.nx-grid-column-title-no-sort {
+        cursor: default;
+    }
 }
 
 .nx-grid-column-title-template {

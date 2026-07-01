@@ -34,8 +34,8 @@
                  @onmouseenter="@(args => OnColumnHeaderMouseEnter(args, column))"
                  @onmouseleave="@(() => HideHeaderTooltip())">
                 <div class="nx-grid-column-title-wrap">
-                    <span class="nx-grid-column-title @(column.HeaderTemplate != null ? "nx-grid-column-title-template" : "")"
-                              @onclick="@(async () => { if (HasColumnMenu) await OnColumnClick(column); })">
+                    <span class="nx-grid-column-title @(column.HeaderTemplate != null ? "nx-grid-column-title-template" : "") @(HeaderClickSelects || column.EffectiveValueGetter == null ? "nx-grid-column-title-no-sort" : "")"
+                              @onclick="@(async () => await OnColumnClick(column))">
                         @if (column.HeaderTemplate != null)
                         {
                             @column.HeaderTemplate
