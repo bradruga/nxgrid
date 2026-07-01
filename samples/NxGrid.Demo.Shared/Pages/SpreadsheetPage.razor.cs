@@ -325,6 +325,15 @@ public partial class SpreadsheetPage
 
     static bool   IsNumeric(string s) => decimal.TryParse(s, out _);
 
+    // Cell content renders via a <Template>, which is positioned with justify-content
+    // (inherited from .nx-grid-cell), not text-align — see NxGridColumn.BuildCellStyle().
+    static string AlignToJustifyContent(string align) => align switch
+    {
+        "center" => "center",
+        "right"  => "flex-end",
+        _        => "flex-start",
+    };
+
     static string FormatDisplay(Cell cell)
     {
         var d = cell.Display;

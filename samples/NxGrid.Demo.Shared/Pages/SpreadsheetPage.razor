@@ -1092,10 +1092,9 @@
         if (textColor != null) s += $"color:{textColor};";
         if (bgColor   != null) s += $"background:{bgColor};";
 
-        if (cell.Align != null)
-            s += $"text-align:{cell.Align};";
-        else if (IsNumeric(cell.Display))
-            s += "text-align:right;";
+        var align = cell.Align ?? (IsNumeric(cell.Display) ? "right" : null);
+        if (align != null)
+            s += $"text-align:{align};justify-content:{AlignToJustifyContent(align)};";
 
         var hasBorders = cell.BorderTop != null || cell.BorderRight != null ||
                          cell.BorderBottom != null || cell.BorderLeft != null;
