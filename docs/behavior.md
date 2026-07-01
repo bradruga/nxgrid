@@ -638,7 +638,7 @@ All other JS-dependent operations are no-ops if `jsInterop` is null, and silentl
 
 When the column menu opens, it is rendered off-screen (hidden via `visibility:hidden`) on the first render pass. After render, JS measures the button position and the menu is repositioned and made visible. A two-render cycle is unavoidable for correct positioning.
 
-An `openingMenu` flag prevents the "lost focus" JS callback from immediately closing the menu during the frame it opens.
+Opening the menu can itself trigger a late `scroll` event on the page (e.g. the browser's focus-follows-click auto-scroll, or an automation tool scrolling the button into view before clicking) that arrives a few milliseconds after the menu is positioned. The page-scroll "close on scroll" listener ignores scroll events that land within 250ms of the menu being positioned, so this self-inflicted scroll doesn't immediately dismiss the menu that was just opened. Genuine user scrolling after that grace period still closes it as intended. Clicks on the header row are excluded from the separate "click outside" dismissal for the same reason — see `nx-grid.js`.
 
 ---
 

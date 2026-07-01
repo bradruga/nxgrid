@@ -10,7 +10,7 @@ public class ColumnMenuTests : PageTest
 
     public ColumnMenuTests(string baseUrl) => _baseUrl = baseUrl;
 
-    // The home page has two grids; target the declared-columns grid (second one).
+    // The overview page has two grids; target the declared-columns grid (second one).
     private Microsoft.Playwright.ILocator DeclaredHeader
         => Page.Locator(".nx-grid-header-row").Nth(1);
 
@@ -19,7 +19,7 @@ public class ColumnMenuTests : PageTest
 
     private async Task GoToHomePage()
     {
-        await Page.GotoAsync(_baseUrl);
+        await Page.GotoAsync(_baseUrl + "/overview");
         await Expect(DeclaredHeader).ToBeVisibleAsync();
     }
 

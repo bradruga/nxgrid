@@ -27,7 +27,7 @@ class NxGrid {
     constructor(id, dotNetObjectReference) {
         this.id = id;
         this.dotNetObjectReference = dotNetObjectReference;
-        
+
         // Prevent Tab from moving browser focus out of the edit cell.
         // Must be a capturing listener (fires before any element handlers).
         this._editTabHandler = (event) => {
@@ -112,11 +112,20 @@ class NxGrid {
         // Close the column menu when the page (outside the grid) scrolls.
         // The menu is position:fixed so its pixel coords are viewport-relative, but
         // the header it points to scrolls with the page, making the menu appear detached.
+        //
+        // Opening the menu can itself trigger a late 'scroll' event (e.g. the browser's
+        // focus-follows-click auto-scroll, or an automation tool's scroll-into-view before
+        // clicking) that arrives a few milliseconds after the menu is positioned. Without a
+        // grace period, that self-inflicted scroll immediately dismisses the menu that was
+        // just opened. Genuine user scrolling well after open still closes it as intended.
         this._pageScrollHandler = () => {
             const gridElement = document.getElementById(this.id);
             if (!gridElement) return;
             if (gridElement.querySelector('.nx-grid-column-menu')) {
-                this.dotNetObjectReference.invokeMethodAsync('OnColumnMenuLostFocus');
+                const sinceOpen = this._menuOpenedAt ? performance.now() - this._menuOpenedAt : Infinity;
+                if (sinceOpen > 250) {
+                    this.dotNetObjectReference.invokeMethodAsync('OnColumnMenuLostFocus');
+                }
             }
             this._repositionFillHandle();
         };
@@ -139,7 +148,6 @@ class NxGrid {
         };
         const gridEl = document.getElementById(this.id);
         if (gridEl) gridEl.addEventListener('focusout', this._gridFocusOutHandler);
-
     }
 
     updateFillHandle(maxRow, maxCol, rowHeight) {
@@ -204,6 +212,7 @@ class NxGrid {
     }
 
     positionColumnMenu(columnIndex) {
+        this._menuOpenedAt = performance.now();
         const gridElement = document.getElementById(this.id);
         if (!gridElement) return { top: 0, left: 0, isMobile: false };
 

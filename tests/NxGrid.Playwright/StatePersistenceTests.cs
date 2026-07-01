@@ -12,7 +12,7 @@ public class StatePersistenceTests : PageTest
     public StatePersistenceTests(string baseUrl) => _baseUrl = baseUrl;
 
     private const string PersistencePage = "/state-persistence";
-    private const string StorageKey = "demo-state-persistence";
+    private const string StorageKey = "nxgrid:demo-state-persistence";
 
     // Column indices in the state-persistence demo grid (header row, nx-grid-cell only — row-number gutter is nx-grid-row-start)
     private const int ColIndexId   = 0;

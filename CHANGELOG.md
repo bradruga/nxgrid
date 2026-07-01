@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Clicking a column title now cycles sort even when `HasColumnMenu = false`. Previously `HasColumnMenu` unintentionally disabled sorting entirely instead of just hiding the ▾ menu button.
+- The column menu no longer closes itself immediately after opening when the click that opens it also causes the page to scroll (e.g. the browser auto-scrolling a newly focused button into view). The "close on scroll" behavior now ignores scroll events within 250ms of the menu opening.
 
 ## [0.2.9] - 2026-06-30
 

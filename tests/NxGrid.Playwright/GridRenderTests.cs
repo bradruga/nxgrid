@@ -13,9 +13,9 @@ public class GridRenderTests : PageTest
     [Test]
     public async Task HomePage_GridRendersWithExpectedColumns()
     {
-        await Page.GotoAsync(_baseUrl);
+        await Page.GotoAsync(_baseUrl + "/overview");
 
-        // The home page has two grids; target the declared-columns grid (second one).
+        // The overview page has two grids; target the declared-columns grid (second one).
         var declaredHeader = Page.Locator(".nx-grid-header-row").Nth(1);
         await Expect(declaredHeader).ToBeVisibleAsync();
 

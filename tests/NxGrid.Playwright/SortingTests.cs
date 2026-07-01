@@ -11,7 +11,7 @@ public class SortingTests : PageTest
 
     public SortingTests(string baseUrl) => _baseUrl = baseUrl;
 
-    // The home page has two grids; the declared-columns grid is the second one.
+    // The overview page has two grids; the declared-columns grid is the second one.
     private Microsoft.Playwright.ILocator DeclaredHeader
         => Page.Locator(".nx-grid-header-row").Nth(1);
 
@@ -20,7 +20,7 @@ public class SortingTests : PageTest
 
     private async Task GoToHomePage()
     {
-        await Page.GotoAsync(_baseUrl);
+        await Page.GotoAsync(_baseUrl + "/overview");
         await Expect(DeclaredHeader).ToBeVisibleAsync();
     }
 
