@@ -71,12 +71,14 @@
             <tr><td>--nx-grid-border</td><td>#E0E0E0</td><td>Cell border color</td></tr>
             <tr><td>--nx-grid-header-bg</td><td>#F0F0F0</td><td>Header row background</td></tr>
             <tr><td>--nx-grid-header-border</td><td>#999999</td><td>Header border color</td></tr>
-            <tr><td>--nx-grid-row-even-bg</td><td>#e7e7e7</td><td>Even row background (RowBanding)</td></tr>
-            <tr><td>--nx-grid-row-odd-bg</td><td>#ececec</td><td>Odd row background (RowBanding)</td></tr>
+            <tr><td>--nx-grid-row-even-bg</td><td>#f5f5f5</td><td>Even row background (RowBanding)</td></tr>
+            <tr><td>--nx-grid-row-odd-bg</td><td>#ffffff</td><td>Odd row background (RowBanding)</td></tr>
             <tr><td>--nx-grid-surface</td><td>#fff</td><td>Edit input background, combo-box surface</td></tr>
             <tr><td>--nx-grid-selection-bg</td><td>#C7C7C7</td><td>Selected cell background</td></tr>
+            <tr><td>--nx-grid-focus-cell-bg</td><td>#d6f5e3</td><td>Row/column highlight background when Focus Cell mode is enabled</td></tr>
             <tr><td>--nx-grid-selected-border</td><td>#AFAFAF</td><td>Border color of selected cells</td></tr>
-            <tr><td>--nx-grid-selection-border</td><td>#217346</td><td>Edit-mode input border (Excel green)</td></tr>
+            <tr><td>--nx-grid-selection-border</td><td>#217346</td><td>Border on the active selection range (Excel green)</td></tr>
+            <tr><td>--nx-grid-pick-border</td><td>#0078d4</td><td>Border on the edit-pick range overlay</td></tr>
             <tr><td>--nx-grid-accent</td><td>#0078d4</td><td>Focus rings, sort icons, hover accents</td></tr>
             <tr><td>--nx-grid-accent-dark</td><td>#005a9e</td><td>Active/pressed states</td></tr>
             <tr><td>--nx-grid-row-number-fg</td><td>#666</td><td>Row number gutter text color</td></tr>
@@ -86,10 +88,19 @@
             <tr><td>--nx-grid-item-hover-bg</td><td>#e8f4ff</td><td>Combo/filter item hover background</td></tr>
             <tr><td>--nx-grid-muted-fg</td><td>#888</td><td>Muted text (e.g. "No matches")</td></tr>
             <tr><td>--nx-grid-shadow</td><td>rgba(0,0,0,0.15)</td><td>Dropdown / menu shadow</td></tr>
+            <tr><td>--nx-grid-group-header-bg</td><td>#E8E8E8</td><td>Group header row background</td></tr>
+            <tr><td>--nx-grid-group-header-fg</td><td>#333333</td><td>Group header row text color</td></tr>
+            <tr><td>--nx-grid-footer-bg</td><td>var(--nx-grid-header-bg)</td><td>Footer row cell background (defaults to header bg)</td></tr>
+            <tr><td>--nx-grid-footer-color</td><td>inherit</td><td>Footer row cell text color</td></tr>
+            <tr><td>--nx-grid-font-family</td><td>inherit</td><td>Grid font family; inherits from parent by default</td></tr>
+            <tr><td>--nx-grid-font-size</td><td>14px</td><td>Grid base font size</td></tr>
+            <tr><td>--nx-grid-menu-bg</td><td>var(--nx-grid-surface)</td><td>Background of column menu and context menu</td></tr>
+            <tr><td>--nx-grid-menu-icon</td><td>var(--nx-grid-accent)</td><td>Icon color in column menu (independent of accent and checkboxes)</td></tr>
             <tr><td>--nx-grid-checkbox-border</td><td>#c0c0c0</td><td>Border of an unchecked checkbox</td></tr>
             <tr><td>--nx-grid-checkbox-bg</td><td>#fff</td><td>Background of an unchecked checkbox</td></tr>
             <tr><td>--nx-grid-checkbox-fill</td><td>#0078d4</td><td>Background and border of a checked checkbox; accent color for filter and column chooser checkboxes</td></tr>
             <tr><td>--nx-grid-checkbox-check</td><td>#ffffff</td><td>Checkmark color inside a checked checkbox</td></tr>
+            <tr><td>--nx-grid-readonly-bg</td><td>rgba(128,128,128,0.14)</td><td>Tint on non-editable cells; see ShowReadOnlyStyling</td></tr>
         </tbody>
     </table>
 </div>
