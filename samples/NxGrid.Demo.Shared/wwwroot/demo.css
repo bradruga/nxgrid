@@ -154,7 +154,7 @@ code {
 .layout-container {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
 }
 
 .doc-body {
@@ -168,8 +168,8 @@ body:has(.site-dark) { background: #0F0F11; }
 
 .nav-sidebar {
     position: sticky;
-    top: 56px;
-    height: calc(100vh - 56px);
+    top: 57px;
+    height: calc(100vh - 57px);
     width: 216px;
     background: var(--bg);
     border-right: 1px solid var(--border);
@@ -263,6 +263,7 @@ body:has(.site-dark) { background: #0F0F11; }
 
 .main-content {
     flex: 1;
+    min-width: 0;
     padding: 32px 42px 60px;
     background: var(--bg);
     color: var(--fg-primary);
@@ -623,7 +624,7 @@ body:has(.site-dark) { background: #0F0F11; }
     .nav-sidebar {
         position: fixed;
         left: 0;
-        top: 56px;
+        top: 57px;
         bottom: 0;
         width: 272px;
         height: auto;

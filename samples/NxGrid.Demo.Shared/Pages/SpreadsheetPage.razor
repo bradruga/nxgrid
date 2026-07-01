@@ -6,10 +6,17 @@
 
 <PageTitle>Spreadsheet — NxGrid</PageTitle>
 
-<div class="ss-app" style="display:flex; flex-direction:column; margin:-28px -36px -48px; height:calc(100% + 76px); overflow:hidden; background:#fff; border-top:1px solid #d0d0d0;">
+<div style="display:flex; flex-direction:column; height:100%;">
+
+<h1>Spreadsheet</h1>
+<p class="doc-intro">
+    A spreadsheet built on NxGrid: formulas, cell formatting, charts, and conditional formatting.
+</p>
+
+<div class="ss-app" style="display:flex; flex-direction:column; flex:1; min-height:0; border:1px solid var(--border); border-radius:6px; overflow:hidden; background:var(--bg);">
 
     @* ── Toolbar ── *@
-    <div style="display:flex; align-items:center; gap:6px; padding:5px 10px; border-bottom:1px solid var(--nx-grid-border,#ddd); background:#fafafa; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:6px; padding:5px 10px; border-bottom:1px solid var(--border); background:var(--bg-subtle); flex-wrap:wrap;">
 
         @* File actions *@
         <button type="button" class="ss-btn" @onclick="NewSpreadsheet" title="Create a blank spreadsheet">
@@ -26,7 +33,7 @@
             Load Sample
         </button>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
+        <div style="width:1px; height:22px; background:var(--border-strong);"></div>
 
         @* Bold / Italic / Underline / Strikethrough *@
         <div style="display:flex;">
@@ -36,7 +43,7 @@
             <button type="button" class="ss-btn @(AnchorCell?.Strike==true?"ss-btn-active":"")"    style="width:30px; text-decoration:line-through;" @onclick="OnStrikeClick"       title="Strikethrough">S</button>
         </div>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
+        <div style="width:1px; height:22px; background:var(--border-strong);"></div>
 
         @* Checkbox toggle *@
         <button type="button" class="ss-btn @(AnchorCell?.IsCheckBox==true?"ss-btn-active":"")" title="Toggle checkbox cell"
@@ -47,7 +54,7 @@
             </svg>
         </button>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
+        <div style="width:1px; height:22px; background:var(--border-strong);"></div>
 
         @* Fill color (split button) *@
         <div style="position:relative; display:flex;">
@@ -66,15 +73,15 @@
             @if (showFillPicker)
             {
                 <div style="position:fixed; inset:0; z-index:99;" @onclick="@(() => showFillPicker = false)"></div>
-                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:white; border:1px solid #ccc; border-radius:4px; box-shadow:0 4px 16px rgba(0,0,0,.15); padding:8px; width:220px;">
+                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:var(--bg-raised); border:1px solid var(--border); border-radius:4px; box-shadow:var(--shadow-md); padding:8px; width:220px;">
                     <button type="button" class="ss-no-color-btn"
                             @onclick="@(() => ApplyFillColor(null))">
-                        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid #bbb;border-radius:2px;overflow:hidden;flex-shrink:0;">
+                        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid var(--border-strong);border-radius:2px;overflow:hidden;flex-shrink:0;">
                             <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1" y1="13" x2="13" y2="1" stroke="#c00" stroke-width="1.5" stroke-linecap="round"/></svg>
                         </span>
                         No Fill
                     </button>
-                    <div style="font-size:10px; color:#999; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Theme Colors</div>
+                    <div style="font-size:10px; color:var(--fg-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Theme Colors</div>
                     <div style="display:grid; grid-template-columns:repeat(10,18px); gap:2px; margin-bottom:8px;">
                         @foreach (var row in OfficeThemeColors)
                         {
@@ -87,7 +94,7 @@
                             }
                         }
                     </div>
-                    <div style="font-size:10px; color:#999; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Standard Colors</div>
+                    <div style="font-size:10px; color:var(--fg-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Standard Colors</div>
                     <div style="display:flex; gap:2px; margin-bottom:8px;">
                         @foreach (var clr in OfficeStandardColors)
                         {
@@ -97,16 +104,16 @@
                                     @onclick="@(() => ApplyFillColor(c))" @onmousedown:preventDefault></button>
                         }
                     </div>
-                    <div style="border-top:1px solid #eee; padding-top:6px; display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:11px; color:#666; flex-shrink:0;">Custom:</span>
+                    <div style="border-top:1px solid var(--border); padding-top:6px; display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:11px; color:var(--fg-secondary); flex-shrink:0;">Custom:</span>
                         <input type="color" value="@selectedFill" @onchange="OnFillInput"
-                               style="width:26px; height:22px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
+                               style="width:26px; height:22px; padding:1px; border:1px solid var(--border); border-radius:3px; cursor:pointer;" />
                     </div>
                 </div>
             }
         </div>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
+        <div style="width:1px; height:22px; background:var(--border-strong);"></div>
 
         @* Text color (split button) *@
         <div style="position:relative; display:flex;">
@@ -123,13 +130,13 @@
             @if (showTextColorPicker)
             {
                 <div style="position:fixed; inset:0; z-index:99;" @onclick="@(() => showTextColorPicker = false)"></div>
-                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:white; border:1px solid #ccc; border-radius:4px; box-shadow:0 4px 16px rgba(0,0,0,.15); padding:8px; width:220px;">
+                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:var(--bg-raised); border:1px solid var(--border); border-radius:4px; box-shadow:var(--shadow-md); padding:8px; width:220px;">
                     <button type="button" class="ss-no-color-btn"
                             @onclick="@(() => ApplyTextColorValue(null))">
-                        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid #bbb;border-radius:2px;background:#000;flex-shrink:0;"></span>
+                        <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid var(--border-strong);border-radius:2px;background:#000;flex-shrink:0;"></span>
                         Automatic
                     </button>
-                    <div style="font-size:10px; color:#999; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Theme Colors</div>
+                    <div style="font-size:10px; color:var(--fg-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Theme Colors</div>
                     <div style="display:grid; grid-template-columns:repeat(10,18px); gap:2px; margin-bottom:8px;">
                         @foreach (var row in OfficeThemeColors)
                         {
@@ -142,7 +149,7 @@
                             }
                         }
                     </div>
-                    <div style="font-size:10px; color:#999; margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Standard Colors</div>
+                    <div style="font-size:10px; color:var(--fg-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px;">Standard Colors</div>
                     <div style="display:flex; gap:2px; margin-bottom:8px;">
                         @foreach (var clr in OfficeStandardColors)
                         {
@@ -152,16 +159,16 @@
                                     @onclick="@(() => ApplyTextColorValue(c))" @onmousedown:preventDefault></button>
                         }
                     </div>
-                    <div style="border-top:1px solid #eee; padding-top:6px; display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:11px; color:#666; flex-shrink:0;">Custom:</span>
+                    <div style="border-top:1px solid var(--border); padding-top:6px; display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:11px; color:var(--fg-secondary); flex-shrink:0;">Custom:</span>
                         <input type="color" value="@selectedTextColor" @onchange="OnTextColorInput"
-                               style="width:26px; height:22px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
+                               style="width:26px; height:22px; padding:1px; border:1px solid var(--border); border-radius:3px; cursor:pointer;" />
                     </div>
                 </div>
             }
         </div>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
+        <div style="width:1px; height:22px; background:var(--border-strong);"></div>
 
         @* Alignment *@
         <div style="display:flex;">
@@ -176,7 +183,7 @@
             </button>
         </div>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
+        <div style="width:1px; height:22px; background:var(--border-strong);"></div>
 
         @* Decimal places *@
         <div style="display:flex;">
@@ -188,7 +195,7 @@
             </button>
         </div>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
+        <div style="width:1px; height:22px; background:var(--border-strong);"></div>
 
         @* Borders (split button) *@
         <div style="position:relative; display:flex;">
@@ -206,8 +213,8 @@
             @if (showBorderPicker)
             {
                 <div style="position:fixed; inset:0; z-index:99;" @onclick="@(() => showBorderPicker = false)"></div>
-                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:white; border:1px solid #ccc; border-radius:4px; box-shadow:0 4px 16px rgba(0,0,0,.15); padding:8px; width:160px;">
-                    <div style="font-size:10px; color:#999; margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px;">Borders</div>
+                <div style="position:absolute; top:calc(100% + 2px); left:0; z-index:100; background:var(--bg-raised); border:1px solid var(--border); border-radius:4px; box-shadow:var(--shadow-md); padding:8px; width:160px;">
+                    <div style="font-size:10px; color:var(--fg-muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px;">Borders</div>
                     <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:2px; margin-bottom:8px;">
                         <button type="button" class="ss-btn" title="Outer box" @onclick="ApplyBorderBox" @onmousedown:preventDefault>
                             <svg width="14" height="14" viewBox="0 0 16 16">
@@ -253,17 +260,17 @@
                             </svg>
                         </button>
                     </div>
-                    <div style="border-top:1px solid #eee; padding-top:6px; display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:11px; color:#666; flex-shrink:0;">Color:</span>
+                    <div style="border-top:1px solid var(--border); padding-top:6px; display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:11px; color:var(--fg-secondary); flex-shrink:0;">Color:</span>
                         <input type="color" value="@selectedBorderColor"
                                @onchange="@(e => selectedBorderColor = e.Value?.ToString() ?? "#000000")"
-                               style="width:26px; height:22px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;" />
+                               style="width:26px; height:22px; padding:1px; border:1px solid var(--border); border-radius:3px; cursor:pointer;" />
                     </div>
                 </div>
             }
         </div>
 
-        <div style="width:1px; height:22px; background:#ccc;"></div>
+        <div style="width:1px; height:22px; background:var(--border-strong);"></div>
 
         @* Charts toggle *@
         <button type="button" class="ss-btn @(showChartPanel ? "ss-btn-active" : "")"
@@ -288,23 +295,23 @@
 
         @if (isSaving)
         {
-            <div style="margin-left:auto; font-size:12px; color:#888;"><span>Saving…</span></div>
+            <div style="margin-left:auto; font-size:12px; color:var(--fg-muted);"><span>Saving…</span></div>
         }
     </div>
 
     @* ── Formula bar ── *@
-    <div style="display:flex; align-items:center; height:28px; padding:0 8px; border-bottom:1px solid var(--nx-grid-border,#ddd); background:#fff; gap:8px;">
-        <span style="font-family:monospace; font-size:12px; color:#888; border:1px solid #ddd; border-radius:3px; padding:1px 6px; min-width:48px; text-align:center; display:inline-block;">
+    <div style="display:flex; align-items:center; height:28px; padding:0 8px; border-bottom:1px solid var(--border); background:var(--bg); gap:8px;">
+        <span style="font-family:monospace; font-size:12px; color:var(--fg-muted); border:1px solid var(--border); border-radius:3px; padding:1px 6px; min-width:48px; text-align:center; display:inline-block;">
             @(anchorRef.Length > 0 ? anchorRef : " ")
         </span>
-        <span style="font-size:12px; color:#aaa; font-style:italic;">fx</span>
+        <span style="font-size:12px; color:var(--fg-muted); font-style:italic;">fx</span>
         <div style="flex:1; position:relative; overflow:hidden;">
             <div aria-hidden="true"
-                 style="position:absolute; inset:0; display:flex; align-items:center; font-family:monospace; font-size:13px; pointer-events:none; white-space:pre; overflow:hidden; padding:0;">
+                 style="position:absolute; inset:0; display:flex; align-items:center; font-family:monospace; font-size:13px; pointer-events:none; white-space:pre; overflow:hidden; padding:0; color:var(--fg-primary);">
                 @((MarkupString)colorizedFormulaHtml)
             </div>
             <input @ref="formulaBarInputRef"
-                   style="position:relative; width:100%; border:none; outline:none; font-family:monospace; font-size:13px; background:transparent; color:@(editingRefs.Count > 0 ? "transparent" : "inherit"); caret-color:#333; padding:0; margin:0;"
+                   style="position:relative; width:100%; border:none; outline:none; font-family:monospace; font-size:13px; background:transparent; color:@(editingRefs.Count > 0 ? "transparent" : "var(--fg-primary)"); caret-color:var(--fg-primary); padding:0; margin:0;"
                    value="@formulaBarValue"
                    @oninput="OnFormulaBarInput"
                    @onkeydown="OnFormulaBarKeyDown"
@@ -396,15 +403,15 @@
         @* ── Chart panel ── *@
         @if (showChartPanel)
         {
-            <div style="width:300px; border-left:1px solid var(--nx-grid-border,#ddd); background:#fafafa; display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;">
-                <div style="padding:8px; border-bottom:1px solid #ddd;">
+            <div style="width:300px; border-left:1px solid var(--border); background:var(--bg-subtle); display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;">
+                <div style="padding:8px; border-bottom:1px solid var(--border);">
                     <button type="button" class="ss-btn" style="width:100%;" @onclick="AddChart">+ Add Chart</button>
                 </div>
 
                 @if (charts.Count > 0)
                 {
-                    <div style="padding:6px 8px; border-bottom:1px solid #ddd; display:flex; gap:4px;">
-                        <select style="flex:1; font-size:12px; padding:2px 4px; border:1px solid #ccc; border-radius:3px;"
+                    <div style="padding:6px 8px; border-bottom:1px solid var(--border); display:flex; gap:4px;">
+                        <select style="flex:1; font-size:12px; padding:2px 4px; border:1px solid var(--border); border-radius:3px; background:var(--bg); color:var(--fg-primary);"
                                 value="@selectedChart?.Id.ToString()"
                                 @onchange="OnChartSelectorChanged">
                             @foreach (var c in charts)
@@ -420,16 +427,16 @@
                         <div style="padding:8px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
 
                             <div>
-                                <label style="display:block; color:#666; margin-bottom:2px;">Title</label>
-                                <input style="width:100%; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-size:12px;"
+                                <label style="display:block; color:var(--fg-secondary); margin-bottom:2px;">Title</label>
+                                <input style="width:100%; padding:3px 6px; border:1px solid var(--border); border-radius:3px; font-size:12px; background:var(--bg); color:var(--fg-primary);"
                                        value="@selectedChart.Title"
                                        @onchange="@(e => { selectedChart.Title = e.Value?.ToString() ?? ""; TriggerSave(); StateHasChanged(); })" />
                             </div>
 
                             <div>
-                                <label style="display:block; color:#666; margin-bottom:2px;">Data Range <span style="color:#aaa;">(e.g. B1:D13)</span></label>
+                                <label style="display:block; color:var(--fg-secondary); margin-bottom:2px;">Data Range <span style="color:var(--fg-muted);">(e.g. B1:D13)</span></label>
                                 <div style="display:flex; gap:4px;">
-                                    <input style="flex:1; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-family:monospace; font-size:12px;"
+                                    <input style="flex:1; padding:3px 6px; border:1px solid var(--border); border-radius:3px; font-family:monospace; font-size:12px; background:var(--bg); color:var(--fg-primary);"
                                            value="@selectedChart.DataRange"
                                            @onchange="@(e => { selectedChart.DataRange = e.Value?.ToString() ?? ""; chartDataVersion++; TriggerSave(); StateHasChanged(); })" />
                                     <button type="button" class="ss-btn" @onclick="@(() => UseSelectionFor(false))" title="Use current selection">Sel</button>
@@ -437,9 +444,9 @@
                             </div>
 
                             <div>
-                                <label style="display:block; color:#666; margin-bottom:2px;">X Labels Range <span style="color:#aaa;">(optional)</span></label>
+                                <label style="display:block; color:var(--fg-secondary); margin-bottom:2px;">X Labels Range <span style="color:var(--fg-muted);">(optional)</span></label>
                                 <div style="display:flex; gap:4px;">
-                                    <input style="flex:1; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-family:monospace; font-size:12px;"
+                                    <input style="flex:1; padding:3px 6px; border:1px solid var(--border); border-radius:3px; font-family:monospace; font-size:12px; background:var(--bg); color:var(--fg-primary);"
                                            value="@selectedChart.XRange"
                                            @onchange="@(e => { selectedChart.XRange = e.Value?.ToString() ?? ""; chartDataVersion++; TriggerSave(); StateHasChanged(); })" />
                                     <button type="button" class="ss-btn" @onclick="@(() => UseSelectionFor(true))" title="Use current selection">Sel</button>
@@ -472,15 +479,15 @@
         @* ── Conditional formatting panel ── *@
         @if (showCondFmtPanel)
         {
-            <div style="width:300px; border-left:1px solid var(--nx-grid-border,#ddd); background:#fafafa; display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;">
-                <div style="padding:8px; border-bottom:1px solid #ddd; display:flex; align-items:center; gap:6px;">
-                    <span style="flex:1; font-size:12px; font-weight:600; color:#333;">Conditional Formatting</span>
+            <div style="width:300px; border-left:1px solid var(--border); background:var(--bg-subtle); display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;">
+                <div style="padding:8px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:6px;">
+                    <span style="flex:1; font-size:12px; font-weight:600; color:var(--fg-primary);">Conditional Formatting</span>
                     <button type="button" class="ss-btn" @onclick="AddCondFmtRule">+ Rule</button>
                 </div>
 
                 @if (condFmtRules.Count == 0)
                 {
-                    <div style="padding:12px; font-size:12px; color:#888; text-align:center;">No rules yet. Click + Rule.</div>
+                    <div style="padding:12px; font-size:12px; color:var(--fg-muted); text-align:center;">No rules yet. Click + Rule.</div>
                 }
                 else
                 {
@@ -488,22 +495,22 @@
                     {
                         var r = rule;
                         var isSelected = selectedCondFmtRule == r;
-                        <div style="padding:6px 8px; border-bottom:1px solid #eee; cursor:pointer; @(isSelected ? "background:#e8f0fe;" : "")"
+                        <div style="padding:6px 8px; border-bottom:1px solid var(--border); cursor:pointer; @(isSelected ? "background:var(--accent-subtle);" : "")"
                              @onclick="@(() => selectedCondFmtRule = r)">
-                            <div style="font-family:monospace; font-size:11px; color:#555;">
+                            <div style="font-family:monospace; font-size:11px; color:var(--fg-secondary);">
                                 @(string.IsNullOrWhiteSpace(r.ApplyToRange) ? "(no range)" : r.ApplyToRange)
                             </div>
-                            <div style="font-size:11px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <div style="font-size:11px; color:var(--fg-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                                 @(string.IsNullOrWhiteSpace(r.Formula) ? "(no formula)" : r.Formula)
                             </div>
                             <div style="display:flex; gap:3px; margin-top:2px;">
                                 @if (r.BackgroundColor != null)
                                 {
-                                    <span style="display:inline-block; width:12px; height:12px; background:@r.BackgroundColor; border:1px solid #ccc; border-radius:2px;"></span>
+                                    <span style="display:inline-block; width:12px; height:12px; background:@r.BackgroundColor; border:1px solid var(--border); border-radius:2px;"></span>
                                 }
                                 @if (r.TextColor != null)
                                 {
-                                    <span style="display:inline-block; width:12px; height:12px; background:@r.TextColor; border:1px solid #ccc; border-radius:2px;"></span>
+                                    <span style="display:inline-block; width:12px; height:12px; background:@r.TextColor; border:1px solid var(--border); border-radius:2px;"></span>
                                 }
                                 @if (r.Bold) { <span style="font-size:10px; font-weight:700;">B</span> }
                                 @if (r.Italic) { <span style="font-size:10px; font-style:italic;">I</span> }
@@ -515,19 +522,19 @@
                 @if (selectedCondFmtRule != null)
                 {
                     var editRule = selectedCondFmtRule;
-                    <div style="padding:8px; display:flex; flex-direction:column; gap:8px; font-size:12px; border-top:1px solid #ddd; background:#fff;">
+                    <div style="padding:8px; display:flex; flex-direction:column; gap:8px; font-size:12px; border-top:1px solid var(--border); background:var(--bg);">
 
                         <div>
-                            <label style="display:block; color:#666; margin-bottom:2px;">Apply to Range</label>
-                            <input style="width:100%; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-family:monospace; font-size:12px;"
+                            <label style="display:block; color:var(--fg-secondary); margin-bottom:2px;">Apply to Range</label>
+                            <input style="width:100%; padding:3px 6px; border:1px solid var(--border); border-radius:3px; font-family:monospace; font-size:12px; background:var(--bg); color:var(--fg-primary);"
                                    placeholder="e.g. A1:Z100"
                                    value="@editRule.ApplyToRange"
                                    @onchange="@(e => { editRule.ApplyToRange = e.Value?.ToString() ?? ""; OnCondFmtChanged(); })" />
                         </div>
 
                         <div>
-                            <label style="display:block; color:#666; margin-bottom:2px;">Format cells if formula is true</label>
-                            <input style="width:100%; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-family:monospace; font-size:12px;"
+                            <label style="display:block; color:var(--fg-secondary); margin-bottom:2px;">Format cells if formula is true</label>
+                            <input style="width:100%; padding:3px 6px; border:1px solid var(--border); border-radius:3px; font-family:monospace; font-size:12px; background:var(--bg); color:var(--fg-primary);"
                                    placeholder="e.g. =A1>100"
                                    value="@editRule.Formula"
                                    @onchange="@(e => { editRule.Formula = e.Value?.ToString() ?? ""; OnCondFmtChanged(); })" />
@@ -547,21 +554,21 @@
                         </div>
 
                         <div style="display:flex; align-items:center; gap:6px;">
-                            <label style="color:#666; width:64px;">Background</label>
+                            <label style="color:var(--fg-secondary); width:64px;">Background</label>
                             <input type="color" value="@(editRule.BackgroundColor ?? "#ffffff")"
-                                   style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;"
+                                   style="width:26px; height:26px; padding:1px; border:1px solid var(--border); border-radius:3px; cursor:pointer;"
                                    @onchange="@(e => { editRule.BackgroundColor = e.Value?.ToString(); OnCondFmtChanged(); })" />
                             <button type="button" class="ss-btn" @onclick="@(() => { editRule.BackgroundColor = null; OnCondFmtChanged(); })"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg></button>
-                            <span style="color:#aaa; font-family:monospace;">@(editRule.BackgroundColor ?? "none")</span>
+                            <span style="color:var(--fg-muted); font-family:monospace;">@(editRule.BackgroundColor ?? "none")</span>
                         </div>
 
                         <div style="display:flex; align-items:center; gap:6px;">
-                            <label style="color:#666; width:64px;">Text color</label>
+                            <label style="color:var(--fg-secondary); width:64px;">Text color</label>
                             <input type="color" value="@(editRule.TextColor ?? "#000000")"
-                                   style="width:26px; height:26px; padding:1px; border:1px solid #ccc; border-radius:3px; cursor:pointer;"
+                                   style="width:26px; height:26px; padding:1px; border:1px solid var(--border); border-radius:3px; cursor:pointer;"
                                    @onchange="@(e => { editRule.TextColor = e.Value?.ToString(); OnCondFmtChanged(); })" />
                             <button type="button" class="ss-btn" @onclick="@(() => { editRule.TextColor = null; OnCondFmtChanged(); })"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg></button>
-                            <span style="color:#aaa; font-family:monospace;">@(editRule.TextColor ?? "none")</span>
+                            <span style="color:var(--fg-muted); font-family:monospace;">@(editRule.TextColor ?? "none")</span>
                         </div>
 
                         <button type="button" class="ss-btn" style="color:#c00; border-color:#e99;" @onclick="@(() => DeleteCondFmtRule(editRule))">Delete Rule</button>
@@ -572,6 +579,7 @@
     </div>
 </div>
 
+</div>
 
 <style>
     .ss-app .nx-grid-column-title-wrap {
@@ -585,27 +593,27 @@
         height: 26px;
         min-width: 26px;
         padding: 0 5px;
-        border: 1px solid #ccc;
+        border: 1px solid var(--border);
         border-radius: 3px;
-        background: #fff;
+        background: var(--bg);
         cursor: pointer;
         font-size: 13px;
-        color: #333;
+        color: var(--fg-primary);
         margin-right: -1px;
         gap: 3px;
     }
-    .ss-btn:hover { background: #f0f0f0; }
-    .ss-btn-active { background: #dce8f8; border-color: #90b4e0; color: #1a4a80; }
+    .ss-btn:hover { background: var(--bg-raised); }
+    .ss-btn-active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
     .ss-split-l { border-radius: 3px 0 0 3px; }
     .ss-split-r { border-radius: 0 3px 3px 0; padding: 0 5px; min-width: 14px; }
     .ss-no-color-btn {
         display: flex; align-items: center; gap: 6px;
         width: 100%; padding: 4px 6px; margin-bottom: 6px;
-        font-size: 11px; color: #333; text-align: left;
+        font-size: 11px; color: var(--fg-primary); text-align: left;
         border: 1px solid transparent; border-radius: 3px;
         background: none; cursor: pointer;
     }
-    .ss-no-color-btn:hover { background: #f0f0f0; }
+    .ss-no-color-btn:hover { background: var(--bg-raised); }
 </style>
 
 @code {
@@ -723,6 +731,7 @@
             cell.Value = v;
             cell.Bold  = true;
             cell.Fill  = "#d9e1f2";
+            cell.Color = "#000000";
             cell.Align = "center";
         }
 
@@ -785,8 +794,9 @@
 
         for (var c = 0; c <= 10; c++)
         {
-            sheet[tot, c].Bold = true;
-            sheet[tot, c].Fill = "#e2efda";
+            sheet[tot, c].Bold  = true;
+            sheet[tot, c].Fill  = "#e2efda";
+            sheet[tot, c].Color = "#000000";
         }
 
         sheet[0, 6].Italic = true;
