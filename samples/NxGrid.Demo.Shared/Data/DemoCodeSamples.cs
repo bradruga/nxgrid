@@ -1486,4 +1486,88 @@ NxGridCellStyle? VarianceCellStyle(BudgetEntry row, NxGridColumn<BudgetEntry> co
     </NxGridColumn>
 </NxGrid>
 """;
+
+    public static readonly string EmptyStateLoading = """
+<NxGrid T="Person" Data="@people" IsLoading="@isLoading">
+    <LoadingTemplate>
+        <span>Fetching people…</span>
+    </LoadingTemplate>
+    <EmptyTemplate>
+        <span>No people found.</span>
+    </EmptyTemplate>
+    <ChildContent>
+        <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" />
+        <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name" />
+        <NxGridColumn Property="@(x => x.Department)" />
+        <NxGridColumn Property="@(x => x.Age)" />
+    </ChildContent>
+</NxGrid>
+
+@code {
+    List<Person> people = [];
+    bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        people = await api.GetPeopleAsync();
+        isLoading = false;
+    }
+}
+""";
+
+    public static readonly string EmptyStateRefresh = """
+<NxGrid T="Person" Data="@people" IsLoading="@isRefreshing">
+    <LoadingTemplate>
+        <span style="...backdrop styles...">
+            <span class="spinner"></span>
+            Refreshing…
+        </span>
+    </LoadingTemplate>
+    <ChildContent>
+        <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" />
+        ...
+    </ChildContent>
+</NxGrid>
+
+@code {
+    List<Person> people = SampleData.GetPeopleCopy();
+    bool isRefreshing;
+
+    async Task Refresh()
+    {
+        isRefreshing = true;
+        people = await api.GetPeopleAsync();
+        isRefreshing = false;
+    }
+}
+""";
+
+    public static readonly string EmptyStateFilter = """
+<NxGrid T="Person" @ref="grid" Data="@people">
+    <EmptyTemplate>
+        @if (people.Count == 0)
+        {
+            <span>No people have been added yet.</span>
+        }
+        else
+        {
+            <span>
+                No people match the current filters.
+                <a @onclick="@(() => grid!.ClearSavedState())">Clear filters</a>
+            </span>
+        }
+    </EmptyTemplate>
+    <ChildContent>
+        <NxGridColumn Property="@(x => x.FirstName)" Title="First Name" />
+        <NxGridColumn Property="@(x => x.LastName)"  Title="Last Name" />
+        <NxGridColumn Property="@(x => x.Department)" />
+        <NxGridColumn Property="@(x => x.Age)" />
+    </ChildContent>
+</NxGrid>
+
+@code {
+    NxGrid<Person>? grid;
+    List<Person> people = SampleData.GetPeopleCopy();
+}
+""";
 }
