@@ -81,7 +81,42 @@ class NxGrid {
         this._gridKeyHandler = (event) => {
             if (/^F\d+$/.test(event.key)) return;
             const gridElement = document.getElementById(this.id);
-            if (gridElement && gridElement.contains(event.target) && document.activeElement === gridElement) {
+            if (!gridElement || !gridElement.contains(event.target)) return;
+
+            if (document.activeElement === gridElement) {
+                event.preventDefault();
+                return;
+            }
+
+            // While editing, focus is on the edit <input>, not the grid container, so the
+            // check above doesn't fire. A single-line <input> has no default action for
+            // ArrowUp/ArrowDown (unlike a <textarea>, it has no internal scroll box to
+            // absorb the key), so the browser falls back to scrolling the nearest
+            // scrollable ancestor — visible as the page/parent container jumping when an
+            // arrow key commits an edit and moves to the next cell.
+            const activeEl = document.activeElement;
+            const cls = activeEl && activeEl.classList;
+            const isEditInput = cls && (cls.contains('nx-grid-edit-input') ||
+                                         cls.contains('nx-grid-combo-input') ||
+                                         cls.contains('nx-grid-datepicker-input') ||
+                                         cls.contains('nx-grid-colorpicker-input'));
+            if (!isEditInput) return;
+
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                event.preventDefault();
+                return;
+            }
+
+            // ArrowLeft/ArrowRight normally move the caret, which is a real default
+            // action — only suppress it when the caret is already at the boundary it
+            // would move toward (e.g. typing one character then pressing ArrowRight to
+            // commit and move right). At that point the caret has nowhere left to go, so
+            // the browser falls back to scrolling the nearest scrollable ancestor
+            // horizontally instead. Away from the boundary, let the caret move normally
+            // (needed for free-cursor navigation after F2).
+            if (event.key === 'ArrowLeft' && activeEl.selectionStart === 0 && activeEl.selectionEnd === 0) {
+                event.preventDefault();
+            } else if (event.key === 'ArrowRight' && activeEl.selectionStart === activeEl.value.length && activeEl.selectionEnd === activeEl.value.length) {
                 event.preventDefault();
             }
         };
