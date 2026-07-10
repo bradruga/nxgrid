@@ -473,6 +473,11 @@
                 <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
+                <td>Task CommitEditAsync()</td>
+                <td>Commits any in-progress cell edit through the normal commit pipeline (math evaluation, parsing, <code>OnUpdate</code>) without moving the selection. No-op when nothing is being edited; when a commit is already in flight it awaits it, so <code>OnUpdate</code> fires exactly once. Completes only after <code>OnUpdate</code> has finished — call it first in a Save handler outside the grid.</td>
+                <td><a href="editing">Editing</a></td>
+            </tr>
+            <tr>
                 <td>Task ResetColumnWidths()</td>
                 <td>Clears all user-dragged column widths, restoring every column to its declared <code>Width</code> parameter.</td>
                 <td><a href="spreadsheet">Spreadsheet</a></td>

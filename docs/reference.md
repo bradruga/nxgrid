@@ -163,6 +163,7 @@ Task  ClearSavedState()                            // remove the localStorage en
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title; no-op when hidden=false and column.Visible=false
 void  ClearSelection()                              // clear the current selection; no-op when nothing is selected
 void  SetEditValue(string value)                   // replace the active edit input's text; no-op when not editing. Use in an OnCellPickedWhileEditing handler
+Task  CommitEditAsync()                            // commit any in-progress cell edit through the normal pipeline (math evaluation, parsing, OnUpdate) without moving the selection; no-op when not editing; if a commit is already in flight, awaits it instead of double-firing OnUpdate. Completes only after OnUpdate has finished — call it first in an external Save handler
 Task  ResetColumnWidths()                          // clear all user-dragged widths, restoring every column to its declared Width parameter; also resets manualMode so flex columns resume auto-sizing; re-measures FitContent columns
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
 Task  FitColumnsAsync()                            // re-measure and apply FitWidth for all columns whose effective FitContent is true; skips columns the user has manually resized

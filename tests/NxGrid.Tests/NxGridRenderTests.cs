@@ -463,4 +463,131 @@ public class NxGridRenderTests : BunitContext
 
         Assert.That(cut.FindAll(".nx-grid-combo-item").Count, Is.EqualTo(0));
     }
+
+    // ── CommitEditAsync ───────────────────────────────────────────────────────
+
+    private class EditableRow { public string? Name { get; set; } public int Qty { get; set; } }
+
+    private IRenderedComponent<NxGrid<EditableRow>> RenderEditableGrid(
+        Func<NxGridUpdateArgs<EditableRow>, Task> onUpdate, bool mathExpression = false)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Expression<Func<EditableRow, object?>> nameProp = r => r.Name;
+        Expression<Func<EditableRow, object?>> qtyProp = r => r.Qty;
+        return Render<NxGrid<EditableRow>>(p => p
+            .Add(x => x.Data, [new EditableRow { Name = "Alice", Qty = 10 }])
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate, onUpdate)
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<EditableRow>>(0);
+                b.AddAttribute(1, "Property", nameProp);
+                b.CloseComponent();
+                b.OpenComponent<NxGridColumn<EditableRow>>(2);
+                b.AddAttribute(3, "Property", qtyProp);
+                b.AddAttribute(4, "MathExpression", mathExpression);
+                b.CloseComponent();
+            }));
+    }
+
+    [Test]
+    public async Task CommitEditAsync_WithPendingEdit_FiresOnUpdateAndCompletesAfterHandler()
+    {
+        NxGridUpdateArgs<EditableRow>? captured = null;
+        var handlerFinished = false;
+        var cut = RenderEditableGrid(async args =>
+        {
+            captured = args;
+            await Task.Delay(30);
+            handlerFinished = true;
+        });
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-edit-input").Input("Bob");
+
+        await cut.InvokeAsync(() => cut.Instance.CommitEditAsync());
+
+        Assert.That(handlerFinished, Is.True, "task completed before OnUpdate handler returned");
+        Assert.That(captured!.Rows[0].Changes[0].NewValue, Is.EqualTo("Bob"));
+        Assert.That(cut.FindAll(".nx-grid-edit-input").Count, Is.EqualTo(0), "editor still open after commit");
+    }
+
+    [Test]
+    public async Task CommitEditAsync_WithNoActiveEdit_IsNoOp()
+    {
+        var updateCount = 0;
+        var cut = RenderEditableGrid(_ => { updateCount++; return Task.CompletedTask; });
+
+        await cut.InvokeAsync(() => cut.Instance.CommitEditAsync());
+
+        Assert.That(updateCount, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task CommitEditAsync_WhileCommitInFlight_AwaitsItWithoutDoubleFiring()
+    {
+        var updateCount = 0;
+        var cut = RenderEditableGrid(async _ =>
+        {
+            updateCount++;
+            await Task.Delay(30);
+        });
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-edit-input").Input("Bob");
+
+        await cut.InvokeAsync(async () =>
+        {
+            var first  = cut.Instance.CommitEditAsync();
+            var second = cut.Instance.CommitEditAsync();
+            await Task.WhenAll(first, second);
+        });
+
+        Assert.That(updateCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task CommitEditAsync_MathExpressionColumn_EvaluatesExpression()
+    {
+        NxGridUpdateArgs<EditableRow>? captured = null;
+        var cut = RenderEditableGrid(args => { captured = args; return Task.CompletedTask; }, mathExpression: true);
+
+        cut.FindAll(".nx-grid-row .nx-grid-cell")[1].DoubleClick();
+        cut.Find(".nx-grid-edit-input").Input("4*6");
+
+        await cut.InvokeAsync(() => cut.Instance.CommitEditAsync());
+
+        Assert.That(captured!.Rows[0].Changes[0].NewValue, Is.EqualTo(24));
+    }
+
+    [Test]
+    public async Task CommitEditAsync_ComboWithExactText_CommitsId()
+    {
+        NxGridUpdateArgs<ComboRow>? captured = null;
+        var cut = RenderSearchTextComboGrid(args => captured = args);
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("4x4 Post");
+
+        await cut.InvokeAsync(() => cut.Instance.CommitEditAsync());
+
+        Assert.That(captured, Is.Not.Null);
+        Assert.That(captured!.Rows[0].Changes[0].NewValue, Is.EqualTo("4x4"));
+        Assert.That(cut.FindAll(".nx-grid-combo-dropdown").Count, Is.EqualTo(0), "dropdown still open after commit");
+    }
+
+    [Test]
+    public async Task CommitEditAsync_ComboWithNonMatchingText_CancelsWithoutOnUpdate()
+    {
+        var updateCount = 0;
+        var cut = RenderSearchTextComboGrid(_ => updateCount++);
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("no such item");
+
+        await cut.InvokeAsync(() => cut.Instance.CommitEditAsync());
+
+        Assert.That(updateCount, Is.EqualTo(0));
+        Assert.That(cut.FindAll(".nx-grid-combo-input").Count, Is.EqualTo(0), "editor still open after cancel");
+    }
 }

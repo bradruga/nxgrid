@@ -244,6 +244,10 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 | Shift+Tab | Move left (wraps like the Shift+Tab navigation key) |
 | Arrow key (see below) | Move one cell in that direction |
 | Click another cell | No navigation; selection moves to the clicked cell |
+| Focus leaves the grid | No navigation; the edit commits without returning focus to the grid |
+| `CommitEditAsync()` | No navigation; the selection anchor stays on the edited cell |
+
+**Programmatic commit.** `CommitEditAsync()` commits any in-progress edit through the same pipeline as a keyboard commit (math expression evaluation, `Format`/`TryParse` parsing, `OnUpdate`) for every editor type — plain input, textarea, combo box (committed exactly as Enter with a closed dropdown: an exact `Text`/selected-item match commits its `Id`, otherwise the edit cancels), and date picker (calendar closes). It is a no-op when no editor is open, and when a commit is already in flight (e.g. one triggered by focus loss) it awaits that commit instead of starting a second one, so `OnUpdate` fires exactly once per edit. The returned task completes only after `OnUpdate` has finished — call it first in a Save handler that lives outside the grid, then read the model.
 
 **Arrow keys commit and move unless editing was started by F2.** Specifically, arrow keys commit the edit and move the selection when:
 

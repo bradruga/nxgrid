@@ -147,6 +147,31 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string CommitEditAsyncCode = """
+// CommitEditAsync() commits any in-progress cell edit through the normal
+// pipeline without moving the selection, and completes only after OnUpdate
+// has finished — so the next line reads the fully updated model.
+// No-op when nothing is being edited; never double-fires OnUpdate.
+<NxGrid @ref="grid" T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate">
+    ...
+</NxGrid>
+<button @onclick="SaveAsync">Save</button>
+
+@code {
+    NxGrid<Person>? grid;
+
+    async Task SaveAsync()
+    {
+        if (grid != null)
+            await grid.CommitEditAsync();   // flush any in-progress cell edit first
+
+        // safe: OnUpdate has already run for the pending edit
+        Validate(people);
+        await Persist(people);
+    }
+}
+""";
+
     public static readonly string CellEditableGetter = """
 // CellEditableGetter is a grid-level guard evaluated for every edit attempt.
 // Return false to block a cell — fires OnEditBlocked for direct edits (F2 / typing / double-click).

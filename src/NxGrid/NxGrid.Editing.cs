@@ -91,7 +91,26 @@ public partial class NxGrid<T>
         }
     }
 
+    // Tracks the commit currently awaiting the host's OnUpdate handler. Blazor Server can
+    // deliver a second commit trigger (e.g. CommitEditAsync racing a blur-triggered commit)
+    // while the first is still awaiting; isEditing is still true at that point, so without
+    // this guard OnUpdate would fire twice for the same edit.
+    private Task? commitInFlight;
+
     private async Task CommitEdit(string? moveKey = null, bool refocusGrid = true)
+    {
+        if (commitInFlight != null)
+        {
+            await commitInFlight;
+            return;
+        }
+        var commit = CommitEditCore(moveKey, refocusGrid);
+        commitInFlight = commit;
+        try { await commit; }
+        finally { commitInFlight = null; }
+    }
+
+    private async Task CommitEditCore(string? moveKey, bool refocusGrid)
     {
         if (!isEditing) return;
 

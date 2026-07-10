@@ -272,6 +272,31 @@ A common pattern is a short code or name as the committed value with a longer de
 
 Typing `corner` now shows `2x8 Corner` even when "corner" only appears in its description. Selecting it commits `FullName` exactly as a name-matched selection would.
 
+### Commit a pending edit before saving
+
+A Save button outside the grid can run while a cell editor is still open — the user typed a value and clicked Save without pressing Enter. Call `CommitEditAsync()` first in the save routine: it flushes the pending edit through the normal commit pipeline and its task completes only after your `OnUpdate` handler has finished, so the next line reads the fully updated model.
+
+```razor
+<NxGrid @ref="grid" T="OrderLine" Data="@lines" Editable="true" OnUpdate="@HandleUpdate" />
+<button @onclick="SaveAsync">Save &amp; Close</button>
+
+@code {
+    NxGrid<OrderLine>? grid;
+
+    async Task SaveAsync()
+    {
+        if (grid != null)
+            await grid.CommitEditAsync();   // flush any in-progress cell edit first
+
+        // safe: OnUpdate has already run for the pending edit
+        Validate(lines);
+        await Persist(lines);
+    }
+}
+```
+
+Calling it with no open editor is a no-op, and if a commit is already in flight (the grid also commits when focus leaves it, and that can race the button click in Blazor Server) it awaits that commit instead of firing `OnUpdate` twice.
+
 ---
 
 ## How to respond to selection changes

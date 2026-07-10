@@ -570,6 +570,17 @@ public partial class NxGrid<T>
     }
 
     /// <summary>
+    /// Commits any in-progress cell edit through the normal commit pipeline (math expression
+    /// evaluation, type parsing, <see cref="OnUpdate"/>) without moving the selection or
+    /// returning focus to the grid. No-op when no edit is active. If a commit is already in
+    /// flight (e.g. triggered by the grid losing focus), awaits that commit instead of starting
+    /// a second one, so <see cref="OnUpdate"/> fires exactly once per edit. The returned task
+    /// completes only after <see cref="OnUpdate"/> (if fired) has finished, so the caller can
+    /// safely read the updated model afterwards — call it first in an external Save handler.
+    /// </summary>
+    public Task CommitEditAsync() => CommitEdit(moveKey: null, refocusGrid: false);
+
+    /// <summary>
     /// Clears all user-dragged column widths, restoring every column to its declared <see cref="NxGridColumn{T}.Width"/> parameter.
     /// </summary>
     public async Task ResetColumnWidths()

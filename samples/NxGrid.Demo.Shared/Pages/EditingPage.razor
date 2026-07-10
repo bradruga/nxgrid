@@ -46,6 +46,33 @@
 </div>
 
 <div class="doc-section">
+    <h2>CommitEditAsync — Save While Editing</h2>
+    <p class="doc-note">
+        A Save button outside the grid can run while a cell editor is still open — the user typed a
+        value and clicked Save without pressing <kbd class="doc-kbd">Enter</kbd>. Call
+        <code>CommitEditAsync()</code> first in the save routine: it commits the pending edit through
+        the normal pipeline and completes only after <code>OnUpdate</code> has finished, so the next
+        line reads the fully updated model. It is a no-op when nothing is being edited.
+    </p>
+    <p class="doc-note" style="margin-top:4px">
+        Try: double-click a First cell, type a new name, then click <strong>Save</strong> directly —
+        the saved output includes the value you typed.
+    </p>
+    <NxGrid @ref="commitGrid" T="Person" Data="@commitPeople" OnUpdate="@HandleCommitUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.Age)" Width="80" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <div class="doc-controls" style="margin-top:8px">
+        <button class="doc-btn" @onclick="SaveWithCommit">Save</button>
+        <span style="font-size:13px;color:#555;">Saved: <strong>@commitSaveLog</strong></span>
+    </div>
+    <pre class="doc-code" style="margin-top:12px">@commitEditCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>CellEditableGetter — Per-Cell Editability</h2>
     <p class="doc-note">Finance rows are locked. Cells still render normally but cannot be edited — pressing <kbd class="doc-kbd">F2</kbd> or typing fires <code>OnEditBlocked</code> and shows a message below.</p>
     <div class="doc-controls">
@@ -152,6 +179,9 @@
 @code {
     List<Person> editPeople = SampleData.GetPeopleCopy();
     List<Person> fillPeople = SampleData.GetPeopleCopy();
+    List<Person> commitPeople = SampleData.GetPeopleCopy();
+    NxGrid<Person>? commitGrid;
+    string commitSaveLog = "nothing yet";
     string doubleClickLog = "none";
     string cellEditBlockedLog = "none";
     bool showReadOnlyStyling = true;
@@ -174,6 +204,23 @@
         await Task.CompletedTask;
     }
 
+    async Task HandleCommitUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
+    async Task SaveWithCommit()
+    {
+        if (commitGrid != null)
+            await commitGrid.CommitEditAsync();   // flush any in-progress cell edit first
+
+        // safe: OnUpdate has already run for the pending edit
+        commitSaveLog = string.Join(", ", commitPeople.Take(3).Select(p => $"{p.FirstName} {p.LastName} ({p.Age})")) + ", …";
+    }
+
     async Task HandleFillUpdate(NxGridUpdateArgs<Person> args)
     {
         foreach (var rowArgs in args.Rows)
@@ -184,6 +231,7 @@
 
     string basicEditCode            = DemoCodeSamples.BasicEdit;
     string ctrlEnterFillCode        = DemoCodeSamples.CtrlEnterFill;
+    string commitEditCode           = DemoCodeSamples.CommitEditAsyncCode;
     string cellEditableGetterCode   = DemoCodeSamples.CellEditableGetter;
     string readOnlyStylingCode      = DemoCodeSamples.ReadOnlyStyling;
     string doubleClickCode          = DemoCodeSamples.DoubleClick;

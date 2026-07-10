@@ -61,7 +61,7 @@ public static class SearchIndex
         new("NxGrid — Events",                "reference/nxgrid",        Section: "Events",  Category: "Reference", Keywords: "OnSelectionChanged OnCellClicked OnFilterChanged OnSortChanged OnKeyPressed OnUpdate"),
         new("NxGrid — Styling",               "reference/nxgrid",        Section: "Styling", Category: "Reference", Keywords: "CellStyle style css"),
         new("NxGrid — Editing Parameters",    "reference/nxgrid",        Section: "Editing", Category: "Reference", Keywords: "Editable CellEditableGetter OnEditing OnUpdate EnableDragFill"),
-        new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey ClearSavedState SetColumnHidden SetEditValue ResetColumnWidths PrintAsync FitColumnsAsync"),
+        new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey ClearSavedState SetColumnHidden SetEditValue CommitEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
 
         // Reference — NxGridColumn
         new("NxGridColumn Reference",              "reference/nxgrid-column", Category: "Reference", Keywords: "column api parameters"),
@@ -85,6 +85,7 @@ public static class SearchIndex
 
         // Editing
         new("Editing",              "editing",          Category: "Editing", Keywords: "edit inline update"),
+        new("Editing — CommitEditAsync", "editing",     Section: "CommitEditAsync — Save While Editing", Category: "Editing", Keywords: "commit pending edit save flush programmatic EndEditAsync"),
         new("Drag to Fill",         "drag-fill",        Category: "Editing", Keywords: "fill series autofill"),
         new("Multi-Line Editing",   "multi-line",       Category: "Editing", Keywords: "multiline newline textarea"),
         new("Math Expressions",     "math-expression",  Category: "Editing", Keywords: "formula arithmetic expression evaluate"),

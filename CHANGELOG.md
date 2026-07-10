@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Combo-box type-to-filter can now also match extra per-item search text (e.g. a description) via a new optional `searchText` selector on `NxGridComboSource.FixedList` and `VariableList`, exposed as `NxGridComboItem.SearchText`. The search text is only used for matching — cell display, dropdown rendering, and the committed value are unchanged.
+- New `CommitEditAsync()` public method commits any in-progress cell edit through the normal commit pipeline without moving the selection — call it first in a Save handler outside the grid so the pending edit reaches the model before saving. No-op when nothing is being edited; when a commit is already in flight (e.g. from the grid losing focus) it awaits that commit, so `OnUpdate` fires exactly once per edit.
 
 ### Fixed
 
