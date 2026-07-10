@@ -915,7 +915,9 @@ public partial class NxGrid<T>
     {
         comboFilteredOptions = showAll || string.IsNullOrEmpty(editValue)
             ? comboAllItems.ToList()
-            : comboAllItems.Where(i => i.Text != null && i.Text.Contains(editValue, StringComparison.OrdinalIgnoreCase)).ToList();
+            : comboAllItems.Where(i =>
+                (i.Text != null && i.Text.Contains(editValue, StringComparison.OrdinalIgnoreCase))
+             || (i.SearchText != null && i.SearchText.Contains(editValue, StringComparison.OrdinalIgnoreCase))).ToList();
     }
 
     private async Task PositionComboDropdown()

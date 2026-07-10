@@ -89,6 +89,7 @@ public static class SearchIndex
         new("Multi-Line Editing",   "multi-line",       Category: "Editing", Keywords: "multiline newline textarea"),
         new("Math Expressions",     "math-expression",  Category: "Editing", Keywords: "formula arithmetic expression evaluate"),
         new("Combo Box",            "combo-box",        Category: "Editing", Keywords: "dropdown select combobox list"),
+        new("Combo Box — Search Text", "combo-box",     Section: "Search Text (Filter by Description)", Category: "Editing", Keywords: "searchtext description filter secondary match"),
         new("Number Formatting",    "number-format",    Category: "Editing", Keywords: "format currency decimal number thousands"),
         new("Date Picker",          "date-picker",      Category: "Editing", Keywords: "calendar date datetime"),
         new("Color Picker",         "color-picker",     Category: "Editing", Keywords: "color colour rgb"),

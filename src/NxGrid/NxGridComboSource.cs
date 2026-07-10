@@ -34,8 +34,25 @@ public abstract class NxGridComboSource
         IEnumerable<TItem> source,
         Func<TItem, TId> id,
         Func<TItem, string?> text)
+        => FixedList(source, id, text, searchText: null);
+
+    /// <summary>
+    /// Creates a fixed combo source where the type-to-filter also matches each item's
+    /// <paramref name="searchText"/> in addition to its <paramref name="text"/>.
+    /// The search text is never rendered and never committed — it exists purely for matching.
+    /// </summary>
+    /// <param name="source">The collection to project.</param>
+    /// <param name="id">Selects the id value stored in <see cref="NxGridComboItem.Id"/> (written to the model on commit). Any type is accepted; the value is converted to string via <c>ToString()</c>.</param>
+    /// <param name="text">Selects the label shown in the dropdown and in the non-editing cell.</param>
+    /// <param name="searchText">Selects extra text the filter also matches (e.g. a description). <c>null</c> results contribute nothing.</param>
+    /// <example><code>NxGridComboSource.FixedList(items, i => i.FullName, i => i.FullName, i => i.Description)</code></example>
+    public static NxGridFixedComboSource FixedList<TItem, TId>(
+        IEnumerable<TItem> source,
+        Func<TItem, TId> id,
+        Func<TItem, string?> text,
+        Func<TItem, string?>? searchText)
     {
-        var items  = source.Select(i => new NxGridComboItem { Id = ((object?)id(i))?.ToString(), Text = text(i) }).ToList();
+        var items  = source.Select(i => new NxGridComboItem { Id = ((object?)id(i))?.ToString(), Text = text(i), SearchText = searchText?.Invoke(i) }).ToList();
         var lookup = new Dictionary<string, string>();
         foreach (var item in items.Where(i => i.Id != null))
             lookup.TryAdd(item.Id!, item.Text ?? "");
@@ -84,7 +101,24 @@ public abstract class NxGridComboSource
         Func<T, IEnumerable<TItem>> rowItems,
         Func<TItem, TId> id,
         Func<TItem, string?> text)
-        => new(row => rowItems(row).Select(i => new NxGridComboItem { Id = ((object?)id(i))?.ToString(), Text = text(i) }).ToList());
+        => VariableList(rowItems, id, text, searchText: null);
+
+    /// <summary>
+    /// Creates a variable combo source where the type-to-filter also matches each item's
+    /// <paramref name="searchText"/> in addition to its <paramref name="text"/>.
+    /// The search text is never rendered and never committed — it exists purely for matching.
+    /// </summary>
+    /// <param name="rowItems">Returns the item list for a given row.</param>
+    /// <param name="id">Selects the id value stored in <see cref="NxGridComboItem.Id"/> (written to the model on commit). Any type is accepted; the value is converted to string via <c>ToString()</c>.</param>
+    /// <param name="text">Selects the label shown in the dropdown.</param>
+    /// <param name="searchText">Selects extra text the filter also matches (e.g. a description). <c>null</c> results contribute nothing.</param>
+    /// <example><code>NxGridComboSource.VariableList((MyRow r) => r.Options, o => o.Code, o => o.Code, o => o.Description)</code></example>
+    public static NxGridVariableComboSource<T> VariableList<T, TItem, TId>(
+        Func<T, IEnumerable<TItem>> rowItems,
+        Func<TItem, TId> id,
+        Func<TItem, string?> text,
+        Func<TItem, string?>? searchText)
+        => new(row => rowItems(row).Select(i => new NxGridComboItem { Id = ((object?)id(i))?.ToString(), Text = text(i), SearchText = searchText?.Invoke(i) }).ToList());
 
     /// <summary>
     /// Creates a variable combo source where <see cref="NxGridComboItem.Id"/> and

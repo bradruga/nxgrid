@@ -339,7 +339,7 @@ Combo box editing applies to columns that have `ComboBoxSource` set. The behavio
 | Down Arrow (while editing) | Yes — opens (or if already open, moves highlight down) |
 | ▾ button click | Toggles; opens showing all options unfiltered |
 
-**Filtering:** options are filtered case-insensitively by the current `editValue`. When the combo button is used to open the dropdown, all options are shown regardless of the current edit value. "No matches" is displayed when the filter returns an empty list.
+**Filtering:** options are filtered case-insensitively by the current `editValue`. An option matches when the edit value is contained in its `Text` **or** in its `SearchText` (extra matchable text supplied via the `searchText` selector on the `FixedList`/`VariableList` factories — e.g. a description; it is never rendered and never committed). Matches keep their original source order. When the combo button is used to open the dropdown, all options are shown regardless of the current edit value. "No matches" is displayed when the filter returns an empty list.
 
 `ComboBoxSource` is called fresh on each open, so the list can be dynamic.
 

@@ -88,6 +88,30 @@
 </div>
 
 <div class="doc-section">
+    <h2>Search Text (Filter by Description)</h2>
+    <p class="doc-note">
+        Pass a <code>searchText</code> selector as the fourth argument to <code>FixedList</code> /
+        <code>VariableList</code> and type-to-filter also matches it — users can type words from a
+        description instead of remembering the item's name. The search text is never rendered in the
+        cell and never committed; pair it with <code>ComboBoxItemTemplate</code> (via
+        <code>item.SearchText</code>) to show the description in the dropdown.
+        Try typing <strong>treated</strong> in the <strong>Item</strong> column.
+    </p>
+    <NxGrid T="OrderLine" Data="@orderLines" OnUpdate="@HandleOrderLineUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Item)" Title="Item" Width="220"
+                      ComboBoxSource="@(NxGridComboSource.FixedList(ItemOptions, i => i.FullName, i => i.FullName, i => i.Description))">
+            <ComboBoxItemTemplate Context="item">
+                <div class="demo-combo-name">@item.Text</div>
+                <div class="demo-combo-desc">@item.SearchText</div>
+            </ComboBoxItemTemplate>
+        </NxGridColumn>
+        <NxGridColumn Property="@(x => x.Qty)" Width="70" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@searchTextCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Per-Row Options</h2>
     <p class="doc-note">
         <code>NxGridComboSource.VariableList</code> receives the row, so the list can depend on any
@@ -122,6 +146,8 @@
                     <code>FixedList("a", "b", "c")</code> for a plain string list.
                     Use <code>NxGridComboSource.VariableList((Row r) =&gt; …, id, text)</code> when
                     the list depends on the row; omit <code>text</code> when it equals <code>id</code>.
+                    Both factories accept an optional fourth <code>searchText</code> selector —
+                    extra text the type-to-filter also matches, never rendered or committed.
                 </td>
             </tr>
             <tr>
@@ -150,6 +176,11 @@
 
     .demo-combo-name {
         font-size: 13px;
+    }
+
+    .demo-combo-desc {
+        font-size: 11px;
+        color: #888;
     }
 </style>
 
@@ -236,6 +267,39 @@
         await Task.CompletedTask;
     }
 
+    record ItemOption(string FullName, string Description);
+
+    static readonly ItemOption[] ItemOptions =
+    [
+        new("2x8 Corner",   "Eight foot corner panel with galvanized inserts"),
+        new("2x8 Standard", "Eight foot standard wall panel"),
+        new("4x4 Post",     "Treated lumber post, ground contact rated"),
+        new("6x6 Beam",     "Kiln dried structural beam"),
+        new("Anchor Kit",   "Concrete anchor bolts with washers"),
+    ];
+
+    class OrderLine
+    {
+        public string Item { get; set; } = "";
+        public int    Qty  { get; set; }
+    }
+
+    List<OrderLine> orderLines =
+    [
+        new() { Item = "2x8 Corner",   Qty = 4 },
+        new() { Item = "4x4 Post",     Qty = 12 },
+        new() { Item = "2x8 Standard", Qty = 20 },
+        new() { Item = "Anchor Kit",   Qty = 2 },
+    ];
+
+    async Task HandleOrderLineUpdate(NxGridUpdateArgs<OrderLine> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
     class ScheduleRow
     {
         public string Employee { get; set; } = "";
@@ -296,5 +360,6 @@
     string objectProjectionCode  = DemoCodeSamples.ComboBoxObjectProjection;
     string keyDisplayCode        = DemoCodeSamples.ComboBoxKeyDisplay;
     string itemTemplateCode      = DemoCodeSamples.ComboBoxItemTemplateCode;
+    string searchTextCode        = DemoCodeSamples.ComboBoxSearchText;
     string perRowCode            = DemoCodeSamples.ComboBoxPerRow;
 }

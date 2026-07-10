@@ -323,4 +323,144 @@ public class NxGridRenderTests : BunitContext
 
         cut.Find(".nx-grid-status-bar");
     }
+
+    // ── Combo box SearchText filtering ────────────────────────────────────────
+
+    private class ComboRow { public string? Item { get; set; } }
+    private record ComboOption(string Code, string Name, string Description);
+
+    private static readonly ComboOption[] ComboOptions =
+    [
+        new("2x8", "2x8 Corner", "Eight foot corner panel"),
+        new("4x4", "4x4 Post", "Treated lumber post"),
+    ];
+
+    // Loose JS interop returns null for typed results; the dropdown positioning call
+    // needs a real position or PositionComboDropdown throws when the dropdown opens.
+    private void SetupComboDropdownJs()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition")
+            .SetResult(new NxComboDropdownPosition(0, 0, 100));
+    }
+
+    private IRenderedComponent<NxGrid<ComboRow>> RenderSearchTextComboGrid(
+        Action<NxGridUpdateArgs<ComboRow>>? onUpdate = null)
+    {
+        SetupComboDropdownJs();
+        onUpdate ??= _ => { };
+        Expression<Func<ComboRow, object?>> prop = r => r.Item;
+        return Render<NxGrid<ComboRow>>(p => p
+            .Add(x => x.Data, [new ComboRow { Item = "2x8" }])
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate, onUpdate)
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<ComboRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "Title", "Item");
+                b.AddAttribute(3, "ComboBoxSource",
+                    NxGridComboSource.FixedList(ComboOptions, o => o.Code, o => o.Name, o => o.Description));
+                b.CloseComponent();
+            }));
+    }
+
+    [Test]
+    public void ComboBox_SearchText_TypingSearchOnlyWord_ShowsMatchingItem()
+    {
+        var cut = RenderSearchTextComboGrid();
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("Treated");
+
+        var items = cut.FindAll(".nx-grid-combo-item");
+        Assert.That(items.Count, Is.EqualTo(1));
+        Assert.That(items[0].TextContent.Trim(), Is.EqualTo("4x4 Post"));
+    }
+
+    [Test]
+    public void ComboBox_SearchText_MatchIsCaseInsensitive()
+    {
+        var cut = RenderSearchTextComboGrid();
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("tREATED lumber");
+
+        var items = cut.FindAll(".nx-grid-combo-item");
+        Assert.That(items.Count, Is.EqualTo(1));
+        Assert.That(items[0].TextContent.Trim(), Is.EqualTo("4x4 Post"));
+    }
+
+    [Test]
+    public void ComboBox_SearchText_TextMatchingStillWorks()
+    {
+        var cut = RenderSearchTextComboGrid();
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("corner");
+
+        // "corner" appears in both the Text of "2x8 Corner" and the SearchText
+        // ("Eight foot corner panel") of the same item — it must appear once, not twice.
+        var items = cut.FindAll(".nx-grid-combo-item");
+        Assert.That(items.Count, Is.EqualTo(1));
+        Assert.That(items[0].TextContent.Trim(), Is.EqualTo("2x8 Corner"));
+    }
+
+    [Test]
+    public void ComboBox_SearchText_NoMatchAnywhere_ShowsNoMatches()
+    {
+        var cut = RenderSearchTextComboGrid();
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("granite");
+
+        Assert.That(cut.FindAll(".nx-grid-combo-item").Count, Is.EqualTo(0));
+        cut.Find(".nx-grid-combo-no-options");
+    }
+
+    [Test]
+    public void ComboBox_SearchText_SelectingSearchMatchedItem_CommitsIdAndShowsText()
+    {
+        NxGridUpdateArgs<ComboRow>? captured = null;
+        var cut = RenderSearchTextComboGrid(args =>
+        {
+            captured = args;
+            foreach (var rowChange in args.Rows)
+                foreach (var change in rowChange.Changes)
+                    change.Apply(rowChange.Row);
+        });
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("Treated");
+        cut.Find(".nx-grid-combo-item").MouseDown();
+
+        Assert.That(captured, Is.Not.Null);
+        Assert.That(captured!.Rows[0].Changes[0].NewValue, Is.EqualTo("4x4"));
+        // Fixed-list cell display resolves the committed Id back to its Text.
+        Assert.That(cut.Find(".nx-grid-cell-text").TextContent.Trim(), Is.EqualTo("4x4 Post"));
+    }
+
+    [Test]
+    public void ComboBox_SearchText_OverloadWithoutSearchText_DoesNotMatchDescriptions()
+    {
+        SetupComboDropdownJs();
+        Expression<Func<ComboRow, object?>> prop = r => r.Item;
+        var cut = Render<NxGrid<ComboRow>>(p => p
+            .Add(x => x.Data, [new ComboRow { Item = "2x8" }])
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate, _ => { })
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<ComboRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "ComboBoxSource",
+                    NxGridComboSource.FixedList(ComboOptions, o => o.Code, o => o.Name));
+                b.CloseComponent();
+            }));
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("Treated");
+
+        Assert.That(cut.FindAll(".nx-grid-combo-item").Count, Is.EqualTo(0));
+    }
 }

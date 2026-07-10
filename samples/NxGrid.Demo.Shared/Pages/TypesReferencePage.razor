@@ -149,10 +149,17 @@
                 <td>Text</td>
                 <td><code>string?</code> — Shown in the dropdown list and in the non-editing cell.</td>
             </tr>
+            <tr>
+                <td>SearchText</td>
+                <td><code>string?</code> — Extra text the type-to-filter also matches (e.g. a description). Never rendered and never committed; <code>null</code> contributes nothing.</td>
+            </tr>
         </tbody>
     </table>
     <pre class="doc-code" style="margin-top:12px">// Fixed list — same options for every row; Id→Text lookup is automatic.
 NxGridComboSource.FixedList(source, id, text)
+
+// Fixed list — searchText adds extra matchable text per item (e.g. a description).
+NxGridComboSource.FixedList(source, id, text, searchText)
 
 // Fixed list — when id and text are the same value.
 NxGridComboSource.FixedList(source, id)
@@ -162,6 +169,9 @@ NxGridComboSource.FixedList("Engineering", "Finance", "HR")
 
 // Variable list — options depend on the row; type the lambda parameter for inference.
 NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id, text)
+
+// Variable list — searchText adds extra matchable text per item.
+NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id, text, searchText)
 
 // Variable list — when id and text are the same value.
 NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id)</pre>

@@ -15,4 +15,10 @@ public sealed class NxGridComboItem
 
     /// <summary>The label shown in the dropdown list and in the read-only cell view.</summary>
     public string? Text { get; init; }
+
+    /// <summary>
+    /// Extra text the type-to-filter also matches against, in addition to <see cref="Text"/>.
+    /// Never rendered and never committed. <c>null</c> or empty contributes nothing.
+    /// </summary>
+    public string? SearchText { get; init; }
 }

@@ -572,6 +572,30 @@ void OnSignalRRowReceived(Person newRow)
 </NxGridColumn>
 """;
 
+    public static readonly string ComboBoxSearchText = """
+// The optional fourth selector adds extra matchable text per item (SearchText).
+// Type-to-filter matches Text OR SearchText; SearchText is never rendered in the
+// cell and never committed. Show it in the dropdown via ComboBoxItemTemplate.
+<NxGridColumn Property="@(x => x.Item)" Title="Item"
+              ComboBoxSource="@(NxGridComboSource.FixedList(ItemOptions, i => i.FullName, i => i.FullName, i => i.Description))">
+    <ComboBoxItemTemplate Context="item">
+        <div class="demo-combo-name">@item.Text</div>
+        <div class="demo-combo-desc">@item.SearchText</div>
+    </ComboBoxItemTemplate>
+</NxGridColumn>
+
+@code {
+    record ItemOption(string FullName, string Description);
+
+    static readonly ItemOption[] ItemOptions =
+    [
+        new("2x8 Corner", "Eight foot corner panel with galvanized inserts"),
+        new("4x4 Post",   "Treated lumber post, ground contact rated"),
+        ...
+    ];
+}
+""";
+
     public static readonly string ComboBoxPerRow = """
 // VariableList receives the row — return a different list based on any property.
 // Type the lambda parameter explicitly so C# can infer the row type.

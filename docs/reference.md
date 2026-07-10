@@ -660,8 +660,9 @@ A single dropdown item.
 ```csharp
 public sealed class NxGridComboItem
 {
-    public string? Id   { get; init; }   // written to Property on selection
-    public string? Text { get; init; }   // shown in the dropdown list
+    public string? Id         { get; init; }   // written to Property on selection
+    public string? Text       { get; init; }   // shown in the dropdown list
+    public string? SearchText { get; init; }   // extra text the type-to-filter also matches; never rendered or committed
 }
 ```
 
@@ -675,6 +676,14 @@ public static NxGridFixedComboSource FixedList<TItem, TId>(
     IEnumerable<TItem> source,
     Func<TItem, TId> id,
     Func<TItem, string?> text);
+
+// Fixed list — searchText selects extra text the type-to-filter also matches
+// (e.g. a description). Never rendered, never committed; null contributes nothing.
+public static NxGridFixedComboSource FixedList<TItem, TId>(
+    IEnumerable<TItem> source,
+    Func<TItem, TId> id,
+    Func<TItem, string?> text,
+    Func<TItem, string?>? searchText);
 
 // Fixed list — when Id and Text are the same value.
 public static NxGridFixedComboSource FixedList<TItem, TId>(
@@ -690,6 +699,13 @@ public static NxGridVariableComboSource<T> VariableList<T, TItem, TId>(
     Func<T, IEnumerable<TItem>> rowItems,
     Func<TItem, TId> id,
     Func<TItem, string?> text);
+
+// Variable list — searchText selects extra text the type-to-filter also matches.
+public static NxGridVariableComboSource<T> VariableList<T, TItem, TId>(
+    Func<T, IEnumerable<TItem>> rowItems,
+    Func<TItem, TId> id,
+    Func<TItem, string?> text,
+    Func<TItem, string?>? searchText);
 
 // Variable list — when Id and Text are the same value.
 public static NxGridVariableComboSource<T> VariableList<T, TItem, TId>(

@@ -252,6 +252,26 @@ For columns with `ComboBoxSource`, the committed value is always one of the valu
 </NxGrid>
 ```
 
+### Filter combo options by a description (search text)
+
+A common pattern is a short code or name as the committed value with a longer description shown alongside it in the dropdown. Pass a `searchText` selector as the fourth argument to `FixedList`/`VariableList` so type-to-filter also matches the description — users can type words from the description instead of remembering the code. The search text is never rendered and never committed; pair it with `ComboBoxItemTemplate` to show the description in the dropdown.
+
+```razor
+<NxGridColumn Property="@(x => x.ItemName)" Title="Item"
+    ComboBoxSource="@(NxGridComboSource.FixedList(
+        ItemOptions,
+        i => i.FullName,       // committed value
+        i => i.FullName,       // shown in the dropdown and the cell
+        i => i.Description))"> @* description = extra text the filter also matches *@
+    <ComboBoxItemTemplate Context="item">
+        <div>@item.Text</div>
+        <div style="font-size:11px;color:#888">@item.SearchText</div>
+    </ComboBoxItemTemplate>
+</NxGridColumn>
+```
+
+Typing `corner` now shows `2x8 Corner` even when "corner" only appears in its description. Selecting it commits `FullName` exactly as a name-matched selection would.
+
 ---
 
 ## How to respond to selection changes

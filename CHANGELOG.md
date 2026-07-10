@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Combo-box type-to-filter can now also match extra per-item search text (e.g. a description) via a new optional `searchText` selector on `NxGridComboSource.FixedList` and `VariableList`, exposed as `NxGridComboItem.SearchText`. The search text is only used for matching — cell display, dropdown rendering, and the committed value are unchanged.
+
 ### Fixed
 
 - Pressing an arrow key while editing a cell no longer scrolls the parent scroll container in Blazor WebAssembly apps. Vertical arrows always suppress the browser's default (a single-line edit input has no native up/down behavior to preserve), and horizontal arrows only suppress it when the caret is already at the start/end of the text, matching exactly when the browser would otherwise fall back to scrolling.
