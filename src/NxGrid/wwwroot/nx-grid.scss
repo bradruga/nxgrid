@@ -187,6 +187,13 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     justify-content: inherit;
 }
 
+// Reserves the width of the idle editor button (combo / date picker / color swatch)
+// overlaid on the cell's right edge, so cell content ellipsizes before the button
+// instead of running underneath it. The subtracted 6px is the cell's right padding.
+.nx-grid-cell-text-btn-pad {
+    padding-right: calc(var(--nx-grid-row-height) - 6px);
+}
+
 .nx-grid-header-row {
     border-bottom-color: var(--nx-grid-header-border);
 }

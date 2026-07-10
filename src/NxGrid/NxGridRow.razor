@@ -56,6 +56,13 @@
             && !isAnchor
             && !selected;
         var inPickRange = PickRange?.IsCellInRange(RowIndex, ci) == true;
+        // True when this cell shows an idle editor button (combo ▾ / date picker / color swatch)
+        // overlaid on its right edge; cell content then reserves space so text ellipsizes
+        // before the button instead of running underneath it.
+        var hasIdleEditorButton = (col.IsComboColumn || col.IsDatePickerColumn || col.IsColorPickerColumn)
+            && RowIndex == SelectedRange?.StartRow && ci == SelectedRange?.StartCol
+            && (col.Editable ?? GridEditable)
+            && (CellEditableGetter == null || CellEditableGetter(Row, col));
 
         <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(inPickRange ? "nx-grid-cell-pick-range" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
              data-col="@ci"
@@ -178,10 +185,8 @@
             }
             else if (col.Template != null)
             {
-                <span class="nx-grid-cell-template">@col.Template(Row)</span>
-                @if (col.IsComboColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
-                     && (col.Editable ?? GridEditable)
-                     && (CellEditableGetter == null || CellEditableGetter(Row, col)))
+                <span class="nx-grid-cell-template @(col.IsComboColumn && hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">@col.Template(Row)</span>
+                @if (col.IsComboColumn && hasIdleEditorButton)
                 {
                     <button type="button" class="nx-grid-combo-button nx-grid-combo-button-idle"
                             @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
@@ -225,17 +230,15 @@
                 @if (col.IsColorPickerColumn && col.Display == null)
                 {
                     var colorStr = rawValue?.ToString() ?? "";
-                    <span class="nx-grid-cell-text nx-grid-cell-text-color">
+                    <span class="nx-grid-cell-text nx-grid-cell-text-color @(hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">
                         <span class="nx-grid-colorpicker-cell-swatch" style="background-color:@colorStr" aria-hidden="true"></span>@colorStr
                     </span>
                 }
                 else
                 {
-                    <span class="nx-grid-cell-text @(col.MultiLine ? "nx-grid-cell-text-multiline" : "")">@cellDisplay</span>
+                    <span class="nx-grid-cell-text @(col.MultiLine ? "nx-grid-cell-text-multiline" : "") @(hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">@cellDisplay</span>
                 }
-                @if (col.IsComboColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
-                     && (col.Editable ?? GridEditable)
-                     && (CellEditableGetter == null || CellEditableGetter(Row, col)))
+                @if (col.IsComboColumn && hasIdleEditorButton)
                 {
                     <button type="button" class="nx-grid-combo-button nx-grid-combo-button-idle"
                             @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
@@ -244,9 +247,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
                             </button>
                 }
-                @if (col.IsDatePickerColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
-                     && (col.Editable ?? GridEditable)
-                     && (CellEditableGetter == null || CellEditableGetter(Row, col)))
+                @if (col.IsDatePickerColumn && hasIdleEditorButton)
                 {
                     <button type="button" class="nx-grid-datepicker-button nx-grid-datepicker-button-idle"
                             @onmousedown="@(() => OnDatePickerButtonClick != null ? OnDatePickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
@@ -260,9 +261,7 @@
                         </svg>
                     </button>
                 }
-                @if (col.IsColorPickerColumn && RowIndex == SelectedRange?.StartRow && colIdx == SelectedRange?.StartCol
-                     && (col.Editable ?? GridEditable)
-                     && (CellEditableGetter == null || CellEditableGetter(Row, col)))
+                @if (col.IsColorPickerColumn && hasIdleEditorButton)
                 {
                     var idleColor = rawValue?.ToString() ?? "";
                     <button type="button" class="nx-grid-colorpicker-swatch-button nx-grid-colorpicker-swatch-button-idle"

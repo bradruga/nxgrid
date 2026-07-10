@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Cell text in a selected combo-box, date-picker, or color-picker cell no longer runs underneath the idle editor button (▾ / calendar / swatch) on the cell's right edge — the text now ellipsizes before the button.
 - Pressing an arrow key while editing a cell no longer scrolls the parent scroll container in Blazor WebAssembly apps. Vertical arrows always suppress the browser's default (a single-line edit input has no native up/down behavior to preserve), and horizontal arrows only suppress it when the caret is already at the start/end of the text, matching exactly when the browser would otherwise fall back to scrolling.
 
 ## [0.3.0] - 2026-07-01

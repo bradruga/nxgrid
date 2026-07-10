@@ -144,6 +144,10 @@
   justify-content: inherit;
 }
 
+.nx-grid-cell-text-btn-pad {
+  padding-right: calc(var(--nx-grid-row-height) - 6px);
+}
+
 .nx-grid-header-row {
   border-bottom-color: var(--nx-grid-header-border);
 }

@@ -464,6 +464,30 @@ public class NxGridRenderTests : BunitContext
         Assert.That(cut.FindAll(".nx-grid-combo-item").Count, Is.EqualTo(0));
     }
 
+    [Test]
+    public void ComboCell_WhenSelected_ReservesSpaceForIdleDropdownButton()
+    {
+        var cut = RenderSearchTextComboGrid();
+
+        var cell = cut.Find(".nx-grid-row .nx-grid-cell");
+        cell.MouseDown();
+
+        cut.Find(".nx-grid-combo-button-idle");
+        var text = cut.Find(".nx-grid-row .nx-grid-cell-text");
+        Assert.That(text.ClassList, Does.Contain("nx-grid-cell-text-btn-pad"),
+            "cell text should reserve space so it does not run under the idle combo button");
+    }
+
+    [Test]
+    public void ComboCell_WhenNotSelected_HasNoIdleButtonPadding()
+    {
+        var cut = RenderSearchTextComboGrid();
+
+        var text = cut.Find(".nx-grid-row .nx-grid-cell-text");
+        Assert.That(text.ClassList, Does.Not.Contain("nx-grid-cell-text-btn-pad"));
+        Assert.That(cut.FindAll(".nx-grid-combo-button-idle").Count, Is.EqualTo(0));
+    }
+
     // ── CommitEditAsync ───────────────────────────────────────────────────────
 
     private class EditableRow { public string? Name { get; set; } public int Qty { get; set; } }
