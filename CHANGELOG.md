@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-10
+
 ### Added
 
 - Combo-box type-to-filter can now also match extra per-item search text (e.g. a description) via a new optional `searchText` selector on `NxGridComboSource.FixedList` and `VariableList`, exposed as `NxGridComboItem.SearchText`. The search text is only used for matching — cell display, dropdown rendering, and the committed value are unchanged.
