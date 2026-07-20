@@ -347,6 +347,8 @@ Combo box editing applies to columns that have `ComboBoxSource` set. The behavio
 
 `ComboBoxSource` is called fresh on each open, so the list can be dynamic.
 
+**Positioning:** the dropdown opens below the cell. When there is not enough room below (the cell is near the bottom of the viewport), it flips up and opens above the cell instead. It is also clamped horizontally so it never runs off the right or left edge.
+
 **Keyboard while dropdown is open:**
 
 | Key | Behavior |
@@ -406,6 +408,8 @@ When the highlight moves past the last day of the current view month, the view a
 **Mouse:**
 
 Clicking a day cell commits that date immediately and closes the calendar. The mousedown event on the calendar popup is stopPropagation'd to prevent the input from losing focus.
+
+**Positioning:** the calendar opens below the cell. When there is not enough room below (the cell is near the bottom of the viewport), it flips up and opens above the cell instead. It is also clamped horizontally so it never runs off the right or left edge. The color picker popup follows the same rules.
 
 **Idle calendar button:**
 

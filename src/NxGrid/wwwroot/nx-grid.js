@@ -428,7 +428,16 @@ class NxGrid {
         if (left + popupWidth > window.innerWidth) left = window.innerWidth - popupWidth - 10;
         if (left < 0) left = 0;
 
-        return { top: rect.bottom, left };
+        // Flip above the cell when the popup would overflow the bottom of the viewport
+        let top = rect.bottom;
+        const popup = gridElement.querySelector('.nx-grid-datepicker-popup');
+        const popupHeight = popup ? popup.offsetHeight : 0;
+        if (popupHeight && top + popupHeight > window.innerHeight) {
+            const flipped = rect.top - popupHeight;
+            top = flipped >= 0 ? flipped : Math.max(10, window.innerHeight - popupHeight - 10);
+        }
+
+        return { top, left };
     }
 
     getColorPickerPosition() {
@@ -445,7 +454,16 @@ class NxGrid {
         if (left + popupWidth > window.innerWidth) left = window.innerWidth - popupWidth - 10;
         if (left < 0) left = 0;
 
-        return { top: rect.bottom, left };
+        // Flip above the cell when the popup would overflow the bottom of the viewport
+        let top = rect.bottom;
+        const popup = gridElement.querySelector('.nx-grid-colorpicker-popup');
+        const popupHeight = popup ? popup.offsetHeight : 0;
+        if (popupHeight && top + popupHeight > window.innerHeight) {
+            const flipped = rect.top - popupHeight;
+            top = flipped >= 0 ? flipped : Math.max(10, window.innerHeight - popupHeight - 10);
+        }
+
+        return { top, left };
     }
 
     setupColorPickerGradient() {
@@ -511,7 +529,16 @@ class NxGrid {
         if (left + width > window.innerWidth) left = window.innerWidth - width - 10;
         if (left < 0) left = 0;
 
-        return { top: rect.bottom, left, width };
+        // Flip above the cell when the dropdown would overflow the bottom of the viewport
+        let top = rect.bottom;
+        const popup = gridElement.querySelector('.nx-grid-combo-dropdown');
+        const popupHeight = popup ? popup.offsetHeight : 0;
+        if (popupHeight && top + popupHeight > window.innerHeight) {
+            const flipped = rect.top - popupHeight;
+            top = flipped >= 0 ? flipped : Math.max(10, window.innerHeight - popupHeight - 10);
+        }
+
+        return { top, left, width };
     }
 
     dragSelect(anchorRow, anchorCol, isRowMode, maxCol) {

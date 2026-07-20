@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The combo-box, date-picker, and color-picker dropdowns now flip up and open above the cell when there is not enough room below (i.e. the cell is near the bottom of the browser window), instead of overflowing off the bottom of the screen.
+
 ## [0.3.1] - 2026-07-10
 
 ### Added
