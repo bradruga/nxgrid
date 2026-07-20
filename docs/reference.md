@@ -385,6 +385,7 @@ Keys are compared with `object.Equals`. Duplicate key values in `Data` produce u
 | Ctrl/⌘+C | Copy selection as TSV |
 | Ctrl/⌘+V | Paste TSV at selection origin |
 | Delete | Clear selected cells |
+| Ctrl/⌘+Delete | Not handled internally — forwarded to `OnKeyPressed` (bind a host action, e.g. delete row) |
 
 ---
 

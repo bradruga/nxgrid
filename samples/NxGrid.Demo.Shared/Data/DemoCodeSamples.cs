@@ -72,6 +72,11 @@ public static class DemoCodeSamples
         {
             AddNewRow();
         }
+        else if (args.KeyboardEvent.Key == "Delete" && args.ModifierPressed)
+        {
+            // Plain Delete clears the selection; Ctrl/Cmd+Delete is forwarded here.
+            DeleteSelectedRow();
+        }
     }
 }
 """;

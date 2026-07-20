@@ -405,6 +405,34 @@ public class NxGridKeyboardTests : BunitContext
     }
 
     [Test]
+    public async Task CtrlDelete_NotHandledInternally_ForwardedToOnKeyPressed()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var rows = new List<EditRow> { new() { Name = "Alice" } };
+        bool updateFired = false;
+        NxGridKeyPressedArgs? pressedArgs = null;
+
+        var cut = Render<NxGrid<EditRow>>(p => p
+            .Add(x => x.Data, rows)
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate,
+                EventCallback.Factory.Create<NxGridUpdateArgs<EditRow>>(this, _ => updateFired = true))
+            .Add(x => x.OnKeyPressed,
+                EventCallback.Factory.Create<NxGridKeyPressedArgs>(this, args => pressedArgs = args))
+            .AddChildContent<NxGridColumn<EditRow>>(col => col
+                .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Name))));
+
+        await ClickCell(cut, 0);
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown",
+            new KeyboardEventArgs { Key = "Delete", CtrlKey = true });
+
+        Assert.That(updateFired, Is.False, "Ctrl+Delete should not clear cells");
+        Assert.That(pressedArgs, Is.Not.Null, "Ctrl+Delete should be forwarded to OnKeyPressed");
+        Assert.That(pressedArgs!.KeyboardEvent.Key, Is.EqualTo("Delete"));
+        Assert.That(pressedArgs.ModifierPressed, Is.True);
+    }
+
+    [Test]
     public async Task Delete_NonEditableColumn_DoesNotFireOnUpdate()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

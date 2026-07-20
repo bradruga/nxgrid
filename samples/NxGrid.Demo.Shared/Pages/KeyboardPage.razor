@@ -35,7 +35,8 @@
     <p class="doc-note">
         <code>OnKeyPressed</code> fires for keys the grid does not handle internally.
         Use it to add custom hotkeys (e.g. Ctrl+E to export) without losing grid focus.
-        Try pressing <kbd class="doc-kbd">Ctrl+E</kbd> or <kbd class="doc-kbd">Ctrl+N</kbd> in the grid above.
+        Try pressing <kbd class="doc-kbd">Ctrl+E</kbd>, <kbd class="doc-kbd">Ctrl+N</kbd>, or <kbd class="doc-kbd">Ctrl+Delete</kbd> in the grid above.
+        (Plain <kbd class="doc-kbd">Delete</kbd> clears the selection and never reaches <code>OnKeyPressed</code>; only <kbd class="doc-kbd">Ctrl+Delete</kbd> is forwarded.)
     </p>
     <pre class="doc-code">@keyPressedCode</pre>
 </div>
@@ -63,6 +64,7 @@
             <tr><td><kbd class="doc-kbd">Ctrl+C</kbd> / <kbd class="doc-kbd">⌘+C</kbd></td><td>Copy the selection as TSV to the clipboard</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+V</kbd> / <kbd class="doc-kbd">⌘+V</kbd></td><td>Paste TSV from the clipboard at the selection origin</td></tr>
             <tr><td><kbd class="doc-kbd">Delete</kbd></td><td>Clear selected cells (sets to "" or null if <code>Nullable=true</code>)</td></tr>
+            <tr><td><kbd class="doc-kbd">Ctrl+Delete</kbd> / <kbd class="doc-kbd">⌘+Delete</kbd></td><td>Not handled internally — forwarded to <code>OnKeyPressed</code> so the host can bind it (e.g. delete the selected row)</td></tr>
         </tbody>
     </table>
 </div>
@@ -90,6 +92,8 @@
             keyLog = "Ctrl+E — trigger export";
         else if (args.KeyboardEvent.Key == "n" && args.ModifierPressed)
             keyLog = "Ctrl+N — add new row";
+        else if (args.KeyboardEvent.Key == "Delete" && args.ModifierPressed)
+            keyLog = "Ctrl+Delete — delete the selected row";
     }
 
     void OnSelectionChanged(NxGridSelectionArgs<Person> args)

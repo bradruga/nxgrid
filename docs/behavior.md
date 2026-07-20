@@ -206,6 +206,8 @@ A cell is "empty" if its value (from `Property ?? Display`) is null or its `ToSt
 
 Any key not matched by the grid (and not a printable character that would start editing) is forwarded to the `OnKeyPressed` callback, if one is registered. After the callback, the grid triggers a re-render so any side effects from the host are reflected.
 
+Delete with Ctrl/⌘ held is intentionally *not* handled internally (plain Delete clears the selection — see [Delete](#delete)), so `Ctrl/⌘+Delete` is forwarded to `OnKeyPressed`, letting the host bind it to a custom action such as deleting the selected row.
+
 ---
 
 ## Editing
@@ -423,7 +425,7 @@ When a date is committed (by clicking a day or pressing Enter on the highlighted
 
 ## Delete
 
-The Delete key clears all cells in the current selection. For each cell:
+The Delete key (with no Ctrl/⌘ modifier) clears all cells in the current selection. `Ctrl/⌘+Delete` is left unhandled and forwarded to `OnKeyPressed` instead (see [Unhandled keys](#unhandled-keys)). For each cell:
 
 1. If the column is not editable, the cell is skipped.
 2. If `CellEditableGetter` returns `false` for that cell, the cell is skipped.

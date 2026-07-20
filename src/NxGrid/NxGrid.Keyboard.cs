@@ -48,7 +48,9 @@ public partial class NxGrid<T>
                 return;
             }
 
-            if (args.Key == KeyDelete)
+            // Plain Delete clears the selection. Delete + Ctrl/⌘ is left for the host
+            // (e.g. a "delete row" hotkey) and falls through to OnKeyPressed below.
+            if (args.Key == KeyDelete && !ModifierPressed(args))
             {
                 await DeleteSelection();
                 return;
