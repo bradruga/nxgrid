@@ -648,6 +648,8 @@ When the column menu opens, it is rendered off-screen (hidden via `visibility:hi
 
 Opening the menu can itself trigger a late `scroll` event on the page (e.g. the browser's focus-follows-click auto-scroll, or an automation tool scrolling the button into view before clicking) that arrives a few milliseconds after the menu is positioned. The page-scroll "close on scroll" listener ignores scroll events that land within 250ms of the menu being positioned, so this self-inflicted scroll doesn't immediately dismiss the menu that was just opened. Genuine user scrolling after that grace period still closes it as intended. Clicks on the header row are excluded from the separate "click outside" dismissal for the same reason — see `nx-grid.js`.
 
+The "close on scroll" listener also ignores scroll events whose target is inside the menu itself. The filter panel's value list has its own scroll box (`overflow-y:auto` plus a `<Virtualize>`), and scrolling it fires a `scroll` event that reaches the capture-phase window listener; without this exclusion, scrolling the filter list would dismiss the menu. Only scrolling *outside* the open menu closes it.
+
 ---
 
 ## Performance: stable column accessor references

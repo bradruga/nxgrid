@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Scrolling the value list inside a column filter menu no longer closes the menu. Previously any scroll while the menu was open — including scrolling its own overflow list — dismissed it; only scrolling outside the menu now closes it.
 - The combo-box, date-picker, and color-picker dropdowns now flip up and open above the cell when there is not enough room below (i.e. the cell is near the bottom of the browser window), instead of overflowing off the bottom of the screen.
 
 ## [0.3.1] - 2026-07-10

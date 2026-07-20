@@ -60,4 +60,24 @@ public class ColumnMenuTests : PageTest
         await HeaderCell(1).Locator(".nx-grid-menu-button").ClickAsync();
         await Expect(Page.Locator(".nx-grid-column-menu")).ToBeVisibleAsync();
     }
+
+    [Test]
+    public async Task ColumnMenu_StaysOpenWhenScrollingFilterList()
+    {
+        await GoToHomePage();
+
+        await HeaderCell(0).Locator(".nx-grid-menu-button").ClickAsync();
+        await Expect(Page.Locator(".nx-grid-column-menu")).ToBeVisibleAsync();
+
+        // Wait out the 250ms open-grace period so a genuine scroll would close the menu.
+        await Page.WaitForTimeoutAsync(400);
+
+        // Scroll the filter value list (its own overflow box) — the menu must NOT close.
+        var listbox = Page.Locator(".nx-grid-filter-listbox");
+        await Expect(listbox).ToBeVisibleAsync();
+        await listbox.EvaluateAsync("el => el.scrollBy(0, 100)");
+        await listbox.DispatchEventAsync("scroll");
+
+        await Expect(Page.Locator(".nx-grid-column-menu")).ToBeVisibleAsync();
+    }
 }

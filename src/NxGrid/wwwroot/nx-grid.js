@@ -153,13 +153,23 @@ class NxGrid {
         // clicking) that arrives a few milliseconds after the menu is positioned. Without a
         // grace period, that self-inflicted scroll immediately dismisses the menu that was
         // just opened. Genuine user scrolling well after open still closes it as intended.
-        this._pageScrollHandler = () => {
+        //
+        // Scrolling a scrollable region *inside* the menu (the filter value list, which
+        // has overflow-y:auto and its own <Virtualize>) also fires a 'scroll' event that
+        // reaches this capture-phase window listener. That must NOT close the menu, so we
+        // ignore any scroll whose target is contained within the column menu.
+        this._pageScrollHandler = (event) => {
             const gridElement = document.getElementById(this.id);
             if (!gridElement) return;
-            if (gridElement.querySelector('.nx-grid-column-menu')) {
-                const sinceOpen = this._menuOpenedAt ? performance.now() - this._menuOpenedAt : Infinity;
-                if (sinceOpen > 250) {
-                    this.dotNetObjectReference.invokeMethodAsync('OnColumnMenuLostFocus');
+            const menuElement = gridElement.querySelector('.nx-grid-column-menu');
+            if (menuElement) {
+                const target = event && event.target;
+                const insideMenu = target && target.nodeType === Node.ELEMENT_NODE && menuElement.contains(target);
+                if (!insideMenu) {
+                    const sinceOpen = this._menuOpenedAt ? performance.now() - this._menuOpenedAt : Infinity;
+                    if (sinceOpen > 250) {
+                        this.dotNetObjectReference.invokeMethodAsync('OnColumnMenuLostFocus');
+                    }
                 }
             }
             this._repositionFillHandle();
