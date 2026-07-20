@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-07-20
+
 ### Fixed
 
 - Scrolling the value list inside a column filter menu no longer closes the menu. Previously any scroll while the menu was open — including scrolling its own overflow list — dismissed it; only scrolling outside the menu now closes it.
