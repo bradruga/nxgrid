@@ -460,6 +460,8 @@ The paste origin is the top-left corner of the current selection. The clipboard 
 
 Dragging the resize grip at the right edge of any column header initiates a JS-driven drag. All column cells update live during the drag via a scoped `<style>` element injected into `document.head`; the style is removed only after Blazor commits the post-drag render, so there is no flash on release.
 
+**Frozen columns during the drag.** When the resized column is frozen, any frozen column pinned to its right has its sticky `left` offset shifted by the same live width delta, so it stays flush against the resized column throughout the drag rather than overlapping it until release.
+
 **Locking all columns on first resize.** The first time any column is resized, the grid switches permanently into *manual mode* for that page visit (and for future visits if `StateKey` is set). At that point every visible column's current rendered pixel width is captured and saved as `UserWidth`, not just the column being dragged. This prevents `flex-grow` columns from redistributing their widths unexpectedly after the drag.
 
 **Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns are resized to the same new width simultaneously. All other visible columns are still locked at their pre-drag widths.

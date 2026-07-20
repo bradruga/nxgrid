@@ -836,22 +836,44 @@ class NxGrid {
         const initialWidths = Array.from(headerCells).map(c => c.getBoundingClientRect().width);
         let currentWidth = initialWidths[columnIndex];
 
+        // Snapshot each column's sticky-left offset so frozen columns to the right of the
+        // resized column can be shifted live during the drag. Without this, a frozen column
+        // to the right keeps its pre-drag `left` and overlaps (or gaps from) the column being
+        // resized until mouseup recomputes offsets. Only matters when the resized column is
+        // itself frozen — otherwise the frozen band's left accumulation is unaffected.
+        const stickyLefts = Array.from(headerCells).map(c => {
+            const style = c.getAttribute('style') || '';
+            if (!/position\s*:\s*sticky/i.test(style)) return null;
+            const m = style.match(/(?:^|;)\s*left\s*:\s*(-?\d+(?:\.\d+)?)px/i);
+            return m ? parseFloat(m[1]) : null;
+        });
+        const resizedIsFrozen = stickyLefts[columnIndex] != null;
+
         // Inject a style element that freezes ALL columns and live-updates the target
         const styleEl = document.createElement('style');
         document.head.appendChild(styleEl);
 
         const safeId = CSS.escape(this.id);
-        const colRule = (nth, w) =>
-            `#${safeId} .nx-grid-header-row .nx-grid-cell:nth-child(${nth}),` +
-            `#${safeId} .nx-grid-row .nx-grid-cell:nth-child(${nth}){` +
-            `width:${w}px!important;min-width:${w}px!important;max-width:${w}px!important;flex-grow:0!important}`;
+        const colRule = (nth, w, left) => {
+            const leftRule = left != null ? `;left:${left}px!important` : '';
+            return `#${safeId} .nx-grid-header-row .nx-grid-cell:nth-child(${nth}),` +
+                `#${safeId} .nx-grid-row .nx-grid-cell:nth-child(${nth}){` +
+                `width:${w}px!important;min-width:${w}px!important;max-width:${w}px!important;flex-grow:0!important${leftRule}}`;
+        };
 
         const updateStyles = (resizeWidth) => {
             // When gutter is visible it is first child, so columns start at nth-child(2).
             // When gutter is hidden there is no gutter element, so columns start at nth-child(1).
             const nthOffset = gutterHidden ? 1 : 2;
+            const delta = resizeWidth - initialWidths[columnIndex];
             styleEl.textContent = initialWidths
-                .map((w, i) => colRule(i + nthOffset, i === columnIndex ? resizeWidth : w))
+                .map((w, i) => {
+                    const shiftLeft = resizedIsFrozen && i > columnIndex && stickyLefts[i] != null;
+                    return colRule(
+                        i + nthOffset,
+                        i === columnIndex ? resizeWidth : w,
+                        shiftLeft ? stickyLefts[i] + delta : null);
+                })
                 .join('');
         };
         updateStyles(currentWidth);
