@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Changing `Data` (or hiding columns) while a selection is held no longer throws an out-of-range error when the new data is shorter than the selection. The selection is now reconciled automatically — remapped by `KeyProperty` when one is set, otherwise clamped to the surviving rows/columns and dropped where it no longer fits. Host pages no longer need to call `ClearSelection()` after a data refresh to avoid the crash.
+
 ## [0.3.2] - 2026-07-20
 
 ### Fixed

@@ -697,6 +697,12 @@ public partial class NxGrid<T>
                 RestoreSelectionByKeys(selectedKeys);
                 pendingKeyRestorationChanged = true;
             }
+            else if (SanitizeSelectionRanges())
+            {
+                // No KeyProperty to remap by, but the data shrank under a held selection — the
+                // stale row/column indices were just clamped/dropped. Notify consumers it changed.
+                pendingKeyRestorationChanged = true;
+            }
 
             if (HasFitContentColumns)
                 _fitPending = true;

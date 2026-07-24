@@ -614,4 +614,60 @@ public class NxGridRenderTests : BunitContext
         Assert.That(updateCount, Is.EqualTo(0));
         Assert.That(cut.FindAll(".nx-grid-combo-input").Count, Is.EqualTo(0), "editor still open after cancel");
     }
+
+    [Test]
+    public void DataShrinksUnderColumnSelection_ClampsSelectionWithoutThrowing()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        NxGridSelectionArgs<Row>? captured = null;
+        var five = new List<Row>
+        {
+            new("A", "x"), new("B", "x"), new("C", "x"), new("D", "x"), new("E", "x")
+        };
+
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, five)
+            .Add(x => x.HeaderClickSelects, true)
+            .Add(x => x.OnSelectionChanged, EventCallback.Factory.Create<NxGridSelectionArgs<Row>>(this, a => captured = a))
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)
+                .Add(x => x.Title, "Name")));
+
+        // Select the whole first column — the range spans all five rows.
+        cut.Find(".nx-grid-header-row .nx-grid-cell").MouseDown();
+        Assert.That(captured!.Ranges[0].Items, Has.Count.EqualTo(5));
+
+        // Data reloads shorter while the selection is still held, and there is no KeyProperty to
+        // remap by. The stale row indices must be clamped rather than crash a later lookup.
+        var two = new List<Row> { new("A", "x"), new("B", "x") };
+        Assert.DoesNotThrow(() => cut.Render(p => p.Add(x => x.Data, two)));
+
+        // Selection was clamped to the surviving rows, and every emitted item is from the new data.
+        Assert.That(captured!.Ranges[0].Items, Has.Count.EqualTo(2));
+        Assert.That(captured.Ranges[0].Items, Is.SubsetOf(two));
+    }
+
+    [Test]
+    public void DataClearedUnderColumnSelection_DropsSelectionWithoutThrowing()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        NxGridSelectionArgs<Row>? captured = null;
+        var rows = new List<Row> { new("A", "x"), new("B", "x") };
+
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, rows)
+            .Add(x => x.HeaderClickSelects, true)
+            .Add(x => x.OnSelectionChanged, EventCallback.Factory.Create<NxGridSelectionArgs<Row>>(this, a => captured = a))
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)
+                .Add(x => x.Title, "Name")));
+
+        cut.Find(".nx-grid-header-row .nx-grid-cell").MouseDown();
+        Assert.That(captured!.Ranges, Is.Not.Empty);
+
+        Assert.DoesNotThrow(() => cut.Render(p => p.Add(x => x.Data, new List<Row>())));
+        Assert.That(captured!.Ranges, Is.Empty);
+    }
 }

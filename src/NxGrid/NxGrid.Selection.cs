@@ -250,10 +250,67 @@ public partial class NxGrid<T>
         }
     }
 
+    /// <summary>
+    /// Clamps every selection range to the current <see cref="filteredData"/> and
+    /// <see cref="visibleColumns"/> bounds, dropping any range that no longer overlaps them at all
+    /// (e.g. the data was reloaded shorter, or columns were hidden, while a selection was held).
+    /// Selection is best-effort state, not critical data, so this quietly clamps/discards stale
+    /// indices rather than letting a downstream lookup throw. Returns true if anything changed.
+    /// </summary>
+    private bool SanitizeSelectionRanges()
+    {
+        if (selectedRanges.Count == 0) return false;
+
+        var maxRow = filteredData.Count - 1;
+        var maxCol = visibleColumns.Count - 1;
+
+        // Nothing left to point at — drop the whole selection.
+        if (maxRow < 0 || maxCol < 0)
+        {
+            selectedRanges = [];
+            return true;
+        }
+
+        var changed = false;
+        var kept = new List<NxGridRange>(selectedRanges.Count);
+        foreach (var range in selectedRanges)
+        {
+            // A range that starts entirely past the current bounds no longer refers to anything
+            // real; drop it rather than snapping it onto an unrelated row/column.
+            if (Math.Min(range.StartRow, range.EndRow) > maxRow
+                || Math.Min(range.StartCol, range.EndCol) > maxCol)
+            {
+                changed = true;
+                continue;
+            }
+
+            var sr = Math.Clamp(range.StartRow, 0, maxRow);
+            var er = Math.Clamp(range.EndRow, 0, maxRow);
+            var sc = Math.Clamp(range.StartCol, 0, maxCol);
+            var ec = Math.Clamp(range.EndCol, 0, maxCol);
+
+            if (sr != range.StartRow || er != range.EndRow || sc != range.StartCol || ec != range.EndCol)
+                changed = true;
+
+            range.StartRow = sr;
+            range.EndRow = er;
+            range.StartCol = sc;
+            range.EndCol = ec;
+            kept.Add(range);
+        }
+
+        if (changed) selectedRanges = kept;
+        return changed;
+    }
+
     private async Task RaiseSelectionChanged()
     {
         if (IsDragFillActive)
             _fillHandleUpdatePending = true;
+
+        // Selection is not life-or-death: if the data or columns changed out from under a held
+        // selection, clamp/drop stale ranges here so we never index past the current lists.
+        SanitizeSelectionRanges();
 
         if (!OnSelectionChanged.HasDelegate && !SelectedItemsChanged.HasDelegate)
             return;

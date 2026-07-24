@@ -161,6 +161,15 @@ When `HeaderClickSelects = false`, clicking row numbers has no effect, and click
 
 `SelectRow(T row)` finds the row in `filteredData`, selects it spanning all columns (like a row-number click), scrolls it into view, and fires `OnSelectionChanged`. If the row is not present in `filteredData` (e.g. filtered out), the call is a no-op.
 
+### Selection when data changes underneath it
+
+Selection is treated as best-effort, not critical state, so changing `Data` (or hiding columns) while a selection is held never throws — even if the new data is shorter than the range that was selected.
+
+- If `KeyProperty` is set, the selection is remapped by key value: rows that still exist stay selected, rows that are gone are dropped.
+- If `KeyProperty` is not set, the selection is clamped to the new bounds — ranges that partially overlap the smaller data set are trimmed to what still exists, and ranges that fall entirely off the end are dropped. If nothing remains selectable, the selection is cleared. When this changes the selection, `OnSelectionChanged` fires with the reconciled selection.
+
+A host page is no longer required to call `ClearSelection()` after refreshing the grid's data to avoid stale-index errors, though doing so is still a valid way to reset selection explicitly.
+
 ---
 
 ## Keyboard navigation
