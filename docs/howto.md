@@ -661,6 +661,18 @@ void BuildMenu(NxGridContextMenuArgs<ProjectDto> args)
 //   Archive
 ```
 
+### Hiding a built-in item
+
+Two built-ins can be suppressed with grid parameters — no `OnContextMenuShowing` handler needed:
+
+```razor
+<NxGrid T="ProjectDto" Data="@projects"
+        ShowCopyWithHeaders="false"   <!-- drops "Copy with headers" -->
+        AllowFocusCellMode="false">   <!-- drops the "Focus Cell" checkbox -->
+```
+
+`Copy` cannot be hidden, and `Paste` is already hidden automatically whenever the right-clicked cell isn't editable. Hiding **Copy with headers** does not affect plain `Copy` or the `Ctrl+C` shortcut.
+
 ### Conditional and disabled items
 
 Use `args.Row` to add items only for certain rows, or set `Disabled = true` to show an item grayed out when the action is unavailable:

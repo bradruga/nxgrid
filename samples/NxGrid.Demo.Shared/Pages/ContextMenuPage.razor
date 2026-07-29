@@ -4,8 +4,9 @@
 
 <h1>Context Menu</h1>
 <p class="doc-intro">
-    Right-clicking any cell opens a context menu. The built-in <strong>Copy</strong> and <strong>Copy with headers</strong>
-    items are always present. <strong>Paste</strong> appears only when the right-clicked cell is editable.
+    Right-clicking any cell opens a context menu. The built-in <strong>Copy</strong> item is always present, and
+    <strong>Copy with headers</strong> sits below it unless <code>ShowCopyWithHeaders="false"</code>.
+    <strong>Paste</strong> appears only when the right-clicked cell is editable.
     In cell-selection mode a <strong>Focus Cell</strong> checkbox highlights the anchor row and column.
     Use <code>OnContextMenuShowing</code> to append custom items, and <code>OnContextMenuItemClicked</code>
     to handle them. The handler receives the right-clicked row and column along with the item that was selected.
@@ -80,19 +81,26 @@
 <div class="doc-section">
     <h2>Copy with headers and Paste</h2>
     <p class="doc-note">
-        <strong>Copy with headers</strong> is always available — it prepends a tab-separated header row to the
-        copied TSV so column titles travel with the data. <strong>Paste</strong> appears only when the right-clicked
-        cell is editable. Try copying a range with headers, then pasting it into a spreadsheet application.
-        You can also copy from elsewhere and paste back into the grid.
+        <strong>Copy with headers</strong> prepends a tab-separated header row to the copied TSV so column titles
+        travel with the data. <strong>Paste</strong> appears only when the right-clicked cell is editable.
+        Try copying a range with headers, then pasting it into a spreadsheet application.
+        You can also copy from elsewhere and paste back into the grid. Untick the box below to hide
+        <strong>Copy with headers</strong> from the menu — plain <strong>Copy</strong> and <kbd class="doc-kbd">Ctrl+C</kbd>
+        keep working either way.
     </p>
+    <div class="doc-controls">
+        <label style="font-size:13px;"><input type="checkbox" @bind="showCopyWithHeaders" /> ShowCopyWithHeaders</label>
+    </div>
     <NxGrid T="Person" Data="@pasteData"
             Editable="true"
+            ShowCopyWithHeaders="@showCopyWithHeaders"
             OnUpdate="@HandlePasteUpdate">
         <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
         <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
         <NxGridColumn Property="@(x => x.Department)" />
         <NxGridColumn Property="@(x => x.Age)"        Width="70" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@copyHeadersCode</pre>
 </div>
 
 <div class="doc-section">
@@ -122,6 +130,11 @@
                 <td>OnContextMenuShowing</td>
                 <td>Action&lt;NxGridContextMenuArgs&lt;T&gt;&gt;?</td>
                 <td>Called synchronously just before the context menu opens. Append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code> to add custom items after the built-in items (Copy, Copy with headers, Paste).</td>
+            </tr>
+            <tr>
+                <td>ShowCopyWithHeaders</td>
+                <td>bool</td>
+                <td>When <code>true</code> (default), the menu includes a <strong>Copy with headers</strong> item below <strong>Copy</strong>. Set to <code>false</code> to hide it; plain <strong>Copy</strong> and <code>Ctrl+C</code> are unaffected.</td>
             </tr>
             <tr>
                 <td>OnContextMenuItemClicked</td>
@@ -257,6 +270,15 @@
     string basicCode     = DemoCodeSamples.ContextMenuBasic;
     string dynamicCode   = DemoCodeSamples.ContextMenuDynamic;
     string sectionsCode  = DemoCodeSamples.ContextMenuSections;
+    bool showCopyWithHeaders = true;
+
+    string copyHeadersCode = """
+        <!-- Hide "Copy with headers" from the context menu -->
+        <NxGrid T="Person" Data="@people" ShowCopyWithHeaders="false">
+            ...
+        </NxGrid>
+        """;
+
     string focusCellCode = """
         <NxGrid T="Person" Data="@people">
             <NxGridColumn Property="@(x => x.FirstName)" />

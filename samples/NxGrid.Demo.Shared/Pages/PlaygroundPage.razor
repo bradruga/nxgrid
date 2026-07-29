@@ -44,6 +44,7 @@
                 <label class="pg-toggle"><input type="checkbox" @onchange="@(e => hasColumnMenu = (bool)(e.Value ?? false))" checked="@hasColumnMenu" /><span>Column Menu</span></label>
                 <label class="pg-toggle"><input type="checkbox" @onchange="@(e => showHeader = (bool)(e.Value ?? false))" checked="@showHeader" /><span>Show Header</span></label>
                 <label class="pg-toggle"><input type="checkbox" @onchange="@(e => allowFocusCellMode = (bool)(e.Value ?? false))" checked="@allowFocusCellMode" /><span>Focus Cell Mode</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => showCopyWithHeaders = (bool)(e.Value ?? false))" checked="@showCopyWithHeaders" /><span>Copy With Headers</span></label>
                 <label class="pg-toggle"><input type="checkbox" @onchange="@(e => enableSelectionMath = (bool)(e.Value ?? false))" checked="@enableSelectionMath" /><span>Selection Math</span></label>
                 <label class="pg-toggle"><input type="checkbox" @onchange="@(e => virtualize = (bool)(e.Value ?? false))" checked="@virtualize" /><span>Virtualize</span></label>
             </div>
@@ -168,6 +169,7 @@
                     Virtualize="@virtualize"
                     EnableDragFill="@enableDragFill"
                     AllowFocusCellMode="@allowFocusCellMode"
+                    ShowCopyWithHeaders="@showCopyWithHeaders"
                     EnableSelectionMath="@enableSelectionMath"
                     SelectionMode="@selectionMode"
                     RowGutter="@rowGutter"
@@ -241,6 +243,7 @@
     bool virtualize = true;
     bool enableDragFill = true;
     bool allowFocusCellMode = true;
+    bool showCopyWithHeaders = true;
     bool enableSelectionMath = false;
     NxGridSelectionMode selectionMode = NxGridSelectionMode.Cell;
     NxGridRowGutter rowGutter = NxGridRowGutter.Numbers;
@@ -306,6 +309,7 @@
         if (!hasColumnMenu)      sb.Append("\n        HasColumnMenu=\"false\"");
         if (!showHeader)         sb.Append("\n        ShowHeader=\"false\"");
         if (!allowFocusCellMode) sb.Append("\n        AllowFocusCellMode=\"false\"");
+        if (!showCopyWithHeaders) sb.Append("\n        ShowCopyWithHeaders=\"false\"");
         if (enableSelectionMath) sb.Append("\n        EnableSelectionMath=\"true\"");
         if (!virtualize)         sb.Append("\n        Virtualize=\"false\"");
         if (rowHeight != 28)     sb.Append($"\n        RowHeight=\"{rowHeight}\"");

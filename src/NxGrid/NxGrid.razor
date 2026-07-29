@@ -333,10 +333,13 @@
                     @onclick="@OnContextMenuCopyClick">
                 <span>Copy</span><span class="nx-grid-context-shortcut">Ctrl+C</span>
             </button>
-            <button type="button" class="nx-grid-context-item"
-                    @onclick="@OnContextMenuCopyWithHeadersClick">
-                Copy with headers
-            </button>
+            @if (ShowCopyWithHeaders)
+            {
+                <button type="button" class="nx-grid-context-item"
+                        @onclick="@OnContextMenuCopyWithHeadersClick">
+                    Copy with headers
+                </button>
+            }
             @if (contextMenuCellEditable)
             {
                 <button type="button" class="nx-grid-context-item"

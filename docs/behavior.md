@@ -607,7 +607,7 @@ When `StateKey` is non-null, the grid serialises its current column configuratio
 
 ## Context menu
 
-Right-clicking any cell opens a context menu at the cursor position. The built-in **Copy** item is always first and always present.
+Right-clicking any cell opens a context menu at the cursor position. The built-in **Copy** item is always first and always present. **Copy with headers** follows it unless `ShowCopyWithHeaders` is `false`, in which case the item is omitted entirely — plain **Copy** and the `Ctrl+C` shortcut are unaffected.
 
 **Custom items** are added via `OnContextMenuShowing`. The handler is called synchronously before the menu opens — append `NxGridContextMenuItem` entries to `args.Items`. Use the `Section` property to control where each item appears relative to the built-ins:
 
@@ -615,7 +615,7 @@ Right-clicking any cell opens a context menu at the cursor position. The built-i
 [Header items]           ← NxGridMenuSection.Header
 ─────────────            ← auto divider (when Header items present)
 Copy                     ← always present
-Copy with headers        ← always present
+Copy with headers        ← unless ShowCopyWithHeaders is false
 Paste                    ← when cell is editable
 [BeforeFocusCell items]  ← NxGridMenuSection.BeforeFocusCell
 ─────────────            ← always present before Focus Cell

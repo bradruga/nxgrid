@@ -129,6 +129,13 @@ public partial class NxGrid<T>
     [Parameter] public bool AllowFocusCellMode { get; set; } = true;
 
     /// <summary>
+    /// When <c>true</c> (default), the right-click context menu includes a <b>Copy with headers</b>
+    /// item below <b>Copy</b>. Set to <c>false</c> to hide it. The plain <b>Copy</b> item and the
+    /// Ctrl+C shortcut are unaffected.
+    /// </summary>
+    [Parameter] public bool ShowCopyWithHeaders { get; set; } = true;
+
+    /// <summary>
     /// When set, column widths, sort state, and filter state are saved to <c>localStorage</c>
     /// under this key after every user change and restored on first render.
     /// Use a unique key per grid instance on a page.

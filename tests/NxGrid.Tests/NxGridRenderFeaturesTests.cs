@@ -150,6 +150,46 @@ public class NxGridRenderFeaturesTests : BunitContext
         Assert.That(cut.FindAll(".nx-grid-menu-button").Count, Is.EqualTo(1));
     }
 
+    // ── ShowCopyWithHeaders ───────────────────────────────────────────────────
+
+    private static IRenderedComponent<NxGrid<Row>> RenderWithContextMenu(BunitContext ctx, bool? showCopyWithHeaders)
+    {
+        ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = ctx.Render<NxGrid<Row>>(p =>
+        {
+            p.Add(x => x.Data, [new Row("Alice", 1)]);
+            if (showCopyWithHeaders != null) p.Add(x => x.ShowCopyWithHeaders, showCopyWithHeaders.Value);
+            p.AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)
+                .Add(x => x.Title, "Name"));
+        });
+
+        // Right-click the first body cell to open the context menu.
+        cut.FindAll(".nx-grid-row .nx-grid-cell")[0].ContextMenu();
+        return cut;
+    }
+
+    private static List<string> ContextMenuLabels(IRenderedComponent<NxGrid<Row>> cut) =>
+        cut.FindAll(".nx-grid-context-menu .nx-grid-context-item")
+           .Select(e => e.TextContent.Trim()).ToList();
+
+    [Test]
+    public void ShowCopyWithHeaders_DefaultsToShown()
+    {
+        var cut = RenderWithContextMenu(this, null);
+        Assert.That(ContextMenuLabels(cut), Does.Contain("Copy with headers"));
+    }
+
+    [Test]
+    public void ShowCopyWithHeaders_False_HidesItemButKeepsCopy()
+    {
+        var cut = RenderWithContextMenu(this, false);
+        var labels = ContextMenuLabels(cut);
+
+        Assert.That(labels, Does.Not.Contain("Copy with headers"));
+        Assert.That(labels.Any(l => l.StartsWith("Copy")), Is.True, "plain Copy must still be present");
+    }
+
     // ── EmptyTemplate / LoadingTemplate ──────────────────────────────────────
 
     [Test]
