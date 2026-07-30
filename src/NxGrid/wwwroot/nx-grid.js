@@ -122,6 +122,16 @@ class NxGrid {
         };
         document.addEventListener('keydown', this._gridKeyHandler, true);
 
+        // Live left-button state. dragSelect is reached one interop round-trip after the
+        // Blazor mousedown handler runs, so on a fast click the real mouseup can already
+        // have fired by then — dragSelect uses this to detect that and skip installing
+        // listeners that would never be torn down. Capturing so stopPropagation can't hide it.
+        this._leftButtonDown = false;
+        this._buttonDownHandler = (event) => { if (event.button === 0) this._leftButtonDown = true; };
+        this._buttonUpHandler   = (event) => { if (event.button === 0) this._leftButtonDown = false; };
+        document.addEventListener('mousedown', this._buttonDownHandler, true);
+        document.addEventListener('mouseup',   this._buttonUpHandler,   true);
+
         // Lost focus event for column menu and context menu
         this._menuClickHandler = (event) => {
             const gridElement = document.getElementById(this.id);
@@ -660,6 +670,13 @@ class NxGrid {
 
         applyClasses(anchorRow, anchorCol);
 
+        // The button is already back up — a click, not a drag. There is no mouseup left to
+        // wait for, so return now. Installing the mousemove listener, the row MutationObserver
+        // and userSelect:none here would leak them for the lifetime of the page: the observer
+        // would keep repainting this anchor over every later row insertion (e.g. an OnNewRow
+        // append), and page-wide text selection would stay disabled.
+        if (!this._leftButtonDown) return Promise.resolve({ endRow, endCol });
+
         let lastClientX = null;
         let lastClientY = null;
         let scrollInterval = null;
@@ -787,6 +804,12 @@ class NxGrid {
         if (this._gridKeyHandler) {
             document.removeEventListener('keydown', this._gridKeyHandler, true);
             this._gridKeyHandler = null;
+        }
+        if (this._buttonDownHandler) {
+            document.removeEventListener('mousedown', this._buttonDownHandler, true);
+            document.removeEventListener('mouseup',   this._buttonUpHandler,   true);
+            this._buttonDownHandler = null;
+            this._buttonUpHandler = null;
         }
         if (this._colorPickerMouseDown) {
             const gridElement = document.getElementById(this.id);

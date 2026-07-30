@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New `OnNewRow` callback turns Tab in the last cell of the last row into "append a line", for uninterrupted keyboard data entry in line-item grids: type → Tab → Tab → a fresh row appears with the cursor already in it. The grid commits any in-progress edit (firing `OnUpdate`) first, awaits the handler while it appends to `Data`, re-applies filter and sort, then moves the selection into the new row — by default the first editable column, or `args.FocusColumn` when the handler names one. Set `args.FocusRow` when a sort is active and the blank row does not sort last, and `args.BeginEdit = true` to open the editor instead of only selecting the cell. If the handler appends nothing, the cursor stays put. Fully opt-in: without the callback Tab keeps wrapping to the first row.
+- The new-row trigger cell is the **last visible column** of the last row, editable or not — so the append replaces nothing but Tab's wrap from the last row back to the first, and every cell on the last row stays reachable by Tab.
+- New `NewRowTriggers` parameter adds Enter as a second trigger — `NewRowTriggers="@(NxGridNewRowTrigger.Tab | NxGridNewRowTrigger.Enter)"` also appends when Enter is pressed anywhere on the last row. Default is Tab only. An Enter-triggered append keeps the cursor in the column it came from, so Enter reads as "one more line of this column" the way it does elsewhere in the grid; a Tab-triggered append starts at the first editable column, since Tab wrapped to a new line. `args.FocusColumn` overrides either default.
+- New `SelectCell(T row, NxGridColumn<T> column)` method selects a single cell (rather than a whole row like `SelectRow`) and scrolls it into view — use it to place the cursor on a specific field after adding a row from a toolbar button.
+- New `BeginEditAsync(T row, NxGridColumn<T> column)` method opens the inline editor on a specific cell, as if the user had double-clicked it. Commits any other in-progress edit first, runs the full editability chain (`Editable`, `CellEditableGetter`, `OnEditing`), and is a silent no-op when anything blocks it.
 - `ShowCopyWithHeaders` parameter hides the **Copy with headers** item from the right-click context menu when set to `false`. The plain **Copy** item and `Ctrl+C` are unaffected.
 
 ### Fixed

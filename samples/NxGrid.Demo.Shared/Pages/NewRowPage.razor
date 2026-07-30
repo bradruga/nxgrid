@@ -1,0 +1,395 @@
+@page "/new-row"
+
+<PageTitle>New Row on Tab — NxGrid</PageTitle>
+
+<h1>New Row on Tab</h1>
+<p class="doc-intro">
+    <code>OnNewRow</code> turns <kbd class="doc-kbd">Tab</kbd> at the end of the last row into
+    "give me a fresh line". Line-item grids — purchase orders, bills, journal entries — can then be
+    filled in without ever reaching for the mouse: type → Tab → Tab → a new row appears with the
+    cursor already in it. Fully opt-in: without the callback, Tab keeps wrapping to the first row.
+</p>
+
+<div class="doc-section">
+    <h2>Live Demo</h2>
+    <p class="doc-note">
+        Click a cell, type, and Tab across. When you press Tab in the last column of the last row —
+        <strong>Amount</strong> — a new line is appended and the cursor lands on
+        <strong>Description</strong>, ready to type. It does not matter that <strong>Amount</strong>
+        is computed and read-only: the trigger is about position, not editability.
+    </p>
+    <NxGrid @ref="grid" T="OrderLine" Data="@lines" Editable="true"
+            RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell"
+            OnUpdate="@HandleUpdate" OnNewRow="@HandleNewRowAsync"
+            NewRowTriggers="@triggers">
+        <NxGridColumn @ref="descriptionColumn" Property="@(x => x.Description)" Title="Description" Width="220" />
+        <NxGridColumn Property="@(x => x.Quantity)"    Title="Qty"        Width="70"
+                      Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.UnitPrice)"   Title="Unit Price" Width="100"
+                      Format="#,0.00" MathExpression="true"
+                      Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Amount" Display="@(x => (x.Quantity * x.UnitPrice).ToString("#,0.00"))"
+                      Width="100" Editable="false"
+                      Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+
+    <div class="doc-controls" style="margin-top:12px;">
+        <label style="font-size:13px;">
+            <input id="opt-enter-appends" type="checkbox" checked="@enterAlsoAppends"
+                   @onchange="@(e => enterAlsoAppends = (bool)e.Value!)" />
+            Enter on the last row also appends (stays in its column)
+        </label>
+        <label style="font-size:13px;">
+            <input id="opt-begin-edit" type="checkbox" checked="@beginEdit"
+                   @onchange="@(e => beginEdit = (bool)e.Value!)" />
+            Open the editor on the new cell (<code>BeginEdit</code>)
+        </label>
+        <label style="font-size:13px;">
+            <input id="opt-refuse-blank" type="checkbox" checked="@refuseBlankLines"
+                   @onchange="@(e => refuseBlankLines = (bool)e.Value!)" />
+            Refuse when the last line has no description
+        </label>
+        <button @onclick="Reset" class="doc-btn doc-btn-secondary">Reset</button>
+    </div>
+
+    <div style="margin-top:16px;">
+        <div class="doc-controls">
+            <span style="font-size:13px;font-weight:600;">Event Log</span>
+            @if (log.Count > 0)
+            {
+                <button @onclick="@(() => log.Clear())" class="doc-btn doc-btn-secondary">Clear</button>
+            }
+        </div>
+        @if (log.Count == 0)
+        {
+            <div style="font-size:13px;color:#888;font-style:italic;">
+                Nothing yet — edit a cell and Tab off the last row.
+            </div>
+        }
+        else
+        {
+            <div class="doc-log">
+                @foreach (var entry in log)
+                {
+                    <div>@entry</div>
+                }
+            </div>
+        }
+    </div>
+
+    <pre class="doc-code" style="margin-top:24px;">@basicCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Which cell is the trigger?</h2>
+    <p>
+        The <strong>last visible column of the last row</strong> — editable or not. That is the one
+        cell where Tab changes meaning, and the behavior it replaces is only the wrap back to the
+        first row, so nothing else about Tab navigation changes and every cell stays reachable.
+    </p>
+    <p class="doc-note">
+        Hidden columns don't count, so hiding the trailing column through the column menu moves the
+        trigger to whatever is last after it. The last cell of every <em>other</em> row still wraps
+        to the next row exactly as before.
+    </p>
+</div>
+
+<div class="doc-section">
+    <h2>What the grid does, in order</h2>
+    <table class="doc-table">
+        <thead><tr><th>#</th><th>Step</th><th>Detail</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>Commit</td>
+                <td>Any in-progress edit is committed through the normal pipeline — math evaluation, <code>Format</code>/<code>TryParse</code> parsing, <code>OnUpdate</code> — without moving the selection. The host always sees committed data before step 2.</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Callback</td>
+                <td><code>OnNewRow</code> is invoked and <strong>awaited</strong>, so an async handler (validation, a server round-trip) finishes before anything moves.</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Re-pipe</td>
+                <td><code>ApplyFilterAndSort()</code> runs — the host mutated <code>Data</code> in place, which a parameter comparison would not detect.</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>Move</td>
+                <td>The selection moves into the target row and keyboard focus returns to the grid, so the next keystroke types into the new line.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
+    <h2>NxGridNewRowArgs&lt;T&gt;</h2>
+    <table class="doc-table">
+        <thead><tr><th>Property</th><th>Type</th><th>Direction</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Row</td>
+                <td>T</td>
+                <td>in</td>
+                <td>The last row — the one the user navigated forward out of.</td>
+            </tr>
+            <tr>
+                <td>RowIndex</td>
+                <td>int</td>
+                <td>in</td>
+                <td>Zero-based index of <code>Row</code> in the current filtered/sorted data.</td>
+            </tr>
+            <tr>
+                <td>Trigger</td>
+                <td>NxGridNewRowTrigger</td>
+                <td>in</td>
+                <td>Which key fired it — <code>Tab</code> or <code>Enter</code>.</td>
+            </tr>
+            <tr>
+                <td>FocusRow</td>
+                <td>T?</td>
+                <td>out</td>
+                <td>The row to move to. Default is whatever row is last after re-piping — set this when a sort is active and the blank row does not sort to the end.</td>
+            </tr>
+            <tr>
+                <td>FocusColumn</td>
+                <td>NxGridColumn&lt;T&gt;?</td>
+                <td>out</td>
+                <td>The column to land on. Default follows the keystroke: the first editable visible column after a <code>Tab</code> trigger, or the column the user was already in after an <code>Enter</code> trigger.</td>
+            </tr>
+            <tr>
+                <td>BeginEdit</td>
+                <td>bool</td>
+                <td>out</td>
+                <td>Set <code>true</code> to open the editor on the target cell. Default <code>false</code> — the cell is only selected and the next printable keystroke starts the edit.</td>
+            </tr>
+        </tbody>
+    </table>
+    <pre class="doc-code" style="margin-top:16px;">@focusCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Sorted grids</h2>
+    <p>
+        With no sort active the grid targets whatever row is last after re-piping — which is the row
+        you just appended. Sort a column here and Tab off the last row: the blank line rarely sorts
+        to the end, so name it with <code>args.FocusRow</code> and the grid will find it wherever
+        the sort put it. This demo sets <code>FocusRow</code> unconditionally, which is always safe.
+    </p>
+    <pre class="doc-code">@sortedCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Refusing the append</h2>
+    <p>
+        If validation says no, add nothing. The grid detects that the row count did not grow, leaves
+        the cursor where it was, and does not throw.
+    </p>
+    <p class="doc-note">
+        The demo appends unconditionally, since a blank line following a blank line is ordinary data
+        entry. To see a refusal, tick <em>Refuse when the last line has no description</em> above,
+        clear the Description of the last row, then Tab off its last cell — the log records the
+        refusal and the cursor stays put.
+    </p>
+    <pre class="doc-code">@refuseCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Also appending from a toolbar button</h2>
+    <p>
+        <code>OnNewRow</code> covers the keyboard path. For a button or context menu item, append and
+        then place the cursor yourself with <code>SelectCell(row, column)</code> — or
+        <code>BeginEditAsync(row, column)</code> to open the editor. Both are public methods on the
+        grid, independent of <code>OnNewRow</code>.
+    </p>
+    <div class="doc-controls">
+        <button @onclick="AddLineFromToolbar" class="doc-btn">Add Line</button>
+        <button @onclick="AddLineAndEdit" class="doc-btn doc-btn-secondary">Add Line &amp; Edit</button>
+    </div>
+    <pre class="doc-code" style="margin-top:12px;">@toolbarCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Conditions</h2>
+    <table class="doc-table">
+        <thead><tr><th>Case</th><th>Behavior</th></tr></thead>
+        <tbody>
+            <tr><td><code>OnNewRow</code> not registered</td><td>No trigger. Tab wraps to the first row as usual.</td></tr>
+            <tr><td>No <code>OnUpdate</code>, or no editable column</td><td>No trigger — there is no data-entry flow to continue.</td></tr>
+            <tr><td><kbd class="doc-kbd">Shift</kbd>+<kbd class="doc-kbd">Tab</kbd> / Shift+Enter</td><td>Never triggers. Backward navigation is unaffected.</td></tr>
+            <tr><td>Read-only trigger cell</td><td>Fine — the trigger cell need not be editable, so a computed trailing column still appends on Tab.</td></tr>
+            <tr><td>Tab held down</td><td>At most one row per completed sequence; repeats arriving mid-append are dropped.</td></tr>
+            <tr><td>Handler appends nothing</td><td>No focus move, no exception.</td></tr>
+            <tr><td>Empty grid</td><td>No last row, so nothing fires. Seed the first row from a button or the context menu.</td></tr>
+            <tr><td><code>SelectionMode</code> <code>MultiRow</code>/<code>SingleRow</code></td><td>Tab from any column of the last row appends; the whole new row is selected. <code>BeginEdit</code> is ignored.</td></tr>
+            <tr><td><code>SelectionMode="None"</code></td><td>No trigger.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    class OrderLine
+    {
+        public string  Description { get; set; } = "";
+        public int     Quantity    { get; set; }
+        public decimal UnitPrice   { get; set; }
+    }
+
+    NxGrid<OrderLine>? grid;
+    NxGridColumn<OrderLine>? descriptionColumn;
+
+    List<OrderLine> lines = NewLines();
+
+    static List<OrderLine> NewLines() =>
+    [
+        new() { Description = "Precast wall panel",  Quantity = 12, UnitPrice = 480.00m },
+        new() { Description = "Rebar cage assembly", Quantity = 4,  UnitPrice = 215.50m },
+        new() { Description = "Lifting anchor set",  Quantity = 24, UnitPrice = 18.75m  },
+    ];
+
+    List<string> log = [];
+    bool enterAlsoAppends;
+    bool beginEdit;
+    bool refuseBlankLines;
+
+    NxGridNewRowTrigger triggers => enterAlsoAppends
+        ? NxGridNewRowTrigger.Tab | NxGridNewRowTrigger.Enter
+        : NxGridNewRowTrigger.Tab;
+
+    void Reset()
+    {
+        lines = NewLines();
+        log.Clear();
+    }
+
+    void HandleUpdate(NxGridUpdateArgs<OrderLine> args)
+    {
+        foreach (var row in args.Rows)
+            foreach (var change in row.Changes)
+                change.Apply(row.Row);
+
+        var details = string.Join(", ", args.Rows.SelectMany(r =>
+            r.Changes.Select(c => $"{c.Column.EffectiveTitle} → {c.NewValue}")));
+        log.Insert(0, $"[{Stamp()}]  OnUpdate  —  {details}");
+    }
+
+    async Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
+    {
+        // Appending a blank line after a blank line is normal data entry, so this demo always
+        // appends. The opt-in below shows what refusing looks like: return without touching the
+        // list and the grid leaves the cursor where it was.
+        if (refuseBlankLines && string.IsNullOrWhiteSpace(args.Row.Description))
+        {
+            log.Insert(0, $"[{Stamp()}]  OnNewRow ({args.Trigger})  —  refused: line {args.RowIndex + 1} has no description");
+            return;
+        }
+
+        var line = new OrderLine();
+        lines.Add(line);
+
+        // Always safe, and required once a sort is active — a blank row rarely sorts last.
+        args.FocusRow  = line;
+        args.BeginEdit = beginEdit;
+
+        log.Insert(0, $"[{Stamp()}]  OnNewRow ({args.Trigger})  —  appended after line {args.RowIndex + 1}, now {lines.Count} lines");
+
+        await Task.CompletedTask;
+    }
+
+    async Task AddLineFromToolbar()
+    {
+        var line = new OrderLine();
+        lines.Add(line);
+        log.Insert(0, $"[{Stamp()}]  Toolbar  —  appended, cursor on Description");
+        await InvokeAsync(StateHasChanged);
+        if (grid != null && descriptionColumn != null)
+            await grid.SelectCell(line, descriptionColumn);
+    }
+
+    async Task AddLineAndEdit()
+    {
+        var line = new OrderLine();
+        lines.Add(line);
+        log.Insert(0, $"[{Stamp()}]  Toolbar  —  appended, editor open on Description");
+        await InvokeAsync(StateHasChanged);
+        if (grid != null && descriptionColumn != null)
+            await grid.BeginEditAsync(line, descriptionColumn);
+    }
+
+    static string Stamp() => DateTime.Now.ToString("HH:mm:ss");
+
+    string basicCode = """
+<NxGrid T="OrderLine" Data="@lines" Editable="true"
+        OnUpdate="@HandleUpdate" OnNewRow="@HandleNewRowAsync">
+    <NxGridColumn Property="@(x => x.Description)" Width="220" />
+    <NxGridColumn Property="@(x => x.Quantity)"    Width="70" />
+    <NxGridColumn Property="@(x => x.UnitPrice)"   Width="100" />
+    <NxGridColumn Title="Amount" Editable="false"
+                  Display="@(x => (x.Quantity * x.UnitPrice).ToString("#,0.00"))" />
+</NxGrid>
+
+@code {
+    List<OrderLine> lines = [];
+
+    async Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
+    {
+        lines.Add(new OrderLine());
+        await MarkDirtyAsync();
+    }
+}
+""";
+
+    string focusCode = """
+async Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
+{
+    var line = new OrderLine { Sequence = args.RowIndex + 2 };
+    lines.Add(line);
+
+    args.FocusColumn = accountColumn;   // an @ref'd NxGridColumn<OrderLine>
+    args.BeginEdit   = true;            // open the editor rather than just selecting
+    await Task.CompletedTask;
+}
+""";
+
+    string sortedCode = """
+// Without FocusRow the grid targets the last row after re-piping.
+// With a sort active that is usually the wrong row — so name it:
+var line = new OrderLine();
+lines.Add(line);
+args.FocusRow = line;   // found by reference, or by KeyProperty value
+""";
+
+    string refuseCode = """
+Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
+{
+    if (string.IsNullOrWhiteSpace(args.Row.Description))
+    {
+        errorMessage = "Finish the current line first.";
+        return Task.CompletedTask;   // no append → no focus move, no throw
+    }
+    lines.Add(new OrderLine());
+    return Task.CompletedTask;
+}
+""";
+
+    string toolbarCode = """
+<NxGrid @ref="grid" T="OrderLine" Data="@lines" Editable="true" OnUpdate="@HandleUpdate">
+    <NxGridColumn @ref="descriptionColumn" Property="@(x => x.Description)" />
+    ...
+</NxGrid>
+
+@code {
+    NxGrid<OrderLine>? grid;
+    NxGridColumn<OrderLine>? descriptionColumn;
+
+    async Task AddLineAsync()
+    {
+        var line = new OrderLine();
+        lines.Add(line);
+        await InvokeAsync(StateHasChanged);
+        await grid!.SelectCell(line, descriptionColumn!);   // or BeginEditAsync(...)
+    }
+}
+""";
+}

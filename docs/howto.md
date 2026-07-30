@@ -10,6 +10,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to persist column state across page loads](#how-to-persist-column-state-across-page-loads)
 - [How to refresh the grid when data changes](#how-to-refresh-the-grid-when-data-changes)
 - [How inline editing works](#how-inline-editing-works)
+- [How to add a new row when the user tabs off the last one](#how-to-add-a-new-row-when-the-user-tabs-off-the-last-one)
 - [How to respond to selection changes](#how-to-respond-to-selection-changes)
 - [How to apply custom cell styling](#how-to-apply-custom-cell-styling)
 - [How to use custom cell templates](#how-to-use-custom-cell-templates)
@@ -299,6 +300,105 @@ Calling it with no open editor is a no-op, and if a commit is already in flight 
 
 ---
 
+## How to add a new row when the user tabs off the last one
+
+In a line-item grid — a purchase order, a bill, a journal entry — the fastest data entry is uninterrupted keyboard entry: type, Tab, type, Tab, and when the last field of the last line is done, a fresh line appears ready to type. Register `OnNewRow` and the grid does the rest.
+
+```razor
+<NxGrid T="OrderLine" Data="@lines" Editable="true"
+        OnUpdate="@HandleUpdate" OnNewRow="@HandleNewRowAsync">
+    <NxGridColumn Property="@(x => x.Description)" Width="240" />
+    <NxGridColumn Property="@(x => x.Quantity)"    Width="80" />
+    <NxGridColumn Property="@(x => x.UnitPrice)"   Width="100" />
+    <NxGridColumn Property="@(x => x.Amount)"      Width="100" Editable="false" />
+</NxGrid>
+
+@code {
+    List<OrderLine> lines = [];
+
+    async Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
+    {
+        lines.Add(new OrderLine { Sequence = lines.Count + 1 });
+        await MarkDirtyAsync();
+    }
+}
+```
+
+That is the whole integration. Press Tab in the last column of the last line — **Amount** above, computed and read-only, which does not matter because the trigger is about position rather than editability — and the grid commits the cell being edited, awaits your handler, re-runs its filter/sort pipeline, and puts the cursor on `Description` of the new line with keyboard focus still in the grid.
+
+The trigger is always the last visible column of the last row, so the only Tab behavior it replaces is the wrap back to the first row. Tab in the last column of any other row still moves to the next row, and every cell stays reachable.
+
+### Land on a specific cell
+
+Set `args.FocusColumn` to override the default landing column — the first editable column after a Tab trigger, or the column the user was already in after an Enter trigger — and `args.BeginEdit` to open the editor rather than just selecting the cell:
+
+```csharp
+async Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
+{
+    var line = new OrderLine();
+    lines.Add(line);
+
+    args.FocusColumn = accountColumn;   // an @ref'd NxGridColumn<OrderLine>
+    args.BeginEdit   = true;            // editor opens immediately
+}
+```
+
+### When a sort is active
+
+Without a sort, the grid targets whatever row is last after re-piping — which is the row you just appended. With a sort active, a blank row rarely sorts to the end, so name it:
+
+```csharp
+var line = new OrderLine();
+lines.Add(line);
+args.FocusRow = line;   // grid finds it wherever the sort put it
+```
+
+### Also append on Enter
+
+Some users expect Enter on the last row to add a line too. Opt in with `NewRowTriggers`:
+
+```razor
+<NxGrid ... OnNewRow="@HandleNewRowAsync"
+        NewRowTriggers="@(NxGridNewRowTrigger.Tab | NxGridNewRowTrigger.Enter)" />
+```
+
+Enter fires from any column on the last row (it navigates vertically, so there is no trigger column to hit).
+
+### Refusing the append
+
+If validation says no, simply do not add anything. The grid detects that the row count did not grow, leaves the cursor where it was, and does not throw:
+
+```csharp
+Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
+{
+    if (string.IsNullOrWhiteSpace(args.Row.Description))
+    {
+        errorMessage = "Finish the current line first.";
+        return Task.CompletedTask;   // no append → no focus move
+    }
+    lines.Add(new OrderLine());
+    return Task.CompletedTask;
+}
+```
+
+### The same append from a toolbar button
+
+`OnNewRow` covers the keyboard path. For a toolbar button or context menu item, append and then place the cursor yourself with `SelectCell` (or `BeginEditAsync` to open the editor):
+
+```csharp
+async Task AddLineAsync()
+{
+    var line = new OrderLine();
+    lines.Add(line);
+    await InvokeAsync(StateHasChanged);
+    await grid!.SelectCell(line, descriptionColumn);
+}
+```
+
+`OnNewRow` is inert unless `OnUpdate` is registered and at least one column is editable, so a read-only grid keeps plain Tab wrapping.
+
+---
+
 ## How to respond to selection changes
 
 Register `OnSelectionChanged` to be notified whenever the selection changes — by mouse, keyboard, or programmatic call.
@@ -456,6 +556,28 @@ await grid.SelectRow(person);
 ```
 
 If the row is not present in the current filtered view (e.g. it has been filtered out), the call is a no-op.
+
+### Select a single cell
+
+`SelectCell(T row, NxGridColumn<T> column)` selects one cell rather than the whole row — useful for putting the cursor on a specific field after adding a row from a toolbar button. Capture the column with `@ref`:
+
+```razor
+<NxGridColumn @ref="descriptionColumn" Property="@(x => x.Description)" />
+
+@code {
+    NxGridColumn<OrderLine>? descriptionColumn;
+
+    async Task AddLineAsync()
+    {
+        var line = new OrderLine();
+        lines.Add(line);
+        await InvokeAsync(StateHasChanged);
+        await grid!.SelectCell(line, descriptionColumn!);
+    }
+}
+```
+
+In `MultiRow`/`SingleRow` mode the whole row is selected and the column argument is ignored. To open the editor on that cell instead of just selecting it, use `BeginEditAsync(row, column)` — it runs the same editability checks as a double-click and no-ops silently if any of them block.
 
 ### Scroll to the last row
 

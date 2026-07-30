@@ -15,6 +15,7 @@ A high-performance, virtualised data grid component for Blazor.
 - Client-side sort and filter via the column menu
 - Multi-cell rectangular selection with selection math (sum, avg, count)
 - Inline editing — text input, combo-box dropdowns, date picker, multi-line, and math expressions
+- Keyboard-only line-item entry — Tab off the last row to append a new one (`OnNewRow`)
 - Checkbox columns — toggle `bool` values with a single click or Space
 - Copy / paste as TSV (Excel-compatible)
 - Row grouping with collapsible groups
@@ -130,6 +131,30 @@ Use `CellEditableGetter` to lock rows or cells at runtime (e.g. an approved reco
         toast.Show($"{args.Row.EmployeeName} is approved and cannot be edited.");
 }
 ```
+
+### Adding a row with Tab
+
+For line-item entry — purchase orders, bills, journal entries — register `OnNewRow` and the last Tab of a line appends the next one. The user never touches the mouse: type → Tab → Tab → a fresh row appears with the cursor already in it.
+
+```razor
+<NxGrid T="OrderLine" Data="@lines" Editable="true"
+        OnUpdate="@HandleUpdate" OnNewRow="@HandleNewRowAsync">
+    <NxGridColumn Property="@(x => x.Description)" />
+    <NxGridColumn Property="@(x => x.Quantity)" />
+    <NxGridColumn Property="@(x => x.UnitPrice)" />
+    <NxGridColumn Property="@(x => x.Amount)" Editable="false" />
+</NxGrid>
+
+@code {
+    async Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
+    {
+        lines.Add(new OrderLine());
+        await MarkDirtyAsync();
+    }
+}
+```
+
+The trigger is the last visible column of the last row — `Amount` above, editable or not — so the append replaces only Tab's wrap from the last row back to the first and every cell stays reachable. The grid commits the in-progress edit (firing `OnUpdate`) before your handler runs, awaits it, re-applies filter and sort, then moves the cursor into the new row. Set `args.FocusColumn`, `args.FocusRow`, or `args.BeginEdit` to steer where it lands. Add `NewRowTriggers="@(NxGridNewRowTrigger.Tab | NxGridNewRowTrigger.Enter)"` to append on Enter as well.
 
 ### Multi-line text
 

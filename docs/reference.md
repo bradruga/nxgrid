@@ -126,6 +126,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `OnContextMenuShowing` | `Action<NxGridContextMenuArgs<T>>?` | Called synchronously just before the context menu opens. The handler receives the right-clicked `Row` and `Column`, and a mutable `Items` list. Append `NxGridContextMenuItem` entries to add custom items after the built-in items. Built-in items: **Copy** (always), **Copy with headers** (unless `ShowCopyWithHeaders` is `false`), **Paste** (only when the right-clicked cell is editable), **Focus Cell** checkbox (only when `SelectionMode` is `Cell` and `AllowFocusCellMode` is `true`). |
 | `OnContextMenuItemClicked` | `EventCallback<NxGridContextMenuItemArgs<T>>` | Fires when the user selects a custom context menu item. Receives the clicked `Item` plus the `Row` and `Column` that were right-clicked. |
 | `OnRowDrop` | `EventCallback<NxGridRowDropArgs<T>>` | Fires after a successful row drag. The host must reorder `Data` in this handler. After the callback returns the grid calls `ApplyFilterAndSort()` and `StateHasChanged()` automatically. The active selection is cleared on drop. |
+| `OnNewRow` | `EventCallback<NxGridNewRowArgs<T>>` | Fires when the user navigates forward off the last row — Tab in its last visible column (or Enter, when `NewRowTriggers` opts in). The host appends a row to `Data` in this handler. Any in-progress edit is committed (firing `OnUpdate`) first; after the callback completes the grid re-runs its filter/sort pipeline and moves the selection into the new row. Requires `OnUpdate` and at least one editable visible column. See [New-row append](#new-row-append). |
 
 ### Styling
 
@@ -150,6 +151,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `OnCopied` | `EventCallback<NxGridCopiedArgs<T>>` | Fires after the selection is written to the clipboard. `args` exposes `MinRow`, `MaxRow`, `MinCol`, `MaxCol` — the bounding box of the copied range. Use to capture side-channel data (e.g. cell styles) alongside the OS clipboard text. |
 | `OnPasted` | `EventCallback<NxGridPastedArgs<T>>` | Fires after a paste completes (after `OnUpdate`). `args` exposes `OriginRow`/`OriginCol` (top-left of the paste destination), `SelectionEndRow`/`SelectionEndCol` (bottom-right of the active selection, for single-cell fill), and `ClipboardRows`/`ClipboardCols` (dimensions of the parsed clipboard). Use alongside `OnCopied` to apply side-channel data (e.g. cell styles) to the paste destination. |
 | `OnUpdate` | `EventCallback<NxGridUpdateArgs<T>>` | Fires after any edit — single-cell commit, paste, delete, Ctrl+Enter fill, or drag-fill. `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with the full list of cell changes. The host is responsible for applying changes to the model and persisting them. Required for editing to be enabled. |
+| `NewRowTriggers` | `NxGridNewRowTrigger` | Which keystrokes fire `OnNewRow` from the last row. `Tab` (default), `Enter`, `Tab \| Enter`, or `None`. No effect without `OnNewRow`. See [New-row append](#new-row-append). |
 | `EnableDragFill` | `bool` | `true` | Enables the fill handle — a small square at the bottom-right corner of the active selection. Drag it in any direction to fill adjacent editable cells. Auto-disabled when `SelectionMode` is `MultiRow`, `SingleRow`, or `None`. Only visible when exactly one selection range is active and `OnUpdate` is set. |
 
 ### Public methods
@@ -159,6 +161,8 @@ void  ForceRerender()                              // force a re-render after ex
 Task  ScrollToEnd()                                // scroll to the last row
 Task  SelectRow(T row)                             // programmatically select a row and scroll it into view; when KeyProperty is set, falls back to key-value match if reference is not found
 Task  SelectRowByKey(object? keyValue)             // select and scroll to the first row whose KeyProperty value equals keyValue; logs a warning and is a no-op when KeyProperty is not set or no match is found
+Task  SelectCell(T row, NxGridColumn<T> column)    // select a single cell and scroll it into view; selects the whole row in the row-selection modes; no-op when the row is not in the filtered data or the column is hidden
+Task  BeginEditAsync(T row, NxGridColumn<T> col)   // open the inline editor on a specific cell, as if double-clicked; commits any other in-progress edit first; runs the full editability chain and no-ops silently when anything blocks it
 Task  ClearAllFilters()                            // clear all column filters and re-apply sort; saves state when StateKey is set; fires OnFilterChanged; column widths/sort/frozen/hidden are preserved
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
 void  SetColumnHidden(string columnId, bool hidden) // show or hide a column programmatically; columnId matches Id ?? Title; no-op when hidden=false and column.Visible=false
@@ -375,6 +379,7 @@ Keys are compared with `object.Equals`. Duplicate key values in `Data` produce u
 | Ctrl/⌘ + Shift + Click | Extend the most recent range to the clicked cell (preserves other ranges) |
 | Page Up / Down | Move by page height |
 | Tab / Shift+Tab | Move right/left, wrapping rows |
+| Tab (in the last visible column of the last row) | Commit, then fire `OnNewRow` and move into the appended row instead of wrapping to the first row — only when `OnNewRow` is registered (see [New-row append](#new-row-append)) |
 | Enter | Move down one row (navigation) / commit edit and move down (editing) |
 | Shift+Enter | Move up one row (navigation) / commit edit and move up (editing) |
 | Shift+Enter (editing a `MultiLine` cell) | Insert a newline — does not commit |
@@ -395,6 +400,47 @@ Keys are compared with `object.Equals`. Duplicate key values in `Data` produce u
 A column is editable when `Editable` is set (column-level or via the grid-level `Editable`) and the grid has an `OnUpdate` handler. The grid enters edit mode on F2, double-click, or any printable keystroke.
 
 Set `Editable="true"` on the grid (all columns editable) or on individual columns (column-level override), and subscribe to `OnUpdate`. The grid enters edit mode on F2, double-click, or any printable keystroke. `OnUpdate` fires once per operation — single-cell commit, paste, or delete — with all affected rows grouped by row. The host applies changes to the model and persists them.
+
+### New-row append
+
+`OnNewRow` turns Tab at the end of the last row into "give me a fresh line", so a line-item grid can be filled in without ever reaching for the mouse: type → Tab → Tab → a new row appears, cursor already in it.
+
+```razor
+<NxGrid T="LineItem" Data="@lines" Editable="true" OnUpdate="@HandleUpdate" OnNewRow="@HandleNewRow">
+    <NxGridColumn Property="@(x => x.Description)" />
+    <NxGridColumn Property="@(x => x.Quantity)" />
+    <NxGridColumn Property="@(x => x.UnitPrice)" />
+    <NxGridColumn Property="@(x => x.Amount)" Editable="false" />
+</NxGrid>
+
+@code {
+    async Task HandleNewRow(NxGridNewRowArgs<LineItem> args)
+    {
+        var line = new LineItem();
+        lines.Add(line);
+        await SaveDraftAsync();
+    }
+}
+```
+
+**The trigger cell.** The **last visible column of the last row** — `Amount` above — editable or not. Hidden columns don't count, so hiding the trailing column moves the trigger to whatever becomes last.
+
+That is the only cell where Tab changes meaning, and the only behavior it replaces is the wrap from the last row back to the first. Tab in the last column of any other row still wraps to the next row, and Tab everywhere else still moves right, so every cell stays reachable.
+
+**Sequence.** On the trigger keystroke the grid:
+
+1. commits any in-progress edit through the normal pipeline (math evaluation, parsing, `OnUpdate`), so the host sees committed data;
+2. awaits `OnNewRow`;
+3. re-runs `ApplyFilterAndSort()`;
+4. moves the selection into the target row and returns keyboard focus to the grid.
+
+**Landing cell.** The target row is `args.FocusRow` when the handler sets one, otherwise whatever row is last in the filtered data — set `FocusRow` explicitly when a sort is active and the appended row does not sort to the end. The target column is `args.FocusColumn` when set; otherwise it follows the keystroke — a **Tab** trigger starts at the first editable visible column, since Tab wrapped to a new line, while an **Enter** trigger stays in the column the user was already in, since Enter moved straight down. Set `args.BeginEdit = true` to open the editor on that cell; by default the cell is only selected and the user's next printable keystroke starts the edit.
+
+**Enter as a second trigger.** `NewRowTriggers` defaults to `NxGridNewRowTrigger.Tab`. Set `NewRowTriggers="NxGridNewRowTrigger.Tab | NxGridNewRowTrigger.Enter"` to also append on Enter. Enter fires from **any** column on the last row (it navigates vertically, so there is no trigger column), replacing the usual clamp-at-last-row behavior, and the cursor lands in the same column on the new row — so Enter reads as "one more line of this column" the way it does everywhere else in the grid.
+
+**Conditions.** The trigger cell does not itself have to be editable — a computed trailing column is a perfectly good place to Tab out of. But the feature is inert unless `OnNewRow` is registered, `OnUpdate` is registered, and at least one visible column is editable. Shift+Tab and Shift+Enter never trigger it. A held Tab appends at most one row per completed sequence — a repeat that arrives while an append is in flight is dropped. If the handler appends nothing (e.g. validation refused), the grid leaves the selection where it is and does not throw. An empty grid has no last row, so nothing fires — seed the first row from a toolbar button or context menu.
+
+**Row-selection modes.** In `MultiRow` / `SingleRow` there is no column cursor, so Tab from any column on the last row triggers the append and the whole new row is selected. `BeginEdit` is ignored.
 
 ### Multi-line editing
 
@@ -805,6 +851,24 @@ public sealed class NxGridCellClickArgs<T>
 {
     public T Row { get; init; }
     public NxGridColumn<T> Column { get; init; }
+}
+
+public sealed class NxGridNewRowArgs<T>
+{
+    public T Row { get; init; }                    // the last row — the one navigated out of
+    public int RowIndex { get; init; }             // its index in the current filtered data
+    public NxGridNewRowTrigger Trigger { get; init; }  // Tab or Enter
+    public T? FocusRow { get; set; }               // where to move; default = last row after re-piping
+    public NxGridColumn<T>? FocusColumn { get; set; }  // where to land; default = first editable column (Tab) / same column (Enter)
+    public bool BeginEdit { get; set; }            // true = open the editor, not just select
+}
+
+[Flags]
+public enum NxGridNewRowTrigger
+{
+    None  = 0,
+    Tab   = 1,   // Tab in the last visible column of the last row (default)
+    Enter = 2,   // Enter anywhere on the last row
 }
 
 public sealed class NxGridColumnResizedArgs

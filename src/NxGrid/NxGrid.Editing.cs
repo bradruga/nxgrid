@@ -353,12 +353,22 @@ public partial class NxGrid<T>
                     break; // let the browser insert the newline; oninput updates editValue
                 if (isComboColumn && isComboOpen)
                     TrySelectComboByHighlightOrExactMatch();
+                if (!args.ShiftKey && IsNewRowEnterTrigger(editRow))
+                {
+                    await CommitThenRunNewRowAsync(NxGridNewRowTrigger.Enter, editCol);
+                    break;
+                }
                 await CommitEdit(args.ShiftKey ? KeyShiftEnter : KeyEnter);
                 break;
 
             case KeyTab:
                 if (isComboColumn && isComboOpen)
                     TrySelectComboByHighlightOrExactMatch();
+                if (!args.ShiftKey && IsNewRowTabTrigger(editRow, editCol))
+                {
+                    await CommitThenRunNewRowAsync(NxGridNewRowTrigger.Tab, editCol);
+                    break;
+                }
                 await CommitEdit(args.ShiftKey ? KeyShiftTab : KeyTab);
                 break;
 

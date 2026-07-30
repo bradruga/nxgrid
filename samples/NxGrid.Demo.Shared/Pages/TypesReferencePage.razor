@@ -114,6 +114,26 @@
         </tbody>
     </table>
 
+    <h3 style="margin-top:20px">NxGridNewRowTrigger <span style="font-weight:400;color:#888;">[Flags]</span></h3>
+    <p class="doc-note">Passed to <code>NewRowTriggers</code> on <code>NxGrid</code>. <a href="new-row">New Row on Tab</a></p>
+    <table class="doc-table">
+        <thead><tr><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>None</td>
+                <td>No keystroke fires <code>OnNewRow</code> — the feature is off.</td>
+            </tr>
+            <tr>
+                <td>Tab</td>
+                <td>Default. Tab without Shift, in the last visible column of the last row — editable or not.</td>
+            </tr>
+            <tr>
+                <td>Enter</td>
+                <td>Enter without Shift, anywhere on the last row (any column). The cursor lands in the same column on the new row, matching plain Enter navigation. Combine as <code>Tab | Enter</code> to enable both.</td>
+            </tr>
+        </tbody>
+    </table>
+
     <h3 style="margin-top:20px">NxGridColumnAlignment</h3>
     <p class="doc-note">Passed to <code>Alignment</code> on <code>NxGridColumn</code>. <a href="columns">Columns</a></p>
     <table class="doc-table">
@@ -311,6 +331,11 @@ NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id)</pre>
                 <td>NxGridRowDropArgs&lt;T&gt;</td>
                 <td>OnRowDrop</td>
                 <td><code>Row</code> (dragged row), <code>OldIndex</code>, <code>NewIndex</code></td>
+            </tr>
+            <tr>
+                <td>NxGridNewRowArgs&lt;T&gt;</td>
+                <td>OnNewRow</td>
+                <td><code>Row</code> (the last row, navigated out of), <code>RowIndex</code>, <code>Trigger</code>; settable: <code>FocusRow</code>, <code>FocusColumn</code>, <code>BeginEdit</code></td>
             </tr>
             <tr>
                 <td>NxGridTooltipContext&lt;T&gt;</td>

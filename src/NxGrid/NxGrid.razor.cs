@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Components.Web;
 //   NxGrid.Keyboard.cs    — Keyboard navigation (arrow, home/end, page, tab, enter)
 //   NxGrid.ContextMenu.cs — Right-click menu, clipboard copy, JSInvokable callbacks
 //   NxGrid.Editing.cs     — Inline cell editing (Excel-like)
+//   NxGrid.NewRow.cs      — OnNewRow append-on-Tab-out-of-last-row
 
 namespace NxGrid;
 
@@ -588,6 +589,31 @@ public partial class NxGrid<T>
     public Task CommitEditAsync() => CommitEdit(moveKey: null, refocusGrid: false);
 
     /// <summary>
+    /// Opens the inline editor on a specific cell, as if the user had double-clicked it, and
+    /// scrolls it into view. Any in-progress edit elsewhere is committed first. Runs the full
+    /// editability chain (column <see cref="NxGridColumn{T}.Editable"/>, <see cref="OnUpdate"/>,
+    /// <see cref="CellEditableGetter"/>, <see cref="OnEditing"/>) and is a silent no-op when any
+    /// check blocks the edit, when <paramref name="row"/> is not in the current filtered data, or
+    /// when <paramref name="column"/> is hidden or belongs to another grid.
+    /// When <see cref="KeyProperty"/> is set and the reference is not found, falls back to
+    /// key-value matching.
+    /// </summary>
+    public async Task BeginEditAsync(T row, NxGridColumn<T> column)
+    {
+        if (SelectionMode == NxGridSelectionMode.None) return;
+        var rowIndex = FindRowIndex(row);
+        if (rowIndex < 0) return;
+        var colIndex = visibleColumns.IndexOf(column);
+        if (colIndex < 0) return;
+
+        if (isEditing) await CommitEdit(moveKey: null, refocusGrid: false);
+
+        selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex }];
+        await RaiseSelectionChanged();
+        await StartEditing(rowIndex, colIndex, initialChar: null);
+    }
+
+    /// <summary>
     /// Clears all user-dragged column widths, restoring every column to its declared <see cref="NxGridColumn{T}.Width"/> parameter.
     /// </summary>
     public async Task ResetColumnWidths()
@@ -633,17 +659,51 @@ public partial class NxGrid<T>
     public async Task SelectRow(T row)
     {
         if (SelectionMode == NxGridSelectionMode.None) return;
+        var rowIndex = FindRowIndex(row);
+        if (rowIndex < 0) return;
+        selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
+        StateHasChanged();
+        await RaiseSelectionChanged();
+        await ScrollCellIntoView(rowIndex, 0);
+    }
+
+    /// <summary>
+    /// Programmatically selects the single cell at <paramref name="row"/> × <paramref name="column"/>
+    /// and scrolls it into view, replacing any existing selection. Fires
+    /// <see cref="OnSelectionChanged"/>. In the row-selection modes the whole row is selected instead
+    /// (<paramref name="column"/> is ignored). No-op when <see cref="SelectionMode"/> is
+    /// <see cref="NxGridSelectionMode.None"/>, when <paramref name="row"/> is not in the current
+    /// filtered data, or when <paramref name="column"/> is hidden or belongs to another grid.
+    /// When <see cref="KeyProperty"/> is set and the reference is not found, falls back to
+    /// key-value matching.
+    /// </summary>
+    public async Task SelectCell(T row, NxGridColumn<T> column)
+    {
+        if (SelectionMode == NxGridSelectionMode.None) return;
+        var rowIndex = FindRowIndex(row);
+        if (rowIndex < 0) return;
+        var colIndex = visibleColumns.IndexOf(column);
+        if (colIndex < 0) return;
+
+        selectedRanges = IsRowSelectionMode
+            ? [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }]
+            : [new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex }];
+        StateHasChanged();
+        await RaiseSelectionChanged();
+        await ScrollCellIntoView(rowIndex, IsRowSelectionMode ? 0 : colIndex);
+    }
+
+    // Locates a row in the current filtered data: reference equality first, then KeyProperty
+    // value equality when one is configured. Returns -1 when the row is not in the current view.
+    private int FindRowIndex(T row)
+    {
         var rowIndex = filteredData.IndexOf(row);
         if (rowIndex < 0 && KeyProperty != null)
         {
             var key = KeyProperty(row);
             rowIndex = filteredData.FindIndex(r => Equals(KeyProperty(r), key));
         }
-        if (rowIndex < 0) return;
-        selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
-        StateHasChanged();
-        await RaiseSelectionChanged();
-        await ScrollCellIntoView(rowIndex, 0);
+        return rowIndex;
     }
 
     /// <summary>
@@ -670,6 +730,7 @@ public partial class NxGrid<T>
     }
 
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
+    private bool IsRowSelectionMode => SelectionMode is NxGridSelectionMode.MultiRow or NxGridSelectionMode.SingleRow;
     private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
     private bool HasTemplateHeaders => visibleColumns.Any(c => c.HeaderTemplate != null);
     private bool HasFooterRow => visibleColumns.Any(c => c.FooterTemplate != null);

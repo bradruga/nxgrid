@@ -308,7 +308,14 @@ public partial class NxGrid<T>
         }
 
         var row = ActiveRange.StartRow;
-        int col;
+        var col = ActiveRange.StartCol;
+
+        // Tabbing forward off the last row appends a row instead of wrapping (opt-in via OnNewRow).
+        if (!args.ShiftKey && IsNewRowTabTrigger(row, col))
+        {
+            await RunNewRowAsync(NxGridNewRowTrigger.Tab, col);
+            return;
+        }
 
         if (SelectionMode == NxGridSelectionMode.MultiRow || SelectionMode == NxGridSelectionMode.SingleRow)
         {
@@ -319,8 +326,6 @@ public partial class NxGrid<T>
             await ScrollCellIntoView(row, 0);
             return;
         }
-
-        col = ActiveRange.StartCol;
 
         if (!args.ShiftKey)
         {
@@ -354,6 +359,13 @@ public partial class NxGrid<T>
 
         var row = ActiveRange.StartRow;
         var col = (SelectionMode == NxGridSelectionMode.MultiRow || SelectionMode == NxGridSelectionMode.SingleRow) ? 0 : ActiveRange.StartCol;
+
+        // Enter on the last row appends a row when the host opted in via NewRowTriggers.
+        if (!args.ShiftKey && IsNewRowEnterTrigger(row))
+        {
+            await RunNewRowAsync(NxGridNewRowTrigger.Enter, col);
+            return;
+        }
 
         row += args.ShiftKey ? -1 : 1;
         row = Math.Clamp(row, 0, filteredData.Count - 1);

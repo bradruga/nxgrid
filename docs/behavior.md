@@ -192,10 +192,10 @@ If there is no active selection when a navigation key is pressed, a selection is
 | Shift + Home/End/Ctrl+Home/End | Extend selection to that target |
 | Ctrl/⌘ + A | Select all cells (all rows and columns) |
 | Page Up / Page Down | Move by the visible page height in rows; column unchanged |
-| Tab | Move right; wraps to column 0 of the next row at the last column; wraps from last row back to first row |
-| Shift+Tab | Move left; wraps to last column of the previous row at column 0; wraps from first row back to last row |
-| Enter | Move down one row; **clamped at last row, no wrap**. While editing any cell: commit and move down. |
-| Shift+Enter | Move up one row; clamped at row 0. While editing any cell: commit and move up. **Exception:** while editing a `MultiLine` cell, Shift+Enter inserts a newline and does not commit. |
+| Tab | Move right; wraps to column 0 of the next row at the last column; wraps from last row back to first row. **Exception:** in the last visible column of the last row with `OnNewRow` registered, appends a row instead of wrapping — see [New-row append](#new-row-append). |
+| Shift+Tab | Move left; wraps to last column of the previous row at column 0; wraps from first row back to last row. Never triggers `OnNewRow`. |
+| Enter | Move down one row; **clamped at last row, no wrap**. While editing any cell: commit and move down. **Exception:** on the last row when `NewRowTriggers` includes `Enter`, appends a row instead. |
+| Shift+Enter | Move up one row; clamped at row 0. While editing any cell: commit and move up. **Exception:** while editing a `MultiLine` cell, Shift+Enter inserts a newline and does not commit. Never triggers `OnNewRow`. |
 
 All navigation scrolls the target cell into view via JS interop.
 
@@ -271,6 +271,44 @@ Arrow keys move the cursor within the text input when:
 - Editing was initiated by **double-click** and the cell already had content.
 
 On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. When `MathExpression = true` on the column, the raw input string is evaluated as an arithmetic expression before type-parsing runs (see [Math expression evaluation](#math-expression-evaluation)). `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with a `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
+
+### New-row append
+
+When `OnNewRow` is registered, navigating forward off the last row appends a row instead of wrapping (Tab) or clamping (Enter). This is opt-in: without the callback, Tab and Enter behave exactly as documented under [Navigation keys](#navigation-keys).
+
+**Gating.** All of the following must hold, or the keystroke navigates normally:
+
+- `OnNewRow` has a delegate.
+- `OnUpdate` has a delegate and at least one visible column is editable — i.e. there is a data-entry flow to continue.
+- `SelectionMode` is not `None`.
+- The filtered data has at least one row (an empty grid has no last row — seed the first row from a toolbar button or the context menu).
+- No append is already in flight. A held Tab repeats faster than an async host handler completes; repeats arriving mid-sequence are dropped, so one completed keystroke appends exactly one row.
+
+**Trigger cell.** The **last visible column of the last row**. The cell does not have to be editable — a computed trailing column is a fine place to Tab out of. Hidden columns are excluded, so hiding the trailing column moves the trigger to whatever becomes last. Because the trigger sits on the last cell, the append replaces only the last-row-to-first-row wrap: Tab in the last column of any other row still wraps to the next row, Tab elsewhere still moves right, and every cell stays reachable.
+
+Tab fires only from the trigger cell of the last row. Enter, when enabled via `NewRowTriggers`, fires from any column on the last row, since it navigates vertically and has no meaningful trigger column. Shift+Tab and Shift+Enter never fire it.
+
+In `MultiRow` / `SingleRow` mode there is no column cursor, so Tab from any column of the last row fires the append and the whole new row is selected afterward; `args.BeginEdit` is ignored.
+
+**Sequence.** The grid runs these steps in order:
+
+1. **Commit.** Any in-progress edit is committed through the normal pipeline — math-expression evaluation, `Format`/`TryParse` parsing, `OnUpdate` — without moving the selection. The host therefore always sees committed data before step 2. Nothing is committed when the keystroke came from a non-editing cell.
+2. **Callback.** `OnNewRow` is invoked and **awaited**, so an async handler (validation, a server round-trip) completes before the grid moves anything.
+3. **Re-pipe.** `ApplyFilterAndSort()` runs, because the host mutated `Data` in place and `OnParametersSet` would not see a reference change. The grid also syncs its internal data marker so the next parameter set does not repeat the work.
+4. **Move.** The selection moves into the target row and keyboard focus returns to the grid container.
+
+**Target row.** `args.FocusRow` when the handler set one (resolved by reference, falling back to `KeyProperty` value equality); otherwise the last row in the filtered data — but only if the row count actually grew. If the handler appended nothing, or set a `FocusRow` that is filtered out of the current view, the grid leaves the selection where it is, re-renders, and returns without throwing.
+
+Set `FocusRow` explicitly whenever a sort is active: a blank appended row rarely sorts to the end.
+
+**Target column.** `args.FocusColumn` when the handler set one and the column is visible in this grid. Otherwise the default follows the shape of the keystroke:
+
+- **Tab** — the first editable visible column (column 0 when none is editable). Tab wrapped to a new line, so entry restarts at the left.
+- **Enter** — the column the keystroke came from, editable or not, clamped to the visible-column range in case columns changed during the callback. Enter moved straight down, so staying put matches plain Enter navigation.
+
+In the row-selection modes the whole row is selected and the column is irrelevant.
+
+**Edit mode.** Default is select-only — the cursor lands on the cell and the user's next printable keystroke starts the edit, matching how the rest of the grid behaves. Set `args.BeginEdit = true` in the handler to open the editor immediately instead.
 
 ### Cancelling an edit
 

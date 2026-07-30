@@ -58,10 +58,10 @@ public static class SearchIndex
         new("NxGrid — Layout Parameters",     "reference/nxgrid",        Section: "Layout",  Category: "Reference", Keywords: "Class Style ShowHeader RowGutter RowBanding HasColumnMenu"),
         new("NxGrid — Content Templates",     "reference/nxgrid",        Section: "Content", Category: "Reference", Keywords: "ChildContent EmptyTemplate LoadingTemplate IsLoading Overlays"),
         new("NxGrid — Tooltips",              "reference/nxgrid",        Section: "Tooltips", Category: "Reference", Keywords: "CellTooltip TooltipTemplate"),
-        new("NxGrid — Events",                "reference/nxgrid",        Section: "Events",  Category: "Reference", Keywords: "OnSelectionChanged OnCellClicked OnFilterChanged OnSortChanged OnKeyPressed OnUpdate"),
+        new("NxGrid — Events",                "reference/nxgrid",        Section: "Events",  Category: "Reference", Keywords: "OnSelectionChanged OnCellClicked OnFilterChanged OnSortChanged OnKeyPressed OnUpdate OnRowDrop OnNewRow"),
         new("NxGrid — Styling",               "reference/nxgrid",        Section: "Styling", Category: "Reference", Keywords: "CellStyle style css"),
-        new("NxGrid — Editing Parameters",    "reference/nxgrid",        Section: "Editing", Category: "Reference", Keywords: "Editable CellEditableGetter OnEditing OnUpdate EnableDragFill"),
-        new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey ClearSavedState SetColumnHidden SetEditValue CommitEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
+        new("NxGrid — Editing Parameters",    "reference/nxgrid",        Section: "Editing", Category: "Reference", Keywords: "Editable CellEditableGetter OnEditing OnUpdate EnableDragFill NewRowTriggers"),
+        new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey SelectCell BeginEditAsync ClearSavedState SetColumnHidden SetEditValue CommitEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
 
         // Reference — NxGridColumn
         new("NxGridColumn Reference",              "reference/nxgrid-column", Category: "Reference", Keywords: "column api parameters"),
@@ -70,7 +70,7 @@ public static class SearchIndex
         new("NxGridColumn — Data Binding",         "reference/nxgrid-column", Section: "Data binding", Category: "Reference", Keywords: "Property Getter Setter ValueGetter Display CopyGetter"),
 
         // Reference — Types
-        new("Types Reference",   "reference/types", Category: "Reference", Keywords: "enums NxGridSelectionMode NxGridComboItem NxGridCellChange NxGridUpdateArgs event args"),
+        new("Types Reference",   "reference/types", Category: "Reference", Keywords: "enums NxGridSelectionMode NxGridComboItem NxGridCellChange NxGridUpdateArgs NxGridNewRowArgs NxGridNewRowTrigger event args"),
 
         // Selection
         new("Selection",                "selection",       Category: "Selection", Keywords: "click select range"),
@@ -86,6 +86,9 @@ public static class SearchIndex
         // Editing
         new("Editing",              "editing",          Category: "Editing", Keywords: "edit inline update"),
         new("Editing — CommitEditAsync", "editing",     Section: "CommitEditAsync — Save While Editing", Category: "Editing", Keywords: "commit pending edit save flush programmatic EndEditAsync"),
+        new("New Row on Tab",       "new-row",          Category: "Editing", Keywords: "OnNewRow append add line insert row tab enter NewRowTriggers data entry line item SelectCell BeginEditAsync"),
+        new("New Row — Trigger Cell", "new-row",        Section: "Which cell is the trigger?", Category: "Editing", Keywords: "last visible column bottom right cell readonly computed"),
+        new("New Row — Toolbar Append", "new-row",      Section: "Also appending from a toolbar button", Category: "Editing", Keywords: "SelectCell BeginEditAsync add line button programmatic cell focus"),
         new("Drag to Fill",         "drag-fill",        Category: "Editing", Keywords: "fill series autofill"),
         new("Multi-Line Editing",   "multi-line",       Category: "Editing", Keywords: "multiline newline textarea"),
         new("Math Expressions",     "math-expression",  Category: "Editing", Keywords: "formula arithmetic expression evaluate"),

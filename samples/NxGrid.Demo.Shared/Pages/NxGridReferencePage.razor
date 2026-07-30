@@ -319,6 +319,12 @@
                 <td>Fires after a successful row drag. The host must reorder <code>Data</code> in this handler.</td>
                 <td><a href="row-drag-drop">Row Drag &amp; Drop</a></td>
             </tr>
+            <tr>
+                <td>OnNewRow</td>
+                <td>EventCallback&lt;NxGridNewRowArgs&lt;T&gt;&gt;</td>
+                <td>Fires when the user presses Tab in the last visible column of the last row (or Enter anywhere on the last row, when <code>NewRowTriggers</code> opts in). The host appends a row to <code>Data</code>. Any in-progress edit is committed first; afterwards the grid re-pipes and moves the selection into the new row. Requires <code>OnUpdate</code> and at least one editable column.</td>
+                <td><a href="new-row">New Row on Tab</a></td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -429,6 +435,13 @@
                 <td><a href="editing">Editing</a><br /><a href="batch-update">Batch Update</a></td>
             </tr>
             <tr>
+                <td>NewRowTriggers</td>
+                <td>NxGridNewRowTrigger</td>
+                <td>Tab</td>
+                <td>Which keystrokes fire <code>OnNewRow</code> from the last row. <code>Tab</code> (default), <code>Enter</code>, <code>Tab | Enter</code>, or <code>None</code>. Tab fires only from the last visible column; Enter fires from any column and keeps the cursor in that column on the new row. No effect without <code>OnNewRow</code>.</td>
+                <td><a href="new-row">New Row on Tab</a></td>
+            </tr>
+            <tr>
                 <td>EnableDragFill</td>
                 <td>bool</td>
                 <td>true</td>
@@ -463,6 +476,16 @@
                 <td>Task SelectRowByKey(object? keyValue)</td>
                 <td>Selects the first row in the current filtered data whose <code>KeyProperty</code> value equals <code>keyValue</code> and scrolls it into view. Logs a warning and is a no-op when <code>KeyProperty</code> is not set or no match is found.</td>
                 <td><a href="selection">Selection</a></td>
+            </tr>
+            <tr>
+                <td>Task SelectCell(T row, NxGridColumn&lt;T&gt; column)</td>
+                <td>Selects a single cell (not the whole row like <code>SelectRow</code>), fires <code>OnSelectionChanged</code>, and scrolls it into view. Selects the whole row in the row-selection modes. No-op if the row is filtered out or the column is hidden.</td>
+                <td><a href="new-row">New Row on Tab</a></td>
+            </tr>
+            <tr>
+                <td>Task BeginEditAsync(T row, NxGridColumn&lt;T&gt; column)</td>
+                <td>Opens the inline editor on a specific cell, as if double-clicked. Commits any other in-progress edit first, runs the full editability chain (<code>Editable</code>, <code>CellEditableGetter</code>, <code>OnEditing</code>), and no-ops silently when anything blocks it.</td>
+                <td><a href="new-row">New Row on Tab</a></td>
             </tr>
             <tr>
                 <td>Task ClearSavedState()</td>
