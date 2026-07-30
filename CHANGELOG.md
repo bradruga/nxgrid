@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-07-30
+
 ### Added
 
 - New `OnNewRow` callback turns Tab in the last cell of the last row into "append a line", for uninterrupted keyboard data entry in line-item grids: type → Tab → Tab → a fresh row appears with the cursor already in it. The grid commits any in-progress edit (firing `OnUpdate`) first, awaits the handler while it appends to `Data`, re-applies filter and sort, then moves the selection into the new row — by default the first editable column, or `args.FocusColumn` when the handler names one. Set `args.FocusRow` when a sort is active and the blank row does not sort last, and `args.BeginEdit = true` to open the editor instead of only selecting the cell. If the handler appends nothing, the cursor stays put. Fully opt-in: without the callback Tab keeps wrapping to the first row.
