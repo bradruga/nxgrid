@@ -67,6 +67,8 @@ The pipeline re-runs (`ApplyFilterAndSort`) when:
 
 `ForceRerender()` also increments an internal render token to force every row to re-render, which is necessary when cells have been mutated externally without changing `Data.Count`.
 
+**Observing the pipeline result.** The post-filter, post-sort list is readable at any time as `VisibleItems` on the grid (`IReadOnlyList<T>`, in display order), and is also handed to `OnFilterChanged`/`OnSortChanged` as `args.VisibleItems`. Both expose the same snapshot the grid renders from. It reflects the pipeline as of its last run — so after an in-place mutation that could change matching or ordering, call `ForceRerender()` before reading it. When `GroupBy` is set, the list is in group order, and rows in collapsed groups are still included (collapsing only hides them visually).
+
 ---
 
 ## Auto-columns

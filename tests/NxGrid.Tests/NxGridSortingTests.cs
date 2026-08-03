@@ -261,4 +261,104 @@ public class NxGridSortingTests : BunitContext
 
         Assert.That(cut.Find(".nx-grid-row .nx-grid-cell-text").TextContent.Trim(), Is.EqualTo("Updated"));
     }
+
+    // ── VisibleItems ──────────────────────────────────────────────────────────
+
+    [Test]
+    public void VisibleItems_NoFilterOrSort_ReturnsDataInSourceOrder()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = RenderSortGrid([new("Charlie", 30, null), new("Alice", 25, null), new("Bob", 20, null)]);
+
+        Assert.That(cut.Instance.VisibleItems.Select(r => r.Name),
+            Is.EqualTo(new[] { "Charlie", "Alice", "Bob" }));
+    }
+
+    [Test]
+    public async Task VisibleItems_AfterSort_ReturnsRowsInSortedOrder()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = RenderSortGrid([new("Charlie", 30, null), new("Alice", 25, null), new("Bob", 20, null)]);
+
+        await cut.FindAll(".nx-grid-column-title")[0].TriggerEventAsync("onclick", new EventArgs());
+
+        Assert.That(cut.Instance.VisibleItems.Select(r => r.Name),
+            Is.EqualTo(new[] { "Alice", "Bob", "Charlie" }));
+    }
+
+    [Test]
+    public async Task VisibleItems_AfterFilter_ExcludesFilteredRows()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = RenderSortGrid([new("Alice", 25, null), new("Bob", 20, null), new("Charlie", 30, null)]);
+
+        var col = cut.FindComponents<NxGridColumn<SortRow>>()[0].Instance;
+        col.FilterState = ["Alice", "Charlie"];
+        await cut.InvokeAsync(() => cut.Instance.ForceRerender());
+
+        Assert.That(cut.Instance.VisibleItems.Select(r => r.Name),
+            Is.EqualTo(new[] { "Alice", "Charlie" }));
+    }
+
+    [Test]
+    public async Task VisibleItems_FilterThenSort_AppliesBoth()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = RenderSortGrid([
+            new("Charlie", 30, null),
+            new("Alice", 25, null),
+            new("Bob", 20, null),
+            new("Dave", 40, null),
+        ]);
+
+        var col = cut.FindComponents<NxGridColumn<SortRow>>()[0].Instance;
+        col.FilterState = ["Charlie", "Alice", "Bob"];
+        await cut.InvokeAsync(() => cut.Instance.ForceRerender());
+
+        // Descending on Name
+        await cut.FindAll(".nx-grid-column-title")[0].TriggerEventAsync("onclick", new EventArgs());
+        await cut.FindAll(".nx-grid-column-title")[0].TriggerEventAsync("onclick", new EventArgs());
+
+        Assert.That(cut.Instance.VisibleItems.Select(r => r.Name),
+            Is.EqualTo(new[] { "Charlie", "Bob", "Alice" }));
+    }
+
+    [Test]
+    public void VisibleItems_AfterDataReplaced_ReflectsNewData()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = RenderSortGrid([new("Alice", 25, null), new("Bob", 20, null)]);
+
+        Assert.That(cut.Instance.VisibleItems.Count, Is.EqualTo(2));
+
+        cut.Render(p => p.Add(x => x.Data, new List<SortRow> { new("Zoe", 50, null) }));
+
+        Assert.That(cut.Instance.VisibleItems.Select(r => r.Name), Is.EqualTo(new[] { "Zoe" }));
+    }
+
+    [Test]
+    public void VisibleItems_IsReadOnlyView()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = RenderSortGrid([new("Alice", 25, null)]);
+
+        Assert.That(cut.Instance.VisibleItems, Is.InstanceOf<IReadOnlyList<SortRow>>());
+        Assert.That(((System.Collections.IList)cut.Instance.VisibleItems).IsReadOnly, Is.True);
+    }
+
+    [Test]
+    public void VisibleItems_Grouped_ReturnsRowsInGroupOrder()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<NxGrid<SortRow>>(p => p
+            .Add(x => x.Data, [new("Alice", 25, "X"), new("Bob", 20, "Y"), new("Charlie", 30, "X")])
+            .Add(x => x.GroupBy, (Func<SortRow, object?>)(r => r.Notes))
+            .AddChildContent<NxGridColumn<SortRow>>(col => col
+                .Add(x => x.Property, (Expression<Func<SortRow, object?>>)(r => r.Name))
+                .Add(x => x.Title, "Name")));
+
+        // Group X first (first appearance), then group Y — rows inside groups keep source order
+        Assert.That(cut.Instance.VisibleItems.Select(r => r.Name),
+            Is.EqualTo(new[] { "Alice", "Charlie", "Bob" }));
+    }
 }

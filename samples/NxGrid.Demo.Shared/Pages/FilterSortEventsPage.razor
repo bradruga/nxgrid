@@ -8,6 +8,8 @@
     the post-filter, post-sort visible rows. <code>OnSortChanged</code> fires when the
     sort column or direction changes. Use them to update summary panels, row counts,
     aggregates, or export state — without polling or coupling to internal grid state.
+    When you would rather pull than be pushed, read <code>VisibleItems</code> off a
+    <code>@@ref</code> to the grid at any time — same rows, same order.
 </p>
 
 <div class="doc-section">
@@ -89,10 +91,48 @@
     <pre class="doc-code">@bothCode</pre>
 </div>
 
+<div class="doc-section">
+    <h2>VisibleItems — read the filtered + sorted rows on demand</h2>
+    <p class="doc-para">
+        The events push the visible rows to you when they change. <code>VisibleItems</code> lets you
+        <em>pull</em> them at any time through a <code>@@ref</code> — no caching, no event handler.
+        Filter and sort this grid however you like, then click <strong>Read VisibleItems</strong>:
+        the list below is the rows in the exact order they are rendered.
+    </p>
+    <div class="doc-stats-bar">
+        <button class="doc-btn" @onclick="ReadVisible">Read VisibleItems</button>
+        <span>
+            @if (pulled == null)
+            {
+                <text>Not read yet</text>
+            }
+            else
+            {
+                <text><strong>@pulled.Count</strong> rows · avg age <strong>@(pulled.Count > 0 ? pulledAvgAge.ToString("F1") : "—")</strong></text>
+            }
+        </span>
+    </div>
+    <NxGrid T="Person" @ref="pullGrid" Data="@peopleCopy3" Style="height:340px">
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Department)" Width="140" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    @if (pulled is { Count: > 0 })
+    {
+        <p class="doc-para">
+            First 8 in display order:
+            <strong>@string.Join(", ", pulled.Take(8).Select(p => $"{p.FirstName} {p.LastName} ({p.Age})"))</strong>@(pulled.Count > 8 ? " …" : "")
+        </p>
+    }
+    <pre class="doc-code">@visibleItemsCode</pre>
+</div>
+
 @code {
     List<Person> people    = SampleData.GeneratePeople(40);
     List<Person> peopleCopy  = SampleData.GeneratePeople(40);
     List<Person> peopleCopy2 = SampleData.GeneratePeople(40);
+    List<Person> peopleCopy3 = SampleData.GeneratePeople(40);
 
     // OnFilterChanged state
     int visibleCount;
@@ -107,6 +147,18 @@
     int comboCount;
     NxGridColumn<Person>? comboSortColumn;
     int comboSortDir;
+
+    // VisibleItems (pull) state
+    NxGrid<Person>? pullGrid;
+    List<Person>? pulled;
+    double pulledAvgAge;
+
+    void ReadVisible()
+    {
+        // ToList() freezes the snapshot — the grid replaces it on the next filter/sort/data change
+        pulled = pullGrid!.VisibleItems.ToList();
+        pulledAvgAge = pulled.Count > 0 ? pulled.Average(p => p.Age) : 0;
+    }
 
     protected override void OnInitialized()
     {
@@ -176,5 +228,28 @@
                 OnSortChanged="@(args => { sortCol = args.Column; sortDir = args.Direction; })">
             ...
         </NxGrid>
+        """;
+
+    string visibleItemsCode = """
+        <NxGrid T="Person" @ref="grid" Data="@people">
+            ...
+        </NxGrid>
+        <button @onclick="ReadVisible">Read VisibleItems</button>
+
+        @code {
+            NxGrid<Person>? grid;
+
+            void ReadVisible()
+            {
+                // Filtered + sorted, in display order — no event handler needed
+                var rows = grid!.VisibleItems;          // IReadOnlyList<Person>
+
+                var avgAge = rows.Count > 0 ? rows.Average(p => p.Age) : 0;
+                var csv    = string.Join("\n", rows.Select(p => $"{p.LastName},{p.Age}"));
+
+                // ToList() to keep a copy past the next filter/sort/data change
+                var frozen = rows.ToList();
+            }
+        }
         """;
 }

@@ -551,6 +551,27 @@ public partial class NxGrid<T>
     private NxGridColumn<T>? contextMenuColumn;
     private List<NxGridContextMenuItem> contextMenuItems = [];
 
+    // ── Public properties ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The grid's rows in display order — all column filters and the active sort already applied,
+    /// and ordered by group when <see cref="GroupBy"/> is set. This is the same snapshot
+    /// <see cref="OnFilterChanged"/> and <see cref="OnSortChanged"/> hand out as
+    /// <c>VisibleItems</c>, readable at any time through a <c>@ref</c> to the grid.
+    /// <para>
+    /// Rows inside a collapsed group are included — collapsing only hides them visually.
+    /// Hidden columns still filter and sort, so they affect this list too.
+    /// </para>
+    /// <para>
+    /// The returned list is a read-only view over the grid's internal snapshot, which is replaced
+    /// (never mutated) on the next filter, sort, or <see cref="Data"/> change. Call
+    /// <c>ToList()</c> if you need a copy that survives those. Mutating <see cref="Data"/>
+    /// elements in place does not re-run the filter — call <see cref="ForceRerender"/> first when
+    /// a mutation could change which rows match or how they sort.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<T> VisibleItems => filteredData.AsReadOnly();
+
     // ── Public methods ────────────────────────────────────────────────────────
 
     /// <summary>

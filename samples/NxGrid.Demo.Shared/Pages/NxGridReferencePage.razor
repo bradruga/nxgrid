@@ -453,6 +453,21 @@
 </div>
 
 <div class="doc-section">
+    <h2>Properties</h2>
+    <table class="doc-table">
+        <thead><tr><th>Property</th><th>Type</th><th>Notes</th><th>Sample Pages</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>VisibleItems</td>
+                <td>IReadOnlyList&lt;T&gt;</td>
+                <td>The grid's rows in display order — all column filters and the active sort already applied, and ordered by group when <code>GroupBy</code> is set. The same snapshot <code>OnFilterChanged</code>/<code>OnSortChanged</code> hand out as <code>args.VisibleItems</code>, but readable at any time through a <code>@@ref</code>. Rows in collapsed groups are included; the selection is ignored. Read-only view over the grid's internal snapshot — call <code>ToList()</code> to keep a copy across the next filter/sort/data change, and <code>ForceRerender()</code> first after in-place mutations.</td>
+                <td><a href="filter-sort-events">Filter &amp; Sort Events</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
     <h2>Methods</h2>
     <table class="doc-table">
         <thead><tr><th>Signature</th><th>Notes</th><th>Sample Pages</th></tr></thead>

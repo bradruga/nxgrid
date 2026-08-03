@@ -9,6 +9,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to get started quickly (auto-columns)](#how-to-get-started-quickly-auto-columns)
 - [How to persist column state across page loads](#how-to-persist-column-state-across-page-loads)
 - [How to refresh the grid when data changes](#how-to-refresh-the-grid-when-data-changes)
+- [How to read the rows the user is currently seeing](#how-to-read-the-rows-the-user-is-currently-seeing)
 - [How inline editing works](#how-inline-editing-works)
 - [How to add a new row when the user tabs off the last one](#how-to-add-a-new-row-when-the-user-tabs-off-the-last-one)
 - [How to respond to selection changes](#how-to-respond-to-selection-changes)
@@ -159,6 +160,81 @@ grid.ForceRerender();
 private NxGrid<Person>? grid;
 private List<Person> people = [];
 ```
+
+---
+
+## How to read the rows the user is currently seeing
+
+Take a `@ref` to the grid and read `VisibleItems`. It returns the rows in display order with all column filters and the active sort already applied — exactly what is on screen:
+
+```razor
+<NxGrid T="Person" @ref="grid" Data="@people">
+    <NxGridColumn Property="@(x => x.LastName)" />
+    <NxGridColumn Property="@(x => x.Department)" />
+    <NxGridColumn Property="@(x => x.Age)" />
+</NxGrid>
+
+<button @onclick="ExportVisible">Export to CSV</button>
+
+@code {
+    private NxGrid<Person>? grid;
+
+    void ExportVisible()
+    {
+        var rows = grid!.VisibleItems;   // IReadOnlyList<Person>, filtered + sorted
+        var csv = string.Join("\n", rows.Select(p => $"{p.LastName},{p.Department},{p.Age}"));
+        // hand csv to a download, a service call, whatever
+    }
+}
+```
+
+This is what you want for exports, reports, totals, and "act on everything I can see" buttons — the user filters and sorts the grid, then your button operates on the same rows in the same order.
+
+`VisibleItems` is not the selection. For the rows the user has highlighted, use `@bind-SelectedItems` or `OnSelectionChanged` — see [How to respond to selection changes](#how-to-respond-to-selection-changes).
+
+### Show a live "showing X of Y" count
+
+Reading `VisibleItems` in markup works, but the grid does not re-render the host page when a filter changes, so pair it with `OnFilterChanged` to trigger the update:
+
+```razor
+<p>Showing @(grid?.VisibleItems.Count ?? people.Count) of @people.Count</p>
+
+<NxGrid T="Person" @ref="grid" Data="@people" OnFilterChanged="@(_ => StateHasChanged())">
+```
+
+If the count is all you need, `args.VisibleItems` on the event carries the same list and needs no `@ref`.
+
+### Aggregate the visible rows
+
+```csharp
+void Recalculate()
+{
+    var rows = grid!.VisibleItems;
+    visibleCount = rows.Count;
+    avgAge       = rows.Count > 0 ? rows.Average(p => p.Age) : 0;
+    departments  = rows.Select(p => p.Department).Distinct().Count();
+}
+```
+
+### After mutating rows in place, refresh first
+
+The pipeline only re-runs when it is told to. If a mutation could change which rows match the active filter or how they sort, call `ForceRerender()` before reading:
+
+```csharp
+person.Department = "Sales";   // may no longer match the active Department filter
+grid!.ForceRerender();
+var rows = grid.VisibleItems;  // now accurate
+```
+
+### Keeping a copy
+
+The returned list is a read-only view over the grid's internal snapshot, which is replaced on the next filter, sort, or `Data` change. Use it within a single operation, or call `ToList()` to freeze it:
+
+```csharp
+var frozen = grid!.VisibleItems.ToList();
+```
+
+When `GroupBy` is set, rows come back in group order, sorted within each group. Rows in a collapsed group are still included — collapsing hides them visually but does not remove them from the grid's row set.
 
 ---
 

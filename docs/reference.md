@@ -154,6 +154,12 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `NewRowTriggers` | `NxGridNewRowTrigger` | Which keystrokes fire `OnNewRow` from the last row. `Tab` (default), `Enter`, `Tab \| Enter`, or `None`. No effect without `OnNewRow`. See [New-row append](#new-row-append). |
 | `EnableDragFill` | `bool` | `true` | Enables the fill handle — a small square at the bottom-right corner of the active selection. Drag it in any direction to fill adjacent editable cells. Auto-disabled when `SelectionMode` is `MultiRow`, `SingleRow`, or `None`. Only visible when exactly one selection range is active and `OnUpdate` is set. |
 
+### Public properties
+
+| Property | Type | Notes |
+|---|---|---|
+| `VisibleItems` | `IReadOnlyList<T>` | The grid's rows in display order — all column filters and the active sort already applied, and ordered by group when `GroupBy` is set. The same snapshot `OnFilterChanged`/`OnSortChanged` hand out, but readable at any time through a `@ref`. See [Reading the visible rows](#reading-the-visible-rows). |
+
 ### Public methods
 
 ```csharp
@@ -180,6 +186,58 @@ Task  FitColumnsAsync()                            // re-measure and apply FitWi
 - **Print selection** — the rows and columns intersected by the current selection (disabled when no selection exists).
 
 Clicking **Print** triggers the browser print dialog. The output is isolated from the host app's CSS: only the title, date, and table are printed.
+
+---
+
+## Reading the visible rows
+
+`VisibleItems` exposes the rows the grid is currently showing — filters applied, sort applied, in display order:
+
+```razor
+<NxGrid @ref="grid" T="Person" Data="@people">
+    ...
+</NxGrid>
+<button @onclick="ExportVisible">Export what I see</button>
+
+@code {
+    NxGrid<Person>? grid;
+
+    void ExportVisible()
+    {
+        var rows = grid!.VisibleItems;          // IReadOnlyList<Person>, filtered + sorted
+        var csv  = string.Join("\n", rows.Select(p => $"{p.LastName},{p.Age}"));
+        ...
+    }
+}
+```
+
+Use it for exports, print/report generation, totals, "select all visible" actions, or anything that needs the same rows and the same order the user is looking at. Before this property existed, the only access was `args.VisibleItems` on `OnFilterChanged` / `OnSortChanged`, which forced the host to cache a copy on every event.
+
+Semantics:
+
+| | |
+|---|---|
+| Filters | Applied, including filters on hidden columns (hidden columns still filter and sort). |
+| Sort | Applied, including multi-column tiebreakers. |
+| Grouping | When `GroupBy` is set, rows come back in group order, sorted within each group — the same order they render in. |
+| Collapsed groups | **Included.** Collapsing a group only hides its rows visually; they remain part of the grid's row space (selection, copy, print). |
+| Selection | Ignored. `VisibleItems` is the whole visible row set, not the selected subset — use `SelectedItems` for that. |
+| Virtualization | Ignored. All matching rows are returned, not just the ones scrolled into view. |
+| Empty grid | Returns an empty list, never `null`. |
+
+The returned list is a read-only view over the grid's internal snapshot. That snapshot is replaced — never mutated — on the next filter, sort, or `Data` change, so hold it only for the duration of one operation, or call `ToList()` for a copy that survives:
+
+```csharp
+var frozen = grid.VisibleItems.ToList();
+```
+
+Mutating `Data` elements in place does not re-run the filter or sort. If a mutation could change which rows match or how they order, call `ForceRerender()` before reading:
+
+```csharp
+person.Department = "Sales";   // may no longer match the active Department filter
+grid.ForceRerender();
+var rows = grid.VisibleItems;  // now accurate
+```
 
 ---
 
