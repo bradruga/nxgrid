@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-08-03
+
 ### Added
 
 - New `VisibleItems` property on the grid returns the rows currently on screen — all column filters and the active sort already applied, in display order — readable at any time through a `@ref`. Previously the filtered/sorted list was only reachable as `args.VisibleItems` inside an `OnFilterChanged` or `OnSortChanged` handler, so anything that needed it (export buttons, totals, report generation, "act on everything I see") had to cache a copy on every event. Rows in a collapsed group are included, and when `GroupBy` is set the list comes back in group order. Call `ToList()` to keep a copy past the next filter, sort, or `Data` change, and `ForceRerender()` first if rows were mutated in place.
