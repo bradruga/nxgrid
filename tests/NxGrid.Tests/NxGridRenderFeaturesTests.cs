@@ -180,6 +180,42 @@ public class NxGridRenderFeaturesTests : BunitContext
         Assert.That(ContextMenuLabels(cut), Does.Contain("Copy with headers"));
     }
 
+    // ── Popup geometry ────────────────────────────────────────────────────────
+
+    // Every floating popup must carry nx-grid-popup: that class is what applies the
+    // containing-block offset (so it lands on its cell inside a dialog), caps its height to
+    // the window, and marks it for top-layer promotion. A popup that forgets the class looks
+    // fine on an ordinary page and misbehaves only inside a dialog, so assert it here.
+    [Test]
+    public void ContextMenu_CarriesSharedPopupClassAndCoordinates()
+    {
+        var cut = RenderWithContextMenu(this, null);
+
+        var menu = cut.Find(".nx-grid-context-menu");
+        Assert.That(menu.ClassList, Does.Contain("nx-grid-popup"));
+
+        // Coordinates are handed to CSS as custom properties, in viewport space.
+        var style = menu.GetAttribute("style") ?? "";
+        Assert.That(style, Does.Contain("--nx-popup-x:"));
+        Assert.That(style, Does.Contain("--nx-popup-y:"));
+    }
+
+    [Test]
+    public void ColumnMenu_CarriesSharedPopupClasses()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", 1)])
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)
+                .Add(x => x.Title, "Name")));
+
+        cut.Find(".nx-grid-menu-button").Click();
+
+        Assert.That(cut.Find(".nx-grid-column-menu").ClassList, Does.Contain("nx-grid-popup"));
+        Assert.That(cut.Find(".nx-grid-menu-backdrop").ClassList, Does.Contain("nx-grid-popup-backdrop"));
+    }
+
     [Test]
     public void ShowCopyWithHeaders_False_HidesItemButKeepsCopy()
     {

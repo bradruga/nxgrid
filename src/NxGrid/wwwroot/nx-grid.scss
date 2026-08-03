@@ -344,10 +344,56 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     color: var(--nx-grid-accent-dark);
 }
 
+// ── Popups ────────────────────────────────────────────────────────────────────
+// Everything the grid floats over the page — column menu, context menu, combo dropdown,
+// date and color pickers, tooltip, column chooser — carries .nx-grid-popup, and every
+// full-window backdrop carries .nx-grid-popup-backdrop. These two rules own what it means
+// to be a popup, so a new one only has to add the class:
+//
+//   * viewport positioning. C# and JS measure in plain viewport space and hand the result
+//     over as --nx-popup-x/y. --nx-grid-fixed-x/y is the offset of the containing block for
+//     fixed elements, published from JS: 0 on an ordinary page, and the dialog's own origin
+//     when the grid is inside one (JS zeroes it again for popups it promotes to the top
+//     layer, which are measured from the viewport once more). Subtracting it here means no
+//     call site can forget to.
+//   * never taller than the window. Popups scroll rather than run off the bottom edge;
+//     the flip/clamp logic in nx-grid.js then measures an already-capped height.
+//
+// Backdrops deliberately skip the cap and span the window instead — `inset: 0` would only
+// cover the containing block, which inside a dialog is the dialog rather than the viewport.
+.nx-grid-popup,
+.nx-grid-popup-backdrop {
+    position: fixed;
+    top:  calc(var(--nx-popup-y, 0px) - var(--nx-grid-fixed-y, 0px));
+    left: calc(var(--nx-popup-x, 0px) - var(--nx-grid-fixed-x, 0px));
+}
+
+.nx-grid-popup {
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+}
+
+.nx-grid-popup-backdrop {
+    width: 100vw;
+    height: 100vh;
+}
+
+// Applied by JS to popups promoted to the browser's top layer, which they are whenever the
+// grid sits inside a dialog (or anything else that would otherwise clip and offset them).
+// A top-layer popup is positioned against the viewport, so the containing-block offset must
+// not be subtracted from its coordinates; the rest neutralises the UA popover defaults that
+// would fight our own positioning and colors.
+.nx-grid-top-layer {
+    --nx-grid-fixed-x: 0px;
+    --nx-grid-fixed-y: 0px;
+    right: auto;
+    bottom: auto;
+    margin: 0;
+    color: inherit;
+}
+
 .nx-grid-menu-backdrop {
     display: none;
-    position: fixed;
-    inset: 0;
     z-index: 999;
 
     @media (max-width: 768px) {
@@ -356,12 +402,15 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     }
 }
 
+.nx-grid-chooser-backdrop {
+    z-index: 999;
+}
+
 .nx-grid-column-menu {
     width: 300px;
     background-color: var(--nx-grid-menu-bg);
     border: 1px solid var(--nx-grid-border);
     box-shadow: 0 4px 12px var(--nx-grid-shadow);
-    position: fixed;
     z-index: 1000;
     padding: 4px 0;
 }
@@ -430,6 +479,7 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     border-radius: 4px;
     padding: 4px 0;
     min-width: 120px;
+    z-index: 1000;
 }
 
 .nx-grid-context-item {
@@ -681,6 +731,7 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     box-shadow: 0 2px 8px var(--nx-grid-shadow);
     max-height: 200px;
     overflow-y: auto;
+    z-index: 1001;
 }
 
 .nx-grid-combo-item {
@@ -785,6 +836,7 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     width: 228px;
     user-select: none;
     -webkit-user-select: none;
+    z-index: 1001;
 }
 
 .nx-grid-datepicker-header {
@@ -945,6 +997,7 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     width: 256px;
     user-select: none;
     -webkit-user-select: none;
+    z-index: 1001;
 }
 
 .nx-grid-colorpicker-tabs {
@@ -1261,7 +1314,6 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
 // ── Column chooser ────────────────────────────────────────────────────────────
 
 .nx-grid-chooser-panel {
-    position: fixed;
     background-color: var(--nx-grid-surface);
     border: 1px solid var(--nx-grid-border);
     box-shadow: 0 4px 12px var(--nx-grid-shadow);
@@ -1352,13 +1404,17 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     word-break: break-word;
     color: inherit;
     pointer-events: none;
+    z-index: 1002;
 }
 
 // ── Print dialog ──────────────────────────────────────────────────────────────
 
 .nx-print-dialog-backdrop {
     position: fixed;
-    inset: 0;
+    top: calc(-1 * var(--nx-grid-fixed-y, 0px));
+    left: calc(-1 * var(--nx-grid-fixed-x, 0px));
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.45);
     z-index: 1100;
     display: flex;

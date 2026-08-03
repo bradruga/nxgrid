@@ -1080,6 +1080,10 @@ All colors are overridable. Set these on `:root` or any ancestor element:
 }
 ```
 
+**Reserved variables — do not set these.** Popup placement uses four internal custom properties: `--nx-popup-x`/`--nx-popup-y` carry a popup's viewport coordinates, and `--nx-grid-fixed-x`/`--nx-grid-fixed-y` carry the offset of the containing block those coordinates must be corrected by (`0px` on an ordinary page; the dialog's origin when the grid is inside one). The `.nx-grid-popup` rule combines them into `top`/`left`. Overriding any of them misplaces popups.
+
+**Reserved classes.** `nx-grid-popup` (every floating popup) and `nx-grid-popup-backdrop` (every full-window backdrop) own popup geometry — position, offset correction, and the "never taller than the window" cap. `nx-grid-top-layer` is added at runtime to popups promoted to the browser's top layer (with `popover="manual"`) so they escape a dialog's clipping. Style the specific classes (`nx-grid-context-menu`, `nx-grid-tooltip`, …) rather than these, and if your host stylesheet targets `[popover]` globally, scope it so it does not restyle the grid's popups. See [Popups inside dialogs and transformed containers](behavior.md#popups-inside-dialogs-and-transformed-containers).
+
 Things that cannot be changed through CSS variables (require a CSS override targeting the class names):
 
 - Row height — controlled by the `RowHeight` parameter

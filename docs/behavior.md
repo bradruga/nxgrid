@@ -462,7 +462,7 @@ When the highlight moves past the last day of the current view month, the view a
 
 Clicking a day cell commits that date immediately and closes the calendar. The mousedown event on the calendar popup is stopPropagation'd to prevent the input from losing focus.
 
-**Positioning:** the calendar opens below the cell. When there is not enough room below (the cell is near the bottom of the viewport), it flips up and opens above the cell instead. It is also clamped horizontally so it never runs off the right or left edge. The color picker popup follows the same rules.
+**Positioning:** the calendar opens below the cell. When there is not enough room below (the cell is near the bottom of the viewport), it flips up and opens above the cell instead. It is also clamped horizontally so it never runs off the right or left edge. The color picker and combo dropdown follow the same rules. The browser window is the boundary even when the grid is inside a dialog — see [Popups inside dialogs and transformed containers](#popups-inside-dialogs-and-transformed-containers).
 
 **Idle calendar button:**
 
@@ -676,7 +676,7 @@ Section boundaries are automatically separated by a `<hr>` divider whenever both
 
 **Separators** (`Separator = true` on an item) render a `<hr>` divider above that item within its section.
 
-The menu is positioned with `position:fixed` at the mouse coordinates. It closes when it loses focus (via a JS callback).
+The menu is positioned with `position:fixed` at the mouse coordinates, offset by the containing block when the grid sits inside a dialog or other transformed ancestor (see [Popups inside dialogs and transformed containers](#popups-inside-dialogs-and-transformed-containers)). It closes when it loses focus (via a JS callback).
 
 ---
 
@@ -704,6 +704,53 @@ When the column menu opens, it is rendered off-screen (hidden via `visibility:hi
 Opening the menu can itself trigger a late `scroll` event on the page (e.g. the browser's focus-follows-click auto-scroll, or an automation tool scrolling the button into view before clicking) that arrives a few milliseconds after the menu is positioned. The page-scroll "close on scroll" listener ignores scroll events that land within 250ms of the menu being positioned, so this self-inflicted scroll doesn't immediately dismiss the menu that was just opened. Genuine user scrolling after that grace period still closes it as intended. Clicks on the header row are excluded from the separate "click outside" dismissal for the same reason — see `nx-grid.js`.
 
 The "close on scroll" listener also ignores scroll events whose target is inside the menu itself. The filter panel's value list has its own scroll box (`overflow-y:auto` plus a `<Virtualize>`), and scrolling it fires a `scroll` event that reaches the capture-phase window listener; without this exclusion, scrolling the filter list would dismiss the menu. Only scrolling *outside* the open menu closes it.
+
+---
+
+## Popups inside dialogs and transformed containers
+
+Every popup the grid renders — column menu, context menu, combo dropdown, date picker, color picker, tooltip, column chooser, drag-fill handle, and the full-screen backdrops — is `position: fixed` so it can escape the grid's own scroll container. Fixed coordinates are viewport-relative only while the viewport is the containing block. Any ancestor with one of the following makes *that element* the containing block for its fixed descendants instead:
+
+| Property | Typical source |
+| --- | --- |
+| `transform`, `translate`, `rotate`, `scale` | Dialog centring, open/close animations |
+| `perspective` | 3D effects |
+| `filter`, `backdrop-filter` | Frosted-glass panels, dimmed overlays |
+| `will-change` naming any of the above | Animation hints |
+| `contain: paint / layout / strict / content` | Performance containment |
+| `container-type` | Container queries |
+| `content-visibility: auto` | Deferred off-screen rendering |
+
+Without compensation, every popup would land offset by that ancestor's position — the symptom being a fill handle floating away from the cell corner, a dropdown detached from its cell, and a context menu appearing away from the pointer.
+
+**How the grid handles it.** Every floating popup carries the `nx-grid-popup` class (backdrops carry `nx-grid-popup-backdrop`), and that one CSS rule owns what it means to be a popup:
+
+```css
+.nx-grid-popup, .nx-grid-popup-backdrop {
+  position: fixed;
+  top:  calc(var(--nx-popup-y, 0px) - var(--nx-grid-fixed-y, 0px));
+  left: calc(var(--nx-popup-x, 0px) - var(--nx-grid-fixed-x, 0px));
+}
+.nx-grid-popup { max-height: calc(100vh - 20px); overflow-y: auto; }
+```
+
+C# and JS measure in plain viewport space and hand the result over as `--nx-popup-x/y`; the correction happens in the stylesheet, so no call site can forget it. JS walks the grid's ancestor chain, finds the first element that establishes a containing block, and publishes its padding-box origin (adjusted for that element's own scroll) as `--nx-grid-fixed-x/y` — `0px` when there is no such ancestor, so coordinates pass through unchanged. Adding a popup means adding the class; the offset correction, the window cap, and top-layer promotion all follow from it.
+
+The offset is recomputed on grid init, window resize, page scroll, any mouse press (a dialog drag always begins with one), pointer entry into the grid, and before each popup is positioned. It is published through a `<style>` rule scoped to the grid's id — mutated via CSSOM rather than by rewriting the sheet — because Blazor owns the grid element's `style` attribute and would drop anything JS wrote there on the next render.
+
+Because the cap lives in CSS, `offsetHeight` is already clamped when JS measures a popup, so the shared flip-and-clamp routine (`_placeBelow` in `nx-grid.js`) pins an over-tall popup inside the window with no extra bookkeeping.
+
+**Escaping the dialog (top layer).** A containing block that hides overflow — as most dialogs do — also clips fixed descendants, which would confine a dropdown or menu to the dialog box. To avoid that, whenever a containing-block ancestor is detected the grid promotes each popup to the browser's **top layer** as it opens: JS adds `popover="manual"` plus the `nx-grid-top-layer` class and calls `showPopover()`. A top-layer element is positioned against the viewport and is clipped by nothing, so popups behave exactly as they do on an ordinary page — the browser window is the only boundary. The `nx-grid-top-layer` class zeroes `--nx-grid-fixed-x/y` for that element (the offset no longer applies once it is in the top layer) and neutralises the UA popover defaults (`inset`, `margin`, `color`).
+
+The element is **not moved in the DOM** — the top layer changes only where it paints. Blazor's diffing, the click-outside dismissal (`menuElement.contains(event.target)`), and CSS inheritance from the grid all keep working. Promotion is driven by a `MutationObserver` matching `.nx-grid-popup,.nx-grid-popup-backdrop` on the grid element's direct children, so it happens in the same microtask the popup is inserted — before paint, so there is no flash at the un-promoted position. The observer is connected only while a containing-block ancestor exists: virtualized rows are direct children too, so an always-on observer would allocate a mutation record per row batch during scrolling. The positioning routine also promotes each popup before measuring it, which keeps the layout-invalidating writes ahead of the reads.
+
+The drag-fill handle is deliberately not promoted: it belongs on a cell corner inside the grid, where nothing clips it. It stays a plain fixed element with the offset applied. The print area is not promoted either — `TriggerPrint` relocates it to `document.body` instead.
+
+**Fallback.** In a browser without Popover API support (`popover` not on `HTMLElement.prototype`), popups stay plain fixed elements and are instead flipped and clamped against the intersection of the viewport and the clipping ancestor's box, so they remain fully visible inside the dialog rather than being cut off.
+
+Full-viewport backdrops (column chooser, mobile column menu, print dialog) use `100vw`/`100vh` with the same offset applied, instead of `inset: 0`, so they cover the window rather than only the containing block; promoted to the top layer they are no longer clipped to the dialog either, so clicking anywhere outside dismisses the popup they back. The chooser panel is promoted after its backdrop, and top-layer paint order follows promotion order, so the panel stays above it.
+
+The print area is exempt: `TriggerPrint` moves it to `document.body` before printing, so no ancestor offset applies.
 
 ---
 

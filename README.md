@@ -27,6 +27,7 @@ A high-performance, virtualised data grid component for Blazor.
 - Print filtered/sorted data
 - State persistence via `localStorage` (column widths, sort, filter, frozen and hidden state)
 - Themeable via CSS custom properties — no CSS framework required
+- Drops into modal dialogs — menus, dropdowns, pickers, and tooltips stay anchored to their cell and extend past the dialog edge, bounded only by the browser window
 
 ## Installation
 

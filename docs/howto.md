@@ -24,6 +24,8 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to add a date picker to a column](#how-to-add-a-date-picker-to-a-column)
 - [How to enable multi-line text in cells](#how-to-enable-multi-line-text-in-cells)
 - [How to show a message when the grid is empty or loading](#how-to-show-a-message-when-the-grid-is-empty-or-loading)
+- [How to host the grid inside a dialog](#how-to-host-the-grid-inside-a-dialog)
+
 ---
 
 ## How to get started quickly (auto-columns)
@@ -1149,3 +1151,43 @@ The `EmptyTemplate` renders when either `Data` is empty or all rows are filtered
 }
 ```
 
+
+---
+
+## How to host the grid inside a dialog
+
+Drop the grid into a modal and it works without configuration — including the popups that render outside the grid box (column menu, context menu, combo dropdown, date and color pickers, tooltips, drag-fill handle):
+
+```razor
+<div class="my-dialog">
+    <NxGrid T="OrderLine" Data="@lines" Editable="true" OnUpdate="@HandleUpdate">
+        <NxGridColumn Property="@(x => x.Item)"
+                      ComboBoxSource="@(NxGridComboSource.FixedList(itemNames))" />
+        <NxGridColumn Property="@(x => x.Quantity)" />
+    </NxGrid>
+</div>
+
+<style>
+    .my-dialog {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        overflow: hidden;
+    }
+</style>
+```
+
+**Why this needs no workaround.** Popups are `position: fixed` so they can escape the grid's scroll container. A dialog that uses `transform` (centring or an animation), `filter`, `backdrop-filter`, `will-change`, `contain`, `container-type`, or `content-visibility: auto` becomes the containing block for fixed descendants, which would otherwise shift every popup by the dialog's own position. The grid detects the containing block, publishes its offset as `--nx-grid-fixed-x` / `--nx-grid-fixed-y`, and subtracts it from each popup's coordinates. Third-party dialog components (Telerik, MudBlazor, Radzen, Bootstrap modals) are handled the same way — nothing to pass in.
+
+**Popups are not confined to the dialog.** A dialog that hides overflow would clip them, so each popup is promoted to the browser's top layer (`popover` + `showPopover()`) as it opens. It still lives where Blazor put it in the DOM — only its painting moves — so a column menu or dropdown hangs off its cell and extends past the dialog edge, bounded only by the browser window, exactly as on an ordinary page. The dialog's own size never has to accommodate them.
+
+In a browser without Popover API support, popups fall back to being flipped and clamped inside the dialog so they stay fully visible there.
+
+**Practical tips:**
+
+- Nothing to configure — the dialog needs no extra height, and no `overflow: visible` workaround.
+- Grids that stay mounted while the dialog is hidden are fine — the offset is re-measured on resize, scroll, mouse press, and before each popup opens.
+- If your host CSS targets `[popover]` globally, scope it — the grid's popups carry that attribute while open (they also carry the `nx-grid-top-layer` class).
+
+See the **Grid in a Dialog** sample page (`/in-dialog`) for a runnable version, and [behavior.md](behavior.md#popups-inside-dialogs-and-transformed-containers) for the full mechanism.

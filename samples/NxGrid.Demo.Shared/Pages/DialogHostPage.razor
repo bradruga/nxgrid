@@ -1,0 +1,194 @@
+@page "/in-dialog"
+
+<PageTitle>Grid in a Dialog — NxGrid</PageTitle>
+
+<h1>Grid in a Dialog</h1>
+<p class="doc-intro">
+    NxGrid renders its popups — column menu, context menu, combo dropdown, date and color pickers,
+    tooltips, and the drag-fill handle — as <code>position:fixed</code> elements so they can escape
+    the grid's own scroll container. Fixed coordinates are viewport-relative only while the viewport
+    is the containing block. A modal dialog usually breaks that assumption: a <code>transform</code>
+    used for centering or an open animation, a <code>filter</code>, a <code>backdrop-filter</code>,
+    or CSS <code>contain</code> on any ancestor makes <em>that element</em> the containing block for
+    fixed descendants — and a dialog that hides overflow clips them as well. The grid detects this,
+    offsets its popups accordingly, and renders them in the browser's top layer so they extend past
+    the dialog edge, bounded only by the browser window. No host-side workaround is needed.
+</p>
+
+<div class="doc-section">
+    <h2>Transformed dialog host</h2>
+    <p class="doc-note">
+        The dialog below is centered with <code>transform: translate(-50%, -50%)</code> and hides
+        overflow — the exact pattern that would otherwise push every popup down and to the right by
+        the dialog's own offset and then clip it. Open the column menu, right-click a cell, edit the
+        Department column (combo dropdown), hover a cell for its tooltip, and drag the fill handle.
+        Everything lines up with its cell, and the taller popups spill outside the dialog rather than
+        being cut off at its edge.
+    </p>
+    <button class="doc-btn" @onclick="@(() => dialogOpen = true)">Open dialog</button>
+    <pre class="doc-code" style="margin-top:12px">@dialogCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Inline transformed container</h2>
+    <p class="doc-note">
+        The same rule applies without a dialog. This grid sits in a container with
+        <code>transform: scale(1)</code> and <code>filter: saturate(1)</code> — both are visual no-ops
+        that still establish a containing block. Popups stay anchored to their cell.
+    </p>
+    <div style="transform:scale(1);filter:saturate(1);border:1px dashed var(--nx-grid-border);padding:12px">
+        <NxGrid T="Person" Data="@inlinePeople" OnUpdate="@HandleUpdate"
+                Cursor="NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers"
+                Editable="true" CellTooltip="@GetTooltip">
+            <NxGridColumn Property="@(x => x.Id)" Width="50" MaxWidth="50" Editable="false" />
+            <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+            <NxGridColumn Property="@(x => x.LastName)" Width="130" />
+            <NxGridColumn Property="@(x => x.Department)"
+                          ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
+        </NxGrid>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>What creates a containing block</h2>
+    <p class="doc-note">
+        Any of these on an ancestor of the grid retargets <code>position:fixed</code> descendants
+        from the viewport to that element. The grid walks its ancestor chain, finds the first one,
+        and subtracts its offset from every popup coordinate:
+    </p>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Property</th><th>Typical source</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>transform</code>, <code>translate</code>, <code>rotate</code>, <code>scale</code></td><td>Dialog centering, open/close animations</td></tr>
+            <tr><td><code>perspective</code></td><td>3D card effects</td></tr>
+            <tr><td><code>filter</code>, <code>backdrop-filter</code></td><td>Frosted-glass overlays, dimmed backdrops</td></tr>
+            <tr><td><code>will-change</code></td><td>Animation hints naming any of the above</td></tr>
+            <tr><td><code>contain: paint / layout / strict / content</code></td><td>Performance containment on a panel</td></tr>
+            <tr><td><code>container-type</code></td><td>Container queries</td></tr>
+            <tr><td><code>content-visibility: auto</code></td><td>Deferred rendering of off-screen sections</td></tr>
+        </tbody>
+    </table>
+    <p class="doc-note" style="margin-top:10px">
+        When that ancestor also clips overflow (<code>overflow</code> other than <code>visible</code>,
+        as most dialogs do), it clips fixed descendants too. Rather than confining popups to the
+        dialog, the grid promotes each one to the browser's top layer while it is open
+        (<code>popover</code> + <code>showPopover()</code>) — it keeps its place in the DOM, so
+        dismissal and theming are unaffected, but nothing clips it and the browser window becomes the
+        only boundary. Browsers without Popover API support fall back to flipping and clamping popups
+        inside the dialog so they stay fully visible.
+    </p>
+</div>
+
+@if (dialogOpen)
+{
+    <div class="demo-dialog-backdrop" @onclick="@(() => dialogOpen = false)"></div>
+    <div class="demo-dialog" @onclick:stopPropagation>
+        <div class="demo-dialog-title">
+            <span>Purchase Order Lines</span>
+            <button class="demo-dialog-close" @onclick="@(() => dialogOpen = false)">✕</button>
+        </div>
+        <div class="demo-dialog-body">
+            <NxGrid T="Person" Data="@dialogPeople" OnUpdate="@HandleUpdate"
+                    Cursor="NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers"
+                    Editable="true" CellTooltip="@GetTooltip">
+                <NxGridColumn Property="@(x => x.Id)" Width="50" MaxWidth="50" Editable="false" />
+                <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
+                <NxGridColumn Property="@(x => x.LastName)" Width="130" />
+                <NxGridColumn Property="@(x => x.Age)" Width="70" Alignment="NxGridColumnAlignment.Right" />
+                <NxGridColumn Property="@(x => x.Department)"
+                              ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
+            </NxGrid>
+        </div>
+    </div>
+}
+
+<style>
+    .demo-dialog-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 2000;
+    }
+
+    /* The centering transform is what makes this dialog the containing block
+       for the grid's position:fixed popups. */
+    .demo-dialog {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(760px, 92vw);
+        max-height: 80vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: var(--nx-grid-surface);
+        border: 1px solid var(--nx-grid-border);
+        border-radius: 6px;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+        z-index: 2001;
+    }
+
+    .demo-dialog-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--nx-grid-border);
+        font-weight: 600;
+    }
+
+    .demo-dialog-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        color: inherit;
+    }
+
+    .demo-dialog-body {
+        padding: 14px;
+        overflow: auto;
+    }
+</style>
+
+@code {
+    bool dialogOpen;
+
+    List<Person> dialogPeople = SampleData.GetPeopleCopy();
+    List<Person> inlinePeople = SampleData.GetPeopleCopy();
+
+    void HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowChange in args.Rows)
+            foreach (var change in rowChange.Changes)
+                change.Apply(rowChange.Row);
+    }
+
+    async Task<object?> GetTooltip(Person row, NxGridColumn<Person> col)
+        => await Task.FromResult<object?>($"{row.FirstName} {row.LastName} — {col.EffectiveTitle}");
+
+    const string dialogCode = """
+        <!-- Host dialog: the centering transform makes this element the containing
+             block for any position:fixed descendant, including NxGrid's popups. -->
+        <div class="my-dialog">
+            <NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate">
+                <NxGridColumn Property="@(x => x.FirstName)" />
+                <NxGridColumn Property="@(x => x.Department)"
+                              ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance"))" />
+            </NxGrid>
+        </div>
+
+        <style>
+            .my-dialog {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);  /* nothing else required */
+                overflow: hidden;
+            }
+        </style>
+        """;
+}

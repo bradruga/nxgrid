@@ -551,6 +551,16 @@ public partial class NxGrid<T>
     private NxGridColumn<T>? contextMenuColumn;
     private List<NxGridContextMenuItem> contextMenuItems = [];
 
+    /// <summary>
+    /// Hands a popup its viewport coordinates as <c>--nx-popup-x/y</c>. The <c>.nx-grid-popup</c>
+    /// CSS rule turns them into <c>top</c>/<c>left</c>, subtracting the containing-block offset
+    /// that JavaScript publishes as <c>--nx-grid-fixed-x/y</c> — so every popup is corrected for
+    /// a transformed ancestor (a modal dialog) by the stylesheet, and C# only ever deals in plain
+    /// viewport space.
+    /// </summary>
+    private static string PopupPos(double top, double left) =>
+        FormattableString.Invariant($"--nx-popup-y:{top}px;--nx-popup-x:{left}px;");
+
     // ── Public properties ─────────────────────────────────────────────────────
 
     /// <summary>
@@ -931,10 +941,14 @@ public partial class NxGrid<T>
             var menuIndex = openColumn != null ? visibleColumns.IndexOf(openColumn) : -1;
             if (menuIndex >= 0)
             {
-                var pos = await jsInterop.PositionColumnMenu(menuIndex);
-                menuTop = pos.Top;
-                menuLeft = pos.Left;
-                menuIsMobile = pos.IsMobile;
+                // Null only when JS is stubbed out (tests) or the module failed to load —
+                // the menu then renders at its default position rather than throwing.
+                if (await jsInterop.PositionColumnMenu(menuIndex) is { } pos)
+                {
+                    menuTop = pos.Top;
+                    menuLeft = pos.Left;
+                    menuIsMobile = pos.IsMobile;
+                }
             }
             StateHasChanged();
         }

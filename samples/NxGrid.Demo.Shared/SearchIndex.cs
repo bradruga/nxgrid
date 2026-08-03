@@ -128,6 +128,7 @@ public static class SearchIndex
 
         // Advanced
         new("State Persistence",    "state-persistence", Category: "Advanced", Keywords: "save restore localstorage state"),
+        new("Grid in a Dialog",     "in-dialog",         Category: "Advanced", Keywords: "dialog modal popup offset transform containing block overlay alignment"),
         new("Print",                "print",             Category: "Advanced", Keywords: "print export pdf"),
         new("Large Data",           "large-data",        Category: "Advanced", Keywords: "virtual scroll performance 100k"),
         new("Stress Test",          "stress-test",       Category: "Advanced", Keywords: "performance benchmark"),

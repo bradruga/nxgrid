@@ -23,6 +23,40 @@ function parseRgbHex(hex) {
     return isNaN(r) || isNaN(g) || isNaN(b) ? null : [r, g, b];
 }
 
+// True when an element with this computed style becomes the containing block for its
+// position:fixed descendants (instead of the viewport). Modal dialogs commonly trip one
+// of these — a transform for centering or an open/close animation, a backdrop filter, or
+// CSS containment — which is why fixed popups inside a dialog land offset by the dialog's
+// own position unless that offset is subtracted back out.
+function createsFixedContainingBlock(cs) {
+    if (!cs) return false;
+    if (cs.transform && cs.transform !== 'none') return true;
+    if (cs.translate && cs.translate !== 'none') return true;
+    if (cs.rotate && cs.rotate !== 'none') return true;
+    if (cs.scale && cs.scale !== 'none') return true;
+    if (cs.perspective && cs.perspective !== 'none') return true;
+    if (cs.filter && cs.filter !== 'none') return true;
+    if (cs.backdropFilter && cs.backdropFilter !== 'none') return true;
+    if (cs.willChange && /\b(transform|translate|rotate|scale|perspective|filter)\b/.test(cs.willChange)) return true;
+    if (cs.contain && /\b(paint|layout|strict|content)\b/.test(cs.contain)) return true;
+    if (cs.containerType && cs.containerType !== 'normal') return true;
+    if (cs.contentVisibility && cs.contentVisibility === 'auto') return true;
+    return false;
+}
+
+// Everything the grid floats over the page carries one of these two classes (see the popup
+// section of nx-grid.scss), which is also what makes it eligible for the top layer. The fill
+// handle deliberately carries neither: it belongs on a cell corner inside the grid, so it stays
+// a plain fixed element offset by the containing block. The print area is excluded too —
+// triggerPrint relocates it to <body> instead.
+const POPUP_SELECTOR = '.nx-grid-popup,.nx-grid-popup-backdrop';
+
+// Gap left between a popup and the edge it would otherwise run past.
+const POPUP_EDGE_GAP = 10;
+
+const TOP_LAYER_SUPPORTED = typeof HTMLElement !== 'undefined'
+    && Object.prototype.hasOwnProperty.call(HTMLElement.prototype, 'popover');
+
 class NxGrid {
     constructor(id, dotNetObjectReference) {
         this.id = id;
@@ -127,7 +161,12 @@ class NxGrid {
         // have fired by then — dragSelect uses this to detect that and skip installing
         // listeners that would never be torn down. Capturing so stopPropagation can't hide it.
         this._leftButtonDown = false;
-        this._buttonDownHandler = (event) => { if (event.button === 0) this._leftButtonDown = true; };
+        this._buttonDownHandler = (event) => {
+            // A dialog drag moves the same element, so only its position can have changed —
+            // no need to re-walk the ancestor chain on every press anywhere in the document.
+            this._fixedContext(false);
+            if (event.button === 0) this._leftButtonDown = true;
+        };
         this._buttonUpHandler   = (event) => { if (event.button === 0) this._leftButtonDown = false; };
         document.addEventListener('mousedown', this._buttonDownHandler, true);
         document.addEventListener('mouseup',   this._buttonUpHandler,   true);
@@ -186,6 +225,26 @@ class NxGrid {
         };
         window.addEventListener('scroll', this._pageScrollHandler, { passive: true, capture: true });
 
+        // Popups are direct children of the grid element, so watch for them appearing and
+        // promote them in the same frame. MutationObserver callbacks run as microtasks —
+        // before paint — so there is no flash at the un-promoted position. Created before the
+        // first _fixedContext() call below, which is what connects it.
+        this._popupObserver = new MutationObserver((records) => {
+            for (const record of records) {
+                for (const node of record.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE) this._promotePopup(node);
+                }
+            }
+        });
+
+        // Popup coordinates are measured in viewport space, so the containing-block offset
+        // has to be current before any popup renders. Cheap to recompute, so refresh it on
+        // every event that can move the grid relative to the viewport: page scroll (above),
+        // window resize, and any mouse press (a dialog drag always starts with one).
+        this._fixedOriginRefresh = () => this._fixedContext();
+        window.addEventListener('resize', this._fixedOriginRefresh);
+        this._fixedContext();
+
         this._fillHandleAnchor = null;
         this._scrollHandler = () => this._repositionFillHandle();
 
@@ -202,7 +261,127 @@ class NxGrid {
             this.dotNetObjectReference.invokeMethodAsync('OnGridFocusLost');
         };
         const gridEl = document.getElementById(this.id);
-        if (gridEl) gridEl.addEventListener('focusout', this._gridFocusOutHandler);
+        if (gridEl) {
+            gridEl.addEventListener('focusout', this._gridFocusOutHandler);
+            // Tooltips are positioned from hover coordinates without a JS round-trip, so
+            // make sure the offset is fresh as soon as the pointer reaches the grid.
+            gridEl.addEventListener('mouseenter', this._fixedOriginRefresh);
+        }
+    }
+
+    // Renders a popup in the browser's top layer, which escapes both the clipping and the
+    // containing block of any ancestor — so a dropdown or menu opened inside a dialog is bound
+    // only by the browser window, exactly as it is on an ordinary page. The element stays where
+    // Blazor put it in the DOM (unlike a portal), so Blazor's diffing, the click-outside
+    // dismissal checks, and CSS inheritance all keep working. No-op when the grid is not inside
+    // a containing-block ancestor, or when the browser has no popover support — those popups
+    // are already correct as plain fixed elements.
+    _promotePopup(el) {
+        if (!TOP_LAYER_SUPPORTED || !this._fixedAncestor) return;
+        if (!el.matches || !el.matches(POPUP_SELECTOR)) return;
+        // A popup the host keeps hidden (the desktop column-menu backdrop) must stay hidden;
+        // showPopover() on a display:none element throws.
+        if (el.checkVisibility && !el.checkVisibility()) return;
+        if (el.matches(':popover-open')) return;
+
+        el.classList.add('nx-grid-top-layer');
+        el.setAttribute('popover', 'manual');
+        try {
+            el.showPopover();
+        } catch {
+            // Leaving the attribute behind would hide the popup outright (UA styles it
+            // display:none until shown), so undo the promotion and fall back to plain fixed.
+            el.removeAttribute('popover');
+            el.classList.remove('nx-grid-top-layer');
+        }
+    }
+
+    // Finds the nearest ancestor that is the containing block for the grid's position:fixed
+    // popups (normally none, so the viewport is). Walking the chain reads computed styles, so
+    // the result is cached and only refreshed on events that can change it — never per scroll
+    // frame; `_measureFixedContext` then just re-measures the cached element.
+    _resolveFixedAncestor() {
+        this._fixedAncestor = null;
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return;
+
+        for (let el = gridElement; el && el !== document.documentElement; el = el.parentElement) {
+            const cs = getComputedStyle(el);
+            if (!createsFixedContainingBlock(cs)) continue;
+            this._fixedAncestor = el;
+            // An ancestor that hides overflow clips fixed descendants too, so popups have to
+            // flip and clamp inside it rather than against the viewport.
+            this._fixedAncestorClips = cs.overflow !== 'visible';
+            this._fixedAncestorBorderLeft = parseFloat(cs.borderLeftWidth) || 0;
+            this._fixedAncestorBorderTop  = parseFloat(cs.borderTopWidth)  || 0;
+            return;
+        }
+    }
+
+    // Where the grid's position:fixed popups actually measure from, plus the box they must
+    // stay inside — the viewport, narrowed to the containing block when one exists.
+    _measureFixedContext() {
+        const bounds = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+        const el = this._fixedAncestor;
+        if (!el || !el.isConnected) return { x: 0, y: 0, bounds };
+
+        const rect = el.getBoundingClientRect();
+        // Promoted popups live in the top layer, where nothing clips them — they flip and
+        // clamp against the window like they do on an ordinary page. Only when the browser
+        // lacks popover support does the clipping ancestor become the boundary.
+        if (this._fixedAncestorClips && !TOP_LAYER_SUPPORTED) {
+            bounds.left   = Math.max(bounds.left,   rect.left);
+            bounds.top    = Math.max(bounds.top,    rect.top);
+            bounds.right  = Math.min(bounds.right,  rect.right);
+            bounds.bottom = Math.min(bounds.bottom, rect.bottom);
+        }
+        return {
+            // Padding box, shifted by the ancestor's own scroll — fixed descendants of a
+            // transformed ancestor scroll with its content like absolute ones do.
+            x: rect.left + this._fixedAncestorBorderLeft - el.scrollLeft,
+            y: rect.top  + this._fixedAncestorBorderTop  - el.scrollTop,
+            bounds
+        };
+    }
+
+    // Measures the containing block and publishes its offset as --nx-grid-fixed-x/y so
+    // popups can subtract it from their viewport coordinates. Every measurement in this
+    // file therefore stays in plain viewport space. Pass rewalk: false on hot paths (scroll)
+    // where only the cached ancestor's position can have changed.
+    _fixedContext(rewalk = true) {
+        if (rewalk || this._fixedAncestor === undefined) {
+            this._resolveFixedAncestor();
+            // Watch for popups only while there is a dialog to escape: the grid's virtualized
+            // rows are direct children too, so an idle observer would still allocate a mutation
+            // record per row batch during scrolling. observe() on an already-observed target
+            // just updates the registration, so this stays idempotent.
+            const gridEl = this._fixedAncestor ? document.getElementById(this.id) : null;
+            if (gridEl) this._popupObserver.observe(gridEl, { childList: true });
+            else this._popupObserver.disconnect();
+        }
+        const ctx = this._measureFixedContext();
+        if (this._fixedX !== ctx.x || this._fixedY !== ctx.y) {
+            this._fixedX = ctx.x;
+            this._fixedY = ctx.y;
+            const rule = this._fixedRule();
+            rule.style.setProperty('--nx-grid-fixed-x', ctx.x + 'px');
+            rule.style.setProperty('--nx-grid-fixed-y', ctx.y + 'px');
+        }
+        return ctx;
+    }
+
+    // The rule carrying this grid's containing-block offset. A stylesheet rule rather than an
+    // inline custom property because Blazor owns the grid element's style attribute and would
+    // drop anything JS wrote there on the next render; mutated through CSSOM rather than by
+    // rewriting textContent, which would re-parse the sheet on every update.
+    _fixedRule() {
+        if (!this._fixedStyleRule) {
+            this._fixedStyleEl = document.createElement('style');
+            document.head.appendChild(this._fixedStyleEl);
+            this._fixedStyleEl.sheet.insertRule(`#${CSS.escape(this.id)} {}`, 0);
+            this._fixedStyleRule = this._fixedStyleEl.sheet.cssRules[0];
+        }
+        return this._fixedStyleRule;
     }
 
     updateFillHandle(maxRow, maxCol, rowHeight) {
@@ -239,10 +418,13 @@ class NxGrid {
         const handle = gridElement.querySelector('.nx-grid-fill-handle');
         if (!handle) return;
         const { maxRow, maxCol, rowHeight } = this._fillHandleAnchor;
+        const ctx = this._fixedContext(false);   // hot path: scroll and ResizeObserver
         const pos = this.getFillHandlePosition(maxRow, maxCol, rowHeight);
         if (pos) {
-            handle.style.top = pos.top + 'px';
-            handle.style.left = pos.left + 'px';
+            // The handle is not a popup, so it subtracts the containing-block offset itself
+            // (both are 0 outside a dialog) rather than going through the CSS variables.
+            handle.style.top = (pos.top - ctx.y) + 'px';
+            handle.style.left = (pos.left - ctx.x) + 'px';
             handle.style.visibility = 'visible';
         } else {
             handle.style.visibility = 'hidden';
@@ -266,6 +448,46 @@ class NxGrid {
         return navigator.clipboard.readText().catch(() => '');
     }
 
+    // Drops a popup below the element it belongs to, flipping above when it would overflow the
+    // bottom and clamping so it never leaves `bounds`. Coordinates are viewport-space; the CSS
+    // `.nx-grid-popup` rule applies the containing-block offset. Every popup shares this so the
+    // flip and clamp behaviour can only be changed in one place.
+    //
+    // The popup is promoted to the top layer *before* it is measured, so the writes that
+    // promotion performs are followed by the reads rather than interleaved with them.
+    _placeBelow(anchor, popup, bounds, width) {
+        this._promotePopup(popup);
+
+        const popupWidth  = width ?? popup.offsetWidth;
+        const popupHeight = popup.offsetHeight;   // capped by max-height in CSS
+
+        let left = anchor.left;
+        if (left + popupWidth > bounds.right) left = bounds.right - popupWidth - POPUP_EDGE_GAP;
+        if (left < bounds.left) left = bounds.left + POPUP_EDGE_GAP;
+
+        let top = anchor.bottom;
+        if (popupHeight && top + popupHeight > bounds.bottom) {
+            const flipped = anchor.top - popupHeight;
+            top = flipped >= bounds.top
+                ? flipped
+                : Math.max(bounds.top + POPUP_EDGE_GAP, bounds.bottom - popupHeight - POPUP_EDGE_GAP);
+        }
+
+        return { top, left, width: popupWidth };
+    }
+
+    // Positions an editor popup (combo dropdown, date picker, color picker) under the cell
+    // editor it belongs to. `width` is the popup's fixed width, or null to measure it.
+    _positionEditorPopup(wrapperSelector, popupSelector, width) {
+        const gridElement = document.getElementById(this.id);
+        const wrapper = gridElement && gridElement.querySelector(wrapperSelector);
+        const popup   = gridElement && gridElement.querySelector(popupSelector);
+        if (!wrapper || !popup) return { top: 0, left: 0, width: width ?? 150 };
+
+        const { bounds } = this._fixedContext();
+        return this._placeBelow(wrapper.getBoundingClientRect(), popup, bounds, width);
+    }
+
     positionColumnMenu(columnIndex) {
         this._menuOpenedAt = performance.now();
         const gridElement = document.getElementById(this.id);
@@ -274,48 +496,31 @@ class NxGrid {
         const menuElement = gridElement.querySelector('.nx-grid-column-menu');
         if (!menuElement) return { top: 0, left: 0, isMobile: false };
 
+        const { bounds } = this._fixedContext();
+
         // On narrow screens show as a centered dialog instead of a dropdown
         if (window.innerWidth <= 768) {
-            const menuHeight = menuElement.offsetHeight;
-            const menuWidth = menuElement.offsetWidth;
+            this._promotePopup(menuElement);
             return {
-                top: Math.max(10, (window.innerHeight - menuHeight) / 2),
-                left: Math.max(10, (window.innerWidth - menuWidth) / 2),
+                top:  Math.max(bounds.top  + POPUP_EDGE_GAP, bounds.top  + (bounds.bottom - bounds.top  - menuElement.offsetHeight) / 2),
+                left: Math.max(bounds.left + POPUP_EDGE_GAP, bounds.left + (bounds.right  - bounds.left - menuElement.offsetWidth)  / 2),
                 isMobile: true
             };
         }
 
         const headerRow = gridElement.querySelector('.nx-grid-header-row');
-        if (!headerRow) return { top: 0, left: 0, isMobile: false };
-
-        const headerCells = headerRow.querySelectorAll('.nx-grid-cell');
+        const headerCells = headerRow ? headerRow.querySelectorAll('.nx-grid-cell') : [];
         if (columnIndex < 0 || columnIndex >= headerCells.length) return { top: 0, left: 0, isMobile: false };
 
-        const targetCell = headerCells[columnIndex];
-        const cellRect = targetCell.getBoundingClientRect();
+        // The menu's left edge overlaps the header cell's border by a pixel.
+        const cellRect = headerCells[columnIndex].getBoundingClientRect();
+        const anchor = { left: cellRect.left - 1, top: cellRect.top, bottom: cellRect.bottom };
 
-        let top = cellRect.bottom;
-        let left = cellRect.left - 1;
-
-        // Clamp horizontally (menu is visibility:hidden so offsetWidth is still valid)
-        const menuWidth = menuElement.offsetWidth;
-        if (left + menuWidth > window.innerWidth) {
-            left = window.innerWidth - menuWidth - 10;
-        }
-        if (left < 0) {
-            left = 10;
-        }
-
-        // Clamp vertically: flip above the header cell when the menu would overflow the bottom
-        const menuHeight = menuElement.offsetHeight;
-        if (top + menuHeight > window.innerHeight) {
-            top = cellRect.top - menuHeight;
-            if (top < 0) top = Math.max(10, window.innerHeight - menuHeight - 10);
-        }
-
+        const { top, left } = this._placeBelow(anchor, menuElement, bounds, null);
         return { top, left, isMobile: false };
     }
-    
+
+
     getPageRowCount(rowHeight) {
         const gridElement = document.getElementById(this.id);
         if (!gridElement) return 10;
@@ -435,55 +640,11 @@ class NxGrid {
     }
 
     getDatePickerPosition() {
-        const gridElement = document.getElementById(this.id);
-        if (!gridElement) return { top: 0, left: 0 };
-
-        const wrapper = gridElement.querySelector('.nx-grid-datepicker-wrapper');
-        if (!wrapper) return { top: 0, left: 0 };
-
-        const rect = wrapper.getBoundingClientRect();
-        const popupWidth = 228;
-        let left = rect.left;
-
-        if (left + popupWidth > window.innerWidth) left = window.innerWidth - popupWidth - 10;
-        if (left < 0) left = 0;
-
-        // Flip above the cell when the popup would overflow the bottom of the viewport
-        let top = rect.bottom;
-        const popup = gridElement.querySelector('.nx-grid-datepicker-popup');
-        const popupHeight = popup ? popup.offsetHeight : 0;
-        if (popupHeight && top + popupHeight > window.innerHeight) {
-            const flipped = rect.top - popupHeight;
-            top = flipped >= 0 ? flipped : Math.max(10, window.innerHeight - popupHeight - 10);
-        }
-
-        return { top, left };
+        return this._positionEditorPopup('.nx-grid-datepicker-wrapper', '.nx-grid-datepicker-popup', 228);
     }
 
     getColorPickerPosition() {
-        const gridElement = document.getElementById(this.id);
-        if (!gridElement) return { top: 0, left: 0 };
-
-        const wrapper = gridElement.querySelector('.nx-grid-colorpicker-wrapper');
-        if (!wrapper) return { top: 0, left: 0 };
-
-        const rect = wrapper.getBoundingClientRect();
-        const popupWidth = 256;
-        let left = rect.left;
-
-        if (left + popupWidth > window.innerWidth) left = window.innerWidth - popupWidth - 10;
-        if (left < 0) left = 0;
-
-        // Flip above the cell when the popup would overflow the bottom of the viewport
-        let top = rect.bottom;
-        const popup = gridElement.querySelector('.nx-grid-colorpicker-popup');
-        const popupHeight = popup ? popup.offsetHeight : 0;
-        if (popupHeight && top + popupHeight > window.innerHeight) {
-            const flipped = rect.top - popupHeight;
-            top = flipped >= 0 ? flipped : Math.max(10, window.innerHeight - popupHeight - 10);
-        }
-
-        return { top, left };
+        return this._positionEditorPopup('.nx-grid-colorpicker-wrapper', '.nx-grid-colorpicker-popup', 256);
     }
 
     setupColorPickerGradient() {
@@ -537,28 +698,10 @@ class NxGrid {
 
     getComboDropdownPosition() {
         const gridElement = document.getElementById(this.id);
-        if (!gridElement) return { top: 0, left: 0, width: 150 };
-
-        const wrapper = gridElement.querySelector('.nx-grid-combo-wrapper');
-        if (!wrapper) return { top: 0, left: 0, width: 150 };
-
-        const rect = wrapper.getBoundingClientRect();
-        let left = rect.left;
-        const width = Math.max(rect.width, 150);
-
-        if (left + width > window.innerWidth) left = window.innerWidth - width - 10;
-        if (left < 0) left = 0;
-
-        // Flip above the cell when the dropdown would overflow the bottom of the viewport
-        let top = rect.bottom;
-        const popup = gridElement.querySelector('.nx-grid-combo-dropdown');
-        const popupHeight = popup ? popup.offsetHeight : 0;
-        if (popupHeight && top + popupHeight > window.innerHeight) {
-            const flipped = rect.top - popupHeight;
-            top = flipped >= 0 ? flipped : Math.max(10, window.innerHeight - popupHeight - 10);
-        }
-
-        return { top, left, width };
+        const wrapper = gridElement && gridElement.querySelector('.nx-grid-combo-wrapper');
+        // The dropdown matches its cell's width, down to a readable minimum.
+        const width = wrapper ? Math.max(wrapper.getBoundingClientRect().width, 150) : 150;
+        return this._positionEditorPopup('.nx-grid-combo-wrapper', '.nx-grid-combo-dropdown', width);
     }
 
     dragSelect(anchorRow, anchorCol, isRowMode, maxCol) {
@@ -842,6 +985,21 @@ class NxGrid {
         if (this._layoutObserver) {
             this._layoutObserver.disconnect();
             this._layoutObserver = null;
+        }
+        if (this._fixedOriginRefresh) {
+            window.removeEventListener('resize', this._fixedOriginRefresh);
+            const gridElement = document.getElementById(this.id);
+            if (gridElement) gridElement.removeEventListener('mouseenter', this._fixedOriginRefresh);
+            this._fixedOriginRefresh = null;
+        }
+        if (this._fixedStyleEl) {
+            this._fixedStyleEl.remove();
+            this._fixedStyleEl = null;
+            this._fixedStyleRule = null;
+        }
+        if (this._popupObserver) {
+            this._popupObserver.disconnect();
+            this._popupObserver = null;
         }
     }
 

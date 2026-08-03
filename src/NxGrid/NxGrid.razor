@@ -189,8 +189,9 @@
 
     @if (openColumn != null)
     {
-        <div class="nx-grid-menu-backdrop"></div>
-        <div class="nx-grid-column-menu @(menuIsMobile ? "nx-grid-column-menu-mobile" : "")" style="top:@(menuTop)px;left:@(menuLeft)px;@(menuNeedsPositioning ? "visibility:hidden;" : "")">
+        var menuStyle = PopupPos(menuTop, menuLeft) + (menuNeedsPositioning ? "visibility:hidden;" : "");
+        <div class="nx-grid-popup-backdrop nx-grid-menu-backdrop"></div>
+        <div class="nx-grid-popup nx-grid-column-menu @(menuIsMobile ? "nx-grid-column-menu-mobile" : "")" style="@menuStyle">
             <button type="button" class="nx-grid-menu-item"
                     @onclick="@(() => ApplySortState(1))">
                 <span class="nx-grid-menu-item-icon">
@@ -307,7 +308,7 @@
         var footerItems        = contextMenuItems.Where(i => i.Section == NxGridMenuSection.Footer).ToList();
         var hasFocusCell       = AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell;
 
-        <div class="nx-grid-context-menu" style="position:fixed;left:@(contextMenuX)px;top:@(contextMenuY)px;z-index:1000;">
+        <div class="nx-grid-popup nx-grid-context-menu" style="@(PopupPos(contextMenuY,contextMenuX))">
             @for (var i = 0; i < headerItems.Count; i++)
             {
                 var capturedItem = headerItems[i];
@@ -401,8 +402,8 @@
          && visibleColumns[editCol].IsComboColumn && isComboOpen)
     {
         var comboCol = visibleColumns[editCol];
-        <div class="nx-grid-combo-dropdown"
-             style="position:fixed;top:@(comboDropdownTop)px;left:@(comboDropdownLeft)px;width:@(comboDropdownWidth)px;z-index:1001;">
+        <div class="nx-grid-popup nx-grid-combo-dropdown"
+             style="@(PopupPos(comboDropdownTop,comboDropdownLeft))width:@(comboDropdownWidth)px;">
             @if (comboFilteredOptions.Count == 0)
             {
                 <div class="nx-grid-combo-no-options">No matches</div>
@@ -433,8 +434,9 @@
     @if (isEditing && editCol >= 0 && editCol < visibleColumns.Count
          && visibleColumns[editCol].IsDatePickerColumn && isDatePickerOpen)
     {
-        <div class="nx-grid-datepicker-popup"
-             style="position:fixed;top:@(datePickerTop)px;left:@(datePickerLeft)px;z-index:1001;@(datePickerNeedsPositioning ? "visibility:hidden;" : "")"
+        var datePickerStyle = PopupPos(datePickerTop, datePickerLeft) + (datePickerNeedsPositioning ? "visibility:hidden;" : "");
+        <div class="nx-grid-popup nx-grid-datepicker-popup"
+             style="@datePickerStyle"
              @onmousedown:stopPropagation>
             <div class="nx-grid-datepicker-header">
                 <button type="button" class="nx-grid-datepicker-nav"
@@ -480,8 +482,9 @@
     @if (isEditing && editCol >= 0 && editCol < visibleColumns.Count
          && visibleColumns[editCol].IsColorPickerColumn && isColorPickerOpen)
     {
-        <div class="nx-grid-colorpicker-popup"
-             style="position:fixed;top:@(colorPickerTop)px;left:@(colorPickerLeft)px;z-index:1001;@(colorPickerNeedsPositioning ? "visibility:hidden;" : "")"
+        var colorPickerStyle = PopupPos(colorPickerTop, colorPickerLeft) + (colorPickerNeedsPositioning ? "visibility:hidden;" : "");
+        <div class="nx-grid-popup nx-grid-colorpicker-popup"
+             style="@colorPickerStyle"
              @onmousedown:stopPropagation>
             <div class="nx-grid-colorpicker-tabs">
                 <button type="button" class="nx-grid-colorpicker-tab @(!colorPickerCustomView ? "nx-grid-colorpicker-tab-active" : "")"
@@ -582,8 +585,8 @@
 
     @if (showColumnChooser)
     {
-        <div style="position:fixed;inset:0;z-index:999;" @onclick="CloseColumnChooser"></div>
-        <div class="nx-grid-chooser-panel" style="top:@(chooserTop)px;left:@(chooserLeft)px;" @onclick:stopPropagation>
+        <div class="nx-grid-popup-backdrop nx-grid-chooser-backdrop" @onclick="CloseColumnChooser"></div>
+        <div class="nx-grid-popup nx-grid-chooser-panel" style="@(PopupPos(chooserTop,chooserLeft))" @onclick:stopPropagation>
             <div class="nx-grid-chooser-title">Columns</div>
             @foreach (var col in ActiveColumns.Where(c => c.Hideable && c.Visible))
             {
@@ -600,7 +603,7 @@
 
     @if (tooltipVisible && tooltipColumn != null)
     {
-        <div class="nx-grid-tooltip" style="position:fixed;top:@(tooltipTop)px;left:@(tooltipLeft)px;z-index:1002;pointer-events:none;">
+        <div class="nx-grid-popup nx-grid-tooltip" style="@(PopupPos(tooltipTop,tooltipLeft))">
             @if (tooltipIsHeader)
             {
                 @if (tooltipColumn.HeaderTooltipTemplate != null)
@@ -625,7 +628,7 @@
 
     @if (printDialogOpen)
     {
-        <div class="nx-print-dialog-backdrop" @onclick="ClosePrintDialog">
+        <div class="nx-grid-popup-backdrop nx-print-dialog-backdrop" @onclick="ClosePrintDialog">
             <div class="nx-print-dialog" @onclick:stopPropagation>
                 <div class="nx-print-dialog-header">
                     <span class="nx-print-dialog-title">Print</span>
