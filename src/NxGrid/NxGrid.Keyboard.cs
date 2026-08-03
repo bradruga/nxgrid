@@ -23,6 +23,10 @@ public partial class NxGrid<T>
     {
         if (isEditing) return; // input's @onkeydown:stopPropagation handles this
 
+        // Browser autofill and password managers dispatch synthetic keydown events with no
+        // `key` property, which deserializes to a null Key. Nothing here can act on those.
+        if (string.IsNullOrEmpty(args.Key)) return;
+
         if (SelectionMode != NxGridSelectionMode.None)
         {
             if (ModifierPressed(args) && string.Equals(args.Key, KeyCopy, StringComparison.OrdinalIgnoreCase))
@@ -130,7 +134,7 @@ public partial class NxGrid<T>
     private static bool IsPrintableKey(KeyboardEventArgs args)
     {
         if (args.CtrlKey || args.AltKey || args.MetaKey) return false;
-        return args.Key.Length == 1;
+        return args.Key?.Length == 1;
     }
 
     private async Task HandleArrowKey(KeyboardEventArgs args)

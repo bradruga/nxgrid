@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Using browser autocomplete/autofill in a column filter's search or date boxes no longer throws a null-reference error (which drops the circuit on Blazor Server). Autofill dispatches synthetic key events that carry no key, and the grid's key handler now ignores them.
+- Typing in a column filter's search or date boxes no longer reaches the grid behind the menu. Previously a plain letter typed into a filter box could start editing the selected cell underneath.
+
 ## [0.3.3] - 2026-07-30
 
 ### Added

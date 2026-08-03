@@ -174,7 +174,9 @@ A host page is no longer required to call `ClearSelection()` after refreshing th
 
 ## Keyboard navigation
 
-Key events are handled at the grid container level. **All key handling is suppressed while a cell is being edited** — the edit input's `@onkeydown:stopPropagation` ensures editing keys never reach the grid handler.
+Key events are handled at the grid container level. **All key handling is suppressed while a cell is being edited** — the edit input's `@onkeydown:stopPropagation` ensures editing keys never reach the grid handler. The same applies to the search and date boxes inside a column filter menu: keys typed there stay in the menu and never navigate or edit the grid behind it.
+
+Key events that carry no key — browser autofill and password managers dispatch synthetic `keydown` events without one — are ignored entirely.
 
 If there is no active selection when a navigation key is pressed, a selection is created at (0, 0) and the key has no further effect for that press.
 

@@ -18,7 +18,8 @@
                    placeholder="Search"
                    value="@searchText"
                    @oninput="@OnSearchInput"
-                   @onkeydown="@OnSearchKeyDown"/>
+                   @onkeydown="@OnSearchKeyDown"
+                   @onkeydown:stopPropagation/>
         </div>
     }
     else
@@ -32,7 +33,8 @@
                    placeholder="Search Start"
                    value="@searchDateFrom"
                    @oninput="@OnDateFromChange"
-                   @onkeydown="@OnSearchKeyDown"/>
+                   @onkeydown="@OnSearchKeyDown"
+                   @onkeydown:stopPropagation/>
         </div>
 
         <div class="nx-grid-filter-date-row">
@@ -44,7 +46,8 @@
                    placeholder="Search End"
                    value="@searchDateThru"
                    @oninput="@OnDateThruChange"
-                   @onkeydown="@OnSearchKeyDown"/>
+                   @onkeydown="@OnSearchKeyDown"
+                   @onkeydown:stopPropagation/>
         </div>
     }
 

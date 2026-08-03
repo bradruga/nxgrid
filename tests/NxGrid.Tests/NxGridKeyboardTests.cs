@@ -554,4 +554,30 @@ public class NxGridKeyboardTests : BunitContext
         Assert.That(pressedArgs, Is.Not.Null, "OnKeyPressed should fire for unhandled keys");
         Assert.That(pressedArgs!.KeyboardEvent.Key, Is.EqualTo("F9"));
     }
+
+    // ── Synthetic key events ──────────────────────────────────────────────────
+
+    [Test]
+    public async Task KeyDown_WithNullKey_IsIgnored()
+    {
+        // Browser autofill and password managers dispatch keydown events with no `key`,
+        // which arrives as a null Key. It must not throw or start editing.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        NxGridKeyPressedArgs? pressedArgs = null;
+        var rows = new List<EditRow> { new() { Name = "Alice" } };
+
+        var cut = Render<NxGrid<EditRow>>(p => p
+            .Add(x => x.Data, rows)
+            .Add(x => x.OnKeyPressed,
+                EventCallback.Factory.Create<NxGridKeyPressedArgs>(this, args => pressedArgs = args))
+            .AddChildContent<NxGridColumn<EditRow>>(col => col
+                .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Name))));
+
+        await ClickCell(cut, 0);
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown",
+            new KeyboardEventArgs { Key = null! });
+
+        Assert.That(pressedArgs, Is.Null, "keyless events should not reach OnKeyPressed");
+        Assert.That(cut.FindAll(".nx-grid-edit-input"), Is.Empty, "keyless events should not start editing");
+    }
 }
