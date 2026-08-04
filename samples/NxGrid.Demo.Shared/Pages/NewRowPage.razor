@@ -203,6 +203,12 @@
         <code>BeginEditAsync(row, column)</code> to open the editor. Both are public methods on the
         grid, independent of <code>OnNewRow</code>.
     </p>
+    <p class="doc-note">
+        Append and select in the same block — no <code>StateHasChanged()</code> or
+        <code>Task.Yield()</code> in between. Both methods re-run the filter/sort pipeline when they
+        cannot find the row yet, so the selection moves exactly once instead of the previous selection
+        being painted across the new rows for a frame first.
+    </p>
     <div class="doc-controls">
         <button @onclick="AddLineFromToolbar" class="doc-btn">Add Line</button>
         <button @onclick="AddLineAndEdit" class="doc-btn doc-btn-secondary">Add Line &amp; Edit</button>
@@ -302,7 +308,7 @@
         var line = new OrderLine();
         lines.Add(line);
         log.Insert(0, $"[{Stamp()}]  Toolbar  —  appended, cursor on Description");
-        await InvokeAsync(StateHasChanged);
+        // No render in between: SelectCell re-pipes to find the row it was just handed.
         if (grid != null && descriptionColumn != null)
             await grid.SelectCell(line, descriptionColumn);
     }
@@ -312,7 +318,6 @@
         var line = new OrderLine();
         lines.Add(line);
         log.Insert(0, $"[{Stamp()}]  Toolbar  —  appended, editor open on Description");
-        await InvokeAsync(StateHasChanged);
         if (grid != null && descriptionColumn != null)
             await grid.BeginEditAsync(line, descriptionColumn);
     }
@@ -387,7 +392,8 @@ Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
     {
         var line = new OrderLine();
         lines.Add(line);
-        await InvokeAsync(StateHasChanged);
+        // No StateHasChanged()/Task.Yield() needed — SelectCell re-pipes to find the new row,
+        // so the selection moves in one step.
         await grid!.SelectCell(line, descriptionColumn!);   // or BeginEditAsync(...)
     }
 }

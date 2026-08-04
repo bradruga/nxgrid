@@ -717,7 +717,17 @@
 </div>
 
 @code {
-    private RenderFragment<int> RowTemplate => rowIndex => @<NxGridRow T="T"
+    // Rows are addressed by index into filteredData. Nothing outside the grid controls when a render
+    // happens, so a host that removed rows from Data in place can leave an index describing a row
+    // that is no longer there — and a throw here is a throw inside BuildRenderTree, which on Blazor
+    // Server takes the whole circuit down. Rendering nothing for an index that no longer exists
+    // makes that a stale frame instead, corrected by the next pipeline run.
+    private RenderFragment<int> RowTemplate => rowIndex =>
+        rowIndex >= 0 && rowIndex < filteredData.Count ? RowFragment(rowIndex) : EmptyRowFragment;
+
+    private static readonly RenderFragment EmptyRowFragment = _ => { };
+
+    private RenderFragment<int> RowFragment => rowIndex => @<NxGridRow T="T"
         @key="rowIndex"
         Row="@filteredData[rowIndex]"
         RowIndex="@rowIndex"

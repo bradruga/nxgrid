@@ -279,6 +279,16 @@
     [Parameter] public RenderFragment<NxGridComboItem>? ComboBoxItemTemplate { get; set; }
 
     /// <summary>
+    /// Minimum width in pixels for the combo-box dropdown, independent of the column's own width —
+    /// so a narrow column can still list long option text (or a wide
+    /// <see cref="ComboBoxItemTemplate"/>) without widening the grid. The popup opens at
+    /// <c>max(cell width, ComboBoxMinWidth)</c>, still clamped to the browser window and still
+    /// flipping above the cell when there is no room below. Default: <c>150</c>.
+    /// Has no effect without <see cref="ComboBoxSource"/>.
+    /// </summary>
+    [Parameter] public int? ComboBoxMinWidth { get; set; }
+
+    /// <summary>
     /// When <c>true</c> and the column is editable, the inline editor renders a free-text
     /// input alongside a calendar button that opens a month-view date picker popup.
     /// <see cref="Property"/> should resolve to <c>DateTime</c> or <c>DateTime?</c>.

@@ -163,6 +163,8 @@ When `HeaderClickSelects = false`, clicking row numbers has no effect, and click
 
 `SelectRow(T row)` finds the row in `filteredData`, selects it spanning all columns (like a row-number click), scrolls it into view, and fires `OnSelectionChanged`. If the row is not present in `filteredData` (e.g. filtered out), the call is a no-op.
 
+`SelectCell`, `SelectRowByKey`, and `BeginEditAsync` resolve their row the same way. When the lookup fails **and** `Data` has changed since the last pipeline run, all four re-run `ApplyFilterAndSort()` and look again before giving up — so a row the host just added to `Data` is found without an intervening render, and an insert-then-select block moves the selection exactly once instead of painting the old selection over the new row set first. The scroll that follows is deferred until after that render, so the target row is in the DOM when the grid measures it.
+
 ### Selection when data changes underneath it
 
 Selection is treated as best-effort, not critical state, so changing `Data` (or hiding columns) while a selection is held never throws — even if the new data is shorter than the range that was selected.
@@ -171,6 +173,35 @@ Selection is treated as best-effort, not critical state, so changing `Data` (or 
 - If `KeyProperty` is not set, the selection is clamped to the new bounds — ranges that partially overlap the smaller data set are trimmed to what still exists, and ranges that fall entirely off the end are dropped. If nothing remains selectable, the selection is cleared. When this changes the selection, `OnSelectionChanged` fires with the reconciled selection.
 
 A host page is no longer required to call `ClearSelection()` after refreshing the grid's data to avoid stale-index errors, though doing so is still a valid way to reset selection explicitly.
+
+### Mutating `Data` in place
+
+Rows are addressed by index into the grid's own filtered snapshot, and nothing outside the grid controls when a render happens — so a host that removes rows from the list bound to `Data` can leave those indices describing a list that no longer exists, for one frame. Two things make that harmless:
+
+- **The snapshot is the grid's own list.** With no filter and no sort the pipeline is a pass-through, and the grid copies the list rather than aliasing it. A host removal cannot shrink the snapshot out from under the row indices mid-render; at worst the grid paints one stale frame still showing the removed rows.
+- **Row rendering is bounds-checked.** An index past the end of the snapshot renders nothing rather than throwing. This matters because a throw inside `BuildRenderTree` cannot be caught by the host page — on Blazor Server it tears down the circuit and takes the user's unsaved work with it.
+
+The grid re-runs the pipeline itself as soon as it notices the new row count. That happens on the next parameter set, and immediately after these callbacks return:
+
+| Callback | Re-pipes after the handler |
+|---|---|
+| `OnNewRow` | Yes — then moves the selection into the new row |
+| `OnRowDrop` | Yes |
+| `OnContextMenuItemClicked` | Yes |
+| `OnKeyPressed` | Yes |
+| `OnUpdate`, `OnPasted`, `OnSelectionChanged`, … | No — these do not change which rows exist |
+
+So a "Delete Line(s)" or "Insert Line" handler on the context menu, or a Ctrl+Delete hotkey through `OnKeyPressed`, can mutate `Data` in place and stop there. In every case the selection is reconciled the same way a `Data` replacement reconciles it (remapped by `KeyProperty`, otherwise clamped), and `OnSelectionChanged` fires when that changed anything.
+
+Outside those callbacks, any of the three supported ways to change the rows works:
+
+- assign a new list to `Data` (reference change);
+- mutate the bound list in place and let your own `StateHasChanged()` flow the parameter down (count change);
+- mutate the bound list in place and call `ForceRerender()` to update the grid immediately — the only option that also catches values changed on existing rows, and the one to use before reading `VisibleItems`.
+
+### JS interop during teardown
+
+On Blazor Server the circuit's JS runtime is disposed the moment the browser goes away — before the components on it stop calling into it. Every interop call the grid makes (scrolling a cell into view, saving state to `localStorage`, positioning a popup, reading the clipboard) swallows `JSDisconnectedException` and `ObjectDisposedException` and returns a neutral result, so navigating away mid-operation is silent rather than an "Unhandled exception in circuit" in the host's logs. Real JS errors are not swallowed. If the circuit dies before the grid finishes initializing, the interop bridge is simply absent and every call site treats that as "do nothing".
 
 ---
 
@@ -300,6 +331,7 @@ In `MultiRow` / `SingleRow` mode there is no column cursor, so Tab from any colu
 2. **Callback.** `OnNewRow` is invoked and **awaited**, so an async handler (validation, a server round-trip) completes before the grid moves anything.
 3. **Re-pipe.** `ApplyFilterAndSort()` runs, because the host mutated `Data` in place and `OnParametersSet` would not see a reference change. The grid also syncs its internal data marker so the next parameter set does not repeat the work.
 4. **Move.** The selection moves into the target row and keyboard focus returns to the grid container.
+5. **Scroll.** The target cell is scrolled into view, exactly as ordinary navigation does — so type → Tab → type keeps working past the bottom of the viewport. The scroll runs after the render that adds the row, so it measures the real geometry (including variable row heights in a `MultiLine` grid) rather than the pre-append layout. The target follows `args.FocusRow`/`args.FocusColumn`; it is not assumed to be the last row.
 
 **Target row.** `args.FocusRow` when the handler set one (resolved by reference, falling back to `KeyProperty` value equality); otherwise the last row in the filtered data — but only if the row count actually grew. If the handler appended nothing, or set a `FocusRow` that is filtered out of the current view, the grid leaves the selection where it is, re-renders, and returns without throwing.
 
@@ -401,6 +433,8 @@ Combo box editing applies to columns that have `ComboBoxSource` set. The behavio
 `ComboBoxSource` is called fresh on each open, so the list can be dynamic.
 
 **Positioning:** the dropdown opens below the cell. When there is not enough room below (the cell is near the bottom of the viewport), it flips up and opens above the cell instead. It is also clamped horizontally so it never runs off the right or left edge.
+
+**Width:** the dropdown matches its cell's width, with a floor of 150 px — or of `ComboBoxMinWidth` when the column sets one, so a narrow column can list long option text without being widened. The floor is capped to the space available, so a minimum wider than the window still leaves the popup fully visible.
 
 **Keyboard while dropdown is open:**
 

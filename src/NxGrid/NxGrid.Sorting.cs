@@ -139,7 +139,13 @@ public partial class NxGrid<T>
         }
 
         groups = [];
-        filteredData = ApplySortToList(data);
+        var sorted = ApplySortToList(data);
+        // With no filter and no sort the pipeline is a pass-through, and `sorted` is the host's own
+        // list. Snapshot it: a host that removes rows from Data in place would otherwise shrink
+        // filteredData out from under rowIndices, and the next render — which can happen before
+        // OnParametersSet re-pipes — would index past the end. Filtering and sorting already
+        // produce their own list, so the copy only happens on the pass-through path.
+        filteredData = ReferenceEquals(sorted, Data) ? [.. sorted] : sorted;
         rowIndices = Enumerable.Range(0, filteredData.Count).ToList();
     }
 

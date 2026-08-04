@@ -124,6 +124,12 @@ public partial class NxGrid<T>
                 KeyboardEvent = args,
                 ModifierPressed = ModifierPressed(args)
             });
+
+            // Host hotkeys commonly add or delete rows (Ctrl+Delete on a line-item grid), so
+            // re-pipe when Data changed under us before rendering against the old row indices.
+            if (HasUnseenDataChange)
+                RepipeAndReconcileSelection();
+
             renderToken++;
             StateHasChanged();
         }

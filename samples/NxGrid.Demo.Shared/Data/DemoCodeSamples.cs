@@ -626,6 +626,21 @@ void OnSignalRRowReceived(Person newRow)
 }
 """;
 
+    public static readonly string ComboBoxMinWidth = """
+// The dropdown normally matches the cell width. ComboBoxMinWidth raises its floor
+// so a deliberately narrow column can still list long option text — the popup opens
+// at max(cell width, ComboBoxMinWidth), clamped to the browser window.
+<NxGridColumn Property="@(x => x.Item)" Title="Item"
+              Sizing="NxGridColumnSizing.Fixed" Width="150"
+              ComboBoxMinWidth="400"
+              ComboBoxSource="@(NxGridComboSource.FixedList(ItemOptions, i => i.FullName, i => i.FullName, i => i.Description))">
+    <ComboBoxItemTemplate Context="item">
+        <div class="demo-combo-name">@item.Text</div>
+        <div class="demo-combo-desc">@item.SearchText</div>
+    </ComboBoxItemTemplate>
+</NxGridColumn>
+""";
+
     public static readonly string ComboBoxPerRow = """
 // VariableList receives the row — return a different list based on any property.
 // Type the lambda parameter explicitly so C# can infer the row type.
@@ -1051,6 +1066,42 @@ void HandleMenuClick(NxGridContextMenuItemArgs<Person> args)
         ApproveBudget(args.Row);
     else if (args.Item.Id == "archive")
         Archive(args.Row);
+}
+""";
+
+    public static readonly string ContextMenuRowEditing = """
+// A menu handler may add or remove rows from the bound list in place and stop there:
+// the grid re-runs its filter/sort pipeline after OnContextMenuItemClicked returns and
+// reconciles the selection against the rows that survived. No StateHasChanged(),
+// ForceRerender(), or ClearSelection() needed, and no stale-index errors.
+<NxGrid T="OrderLine" Data="@lines" Editable="true" OnUpdate="@HandleUpdate"
+        @bind-SelectedItems="@selectedLines"
+        OnContextMenuShowing="@BuildMenu"
+        OnContextMenuItemClicked="@HandleClick">
+    <NxGridColumn Property="@(x => x.Description)" Width="240" />
+    <NxGridColumn Property="@(x => x.Qty)"         Width="80" />
+</NxGrid>
+
+@code {
+    List<OrderLine> lines = [...];
+    List<OrderLine> selectedLines = [];
+
+    void BuildMenu(NxGridContextMenuArgs<OrderLine> args)
+    {
+        args.Items.Add(new NxGridContextMenuItem { Id = "insert-line", Label = "Insert line above" });
+        args.Items.Add(new NxGridContextMenuItem { Id = "delete-line", Label = "Delete line(s)" });
+    }
+
+    async Task HandleClick(NxGridContextMenuItemArgs<OrderLine> args)
+    {
+        if (args.Item.Id == "insert-line")
+            lines.Insert(lines.IndexOf(args.Row), new OrderLine());
+        else if (args.Item.Id == "delete-line")
+            foreach (var line in (selectedLines.Count > 0 ? selectedLines.ToList() : [args.Row]))
+                lines.Remove(line);
+
+        await Task.CompletedTask;
+    }
 }
 """;
 

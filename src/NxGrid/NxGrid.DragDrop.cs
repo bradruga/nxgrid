@@ -25,7 +25,9 @@ public partial class NxGrid<T>
     {
         if (jsInterop == null || args.Button != 0) return;
 
-        var indicatorIndex = await jsInterop.DragRow(rowIndex, filteredData.Count, RowHeight);
+        // Null when the browser is unreachable (a circuit torn down mid-drag) — nothing was dropped.
+        if (await jsInterop.DragRow(rowIndex, filteredData.Count, RowHeight) is not { } indicatorIndex) return;
+        if (rowIndex < 0 || rowIndex >= filteredData.Count) return;
 
         // indicatorIndex is the insertion point in the current (unmodified) list.
         // Adjust to a post-removal index per the NewIndex contract.
@@ -42,7 +44,7 @@ public partial class NxGrid<T>
             NewIndex = newIndex
         });
 
-        ApplyFilterAndSort();
+        RepipeData();
         StateHasChanged();
     }
 }

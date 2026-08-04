@@ -117,16 +117,16 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 |---|---|---|
 | `OnSelectionChanged` | `EventCallback<NxGridSelectionArgs<T>>` | Fires on every selection change (mouse, keyboard, programmatic). |
 | `SelectedItems` | `List<T>?` | Two-way bindable list of the currently selected row objects (all ranges combined, deduplicated). Use `@bind-SelectedItems="@myList"` as a shorthand for `OnSelectionChanged`. `SelectedItemsChanged` fires in sync with `OnSelectionChanged`. Setting this from outside (e.g. `myList = []`) also updates the visual selection in the grid. |
-| `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. |
+| `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. A handler may add or remove rows from `Data` in place — the grid re-runs its filter/sort pipeline after the callback. |
 | `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip **or double-clicks it to auto-size**. `args.ColumnIndex` and `args.NewWidth` (px). |
 | `OnFilterChanged` | `EventCallback<NxGridFilterChangedArgs<T>>` | Fires after any column's filter state changes and `ApplyFilterAndSort` has run. `args.Column` is `null` when all filters are cleared at once (e.g. `ClearAllFilters()` or `ClearSavedState()`). Does not fire when `Data` is replaced externally. |
 | `OnSortChanged` | `EventCallback<NxGridSortChangedArgs<T>>` | Fires after the sort column or direction changes and `ApplyFilterAndSort` has run. `args.Column` is `null` and `args.Direction` is `0` when sort is cleared. Does not fire when only filter state changes, or when state is restored from `localStorage` on first render. |
 | `OnCellClicked` | `EventCallback<NxGridCellClickArgs<T>>` | Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Fires for all cells regardless of editability. Does not fire on right-click, drag-select, header click, row-number gutter click, keyboard navigation, or `SelectRow()`. Fires after `OnSelectionChanged`. |
 | `OnCellDoubleClicked` | `EventCallback<NxGridCellClickArgs<T>>` | Fires on double-click for columns that are not editable. `args.Row` and `args.Column`. |
 | `OnContextMenuShowing` | `Action<NxGridContextMenuArgs<T>>?` | Called synchronously just before the context menu opens. The handler receives the right-clicked `Row` and `Column`, and a mutable `Items` list. Append `NxGridContextMenuItem` entries to add custom items after the built-in items. Built-in items: **Copy** (always), **Copy with headers** (unless `ShowCopyWithHeaders` is `false`), **Paste** (only when the right-clicked cell is editable), **Focus Cell** checkbox (only when `SelectionMode` is `Cell` and `AllowFocusCellMode` is `true`). |
-| `OnContextMenuItemClicked` | `EventCallback<NxGridContextMenuItemArgs<T>>` | Fires when the user selects a custom context menu item. Receives the clicked `Item` plus the `Row` and `Column` that were right-clicked. |
+| `OnContextMenuItemClicked` | `EventCallback<NxGridContextMenuItemArgs<T>>` | Fires when the user selects a custom context menu item. Receives the clicked `Item` plus the `Row` and `Column` that were right-clicked. A handler may add or remove rows from `Data` in place — the grid re-runs its filter/sort pipeline after the callback. |
 | `OnRowDrop` | `EventCallback<NxGridRowDropArgs<T>>` | Fires after a successful row drag. The host must reorder `Data` in this handler. After the callback returns the grid calls `ApplyFilterAndSort()` and `StateHasChanged()` automatically. The active selection is cleared on drop. |
-| `OnNewRow` | `EventCallback<NxGridNewRowArgs<T>>` | Fires when the user navigates forward off the last row — Tab in its last visible column (or Enter, when `NewRowTriggers` opts in). The host appends a row to `Data` in this handler. Any in-progress edit is committed (firing `OnUpdate`) first; after the callback completes the grid re-runs its filter/sort pipeline and moves the selection into the new row. Requires `OnUpdate` and at least one editable visible column. See [New-row append](#new-row-append). |
+| `OnNewRow` | `EventCallback<NxGridNewRowArgs<T>>` | Fires when the user navigates forward off the last row — Tab in its last visible column (or Enter, when `NewRowTriggers` opts in). The host appends a row to `Data` in this handler. Any in-progress edit is committed (firing `OnUpdate`) first; after the callback completes the grid re-runs its filter/sort pipeline, moves the selection into the new row, and scrolls it into view. Requires `OnUpdate` and at least one editable visible column. See [New-row append](#new-row-append). |
 
 ### Styling
 
@@ -163,9 +163,9 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 ### Public methods
 
 ```csharp
-void  ForceRerender()                              // force a re-render after external data mutation
-Task  ScrollToEnd()                                // scroll to the last row
-Task  SelectRow(T row)                             // programmatically select a row and scroll it into view; when KeyProperty is set, falls back to key-value match if reference is not found
+void  ForceRerender()                              // re-run filter/sort, reconcile the selection, and force a re-render after any external mutation of Data
+Task  ScrollToEnd()                                // scroll to the last row; accounts for rows appended to Data in place
+Task  SelectRow(T row)                             // programmatically select a row and scroll it into view; when KeyProperty is set, falls back to key-value match if reference is not found; re-pipes to find a row just added to Data
 Task  SelectRowByKey(object? keyValue)             // select and scroll to the first row whose KeyProperty value equals keyValue; logs a warning and is a no-op when KeyProperty is not set or no match is found
 Task  SelectCell(T row, NxGridColumn<T> column)    // select a single cell and scroll it into view; selects the whole row in the row-selection modes; no-op when the row is not in the filtered data or the column is hidden
 Task  BeginEditAsync(T row, NxGridColumn<T> col)   // open the inline editor on a specific cell, as if double-clicked; commits any other in-progress edit first; runs the full editability chain and no-ops silently when anything blocks it
@@ -231,7 +231,9 @@ The returned list is a read-only view over the grid's internal snapshot. That sn
 var frozen = grid.VisibleItems.ToList();
 ```
 
-Mutating `Data` elements in place does not re-run the filter or sort. If a mutation could change which rows match or how they order, call `ForceRerender()` before reading:
+Adding or removing rows from the bound list in place does not update the snapshot either, until the grid next re-runs its pipeline (the next parameter set, one of the callbacks listed under [Mutating `Data` in place](behavior.md#mutating-data-in-place), or `ForceRerender()`). The snapshot is deliberately the grid's own list, not the host's — that is what keeps a shrinking list from producing stale-index errors mid-render — so read it after the grid has seen the change, not between the mutation and the next render.
+
+Mutating `Data` elements in place does not re-run the filter or sort either. If a mutation could change which rows match or how they order, call `ForceRerender()` before reading:
 
 ```csharp
 person.Department = "Sales";   // may no longer match the active Department filter
@@ -295,6 +297,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | `MultiLine` | `bool` | When `true`, the cell renders with `white-space: pre-wrap` so newlines and whitespace sequences are preserved. The inline editor is a `<textarea>` that grows with the content. **Shift+Enter** inserts a newline; Enter commits; Tab commits and moves right; Ctrl/⌘+Enter fills the selection. Silently ignored when `ComboBoxSource` is also set on the column. When any visible column has `MultiLine = true`, the grid disables row virtualization and uses `min-height` instead of a fixed row height so rows grow and shrink to fit their content. In this mode, all columns in the grid — including non-`MultiLine` ones — use a single-line `<textarea>` editor (fixed height, no wrapping) rather than a plain `<input>`, so text stays top-aligned regardless of row height. |
 | `ComboBoxSource` | `NxGridComboSource?` | Turns the inline editor into a combo box. Use `NxGridComboSource.FixedList(source, id, text)` for a list that is the same every row — the column automatically resolves `Id`→`Text` for cell display, so no separate `Display` parameter is needed. Use `NxGridComboSource.FixedList(stringList)` when id and text are the same. Use `NxGridComboSource.VariableList((Row r) => …, id, text)` when the list depends on the row; type the lambda parameter so C# can infer the row type. The selected item's `Id` is committed via `Property`. |
 | `ComboBoxItemTemplate` | `RenderFragment<NxGridComboItem>?` | Custom markup for each dropdown item. When set, replaces the plain `Text` string in the dropdown list. |
+| `ComboBoxMinWidth` | `int?` | Minimum width in pixels for the combo dropdown, independent of the column's own width — so a deliberately narrow column can still list long option text or a wide `ComboBoxItemTemplate`. The popup opens at `max(cell width, ComboBoxMinWidth)`, is still capped to the browser window, and still flips above the cell when there is no room below. Default: `150`. No effect without `ComboBoxSource`. |
 | `DatePicker` | `bool` | `false` | When `true` and the column is editable, the inline editor renders a free-text input alongside a calendar button that opens a month-view popup. The user can type a date directly or click a day to commit. `Property` should resolve to `DateTime` or `DateTime?`. |
 | `Format` | `string?` | — | Standard or custom .NET format string (e.g. `"MM/dd/yyyy"`, `"#,0.00"`) applied to any property type that implements `IFormattable` — numbers as well as `DateTime`/`DateTime?` and `TimeOnly`/`TimeOnly?`. Governs cell display, editor pre-population on F2/double-click (so the input always starts from the same formatted text the cell shows), and — for `DateTime`/`TimeOnly` columns — the first parse attempt on commit before falling back to `TryParse` and then the built-in time shorthand parser. When `DatePicker="true"` and `Format` is not set, the thread's current culture short-date pattern is used as a display fallback; other columns with no `Format` use the type's default `ToString()`. |
 
@@ -398,6 +401,17 @@ Without `KeyProperty`, behavior is unchanged: a new `Data` reference always leav
 ### `SelectRow(T row)` key fallback
 
 When `KeyProperty` is set and `SelectRow(row)` cannot find the row by reference (the caller holds a pre-refresh reference), the grid falls back to key-value matching in the current filtered data. If a match is found it is selected and scrolled into view; otherwise the call is a no-op.
+
+### Selecting a row that was just added
+
+`SelectRow`, `SelectRowByKey`, `SelectCell`, and `BeginEditAsync` all resolve rows against the grid's filtered snapshot, which is rebuilt when the grid observes a `Data` change. If the lookup fails and `Data` has changed since the last pipeline run, they re-run the pipeline and look again rather than no-oping — so a host can add a row and place the cursor on it in one block:
+
+```csharp
+lines.Insert(index, newLine);
+await grid!.SelectCell(newLine, itemColumn!);   // no StateHasChanged()/Task.Yield() needed
+```
+
+The selection moves exactly once, with no intermediate frame showing the previous selection over the new row set. A row that is genuinely not there — filtered out, or never added — is still a silent no-op.
 
 ### `SelectRowByKey(object? keyValue)`
 

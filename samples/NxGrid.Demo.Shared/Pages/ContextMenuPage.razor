@@ -79,6 +79,32 @@
 </div>
 
 <div class="doc-section">
+    <h2>Inserting and deleting rows</h2>
+    <p class="doc-note">
+        A menu handler may add or remove rows from the list bound to <code>Data</code> in place and stop
+        there — the grid re-runs its filter/sort pipeline after the callback and reconciles the selection
+        against what survived. Select a few rows (drag, or Ctrl+click) and right-click to
+        <em>Delete line(s)</em>; <em>Insert line above</em> adds a blank row at the right-clicked position.
+    </p>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;">@editableLines.Count lines — last action: <strong>@rowEditLog</strong></span>
+        <button class="doc-btn doc-btn-secondary" @onclick="ResetEditableLines">Reset</button>
+    </div>
+    <NxGrid T="OrderLine" Data="@editableLines"
+            Editable="true"
+            RowGutter="NxGridRowGutter.Numbers"
+            HeaderClickSelects="true"
+            OnUpdate="@HandleLineUpdate"
+            @bind-SelectedItems="@selectedLines"
+            OnContextMenuShowing="@BuildRowEditMenu"
+            OnContextMenuItemClicked="@HandleRowEditClick">
+        <NxGridColumn Property="@(x => x.Description)" Width="240" />
+        <NxGridColumn Property="@(x => x.Qty)"         Width="80" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@rowEditCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Copy with headers and Paste</h2>
     <p class="doc-note">
         <strong>Copy with headers</strong> prepends a tab-separated header row to the copied TSV so column titles
@@ -266,6 +292,70 @@
             _              => args.Item.Id
         };
     }
+
+    class OrderLine
+    {
+        public string Description { get; set; } = "";
+        public int    Qty         { get; set; }
+    }
+
+    List<OrderLine> editableLines = NewLines();
+    List<OrderLine> selectedLines = [];
+    string rowEditLog = "—";
+
+    static List<OrderLine> NewLines() =>
+    [
+        new() { Description = "2x8 corner panel",   Qty = 4 },
+        new() { Description = "4x4 treated post",   Qty = 12 },
+        new() { Description = "6x6 structural beam", Qty = 3 },
+        new() { Description = "Anchor bolt kit",    Qty = 8 },
+        new() { Description = "Galvanized inserts", Qty = 20 },
+    ];
+
+    void ResetEditableLines()
+    {
+        editableLines = NewLines();
+        selectedLines = [];
+        rowEditLog = "—";
+    }
+
+    void BuildRowEditMenu(NxGridContextMenuArgs<OrderLine> args)
+    {
+        args.Items.Add(new NxGridContextMenuItem { Id = "insert-line", Label = "Insert line above", Separator = true });
+        args.Items.Add(new NxGridContextMenuItem
+        {
+            Id       = "delete-line",
+            Label    = selectedLines.Count > 1 ? $"Delete {selectedLines.Count} lines" : "Delete line",
+            Disabled = editableLines.Count == 0
+        });
+    }
+
+    async Task HandleRowEditClick(NxGridContextMenuItemArgs<OrderLine> args)
+    {
+        if (args.Item.Id == "insert-line")
+        {
+            // In-place insert: the grid re-pipes after this handler, so nothing else is needed.
+            editableLines.Insert(editableLines.IndexOf(args.Row), new OrderLine { Description = "New line" });
+            rowEditLog = "inserted a line";
+        }
+        else if (args.Item.Id == "delete-line")
+        {
+            var doomed = selectedLines.Count > 0 ? selectedLines.ToList() : [args.Row];
+            foreach (var line in doomed)
+                editableLines.Remove(line);
+            rowEditLog = $"deleted {doomed.Count} line{(doomed.Count == 1 ? "" : "s")}";
+        }
+        await Task.CompletedTask;
+    }
+
+    void HandleLineUpdate(NxGridUpdateArgs<OrderLine> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+
+    string rowEditCode = DemoCodeSamples.ContextMenuRowEditing;
 
     string basicCode     = DemoCodeSamples.ContextMenuBasic;
     string dynamicCode   = DemoCodeSamples.ContextMenuDynamic;

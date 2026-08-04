@@ -365,6 +365,53 @@ public class NxGridRenderTests : BunitContext
             }));
     }
 
+    // The dropdown has to be readable independently of the column width: a 150 px item-code column
+    // still needs a ~400 px list. ComboBoxMinWidth is the floor handed to the positioning call.
+    [Test]
+    public void ComboBoxMinWidth_SetsDropdownWidthFloor()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        // Argument-matched setup: fails if the column's minimum is not forwarded to JS.
+        JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition", 400)
+            .SetResult(new NxComboDropdownPosition(0, 0, 400));
+
+        Expression<Func<ComboRow, object?>> prop = r => r.Item;
+        var cut = Render<NxGrid<ComboRow>>(p => p
+            .Add(x => x.Data, [new ComboRow { Item = "2x8" }])
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate, _ => { })
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<ComboRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "Width", 150);
+                b.AddAttribute(3, "ComboBoxMinWidth", 400);
+                b.AddAttribute(4, "ComboBoxSource",
+                    NxGridComboSource.FixedList(ComboOptions, o => o.Code, o => o.Name, o => o.Description));
+                b.CloseComponent();
+            }));
+
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("x");
+
+        Assert.That(cut.Find(".nx-grid-combo-dropdown").GetAttribute("style"), Does.Contain("width:400px"));
+    }
+
+    [Test]
+    public void ComboBoxMinWidth_NotSet_ForwardsNoFloor()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition", 0)
+            .SetResult(new NxComboDropdownPosition(0, 0, 150));
+
+        var cut = RenderSearchTextComboGrid();
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("x");
+
+        // JS falls back to its own 150 px minimum when the column sets none.
+        Assert.That(cut.Find(".nx-grid-combo-dropdown").GetAttribute("style"), Does.Contain("width:150px"));
+    }
+
     [Test]
     public void ComboBox_SearchText_TypingSearchOnlyWord_ShowsMatchingItem()
     {

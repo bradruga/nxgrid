@@ -124,10 +124,7 @@ public partial class NxGrid<T>
         // The host mutated Data in place, so OnParametersSet won't see a reference change.
         // Re-run the pipeline here and sync the load marker so the next parameter set doesn't
         // repeat the work (and re-raise selection) for the same mutation.
-        loadedDataCount = Data.Count;
-        loadedData = Data;
-        ApplyFilterAndSort();
-        renderToken++;
+        RepipeData();
 
         var targetRow = -1;
         if (args.FocusRow is not null)
@@ -159,7 +156,12 @@ public partial class NxGrid<T>
 
         StateHasChanged();
         await RaiseSelectionChanged();
-        await ScrollCellIntoView(targetRow, IsRowSelectionMode ? 0 : targetCol);
+
+        // The appended row does not exist in the DOM until the render queued above has been
+        // flushed, so scrolling now would measure pre-append geometry and (with a grid already
+        // scrolled to its last row) leave the new row below the fold. OnAfterRenderAsync performs
+        // the scroll once the row is really there — the same scroll ordinary navigation does.
+        pendingScrollIntoView = (targetRow, IsRowSelectionMode ? 0 : targetCol);
 
         if (args.BeginEdit && !IsRowSelectionMode)
             await StartEditing(targetRow, targetCol, initialChar: null);

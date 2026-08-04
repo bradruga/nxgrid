@@ -112,6 +112,31 @@
 </div>
 
 <div class="doc-section">
+    <h2>Narrow Column, Wide Dropdown</h2>
+    <p class="doc-note">
+        The dropdown normally matches its cell's width, which is too narrow when the column shows a
+        short code but the list needs room for names and descriptions. <code>ComboBoxMinWidth</code>
+        raises the popup's floor without touching the column: the <strong>Item</strong> column below is
+        a fixed 150 px, its dropdown opens at 400 px. The popup is still clamped to the browser window
+        and still flips above the cell when there is no room below.
+    </p>
+    <NxGrid T="OrderLine" Data="@minWidthLines" OnUpdate="@HandleMinWidthUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Item)" Title="Item"
+                      Sizing="NxGridColumnSizing.Fixed" Width="150"
+                      ComboBoxMinWidth="400"
+                      ComboBoxSource="@(NxGridComboSource.FixedList(ItemOptions, i => i.FullName, i => i.FullName, i => i.Description))">
+            <ComboBoxItemTemplate Context="item">
+                <div class="demo-combo-name">@item.Text</div>
+                <div class="demo-combo-desc">@item.SearchText</div>
+            </ComboBoxItemTemplate>
+        </NxGridColumn>
+        <NxGridColumn Property="@(x => x.Qty)" Width="70" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@minWidthCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Per-Row Options</h2>
     <p class="doc-note">
         <code>NxGridComboSource.VariableList</code> receives the row, so the list can depend on any
@@ -154,6 +179,16 @@
                 <td>ComboBoxItemTemplate</td>
                 <td>RenderFragment&lt;NxGridComboItem&gt;?</td>
                 <td>Custom markup for each dropdown item. Replaces the plain <code>Text</code> string. The committed <code>Id</code> is unchanged.</td>
+            </tr>
+            <tr>
+                <td>ComboBoxMinWidth</td>
+                <td>int?</td>
+                <td>
+                    Minimum dropdown width in pixels, independent of the column width — the popup opens
+                    at <code>max(cell width, ComboBoxMinWidth)</code>. Defaults to 150. Use it when a
+                    narrow column has to list long option text or a wide
+                    <code>ComboBoxItemTemplate</code>.
+                </td>
             </tr>
         </tbody>
     </table>
@@ -292,6 +327,22 @@
         new() { Item = "Anchor Kit",   Qty = 2 },
     ];
 
+    List<OrderLine> minWidthLines =
+    [
+        new() { Item = "2x8 Corner",   Qty = 6 },
+        new() { Item = "6x6 Beam",     Qty = 3 },
+        new() { Item = "Anchor Kit",   Qty = 8 },
+        new() { Item = "2x8 Standard", Qty = 14 },
+    ];
+
+    async Task HandleMinWidthUpdate(NxGridUpdateArgs<OrderLine> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
     async Task HandleOrderLineUpdate(NxGridUpdateArgs<OrderLine> args)
     {
         foreach (var rowArgs in args.Rows)
@@ -361,5 +412,6 @@
     string keyDisplayCode        = DemoCodeSamples.ComboBoxKeyDisplay;
     string itemTemplateCode      = DemoCodeSamples.ComboBoxItemTemplateCode;
     string searchTextCode        = DemoCodeSamples.ComboBoxSearchText;
+    string minWidthCode          = DemoCodeSamples.ComboBoxMinWidth;
     string perRowCode            = DemoCodeSamples.ComboBoxPerRow;
 }

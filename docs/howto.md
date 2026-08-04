@@ -138,6 +138,17 @@ people.Add(newPerson);
 people.Remove(oldPerson);
 ```
 
+In-place add/remove is fully supported and never leaves the grid in a broken state: it keeps its own
+snapshot of the rows, so a list that shrinks between renders shows one stale frame at worst — it does
+not throw. You do not need to call `ClearSelection()` first, and the selection is reconciled for you
+(remapped by `KeyProperty` when one is set, otherwise clamped).
+
+The grid re-runs its pipeline itself as soon as it sees the new count — on the next parameter set, and
+immediately after `OnNewRow`, `OnRowDrop`, `OnContextMenuItemClicked`, and `OnKeyPressed`, so a
+handler on those callbacks can mutate `Data` in place and stop there. Outside those callbacks, either
+let your own `StateHasChanged()` flow the parameter down, or call `ForceRerender()` when you want the
+grid updated immediately (for example before reading `VisibleItems`).
+
 ### Case 3: mutating an existing item in place
 
 The reference and count are unchanged, so the grid does not know anything changed. Call `ForceRerender()` after the mutation.
@@ -150,7 +161,9 @@ person.Name = "Jane";
 grid.ForceRerender();
 ```
 
-`ForceRerender()` re-runs the filter/sort pipeline and forces every visible row to re-render.
+`ForceRerender()` re-runs the filter/sort pipeline, reconciles the selection against the resulting row
+set, and forces every visible row to re-render. It is safe to call at any time and for any kind of
+mutation — it is the one call that covers all three cases above.
 
 ### Reference
 
@@ -351,6 +364,25 @@ A common pattern is a short code or name as the committed value with a longer de
 
 Typing `corner` now shows `2x8 Corner` even when "corner" only appears in its description. Selecting it commits `FullName` exactly as a name-matched selection would.
 
+### Give the dropdown more room than its column
+
+The dropdown matches its cell's width, which is not enough when the column deliberately shows a short
+code but the list has to show names and descriptions. `ComboBoxMinWidth` raises the popup's floor
+without widening the column — the popup opens at `max(cell width, ComboBoxMinWidth)`, still clamped to
+the browser window and still flipping above the cell when there is no room below.
+
+```razor
+<NxGridColumn Property="@(x => x.ItemName)" Title="Item"
+    Sizing="NxGridColumnSizing.Fixed" Width="150"
+    ComboBoxMinWidth="400"
+    ComboBoxSource="@(NxGridComboSource.FixedList(ItemOptions, i => i.FullName, i => i.FullName, i => i.Description))">
+    <ComboBoxItemTemplate Context="item">
+        <div>@item.Text</div>
+        <div style="font-size:11px;color:#888">@item.SearchText</div>
+    </ComboBoxItemTemplate>
+</NxGridColumn>
+```
+
 ### Commit a pending edit before saving
 
 A Save button outside the grid can run while a cell editor is still open — the user typed a value and clicked Save without pressing Enter. Call `CommitEditAsync()` first in the save routine: it flushes the pending edit through the normal commit pipeline and its task completes only after your `OnUpdate` handler has finished, so the next line reads the fully updated model.
@@ -468,10 +500,13 @@ async Task AddLineAsync()
 {
     var line = new OrderLine();
     lines.Add(line);
-    await InvokeAsync(StateHasChanged);
-    await grid!.SelectCell(line, descriptionColumn);
+    await grid!.SelectCell(line, descriptionColumn);   // finds the new row without a render first
 }
 ```
+
+Insert and select in the same block, with no `StateHasChanged()`/`await Task.Yield()` in between:
+`SelectCell` re-runs the filter/sort pipeline when it cannot find the row, so the selection moves
+exactly once and the user never sees the old selection painted over the new rows.
 
 `OnNewRow` is inert unless `OnUpdate` is registered and at least one column is editable, so a read-only grid keeps plain Tab wrapping.
 
@@ -634,6 +669,8 @@ await grid.SelectRow(person);
 ```
 
 If the row is not present in the current filtered view (e.g. it has been filtered out), the call is a no-op.
+A row you just added to `Data` **is** found, even with no render in between — the grid re-runs its
+pipeline before giving up, so `lines.Add(line); await grid.SelectRow(line);` works as written.
 
 ### Select a single cell
 
@@ -649,7 +686,6 @@ If the row is not present in the current filtered view (e.g. it has been filtere
     {
         var line = new OrderLine();
         lines.Add(line);
-        await InvokeAsync(StateHasChanged);
         await grid!.SelectCell(line, descriptionColumn!);
     }
 }

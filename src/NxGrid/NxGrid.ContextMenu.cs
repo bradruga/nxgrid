@@ -56,6 +56,13 @@ public partial class NxGrid<T>
                 Row    = contextMenuRow,
                 Column = contextMenuColumn
             });
+
+            // A menu item is a natural place to insert or delete rows, and a handler that mutated
+            // Data in place leaves the grid's row indices describing the old list. Re-pipe here —
+            // as the new-row and row-drop paths already do — so the render that follows this
+            // handler is internally consistent, whether or not the host re-rendered itself.
+            if (HasUnseenDataChange)
+                RepipeAndReconcileSelection();
         }
     }
 

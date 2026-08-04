@@ -54,6 +54,9 @@ const POPUP_SELECTOR = '.nx-grid-popup,.nx-grid-popup-backdrop';
 // Gap left between a popup and the edge it would otherwise run past.
 const POPUP_EDGE_GAP = 10;
 
+// Floor for the combo dropdown's width when the column sets no ComboBoxMinWidth.
+const COMBO_MIN_WIDTH = 150;
+
 const TOP_LAYER_SUPPORTED = typeof HTMLElement !== 'undefined'
     && Object.prototype.hasOwnProperty.call(HTMLElement.prototype, 'popover');
 
@@ -458,7 +461,10 @@ class NxGrid {
     _placeBelow(anchor, popup, bounds, width) {
         this._promotePopup(popup);
 
-        const popupWidth  = width ?? popup.offsetWidth;
+        // A requested width (e.g. a column's ComboBoxMinWidth) can exceed the space available;
+        // cap it so the popup stays fully visible rather than running off the edge.
+        const available = bounds.right - bounds.left - POPUP_EDGE_GAP * 2;
+        const popupWidth  = width != null ? Math.min(width, available) : popup.offsetWidth;
         const popupHeight = popup.offsetHeight;   // capped by max-height in CSS
 
         let left = anchor.left;
@@ -696,11 +702,13 @@ class NxGrid {
         gradient.addEventListener('mousedown', this._colorPickerMouseDown);
     }
 
-    getComboDropdownPosition() {
+    getComboDropdownPosition(minWidth) {
         const gridElement = document.getElementById(this.id);
         const wrapper = gridElement && gridElement.querySelector('.nx-grid-combo-wrapper');
-        // The dropdown matches its cell's width, down to a readable minimum.
-        const width = wrapper ? Math.max(wrapper.getBoundingClientRect().width, 150) : 150;
+        // The dropdown matches its cell's width, down to a readable minimum — the column's
+        // ComboBoxMinWidth when it set one, so a narrow cell can still list wide options.
+        const floor = minWidth > 0 ? minWidth : COMBO_MIN_WIDTH;
+        const width = wrapper ? Math.max(wrapper.getBoundingClientRect().width, floor) : floor;
         return this._positionEditorPopup('.nx-grid-combo-wrapper', '.nx-grid-combo-dropdown', width);
     }
 

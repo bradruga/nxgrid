@@ -537,6 +537,9 @@ public partial class NxGrid<T>
     private int renderToken;
     private bool pendingResizeCleanup;
     private int? pendingEditCursorPos;
+    // A scroll target that must wait for the render batch it was queued alongside: measuring the
+    // scroll container before the row exists in the DOM would scroll against stale geometry.
+    private (int Row, int Col)? pendingScrollIntoView;
 
     private NxGridColumn<T>? openColumn;
     private bool menuNeedsPositioning;
@@ -585,13 +588,14 @@ public partial class NxGrid<T>
     // ── Public methods ────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Forces a full re-render after external mutation of <see cref="Data"/> elements.
-    /// Re-applies the active filter and sort before re-rendering.
+    /// Forces a full re-render after external mutation of <see cref="Data"/> — rows added, removed,
+    /// or reordered in place, or element values changed. Re-applies the active filter and sort,
+    /// reconciles the selection against the new row set (remapped by <see cref="KeyProperty"/> when
+    /// one is set, otherwise clamped), and re-renders. Safe to call at any time.
     /// </summary>
     public void ForceRerender()
     {
-        ApplyFilterAndSort();
-        renderToken++;
+        RepipeAndReconcileSelection();
         StateHasChanged();
     }
 
@@ -624,8 +628,10 @@ public partial class NxGrid<T>
     /// scrolls it into view. Any in-progress edit elsewhere is committed first. Runs the full
     /// editability chain (column <see cref="NxGridColumn{T}.Editable"/>, <see cref="OnUpdate"/>,
     /// <see cref="CellEditableGetter"/>, <see cref="OnEditing"/>) and is a silent no-op when any
-    /// check blocks the edit, when <paramref name="row"/> is not in the current filtered data, or
-    /// when <paramref name="column"/> is hidden or belongs to another grid.
+    /// check blocks the edit, when <paramref name="row"/> is not in the filtered data, or
+    /// when <paramref name="column"/> is hidden or belongs to another grid. As with
+    /// <see cref="SelectCell"/>, a row added to <see cref="Data"/> in place is found without an
+    /// intervening render.
     /// When <see cref="KeyProperty"/> is set and the reference is not found, falls back to
     /// key-value matching.
     /// </summary>
@@ -671,21 +677,36 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
-    /// <summary>Scrolls the grid to the last row in the filtered data set.</summary>
+    /// <summary>
+    /// Scrolls the grid to the last row in the filtered data set. Rows appended to
+    /// <see cref="Data"/> in place are accounted for, and the scroll runs after the next render so
+    /// a row added in the same block is in the DOM before the grid measures it.
+    /// </summary>
     public async Task ScrollToEnd()
     {
         while (jsInterop == null) await Task.Delay(20);
+        if (HasUnseenDataChange)
+        {
+            RepipeData();
+            SanitizeSelectionRanges();
+        }
         var lastRow = filteredData.Count - 1;
-        if (lastRow >= 0)
-            await ScrollCellIntoView(lastRow, 0);
+        if (lastRow < 0) return;
+        pendingScrollIntoView = (lastRow, 0);
+        StateHasChanged();   // the deferred scroll needs a render to run after
     }
 
     /// <summary>
     /// Programmatically selects <paramref name="row"/> and scrolls it into view.
     /// When <see cref="KeyProperty"/> is set and the reference is not found, falls back to
     /// key-value matching in the current filtered data.
+    /// <para>
+    /// When <paramref name="row"/> was just added to <see cref="Data"/> in place and the grid has
+    /// not re-rendered yet, the filter/sort pipeline is re-run so the new row can be found — so a
+    /// host can insert and select in one block without an intervening render.
+    /// </para>
     /// No-op when <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.None"/>
-    /// or when <paramref name="row"/> is not in the current filtered data.
+    /// or when <paramref name="row"/> is still not in the filtered data (e.g. filtered out).
     /// </summary>
     public async Task SelectRow(T row)
     {
@@ -695,7 +716,8 @@ public partial class NxGrid<T>
         selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
         StateHasChanged();
         await RaiseSelectionChanged();
-        await ScrollCellIntoView(rowIndex, 0);
+        // Deferred: the row may have been added to Data moments ago and not be in the DOM yet.
+        pendingScrollIntoView = (rowIndex, 0);
     }
 
     /// <summary>
@@ -703,10 +725,16 @@ public partial class NxGrid<T>
     /// and scrolls it into view, replacing any existing selection. Fires
     /// <see cref="OnSelectionChanged"/>. In the row-selection modes the whole row is selected instead
     /// (<paramref name="column"/> is ignored). No-op when <see cref="SelectionMode"/> is
-    /// <see cref="NxGridSelectionMode.None"/>, when <paramref name="row"/> is not in the current
-    /// filtered data, or when <paramref name="column"/> is hidden or belongs to another grid.
+    /// <see cref="NxGridSelectionMode.None"/>, when <paramref name="row"/> is not in the filtered
+    /// data, or when <paramref name="column"/> is hidden or belongs to another grid.
     /// When <see cref="KeyProperty"/> is set and the reference is not found, falls back to
     /// key-value matching.
+    /// <para>
+    /// A row just inserted into <see cref="Data"/> in place is found without an intervening render:
+    /// the grid re-runs its filter/sort pipeline before giving up. Insert and select in the same
+    /// block to move the selection exactly once —
+    /// <c>lines.Insert(i, line); await grid.SelectCell(line, col);</c>
+    /// </para>
     /// </summary>
     public async Task SelectCell(T row, NxGridColumn<T> column)
     {
@@ -721,12 +749,29 @@ public partial class NxGrid<T>
             : [new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex }];
         StateHasChanged();
         await RaiseSelectionChanged();
-        await ScrollCellIntoView(rowIndex, IsRowSelectionMode ? 0 : colIndex);
+        // Deferred: the row may have been added to Data moments ago and not be in the DOM yet.
+        pendingScrollIntoView = (rowIndex, IsRowSelectionMode ? 0 : colIndex);
     }
 
     // Locates a row in the current filtered data: reference equality first, then KeyProperty
     // value equality when one is configured. Returns -1 when the row is not in the current view.
+    //
+    // A host that inserts a row into Data and immediately selects it has not given the grid a
+    // render in between, so the row is not in filteredData yet. Rather than no-op — which forces
+    // every caller to render, yield, and only then select, producing a visible intermediate frame
+    // — re-run the pipeline and look again. Only a row that is genuinely absent (filtered out, or
+    // never added) still returns -1.
     private int FindRowIndex(T row)
+    {
+        var rowIndex = LookupRowIndex(row);
+        if (rowIndex >= 0 || !HasUnseenDataChange) return rowIndex;
+
+        RepipeData();
+        SanitizeSelectionRanges();
+        return LookupRowIndex(row);
+    }
+
+    private int LookupRowIndex(T row)
     {
         var rowIndex = filteredData.IndexOf(row);
         if (rowIndex < 0 && KeyProperty != null)
@@ -737,12 +782,24 @@ public partial class NxGrid<T>
         return rowIndex;
     }
 
+    // Same re-pipe-and-retry as FindRowIndex, for the key-value lookup SelectRowByKey performs.
+    private int FindRowIndexByKey(object? keyValue)
+    {
+        var rowIndex = filteredData.FindIndex(r => Equals(KeyProperty!(r), keyValue));
+        if (rowIndex >= 0 || !HasUnseenDataChange) return rowIndex;
+
+        RepipeData();
+        SanitizeSelectionRanges();
+        return filteredData.FindIndex(r => Equals(KeyProperty!(r), keyValue));
+    }
+
     /// <summary>
     /// Selects the first row in the current filtered data whose <see cref="KeyProperty"/> value
     /// equals <paramref name="keyValue"/> and scrolls it into view. Fires
     /// <see cref="OnSelectionChanged"/>. No-op when <see cref="KeyProperty"/> is not configured,
     /// when <see cref="SelectionMode"/> is <see cref="NxGridSelectionMode.None"/>, or when no
-    /// matching row is found in the current filtered data.
+    /// matching row is found. As with <see cref="SelectRow"/>, a row added to <see cref="Data"/>
+    /// in place is found without an intervening render.
     /// </summary>
     public async Task SelectRowByKey(object? keyValue)
     {
@@ -752,12 +809,13 @@ public partial class NxGrid<T>
             return;
         }
         if (SelectionMode == NxGridSelectionMode.None) return;
-        var rowIndex = filteredData.FindIndex(r => Equals(KeyProperty(r), keyValue));
+        var rowIndex = FindRowIndexByKey(keyValue);
         if (rowIndex < 0) return;
         selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
         StateHasChanged();
         await RaiseSelectionChanged();
-        await ScrollCellIntoView(rowIndex, 0);
+        // Deferred: the row may have been added to Data moments ago and not be in the DOM yet.
+        pendingScrollIntoView = (rowIndex, 0);
     }
 
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
@@ -781,36 +839,61 @@ public partial class NxGrid<T>
             renderToken++;
         }
 
-        if (Data.Count != loadedDataCount || !ReferenceEquals(Data, loadedData))
-        {
-            HashSet<object?>? selectedKeys = null;
-            if (KeyProperty != null && selectedRanges.Count > 0)
-                selectedKeys = CaptureSelectedKeys();
-
-            loadedDataCount = Data.Count;
-            loadedData = Data;
-            ApplyFilterAndSort();
-
-            if (selectedKeys != null && selectedKeys.Count > 0)
-            {
-                RestoreSelectionByKeys(selectedKeys);
-                pendingKeyRestorationChanged = true;
-            }
-            else if (SanitizeSelectionRanges())
-            {
-                // No KeyProperty to remap by, but the data shrank under a held selection — the
-                // stale row/column indices were just clamped/dropped. Notify consumers it changed.
-                pendingKeyRestorationChanged = true;
-            }
-
-            if (HasFitContentColumns)
-                _fitPending = true;
-        }
+        if (HasUnseenDataChange)
+            RepipeAndReconcileSelection();
 
         if (!ReferenceEquals(SelectedItems, lastRaisedSelectedItems))
         {
             lastRaisedSelectedItems = SelectedItems;
             SyncSelectionFromItems(SelectedItems);
+        }
+    }
+
+    // True when Data has changed since the last pipeline run — a new list reference, or the same
+    // list mutated in place to a different length. An in-place edit that keeps the count is not
+    // detectable; ForceRerender() covers that case.
+    private bool HasUnseenDataChange => Data.Count != loadedDataCount || !ReferenceEquals(Data, loadedData);
+
+    /// <summary>
+    /// Re-runs the filter/sort pipeline for the current <see cref="Data"/> and syncs the load
+    /// markers, so a later <c>OnParametersSet</c> does not repeat the work for the same change.
+    /// Call this after anything that may have mutated <see cref="Data"/> in place — the grid's
+    /// row indices describe the list as it was at the last pipeline run, and every render, index
+    /// lookup, and selection range is measured against them.
+    /// </summary>
+    private void RepipeData()
+    {
+        loadedDataCount = Data.Count;
+        loadedData = Data;
+        ApplyFilterAndSort();
+        renderToken++;
+        if (HasFitContentColumns)
+            _fitPending = true;
+    }
+
+    /// <summary>
+    /// <see cref="RepipeData"/> plus selection reconciliation: the selection is remapped by
+    /// <see cref="KeyProperty"/> when one is configured, otherwise clamped to the new bounds, and
+    /// <see cref="OnSelectionChanged"/> is raised after the next render when that changed anything.
+    /// </summary>
+    private void RepipeAndReconcileSelection()
+    {
+        HashSet<object?>? selectedKeys = null;
+        if (KeyProperty != null && selectedRanges.Count > 0)
+            selectedKeys = CaptureSelectedKeys();
+
+        RepipeData();
+
+        if (selectedKeys is { Count: > 0 })
+        {
+            RestoreSelectionByKeys(selectedKeys);
+            pendingKeyRestorationChanged = true;
+        }
+        else if (SanitizeSelectionRanges())
+        {
+            // No KeyProperty to remap by, but the data shrank under a held selection — the
+            // stale row/column indices were just clamped/dropped. Notify consumers it changed.
+            pendingKeyRestorationChanged = true;
         }
     }
 
@@ -837,10 +920,15 @@ public partial class NxGrid<T>
     {
         if (firstRender)
         {
+            // Null when the browser went away before the grid finished initializing; every interop
+            // call site already treats a missing bridge as "do nothing".
             jsInterop = await NxGridJsInterop<T>.Create(this, JsRuntime, id);
-            isMac = await jsInterop.IsMacPlatform();
-            await RestoreStateAsync();
-            await LoadFocusCellStateAsync();
+            if (jsInterop != null)
+            {
+                isMac = await jsInterop.IsMacPlatform();
+                await RestoreStateAsync();
+                await LoadFocusCellStateAsync();
+            }
 
             // Run initial fit for any FitContent columns, unless saved state already set manual widths.
             if (HasFitContentColumns && !manualMode)
@@ -858,6 +946,14 @@ public partial class NxGrid<T>
         {
             _fitPending = false;
             await RunColumnFitAsync();
+        }
+
+        // Deferred until now so the row being scrolled to is in the DOM and the scroll container's
+        // height is current — see pendingScrollIntoView.
+        if (pendingScrollIntoView is { } scrollTarget)
+        {
+            pendingScrollIntoView = null;
+            await ScrollCellIntoView(scrollTarget.Row, scrollTarget.Col);
         }
 
         if (jsInterop != null)
@@ -1042,8 +1138,10 @@ public partial class NxGrid<T>
 
     private async Task PositionComboDropdown()
     {
-        if (jsInterop == null) return;
-        var pos = await jsInterop.GetComboDropdownPosition();
+        if (jsInterop == null || editCol < 0 || editCol >= visibleColumns.Count) return;
+        var minWidth = visibleColumns[editCol].ComboBoxMinWidth ?? 0;
+        var pos = await jsInterop.GetComboDropdownPosition(minWidth);
+        if (pos == null) return;
         comboDropdownTop = pos.Top;
         comboDropdownLeft = pos.Left;
         comboDropdownWidth = pos.Width;
@@ -1121,6 +1219,7 @@ public partial class NxGrid<T>
     {
         if (jsInterop == null) return;
         var pos = await jsInterop.GetDatePickerPosition();
+        if (pos == null) return;
         datePickerTop = pos.Top;
         datePickerLeft = pos.Left;
     }
@@ -1303,6 +1402,7 @@ public partial class NxGrid<T>
     {
         if (jsInterop == null) return;
         var pos = await jsInterop.GetColorPickerPosition();
+        if (pos == null) return;
         colorPickerTop = pos.Top;
         colorPickerLeft = pos.Left;
     }
