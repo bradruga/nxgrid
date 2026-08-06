@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-08-06
+
 ### Added
 
 - New `ComboBoxMinWidth` parameter on `NxGridColumn` sets a floor for the combo dropdown's width independent of the column width, so a deliberately narrow column — a 150 px item-code column in a grid with a dozen columns competing for space — can still open a list wide enough to read. The popup opens at `max(cell width, ComboBoxMinWidth)`, is still capped to the browser window, and still flips above the cell when there is no room below. Previously the dropdown could only be as wide as its cell, which truncated long option text and wide `ComboBoxItemTemplate` markup to uselessness, and the only workaround was padding every template item with a fixed-width wrapper. Default is unchanged (150 px).
