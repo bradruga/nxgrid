@@ -1,5 +1,6 @@
 using Bunit;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using NUnit.Framework;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
@@ -568,6 +569,170 @@ public class NxGridRenderTests : BunitContext
         var text = cut.Find(".nx-grid-row .nx-grid-cell-text");
         Assert.That(text.ClassList, Does.Not.Contain("nx-grid-cell-text-btn-pad"));
         Assert.That(cut.FindAll(".nx-grid-combo-button-idle").Count, Is.EqualTo(0));
+    }
+
+    // ── Combo box virtualization ──────────────────────────────────────────────
+
+    private const string VirtualClass = "nx-grid-combo-dropdown-virtual";
+
+    // `positionResult` left null leaves the positioning call unresolved, so the markup under test
+    // is the hidden probe render — the one that exists purely to be measured.
+    private IRenderedComponent<NxGrid<ComboRow>> RenderLargeComboGrid(
+        int optionCount,
+        NxComboDropdownPosition? positionResult = null,
+        int? itemHeight = null,
+        int? threshold = null)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var positioning = JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition", 0);
+        if (positionResult != null) positioning.SetResult(positionResult);
+
+        var options = Enumerable.Range(0, optionCount).Select(i => $"Opt {i}").ToArray();
+        Expression<Func<ComboRow, object?>> prop = r => r.Item;
+        return Render<NxGrid<ComboRow>>(p => p
+            .Add(x => x.Data, [new ComboRow { Item = "Opt 0" }])
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate, _ => { })
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<ComboRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "ComboBoxSource", NxGridComboSource.FixedList(options));
+                if (itemHeight != null) b.AddAttribute(3, "ComboBoxItemHeight", itemHeight.Value);
+                if (threshold != null) b.AddAttribute(4, "ComboBoxVirtualizeThreshold", threshold.Value);
+                b.CloseComponent();
+            }));
+    }
+
+    // "Opt" matches every generated option, so the filtered list is the whole option set.
+    private static void OpenDropdownWithEveryOption(IRenderedComponent<NxGrid<ComboRow>> cut)
+    {
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("Opt");
+    }
+
+    [Test]
+    public void ComboBox_BelowVirtualizeThreshold_RendersEveryOption()
+    {
+        var cut = RenderLargeComboGrid(20, new NxComboDropdownPosition(0, 0, 150, 29));
+        OpenDropdownWithEveryOption(cut);
+
+        var dropdown = cut.Find(".nx-grid-combo-dropdown");
+        Assert.That(cut.FindAll(".nx-grid-combo-item").Count, Is.EqualTo(20));
+        Assert.That(dropdown.ClassList, Does.Not.Contain(VirtualClass));
+        // A list that renders in full leaves its rows free to differ in height.
+        Assert.That(dropdown.GetAttribute("style"), Does.Not.Contain("--nx-grid-combo-item-h"));
+    }
+
+    [Test]
+    public void ComboBox_AtVirtualizeThreshold_VirtualizesWithMeasuredRowHeight()
+    {
+        var cut = RenderLargeComboGrid(300, new NxComboDropdownPosition(0, 0, 150, 44));
+        OpenDropdownWithEveryOption(cut);
+
+        // bUnit has no viewport, so its <Virtualize> renders every item — the row count cannot tell
+        // the two paths apart. The pinned row height only ever comes from the virtualized branch.
+        cut.WaitForAssertion(() =>
+        {
+            var dropdown = cut.Find(".nx-grid-combo-dropdown");
+            Assert.That(dropdown.ClassList, Does.Contain(VirtualClass));
+            // The height measured from the probe rows is what every row is pinned to.
+            Assert.That(dropdown.GetAttribute("style"), Does.Contain("--nx-grid-combo-item-h:44px"));
+        });
+    }
+
+    [Test]
+    public void ComboBox_VirtualizeThresholdMaxValue_NeverVirtualizes()
+    {
+        var cut = RenderLargeComboGrid(300, new NxComboDropdownPosition(0, 0, 150, 29), threshold: int.MaxValue);
+        OpenDropdownWithEveryOption(cut);
+
+        Assert.That(cut.FindAll(".nx-grid-combo-item").Count, Is.EqualTo(300));
+        Assert.That(cut.Find(".nx-grid-combo-dropdown").ClassList, Does.Not.Contain(VirtualClass));
+    }
+
+    [Test]
+    public void ComboBox_ExplicitItemHeight_PinsRowHeightWithoutMeasuring()
+    {
+        // No position result: with the height declared, nothing has to be measured first.
+        var cut = RenderLargeComboGrid(300, itemHeight: 40);
+        OpenDropdownWithEveryOption(cut);
+
+        var dropdown = cut.Find(".nx-grid-combo-dropdown");
+        Assert.That(dropdown.ClassList, Does.Contain(VirtualClass));
+        Assert.That(dropdown.GetAttribute("style"), Does.Contain("--nx-grid-combo-item-h:40px"));
+    }
+
+    // Virtualize renders no rows on its own first pass, so the pass that measures the row height
+    // has to render real rows itself — a small batch of them, never the whole list.
+    [Test]
+    public void ComboBox_BeforeRowHeightMeasured_RendersOnlyProbeBatch()
+    {
+        var cut = RenderLargeComboGrid(300);
+        OpenDropdownWithEveryOption(cut);
+
+        var items = cut.FindAll(".nx-grid-combo-item");
+        Assert.That(items.Count, Is.GreaterThan(0), "nothing rendered for the measure pass to read");
+        Assert.That(items.Count, Is.LessThanOrEqualTo(12), "measure pass rendered more than the probe batch");
+        // Still the hidden pass, so a truncated list is never on screen.
+        Assert.That(cut.Find(".nx-grid-combo-dropdown").GetAttribute("style"), Does.Contain("visibility:hidden"));
+    }
+
+    // Rows of differing heights are pinned to the tallest one measured. Only rendered rows can be
+    // measured, so a later, shorter measurement must not lower the pin and start clipping the tall
+    // rows it was raised for.
+    [Test]
+    public async Task ComboBox_PinnedRowHeight_OnlyEverGrows()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var positioning = JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition", 0);
+        positioning.SetResult(new NxComboDropdownPosition(0, 0, 150, 44));
+
+        var options = Enumerable.Range(0, 300).Select(i => $"Opt {i}").ToArray();
+        Expression<Func<ComboRow, object?>> prop = r => r.Item;
+        var cut = Render<NxGrid<ComboRow>>(p => p
+            .Add(x => x.Data, [new ComboRow { Item = "Opt 0" }])
+            .Add(x => x.Editable, true)
+            .Add(x => x.OnUpdate, _ => { })
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<ComboRow>>(0);
+                b.AddAttribute(1, "Property", prop);
+                b.AddAttribute(2, "ComboBoxSource", NxGridComboSource.FixedList(options));
+                b.CloseComponent();
+            }));
+
+        OpenDropdownWithEveryOption(cut);
+        cut.WaitForAssertion(() => Assert.That(
+            cut.Find(".nx-grid-combo-dropdown").GetAttribute("style"), Does.Contain("--nx-grid-combo-item-h:44px")));
+
+        // Reopen against a measurement that only saw the short rows this time.
+        positioning.SetResult(new NxComboDropdownPosition(0, 0, 150, 29));
+        var input = cut.Find(".nx-grid-combo-input");
+        await input.TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "Escape" });
+        await input.TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "ArrowDown" });
+
+        Assert.That(cut.Find(".nx-grid-combo-dropdown").GetAttribute("style"),
+            Does.Contain("--nx-grid-combo-item-h:44px"), "pinned row height shrank and would clip the tall rows");
+    }
+
+    // The highlighted row of a virtualized list may not be in the DOM, so the browser cannot be
+    // asked to scroll to it — the grid computes its offset from the pinned row height instead.
+    [Test]
+    public async Task ComboBox_ArrowDown_ScrollsHighlightIntoViewAtPinnedRowHeight()
+    {
+        var cut = RenderLargeComboGrid(300, itemHeight: 40);
+        OpenDropdownWithEveryOption(cut);
+
+        await cut.Find(".nx-grid-combo-input")
+            .TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "ArrowDown" });
+
+        cut.WaitForAssertion(() =>
+        {
+            var invocation = JSInterop.VerifyInvoke("scrollComboItemIntoView");
+            Assert.That(invocation.Arguments[0], Is.EqualTo(0), "highlighted row index");
+            Assert.That(invocation.Arguments[1], Is.EqualTo(40d), "pinned row height");
+        });
     }
 
     // ── CommitEditAsync ───────────────────────────────────────────────────────

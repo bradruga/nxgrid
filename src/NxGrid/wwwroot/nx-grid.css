@@ -674,6 +674,11 @@
   background-color: var(--nx-grid-selection-bg);
 }
 
+.nx-grid-combo-dropdown-virtual .nx-grid-combo-item {
+  height: var(--nx-grid-combo-item-h);
+  box-sizing: border-box;
+}
+
 .nx-grid-combo-no-options {
   padding: 4px 8px;
   color: var(--nx-grid-muted-fg);

@@ -751,6 +751,16 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     background-color: var(--nx-grid-selection-bg);
 }
 
+// A virtualized dropdown scrolls by row index, so every row has to occupy exactly the height
+// Virtualize was told to assume. That height is measured from the natural rows on the first open
+// (or declared via ComboBoxItemHeight) and pinned here — a taller item template is honoured, but
+// rows cannot differ from one another. Only long lists get this class; short ones render in full
+// and keep their natural heights.
+.nx-grid-combo-dropdown-virtual .nx-grid-combo-item {
+    height: var(--nx-grid-combo-item-h);
+    box-sizing: border-box;
+}
+
 .nx-grid-combo-no-options {
     padding: 4px 8px;
     color: var(--nx-grid-muted-fg);

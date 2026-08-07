@@ -447,6 +447,22 @@ Combo box editing applies to columns that have `ComboBoxSource` set. The behavio
 
 **Width:** the dropdown matches its cell's width, with a floor of 150 px — or of `ComboBoxMinWidth` when the column sets one, so a narrow column can list long option text without being widened. The floor is capped to the space available, so a minimum wider than the window still leaves the popup fully visible.
 
+### Virtualization
+
+Once the filtered option list reaches the column's `ComboBoxVirtualizeThreshold` (200 by default), the dropdown renders through `<Virtualize>` and builds only the rows in view. Open time then stops tracking option count: a 20,000-option list opens as fast as a five-option one. Shorter lists render in full, exactly as before.
+
+Virtualization scrolls by row index, which requires every row to occupy the same height. That height is arrived at without the column having to declare it:
+
+1. The pass that measures the popup's position also measures the tallest row in the DOM. It renders a batch of real rows to do so — `<Virtualize>` builds nothing on its own first pass, so it cannot supply the measurement itself. That pass is the one that is already `visibility:hidden` (see [Measured before shown](#measured-before-shown)), so a partial list is never on screen.
+2. The next pass switches to `<Virtualize>` and pins every row to the measured height.
+3. The height is cached on the column, so later opens are virtualized from their first pass.
+
+A taller `ComboBoxItemTemplate` is therefore honoured automatically. Set `ComboBoxItemHeight` to declare the height and skip the measuring pass, or to override it.
+
+**Rows of differing heights.** A template that renders a subtitle for some items and not others produces more than one natural row height, and a virtualized list can only have one. Every row is pinned to the tallest height measured, so shorter rows appear padded rather than clipped and the list stays exactly as tall as its scrollbar claims. The measurement only ever grows: rows are measured by content height as well as box height, so a row whose content overflows the current pin reveals that on the next open and raises it. Only the rows that have been rendered can be measured, so a taller variant that never appeared in the probe batch is not accounted for until it does — declare `ComboBoxItemHeight` when that matters. When rows must genuinely keep their own heights, raise `ComboBoxVirtualizeThreshold` above the option count instead: that list keeps rendering in full and nothing is pinned.
+
+If the measurement never arrives (the JS module failed to load), the rows are left unpinned at their natural heights and `<Virtualize>` runs on its own estimate, which it corrects from the rows it renders. The list is still virtualized and still scrolls; only the row-height guarantee is gone.
+
 **Keyboard while dropdown is open:**
 
 | Key | Behavior |
@@ -456,6 +472,8 @@ Combo box editing applies to columns that have `ComboBoxSource` set. The behavio
 | Enter | Selects highlighted item (if any), then commits; or commits current text if nothing highlighted |
 | Tab | Same as Enter |
 | Escape | Closes dropdown, stays in edit mode; a second Escape then cancels the edit |
+
+Moving the highlight scrolls it into view. In a virtualized list the highlighted row may not be in the DOM at all, so its offset is computed from the pinned row height rather than measured; assigning the dropdown's `scrollTop` then makes `<Virtualize>` render the window containing it.
 
 **Mouse:** clicking a dropdown item commits that value immediately. The mousedown event is preventDefault'd to prevent the input from losing focus before the click is processed.
 

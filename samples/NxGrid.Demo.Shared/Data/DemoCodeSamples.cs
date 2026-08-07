@@ -641,6 +641,35 @@ void OnSignalRRowReceived(Person newRow)
 </NxGridColumn>
 """;
 
+    public static readonly string ComboBoxLargeList = """
+// Dropdowns with 200+ options render through <Virtualize> automatically — only the
+// rows in view are built, so a 20,000-option list opens as fast as a 5-option one.
+// Nothing has to be configured for it.
+<NxGridColumn Property="@(x => x.Item)" Title="Item" Width="260"
+              ComboBoxSource="@(NxGridComboSource.FixedList(CatalogItems, i => i.Sku, i => i.Name, i => i.Description))" />
+
+// A virtualized list scrolls by row index, so its rows are pinned to one uniform height,
+// measured from the rendered rows on the first open. This template only renders its second
+// line for items that have a description, so its rows have two natural heights — every row
+// is pinned to the taller one, and the one-line rows show as padded rather than clipped.
+<NxGridColumn Property="@(x => x.Item)" Title="Item" Width="260"
+              ComboBoxSource="@(NxGridComboSource.FixedList(CatalogItems, i => i.Sku, i => i.Name, i => i.Description))">
+    <ComboBoxItemTemplate Context="item">
+        <div class="demo-combo-name">@item.Text</div>
+        @if (!string.IsNullOrEmpty(item.SearchText))
+        {
+            <div class="demo-combo-desc">@item.SearchText</div>
+        }
+    </ComboBoxItemTemplate>
+</NxGridColumn>
+
+// Declare the height to skip the measuring render, raise the threshold past the option
+// count when rows must keep their own differing heights (that list then renders in full),
+// or drop it to 0 to virtualize every list.
+<NxGridColumn ... ComboBoxItemHeight="34" />
+<NxGridColumn ... ComboBoxVirtualizeThreshold="int.MaxValue" />
+""";
+
     public static readonly string ComboBoxPerRow = """
 // VariableList receives the row — return a different list based on any property.
 // Type the lambda parameter explicitly so C# can infer the row type.

@@ -447,6 +447,7 @@ public partial class NxGrid<T>
                         comboHighlightIndex = comboFilteredOptions.Count == 0
                             ? -1
                             : Math.Min(comboHighlightIndex + 1, comboFilteredOptions.Count - 1);
+                        comboScrollPending = true;
                         StateHasChanged();
                     }
                 }
@@ -460,6 +461,7 @@ public partial class NxGrid<T>
                 else if (isComboColumn && isComboOpen)
                 {
                     comboHighlightIndex = Math.Max(comboHighlightIndex - 1, 0);
+                    comboScrollPending = true;
                     StateHasChanged();
                 }
                 else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
@@ -500,11 +502,13 @@ public partial class NxGrid<T>
         pickCurrentEndCol = -1;
         isComboOpen = false;
         comboNeedsPositioning = false;
+        comboScrollPending = false;
         comboHighlightIndex = -1;
         comboItemSelected = false;
         comboSelectedId = null;
         comboAllItems = [];
         comboFilteredOptions = [];
+        comboOptionIndices = [];
         isDatePickerOpen = false;
         datePickerNeedsPositioning = false;
         datePickerHighlightDate = null;

@@ -139,6 +139,51 @@
 </div>
 
 <div class="doc-section">
+    <h2>Large Option Lists</h2>
+    <p class="doc-note">
+        Once a dropdown has <strong>200 or more</strong> options it renders through
+        <code>Virtualize</code> — only the rows in view are built, so the list below opens in the same
+        time as a five-option one despite holding <strong>20,000</strong> items. Nothing needs
+        configuring; the threshold is <code>ComboBoxVirtualizeThreshold</code> if you want to move it.
+    </p>
+    <p class="doc-note">
+        Virtualization scrolls by row index, so every row is pinned to one uniform height. The grid
+        measures that height from the real rows the first time the dropdown opens, which is why the
+        taller template on the second column is honoured without being declared — set
+        <code>ComboBoxItemHeight</code> only to skip the measuring render or to override it. Try typing
+        <strong>bracket</strong> in either column, then hold <kbd class="doc-kbd">↓</kbd>: the highlight
+        scrolls the list with it.
+    </p>
+    <p class="doc-note">
+        The second column's template renders a description line only when the item has one, so its rows
+        have <strong>two different natural heights</strong> — one line for every third item, two for the
+        rest. A virtualized list cannot honour both: it pins every row to the tallest it has measured, so
+        the short rows show as padded rather than clipped, and the list stays exactly as tall as its
+        scrollbar claims. That is the trade for opening instantly. When rows must keep their own heights,
+        set <code>ComboBoxVirtualizeThreshold="int.MaxValue"</code> on that column and it renders in
+        full — the right call for a few hundred options, not for twenty thousand.
+    </p>
+    <NxGrid T="OrderLine" Data="@catalogLines" OnUpdate="@HandleCatalogUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Item)" Title="Plain (20,000 options)" Width="260"
+                      ComboBoxSource="@(NxGridComboSource.FixedList(CatalogItems, i => i.FullName, i => i.FullName, i => i.Description))" />
+        <NxGridColumn Property="@(x => x.Item)" Title="Templated, mixed heights" Width="260"
+                      ComboBoxMinWidth="380"
+                      ComboBoxSource="@(NxGridComboSource.FixedList(CatalogItems, i => i.FullName, i => i.FullName, i => i.Description))">
+            <ComboBoxItemTemplate Context="item">
+                <div class="demo-combo-name">@item.Text</div>
+                @if (!string.IsNullOrEmpty(item.SearchText))
+                {
+                    <div class="demo-combo-desc">@item.SearchText</div>
+                }
+            </ComboBoxItemTemplate>
+        </NxGridColumn>
+        <NxGridColumn Property="@(x => x.Qty)" Width="70" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@largeListCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Per-Row Options</h2>
     <p class="doc-note">
         <code>NxGridComboSource.VariableList</code> receives the row, so the list can depend on any
@@ -190,6 +235,27 @@
                     at <code>max(cell width, ComboBoxMinWidth)</code>. Defaults to 150. Use it when a
                     narrow column has to list long option text or a wide
                     <code>ComboBoxItemTemplate</code>.
+                </td>
+            </tr>
+            <tr>
+                <td>ComboBoxVirtualizeThreshold</td>
+                <td>int</td>
+                <td>
+                    Option count at which the dropdown switches to a virtualized list that builds only
+                    the rows in view. Defaults to 200. Use <code>0</code> to always virtualize, or
+                    <code>int.MaxValue</code> to never — the latter is what an item template with
+                    genuinely varying row heights needs, since a virtualized list pins every row to one
+                    height.
+                </td>
+            </tr>
+            <tr>
+                <td>ComboBoxItemHeight</td>
+                <td>int?</td>
+                <td>
+                    Uniform row height in pixels for a virtualized dropdown. Left <code>null</code> it is
+                    measured from the rendered rows on the first open, which is correct for any template
+                    whose rows are all the same height. Set it to skip that measuring render or to
+                    override it.
                 </td>
             </tr>
         </tbody>
@@ -329,6 +395,39 @@
         new() { Item = "Anchor Kit",   Qty = 2 },
     ];
 
+    static readonly string[] CatalogNouns    = ["Bracket", "Anchor", "Panel", "Beam", "Post", "Plate", "Coupler", "Sleeve"];
+    static readonly string[] CatalogFinishes = ["Galvanized", "Powder coated", "Stainless", "Mill finish", "Hot dipped"];
+
+    // 20,000 options, built once, to show that dropdown open time no longer tracks option count.
+    // Every third item deliberately has no description, so the templated column below renders rows
+    // of two different natural heights — one line for those, two for the rest.
+    static readonly ItemOption[] CatalogItems =
+    [
+        .. Enumerable.Range(1, 20_000).Select(i =>
+            new ItemOption(
+                $"{CatalogNouns[i % CatalogNouns.Length]} {1000 + i}",
+                i % 3 == 0
+                    ? ""
+                    : $"{CatalogFinishes[i % CatalogFinishes.Length]} {CatalogNouns[i % CatalogNouns.Length].ToLowerInvariant()}, part {1000 + i}"))
+    ];
+
+    // Must be real CatalogItems names — a combo commit that matches no option is cancelled.
+    List<OrderLine> catalogLines =
+    [
+        new() { Item = "Bracket 1008", Qty = 5 },
+        new() { Item = "Panel 1010",   Qty = 18 },
+        new() { Item = "Beam 1011",    Qty = 2 },
+        new() { Item = "Post 1012",    Qty = 40 },
+    ];
+
+    async Task HandleCatalogUpdate(NxGridUpdateArgs<OrderLine> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
     List<OrderLine> minWidthLines =
     [
         new() { Item = "2x8 Corner",   Qty = 6 },
@@ -415,5 +514,6 @@
     string itemTemplateCode      = DemoCodeSamples.ComboBoxItemTemplateCode;
     string searchTextCode        = DemoCodeSamples.ComboBoxSearchText;
     string minWidthCode          = DemoCodeSamples.ComboBoxMinWidth;
+    string largeListCode         = DemoCodeSamples.ComboBoxLargeList;
     string perRowCode            = DemoCodeSamples.ComboBoxPerRow;
 }

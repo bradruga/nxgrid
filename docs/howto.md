@@ -383,6 +383,40 @@ the browser window and still flipping above the cell when there is no room below
 </NxGridColumn>
 ```
 
+### Use a combo box with thousands of options
+
+Nothing to configure: once the filtered list reaches 200 options the dropdown renders through
+`<Virtualize>` and builds only the rows in view, so open time no longer tracks option count.
+
+```razor
+@* 20,000 options — opens as fast as a five-option list *@
+<NxGridColumn Property="@(x => x.Sku)" Title="Item"
+    ComboBoxSource="@(NxGridComboSource.FixedList(catalog, i => i.Sku, i => i.Name, i => i.Description))" />
+```
+
+A virtualized list scrolls by row index, so all of its rows are pinned to one height. That height is
+measured from the real rows the first time the dropdown opens, so a two-line `ComboBoxItemTemplate`
+needs no extra configuration. A template whose rows *differ* in height — a subtitle on some items only
+— is pinned to the tallest measured row: the short rows show as padded, never clipped. Reach for the
+two knobs only in these cases:
+
+```razor
+@* Declare the height to skip the one measuring render — or to pin a tall variant
+   that may not appear among the first rows the grid measures *@
+<NxGridColumn ... ComboBoxItemHeight="44" />
+
+@* Rows must keep their own differing heights: keep this list rendering in full.
+   Right for a few hundred options, not for twenty thousand. *@
+<NxGridColumn ... ComboBoxVirtualizeThreshold="int.MaxValue" />
+
+@* Virtualize every list, however short *@
+<NxGridColumn ... ComboBoxVirtualizeThreshold="0" />
+```
+
+If the options come from a database, keep the list building out of the dropdown's path — load it once
+into a `FixedList` (or a per-row dictionary for `VariableList`) rather than querying on open, since
+`ComboBoxSource` is called fresh every time the dropdown opens.
+
 ### Commit a pending edit before saving
 
 A Save button outside the grid can run while a cell editor is still open — the user typed a value and clicked Save without pressing Enter. Call `CommitEditAsync()` first in the save routine: it flushes the pending edit through the normal commit pipeline and its task completes only after your `OnUpdate` handler has finished, so the next line reads the fully updated model.

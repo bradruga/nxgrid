@@ -734,7 +734,53 @@ class NxGrid {
         // ComboBoxMinWidth when it set one, so a narrow cell can still list wide options.
         const floor = minWidth > 0 ? minWidth : COMBO_MIN_WIDTH;
         const width = wrapper ? Math.max(wrapper.getBoundingClientRect().width, floor) : floor;
-        return this._positionEditorPopup('.nx-grid-combo-wrapper', '.nx-grid-combo-dropdown', width);
+        const pos = this._positionEditorPopup('.nx-grid-combo-wrapper', '.nx-grid-combo-dropdown', width);
+        return { ...pos, itemHeight: this._measureComboItemHeight(gridElement) };
+    }
+
+    // Height of the tallest dropdown row currently in the DOM. Virtualization needs one uniform
+    // row height; this measurement is what gets pinned onto every row (see
+    // .nx-grid-combo-dropdown-virtual), so a taller ComboBoxItemTemplate is honoured without the
+    // column having to declare its height. Runs in the same pass that measures the popup position.
+    //
+    // scrollHeight is taken alongside the box height because a row that has *already* been pinned
+    // reports the pinned height as its box: only its scroll height still reveals content that
+    // needs more room. That is what lets a template with mixed row heights settle on the tallest
+    // one rather than clipping whichever variant the first measurement happened to miss.
+    _measureComboItemHeight(gridElement) {
+        if (!gridElement) return 0;
+        let height = 0;
+        for (const item of gridElement.querySelectorAll('.nx-grid-combo-dropdown .nx-grid-combo-item'))
+            height = Math.max(height, item.getBoundingClientRect().height, item.scrollHeight);
+        return height;
+    }
+
+    // Brings the keyboard-highlighted dropdown row into view. When the list is virtualized the
+    // row may not be in the DOM yet, so its offset is computed from the pinned row height rather
+    // than measured; assigning scrollTop then makes Virtualize render the window containing it.
+    // itemHeight of 0 means "not virtualized" — measure the row instead.
+    scrollComboItemIntoView(index, itemHeight) {
+        const gridElement = document.getElementById(this.id);
+        const dropdown = gridElement && gridElement.querySelector('.nx-grid-combo-dropdown');
+        if (!dropdown || index < 0) return;
+
+        let top, bottom;
+        if (itemHeight > 0) {
+            top    = index * itemHeight;
+            bottom = top + itemHeight;
+        } else {
+            // offsetTop is relative to the dropdown: .nx-grid-popup is positioned, so it is the
+            // offsetParent of its rows.
+            const items = dropdown.querySelectorAll('.nx-grid-combo-item');
+            if (index >= items.length) return;
+            top    = items[index].offsetTop;
+            bottom = top + items[index].offsetHeight;
+        }
+
+        if (top < dropdown.scrollTop)
+            dropdown.scrollTop = top;
+        else if (bottom > dropdown.scrollTop + dropdown.clientHeight)
+            dropdown.scrollTop = bottom - dropdown.clientHeight;
     }
 
     dragSelect(anchorRow, anchorCol, isRowMode, maxCol) {

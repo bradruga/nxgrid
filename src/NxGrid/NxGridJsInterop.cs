@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 
 namespace NxGrid;
 
-public record NxComboDropdownPosition(double Top, double Left, double Width);
+public record NxComboDropdownPosition(double Top, double Left, double Width, double ItemHeight = 0);
 public record NxCharWidths(Dictionary<string, double> Normal, Dictionary<string, double> Bold);
 public record NxMenuPosition(double Top, double Left, bool IsMobile = false);
 public record NxDatePickerPosition(double Top, double Left);
@@ -134,9 +134,19 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     /// <summary>
     /// Positions the combo dropdown under its cell. <paramref name="minWidth"/> is the floor for the
     /// popup's width in pixels (the column's <c>ComboBoxMinWidth</c>), independent of the cell width.
+    /// The result also carries the tallest rendered dropdown row's height, used as the uniform row
+    /// height when the list is virtualized.
     /// </summary>
     public Task<NxComboDropdownPosition?> GetComboDropdownPosition(int minWidth)
         => Guarded<NxComboDropdownPosition?>(() => jsObject.InvokeAsync<NxComboDropdownPosition?>("getComboDropdownPosition", minWidth).AsTask(), null);
+
+    /// <summary>
+    /// Scrolls the combo dropdown so the row at <paramref name="index"/> is visible.
+    /// <paramref name="itemHeight"/> is the uniform row height of a virtualized list, or <c>0</c>
+    /// to measure the row in the DOM instead (non-virtualized lists).
+    /// </summary>
+    public Task ScrollComboItemIntoView(int index, double itemHeight)
+        => Guarded(() => jsObject.InvokeVoidAsync("scrollComboItemIntoView", index, itemHeight).AsTask());
 
     public Task<NxDatePickerPosition?> GetDatePickerPosition()
         => Guarded<NxDatePickerPosition?>(() => jsObject.InvokeAsync<NxDatePickerPosition?>("getDatePickerPosition").AsTask(), null);

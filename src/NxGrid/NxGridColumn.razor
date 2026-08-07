@@ -289,6 +289,38 @@
     [Parameter] public int? ComboBoxMinWidth { get; set; }
 
     /// <summary>
+    /// Option count at which the combo-box dropdown switches to a virtualized list, rendering only
+    /// the rows in view instead of the whole option set. Lists this long open in constant time
+    /// regardless of how many options the source returns.
+    /// Set to <c>0</c> to always virtualize, or to <see cref="int.MaxValue"/> to never virtualize.
+    /// Default: <c>200</c>. Has no effect without <see cref="ComboBoxSource"/>.
+    /// </summary>
+    /// <remarks>
+    /// A virtualized list scrolls by row index, so all of its rows are pinned to one uniform
+    /// height — measured from the tallest row on the first open, or taken from
+    /// <see cref="ComboBoxItemHeight"/> when set. A <see cref="ComboBoxItemTemplate"/> whose rows
+    /// are genuinely different heights should raise this threshold above its option count so the
+    /// list keeps rendering in full.
+    /// </remarks>
+    [Parameter] public int ComboBoxVirtualizeThreshold { get; set; } = 200;
+
+    /// <summary>
+    /// Uniform row height in pixels for a virtualized combo-box dropdown. When left <c>null</c> the
+    /// height is measured from the rendered rows the first time the dropdown opens, which is
+    /// correct whenever the rows are all the same height (including a taller
+    /// <see cref="ComboBoxItemTemplate"/>). Set it explicitly to skip that measuring render, or to
+    /// override a measurement that came out wrong. Has no effect on lists below
+    /// <see cref="ComboBoxVirtualizeThreshold"/>, which are never virtualized.
+    /// </summary>
+    [Parameter] public int? ComboBoxItemHeight { get; set; }
+
+    /// <summary>
+    /// Row height measured from the DOM the first time this column's dropdown opened, cached so
+    /// later opens render the virtualized list at the right height on their very first pass.
+    /// </summary>
+    internal double? MeasuredComboItemHeight { get; set; }
+
+    /// <summary>
     /// When <c>true</c> and the column is editable, the inline editor renders a free-text
     /// input alongside a calendar button that opens a month-view date picker popup.
     /// <see cref="Property"/> should resolve to <c>DateTime</c> or <c>DateTime?</c>.

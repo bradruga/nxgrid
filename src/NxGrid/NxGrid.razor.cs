@@ -503,14 +503,28 @@ public partial class NxGrid<T>
     // Combo-box dropdown state
     private bool isComboOpen;
     private bool comboNeedsPositioning;
+    private bool comboScrollPending;
     private int comboHighlightIndex = -1;
     private bool comboItemSelected;
     private string? comboSelectedId;
     private List<NxGridComboItem> comboAllItems = [];
     private List<NxGridComboItem> comboFilteredOptions = [];
+    // Positions into comboFilteredOptions, fed to <Virtualize> so the row markup stays
+    // index-based — the same indirection the grid itself uses for rowIndices. Left empty
+    // when the list is short enough to render in full.
+    private List<int> comboOptionIndices = [];
     private double comboDropdownTop;
     private double comboDropdownLeft;
     private double comboDropdownWidth;
+
+    // Row height a virtualized dropdown falls back to when its rows could not be measured.
+    private const double ComboItemHeightEstimate = 24;
+
+    // Rows rendered on the hidden pass that measures a not-yet-measured virtualized dropdown.
+    // Only the tallest of them is read, so this wants to be enough rows to fill the popup — and
+    // so to include every row-height variant an item template produces — while staying cheap
+    // no matter how long the option list is.
+    private const int ComboMeasureProbeCount = 12;
 
     // Date picker state
     private bool isDatePickerOpen;
@@ -1013,6 +1027,14 @@ public partial class NxGrid<T>
             StateHasChanged();
         }
 
+        // Deferred to here because the highlighted row has to exist (or, when virtualized, the
+        // list has to be laid out at the pinned row height) before it can be scrolled to.
+        if (comboScrollPending && isComboOpen && jsInterop != null)
+        {
+            comboScrollPending = false;
+            await ScrollComboHighlightIntoView();
+        }
+
         if (datePickerNeedsPositioning && jsInterop != null)
         {
             datePickerNeedsPositioning = false;
@@ -1136,17 +1158,59 @@ public partial class NxGrid<T>
             : comboAllItems.Where(i =>
                 (i.Text != null && i.Text.Contains(editValue, StringComparison.OrdinalIgnoreCase))
              || (i.SearchText != null && i.SearchText.Contains(editValue, StringComparison.OrdinalIgnoreCase))).ToList();
+
+        var column = editCol >= 0 && editCol < visibleColumns.Count ? visibleColumns[editCol] : null;
+        comboOptionIndices = column != null && ShouldVirtualizeCombo(column)
+            ? [.. Enumerable.Range(0, comboFilteredOptions.Count)]
+            : [];
     }
+
+    /// <summary>
+    /// Whether the current option list is long enough to render through <c>Virtualize</c>.
+    /// Below the threshold the list renders in full, which keeps rows free to differ in height.
+    /// </summary>
+    private bool ShouldVirtualizeCombo(NxGridColumn<T> column) =>
+        comboFilteredOptions.Count >= column.ComboBoxVirtualizeThreshold;
+
+    /// <summary>
+    /// The uniform row height a virtualized dropdown pins its rows to, or <c>null</c> while it is
+    /// still unknown — the state the one hidden render before the measure pass is in.
+    /// </summary>
+    private static double? ComboPinnedRowHeight(NxGridColumn<T> column) =>
+        column.ComboBoxItemHeight ?? column.MeasuredComboItemHeight;
+
+    private static double ComboRowHeight(NxGridColumn<T> column) =>
+        ComboPinnedRowHeight(column) ?? ComboItemHeightEstimate;
 
     private async Task PositionComboDropdown()
     {
         if (jsInterop == null || editCol < 0 || editCol >= visibleColumns.Count) return;
-        var minWidth = visibleColumns[editCol].ComboBoxMinWidth ?? 0;
-        var pos = await jsInterop.GetComboDropdownPosition(minWidth);
+        var column = visibleColumns[editCol];
+        var pos = await jsInterop.GetComboDropdownPosition(column.ComboBoxMinWidth ?? 0);
         if (pos == null) return;
         comboDropdownTop = pos.Top;
         comboDropdownLeft = pos.Left;
         comboDropdownWidth = pos.Width;
+        // This pass measures the popup while its rows are still at their natural height, so it is
+        // also the pass that learns what height to pin them to once virtualization takes over.
+        // Cached on the column: later opens then get the right height on their first render.
+        //
+        // Only ever grows. All that can be measured is the rows that have been rendered, so a
+        // template with mixed row heights may not reveal its tallest variant on the first open;
+        // growing means the pin converges on that variant and never shrinks back to a height that
+        // would clip it. Rows shorter than the pin are padded out to it.
+        if (column.ComboBoxItemHeight == null && pos.ItemHeight > (column.MeasuredComboItemHeight ?? 0))
+            column.MeasuredComboItemHeight = pos.ItemHeight;
+    }
+
+    private async Task ScrollComboHighlightIntoView()
+    {
+        if (jsInterop == null || comboHighlightIndex < 0) return;
+        if (editCol < 0 || editCol >= visibleColumns.Count) return;
+        var column = visibleColumns[editCol];
+        // 0 tells JS to measure the row in the DOM, which is only possible when every row is there.
+        var itemHeight = ShouldVirtualizeCombo(column) ? ComboRowHeight(column) : 0;
+        await jsInterop.ScrollComboItemIntoView(comboHighlightIndex, itemHeight);
     }
 
     private record DatePickerDay(DateTime Date, bool IsCurrentMonth, bool IsToday, bool IsHighlighted, bool IsSelected);

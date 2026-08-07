@@ -402,33 +402,54 @@
          && visibleColumns[editCol].IsComboColumn && isComboOpen)
     {
         var comboCol = visibleColumns[editCol];
+        // A long list renders through <Virtualize>, which needs one uniform row height. On the pass
+        // where that height is not known yet, the list renders plainly instead, truncated to a probe
+        // batch for the measurement to read: Virtualize renders no rows at all on its own first pass
+        // (it waits for its viewport observer), so it cannot supply the measurement itself. The probe
+        // only ever happens on the hidden pass that measures the popup, so a truncated list is never
+        // shown, and it is skipped without jsInterop — nothing would measure it, and a truncated list
+        // is what the user would be left with. A height that never arrives leaves the rows unpinned
+        // and Virtualize on its estimate, which it then corrects from the rows it renders.
+        var comboVirtual = ShouldVirtualizeCombo(comboCol);
+        var comboPinned  = comboVirtual ? ComboPinnedRowHeight(comboCol) : null;
+        var comboProbe   = comboVirtual && comboPinned == null && comboNeedsPositioning && jsInterop != null;
+        var comboPlainCount = comboProbe
+            ? Math.Min(ComboMeasureProbeCount, comboFilteredOptions.Count)
+            : comboFilteredOptions.Count;
         var comboStyle = PopupPos(comboDropdownTop, comboDropdownLeft)
                        + FormattableString.Invariant($"width:{comboDropdownWidth}px;")
+                       + (comboPinned != null ? FormattableString.Invariant($"--nx-grid-combo-item-h:{comboPinned.Value}px;") : "")
                        + (comboNeedsPositioning ? "visibility:hidden;" : "");
-        <div class="nx-grid-popup nx-grid-combo-dropdown"
+        RenderFragment<int> comboItem = optIdx =>
+            @<div class="nx-grid-combo-item @(optIdx == comboHighlightIndex ? "nx-grid-combo-item-active" : "")"
+                  @onmousedown="@(() => OnComboItemMouseDown(optIdx))"
+                  @onmousedown:preventDefault>
+                @if (comboCol.ComboBoxItemTemplate != null)
+                {
+                    @comboCol.ComboBoxItemTemplate(comboFilteredOptions[optIdx])
+                }
+                else
+                {
+                    @comboFilteredOptions[optIdx].Text
+                }
+            </div>;
+        <div class="nx-grid-popup nx-grid-combo-dropdown @(comboPinned != null ? "nx-grid-combo-dropdown-virtual" : "")"
              style="@comboStyle">
             @if (comboFilteredOptions.Count == 0)
             {
                 <div class="nx-grid-combo-no-options">No matches</div>
             }
+            else if (comboVirtual && !comboProbe)
+            {
+                <Virtualize Items="@comboOptionIndices" ItemSize="@((float)ComboRowHeight(comboCol))" OverscanCount="4" Context="optIdx">
+                    @comboItem(optIdx)
+                </Virtualize>
+            }
             else
             {
-                @for (var i = 0; i < comboFilteredOptions.Count; i++)
+                @for (var i = 0; i < comboPlainCount; i++)
                 {
-                    var optIdx = i;
-                    var item = comboFilteredOptions[i];
-                    <div class="nx-grid-combo-item @(i == comboHighlightIndex ? "nx-grid-combo-item-active" : "")"
-                         @onmousedown="@(() => OnComboItemMouseDown(optIdx))"
-                         @onmousedown:preventDefault>
-                        @if (comboCol.ComboBoxItemTemplate != null)
-                        {
-                            @comboCol.ComboBoxItemTemplate(item)
-                        }
-                        else
-                        {
-                            @item.Text
-                        }
-                    </div>
+                    @comboItem(i)
                 }
             }
         </div>

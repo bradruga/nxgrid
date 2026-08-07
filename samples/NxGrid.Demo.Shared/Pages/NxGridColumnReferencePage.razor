@@ -260,6 +260,20 @@
                 <td><a href="combo-box">Combo Box</a></td>
             </tr>
             <tr>
+                <td>ComboBoxVirtualizeThreshold</td>
+                <td>int</td>
+                <td>200</td>
+                <td>Option count at which the dropdown renders through <code>Virtualize</code>, building only the rows in view so open time stops tracking option count. <code>0</code> always virtualizes; <code>int.MaxValue</code> never does. A virtualized list pins every row to one uniform height.</td>
+                <td><a href="combo-box">Combo Box</a></td>
+            </tr>
+            <tr>
+                <td>ComboBoxItemHeight</td>
+                <td>int?</td>
+                <td>measured</td>
+                <td>Uniform row height in pixels for a virtualized dropdown. Measured from the rendered rows on the first open when left unset, which is correct for any item template whose rows are all the same height.</td>
+                <td><a href="combo-box">Combo Box</a></td>
+            </tr>
+            <tr>
                 <td>DatePicker</td>
                 <td>bool</td>
                 <td>false</td>
