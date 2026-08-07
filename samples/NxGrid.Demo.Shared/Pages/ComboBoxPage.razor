@@ -118,7 +118,9 @@
         short code but the list needs room for names and descriptions. <code>ComboBoxMinWidth</code>
         raises the popup's floor without touching the column: the <strong>Item</strong> column below is
         a fixed 150 px, its dropdown opens at 400 px. The popup is still clamped to the browser window
-        and still flips above the cell when there is no room below.
+        and still flips above the cell when there is no room below. Its position is measured in the
+        browser after it is inserted, so it stays hidden for that one frame rather than flashing at
+        whichever cell opened it last.
     </p>
     <NxGrid T="OrderLine" Data="@minWidthLines" OnUpdate="@HandleMinWidthUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">

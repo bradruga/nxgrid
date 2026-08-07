@@ -499,12 +499,14 @@ public partial class NxGrid<T>
         pickCurrentEndRow = -1;
         pickCurrentEndCol = -1;
         isComboOpen = false;
+        comboNeedsPositioning = false;
         comboHighlightIndex = -1;
         comboItemSelected = false;
         comboSelectedId = null;
         comboAllItems = [];
         comboFilteredOptions = [];
         isDatePickerOpen = false;
+        datePickerNeedsPositioning = false;
         datePickerHighlightDate = null;
         isColorPickerOpen = false;
         colorPickerNeedsPositioning = false;

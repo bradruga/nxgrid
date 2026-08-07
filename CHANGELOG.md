@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A combo dropdown no longer flashes at the previously opened cell's position before snapping to the correct one. Because the popup's coordinates are measured in the browser only after it is in the DOM, the frame that inserts it still carried the last dropdown's position — noticeable as a visible jump when opening combo boxes in different rows or columns, and as a flash at the window's top-left corner on the first open of a page. The dropdown now stays hidden for that frame and is painted only once it has been positioned, matching what the column menu, date picker, and color picker already did. Reopening the same cell's dropdown is unchanged, and the measurement is skipped when the dropdown is closed again before it lands, so a fast Escape or item pick can no longer leave stale coordinates behind for the next open.
+
 ## [0.3.6] - 2026-08-07
 
 ### Changed

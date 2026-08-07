@@ -402,8 +402,11 @@
          && visibleColumns[editCol].IsComboColumn && isComboOpen)
     {
         var comboCol = visibleColumns[editCol];
+        var comboStyle = PopupPos(comboDropdownTop, comboDropdownLeft)
+                       + FormattableString.Invariant($"width:{comboDropdownWidth}px;")
+                       + (comboNeedsPositioning ? "visibility:hidden;" : "");
         <div class="nx-grid-popup nx-grid-combo-dropdown"
-             style="@(PopupPos(comboDropdownTop,comboDropdownLeft))width:@(comboDropdownWidth)px;">
+             style="@comboStyle">
             @if (comboFilteredOptions.Count == 0)
             {
                 <div class="nx-grid-combo-no-options">No matches</div>

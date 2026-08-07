@@ -443,7 +443,7 @@ Combo box editing applies to columns that have `ComboBoxSource` set. The behavio
 
 `ComboBoxSource` is called fresh on each open, so the list can be dynamic.
 
-**Positioning:** the dropdown opens below the cell. When there is not enough room below (the cell is near the bottom of the viewport), it flips up and opens above the cell instead. It is also clamped horizontally so it never runs off the right or left edge.
+**Positioning:** the dropdown opens below the cell. When there is not enough room below (the cell is near the bottom of the viewport), it flips up and opens above the cell instead. It is also clamped horizontally so it never runs off the right or left edge. Like every measured popup, it is rendered `visibility:hidden` on the pass that inserts it and becomes visible only once JS has measured the cell — see [Measured before shown](#measured-before-shown). Without that, opening a second dropdown would paint it at the *previous* dropdown's position for one frame.
 
 **Width:** the dropdown matches its cell's width, with a floor of 150 px — or of `ComboBoxMinWidth` when the column sets one, so a narrow column can list long option text without being widened. The floor is capped to the space available, so a minimum wider than the window still leaves the popup fully visible.
 
@@ -745,7 +745,7 @@ All other JS-dependent operations are no-ops if `jsInterop` is null, and silentl
 
 ## Column menu positioning
 
-When the column menu opens, it is rendered off-screen (hidden via `visibility:hidden`) on the first render pass. After render, JS measures the button position and the menu is repositioned and made visible. A two-render cycle is unavoidable for correct positioning.
+When the column menu opens, it is rendered hidden (via `visibility:hidden`) on the first render pass. After render, JS measures the header cell and the menu is repositioned and made visible. A two-render cycle is unavoidable for correct positioning — the pattern is shared by every measured popup, see [Measured before shown](#measured-before-shown).
 
 Opening the menu can itself trigger a late `scroll` event on the page (e.g. the browser's focus-follows-click auto-scroll, or an automation tool scrolling the button into view before clicking) that arrives a few milliseconds after the menu is positioned. The page-scroll "close on scroll" listener ignores scroll events that land within 250ms of the menu being positioned, so this self-inflicted scroll doesn't immediately dismiss the menu that was just opened. Genuine user scrolling after that grace period still closes it as intended. Clicks on the header row are excluded from the separate "click outside" dismissal for the same reason — see `nx-grid.js`.
 
@@ -785,6 +785,14 @@ C# and JS measure in plain viewport space and hand the result over as `--nx-popu
 The offset is recomputed on grid init, window resize, page scroll, any mouse press (a dialog drag always begins with one), pointer entry into the grid, and before each popup is positioned. It is published through a `<style>` rule scoped to the grid's id — mutated via CSSOM rather than by rewriting the sheet — because Blazor owns the grid element's `style` attribute and would drop anything JS wrote there on the next render.
 
 Because the cap lives in CSS, `offsetHeight` is already clamped when JS measures a popup, so the shared flip-and-clamp routine (`_placeBelow` in `nx-grid.js`) pins an over-tall popup inside the window with no extra bookkeeping.
+
+### Measured before shown
+
+Coordinates come from JS, which can only measure the anchor once the popup is in the DOM — so every measured popup takes two render passes: the first inserts it, `OnAfterRenderAsync` measures and stores the coordinates, and the second paints it in place. The stored coordinates are whatever the *last* popup of that kind used, so painting on the first pass shows the popup at the previous anchor's position for a frame — visibly at the previously opened cell when the two are far apart, and at the window's top-left corner the very first time.
+
+Every popup positioned this way therefore renders with `visibility:hidden` until its measurement lands: the column menu, the combo dropdown, the date picker, and the color picker. The element still occupies its place in the layout and Blazor still diffs it normally; only the paint is suppressed. The measurement is also gated on the popup still being open, so a close that beats it (Escape, picking an item) cannot measure a detached element and store nonsense coordinates for the next open.
+
+This is separate from top-layer promotion, which happens in the same microtask as insertion and needs no extra pass.
 
 **Escaping the dialog (top layer).** A containing block that hides overflow — as most dialogs do — also clips fixed descendants, which would confine a dropdown or menu to the dialog box. To avoid that, whenever a containing-block ancestor is detected the grid promotes each popup to the browser's **top layer** as it opens: JS adds `popover="manual"` plus the `nx-grid-top-layer` class and calls `showPopover()`. A top-layer element is positioned against the viewport and is clipped by nothing, so popups behave exactly as they do on an ordinary page — the browser window is the only boundary. The `nx-grid-top-layer` class zeroes `--nx-grid-fixed-x/y` for that element (the offset no longer applies once it is in the top layer) and neutralises the UA popover defaults (`inset`, `margin`, `color`).
 

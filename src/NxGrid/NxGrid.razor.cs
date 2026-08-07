@@ -1004,7 +1004,9 @@ public partial class NxGrid<T>
             await jsInterop.SetEditInputCursor(pos);
         }
 
-        if (comboNeedsPositioning && jsInterop != null)
+        // Gated on the dropdown actually being open: a close that beat the measure pass (Escape,
+        // a pick) would otherwise measure a detached popup and clobber the stored coordinates.
+        if (comboNeedsPositioning && isComboOpen && jsInterop != null)
         {
             comboNeedsPositioning = false;
             await PositionComboDropdown();

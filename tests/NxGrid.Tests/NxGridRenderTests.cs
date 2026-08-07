@@ -348,6 +348,13 @@ public class NxGridRenderTests : BunitContext
         Action<NxGridUpdateArgs<ComboRow>>? onUpdate = null)
     {
         SetupComboDropdownJs();
+        return RenderComboGrid(onUpdate);
+    }
+
+    // Same grid without the JS setup, for tests that control when the positioning call resolves.
+    private IRenderedComponent<NxGrid<ComboRow>> RenderComboGrid(
+        Action<NxGridUpdateArgs<ComboRow>>? onUpdate = null)
+    {
         onUpdate ??= _ => { };
         Expression<Func<ComboRow, object?>> prop = r => r.Item;
         return Render<NxGrid<ComboRow>>(p => p
@@ -410,6 +417,34 @@ public class NxGridRenderTests : BunitContext
 
         // JS falls back to its own 150 px minimum when the column sets none.
         Assert.That(cut.Find(".nx-grid-combo-dropdown").GetAttribute("style"), Does.Contain("width:150px"));
+    }
+
+    // The dropdown keeps the coordinates of whichever cell opened it last until JS measures the new
+    // one, so rendering it visible on that first pass flashes it at the previous cell's position.
+    // It must stay hidden until the measurement lands.
+    [Test]
+    public void ComboBox_DropdownHiddenUntilPositioned()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        // Left unresolved on purpose: the render under test is the one before JS answers.
+        var positioning = JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition", 0);
+
+        var cut = RenderComboGrid();
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("x");
+
+        Assert.That(cut.Find(".nx-grid-combo-dropdown").GetAttribute("style"),
+            Does.Contain("visibility:hidden"), "dropdown visible before it was positioned");
+
+        positioning.SetResult(new NxComboDropdownPosition(90, 40, 150));
+
+        cut.WaitForAssertion(() =>
+        {
+            var style = cut.Find(".nx-grid-combo-dropdown").GetAttribute("style");
+            Assert.That(style, Does.Not.Contain("visibility:hidden"), "dropdown still hidden after positioning");
+            Assert.That(style, Does.Contain("--nx-popup-y:90px"));
+            Assert.That(style, Does.Contain("--nx-popup-x:40px"));
+        });
     }
 
     [Test]
