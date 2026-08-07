@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-08-07
+
 ### Changed
 
 - Tabbing into the grid now selects the top-left cell — the whole first row in `MultiRow`/`SingleRow` — and scrolls it into view, so arrow keys, typing, `Ctrl+C`, and `F2` act immediately instead of the first key press being spent creating a selection. A grid reached by keyboard is no longer a dead stop in the tab order. An existing selection is kept, so tabbing away and back returns the user where they were, and only keyboard focus counts: clicking into the grid and the grid's own refocus after an edit commit are unaffected. `OnSelectionChanged` fires for the new selection.
