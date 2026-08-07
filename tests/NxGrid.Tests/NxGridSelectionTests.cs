@@ -122,6 +122,85 @@ public class NxGridSelectionTests : BunitContext
         Assert.That(firstCell.ClassList, Contains.Item("nx-grid-cell-anchor"));
     }
 
+    // ── Tab focus ─────────────────────────────────────────────────────────────
+    // JS decides whether focus came from the keyboard; these cover what the grid does
+    // once it is told that it did.
+
+    [Test]
+    public async Task TabFocus_NothingSelected_SelectsTopLeftCell()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        NxGridSelectionArgs<Row>? captured = null;
+        var rows = new List<Row> { new("Alice", 25), new("Bob", 20) };
+        var cut = RenderGrid(rows, onChanged: args => captured = args);
+
+        await cut.InvokeAsync(() => cut.Instance.OnGridTabFocus());
+
+        Assert.That(captured, Is.Not.Null, "OnSelectionChanged should have fired");
+        var range = captured!.Ranges[0];
+        Assert.That(range.StartRow, Is.EqualTo(0));
+        Assert.That(range.EndRow, Is.EqualTo(0));
+        Assert.That(range.StartCol, Is.EqualTo(0));
+        Assert.That(range.EndCol, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task TabFocus_RowMode_SelectsWholeFirstRow()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        NxGridSelectionArgs<Row>? captured = null;
+        var rows = new List<Row> { new("Alice", 25), new("Bob", 20) };
+        var cut = RenderGrid(rows, NxGridSelectionMode.MultiRow, onChanged: args => captured = args);
+
+        await cut.InvokeAsync(() => cut.Instance.OnGridTabFocus());
+
+        var range = captured!.Ranges[0];
+        Assert.That(range.StartCol, Is.EqualTo(0));
+        Assert.That(range.EndCol, Is.EqualTo(1), "Full row: EndCol should be last column index");
+        Assert.That(range.Items, Contains.Item(rows[0]));
+    }
+
+    [Test]
+    public async Task TabFocus_ExistingSelection_IsLeftAlone()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var rows = new List<Row> { new("Alice", 25), new("Bob", 20) };
+        NxGridSelectionArgs<Row>? captured = null;
+        var cut = RenderGrid(rows, onChanged: args => captured = args);
+
+        await cut.InvokeAsync(() => cut.Instance.SelectRow(rows[1]));
+        captured = null;
+
+        await cut.InvokeAsync(() => cut.Instance.OnGridTabFocus());
+
+        Assert.That(captured, Is.Null, "Tab focus should not disturb an existing selection");
+    }
+
+    [Test]
+    public async Task TabFocus_SelectionModeNone_IsNoOp()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        NxGridSelectionArgs<Row>? captured = null;
+        var rows = new List<Row> { new("Alice", 25), new("Bob", 20) };
+        var cut = RenderGrid(rows, NxGridSelectionMode.None, onChanged: args => captured = args);
+
+        await cut.InvokeAsync(() => cut.Instance.OnGridTabFocus());
+
+        Assert.That(captured, Is.Null);
+    }
+
+    [Test]
+    public async Task TabFocus_NoRows_IsNoOp()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        NxGridSelectionArgs<Row>? captured = null;
+        var cut = RenderGrid([], onChanged: args => captured = args);
+
+        await cut.InvokeAsync(() => cut.Instance.OnGridTabFocus());
+
+        Assert.That(captured, Is.Null);
+    }
+
     // ── SelectRow programmatic ────────────────────────────────────────────────
 
     [Test]

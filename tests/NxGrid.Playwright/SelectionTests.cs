@@ -75,6 +75,39 @@ public class SelectionTests : PageTest
         await Expect(output).ToContainTextAsync("1 row");
     }
 
+    // ── Tab focus ─────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task TabIntoGrid_SelectsTopLeftCell()
+    {
+        await GoToSelectionPage();
+
+        // "Clear log" is the last focusable element before the Cell-mode grid, so one real
+        // Tab press from it lands keyboard focus on the grid container.
+        await Page.Locator(".doc-btn-secondary").First.ClickAsync();
+        await Page.Keyboard.PressAsync("Tab");
+
+        var firstCell = CellModeGrid.Locator(".nx-grid-row .nx-grid-cell").First;
+        await Expect(firstCell).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("nx-grid-cell-anchor"));
+    }
+
+    [Test]
+    public async Task TabIntoGrid_ExistingSelection_IsLeftAlone()
+    {
+        await GoToSelectionPage();
+
+        var cells = CellModeGrid.Locator(".nx-grid-row .nx-grid-cell");
+        // Select a cell two rows down (col 0 of row 2 with 5 columns), then leave the grid.
+        await cells.Nth(10).ClickAsync();
+        await Expect(cells.Nth(10)).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("nx-grid-cell-anchor"));
+
+        await Page.Locator(".doc-btn-secondary").First.ClickAsync();
+        await Page.Keyboard.PressAsync("Tab");
+
+        await Expect(cells.Nth(10)).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("nx-grid-cell-anchor"));
+        await Expect(CellModeGrid.Locator(".nx-grid-cell-anchor")).ToHaveCountAsync(1);
+    }
+
     // ── Row mode selection ────────────────────────────────────────────────────
 
     [Test]

@@ -21,7 +21,7 @@ A high-performance, virtualised data grid component for Blazor.
 - Row grouping with collapsible groups
 - Row drag-and-drop reordering
 - Column resize, freeze, and hide/show — user-configurable via column menu or programmatically
-- Full keyboard navigation (Arrow, Tab, Enter, Page Up/Down, Ctrl+Arrow, Home/End)
+- Full keyboard navigation (Arrow, Tab, Enter, Page Up/Down, Ctrl+Arrow, Home/End) — tabbing into the grid selects the top-left cell, so it is usable without ever touching the mouse
 - Custom cell and header templates, per-cell styling, cell and header tooltips
 - Context menu with custom items
 - Print filtered/sorted data

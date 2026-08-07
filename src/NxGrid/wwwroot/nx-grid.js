@@ -164,10 +164,17 @@ class NxGrid {
         // have fired by then — dragSelect uses this to detect that and skip installing
         // listeners that would never be torn down. Capturing so stopPropagation can't hide it.
         this._leftButtonDown = false;
+        this._pointerFocus = false;
         this._buttonDownHandler = (event) => {
             // A dialog drag moves the same element, so only its position can have changed —
             // no need to re-walk the ancestor chain on every press anywhere in the document.
             this._fixedContext(false);
+            // Focus that follows a mouse press is not tab-focus (see _gridFocusInHandler).
+            // The browser dispatches that focus synchronously within the press, so clearing
+            // the flag on the next macrotask always outlives it — for any button, since a
+            // right-click focuses the grid too.
+            this._pointerFocus = true;
+            setTimeout(() => { this._pointerFocus = false; }, 0);
             if (event.button === 0) this._leftButtonDown = true;
         };
         this._buttonUpHandler   = (event) => { if (event.button === 0) this._leftButtonDown = false; };
@@ -263,9 +270,24 @@ class NxGrid {
             if (!gridEl.querySelector(editInputSel)) return;
             this.dotNetObjectReference.invokeMethodAsync('OnGridFocusLost');
         };
+        // Tabbing into the grid focuses the container itself, which leaves the keyboard with
+        // nothing to act on when no cell is selected. Report keyboard-driven focus so the C#
+        // side can select the top-left cell. Excluded: focus that follows a mouse press (the
+        // click sets its own selection), and the grid's own focusGrid() calls — e.g. after an
+        // edit commit, which must not disturb where the user was.
+        this._gridFocusInHandler = (e) => {
+            const el = document.getElementById(this.id);
+            if (!el || e.target !== el) return;
+            if (this._pointerFocus || this._programmaticFocus) return;
+            // :focus-visible is the browser's own "focused by keyboard" signal.
+            try { if (!el.matches(':focus-visible')) return; } catch (_) { }
+            this.dotNetObjectReference.invokeMethodAsync('OnGridTabFocus');
+        };
+
         const gridEl = document.getElementById(this.id);
         if (gridEl) {
             gridEl.addEventListener('focusout', this._gridFocusOutHandler);
+            gridEl.addEventListener('focusin', this._gridFocusInHandler);
             // Tooltips are positioned from hover coordinates without a JS round-trip, so
             // make sure the offset is fresh as soon as the pointer reaches the grid.
             gridEl.addEventListener('mouseenter', this._fixedOriginRefresh);
@@ -591,7 +613,10 @@ class NxGrid {
 
     focusGrid() {
         const el = document.getElementById(this.id);
-        if (el) el.focus();
+        if (!el) return;
+        // .focus() dispatches focusin synchronously, so the flag only covers this call.
+        this._programmaticFocus = true;
+        try { el.focus(); } finally { this._programmaticFocus = false; }
     }
 
     focusEditInput() {
@@ -989,6 +1014,11 @@ class NxGrid {
             const gridElement = document.getElementById(this.id);
             if (gridElement) gridElement.removeEventListener('focusout', this._gridFocusOutHandler);
             this._gridFocusOutHandler = null;
+        }
+        if (this._gridFocusInHandler) {
+            const gridElement = document.getElementById(this.id);
+            if (gridElement) gridElement.removeEventListener('focusin', this._gridFocusInHandler);
+            this._gridFocusInHandler = null;
         }
         if (this._layoutObserver) {
             this._layoutObserver.disconnect();

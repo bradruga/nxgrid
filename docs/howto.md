@@ -578,6 +578,20 @@ void OnSelectionChanged(NxGridSelectionArgs<Person> args)
 
 `StartRow`, `EndRow`, `StartCol`, and `EndCol` are always normalized (`Start ≤ End`).
 
+### Tabbing into the grid fires it too
+
+Tabbing into the grid selects the top-left cell when nothing is selected, so `OnSelectionChanged` fires on focus as well as on clicks and key presses. If the handler drives something heavy (loading a detail pane, hitting an API), guard it on the row actually changing:
+
+```csharp
+void OnSelectionChanged(NxGridSelectionArgs<Person> args)
+{
+    var row = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
+    if (ReferenceEquals(row, selectedPerson)) return;
+    selectedPerson = row;
+    // ... load details
+}
+```
+
 ---
 
 ## How to apply custom cell styling

@@ -132,7 +132,18 @@ The internal selection is a single `NxGridRange` with `StartRow/StartCol` (ancho
 
 The `NxGridSelectionRange<T>` exposed through `OnSelectionChanged` always has normalized coordinates (`StartRow ≤ EndRow`, `StartCol ≤ EndCol`) and fully populated `Items` and `Columns` lists.
 
-**No selection:** the grid starts with no selection. Many keyboard actions create a selection at (0, 0) if none exists.
+**No selection:** the grid starts with no selection. Tabbing into it selects the top-left cell (see below), and many keyboard actions create a selection at (0, 0) if none exists.
+
+### Selection on tab focus
+
+The grid container carries `tabindex="0"`, so it is a single stop in the page's tab order. When it receives focus **from the keyboard** (Tab or Shift+Tab) and nothing is selected, the top-left cell is selected — the whole first row in `MultiRow` / `SingleRow` — and scrolled into view, so arrow keys, typing, `Ctrl+C`, and `F2` act on something immediately instead of on the first press being consumed to create a selection.
+
+- An existing selection is never disturbed: tabbing away and back returns to where the user was.
+- Only keyboard focus counts. Focus that follows a mouse press is ignored (the click makes its own selection), as is focus the grid gives itself — for example the refocus after committing an edit.
+- No-op when `SelectionMode` is `None`, while a cell is being edited, or when there are no rows or no visible columns.
+- `OnSelectionChanged` fires for the new selection, exactly as it would for a click.
+
+The keyboard/mouse distinction is made in JavaScript from the browser's own `:focus-visible` signal plus a mouse-press guard; nothing fires when a pointer press is what moved focus.
 
 ### Mouse selection
 
@@ -724,6 +735,7 @@ The JS module (`nx-grid.js`) is lazily imported on first render. Several behavio
 - Column menu and combo dropdown positioning
 - Page size calculation for Page Up/Down (falls back to 10 rows)
 - Mac platform detection (`isMac`; affects whether Ctrl or Meta is the modifier key)
+- Select-on-tab-focus (the keyboard-vs-mouse focus distinction is made in JS)
 
 `ScrollToEnd()` polls with a 20 ms delay until JS interop is initialized, then scrolls to the last row.
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace NxGrid;
 
@@ -188,6 +189,28 @@ public partial class NxGrid<T>
         {
             leftMouseDown = true;
         }
+    }
+
+    /// <summary>
+    /// Called by JavaScript when the grid container itself receives keyboard focus (Tab or
+    /// Shift+Tab). Selects the top-left cell — the whole first row in the row-selection modes —
+    /// and scrolls it into view, so the keyboard has something to act on. No-op when a selection
+    /// already exists or when there is nothing to select. Focus that follows a mouse press, and
+    /// focus the grid gives itself (e.g. after committing an edit), are filtered out on the JS side.
+    /// </summary>
+    [JSInvokable]
+    public async Task OnGridTabFocus()
+    {
+        if (SelectionMode == NxGridSelectionMode.None) return;
+        if (isEditing || selectedRanges.Count > 0) return;
+        if (filteredData.Count == 0 || visibleColumns.Count == 0) return;
+
+        selectedRanges = [IsRowSelectionMode
+            ? new NxGridRange { StartRow = 0, StartCol = 0, EndRow = 0, EndCol = visibleColumns.Count - 1 }
+            : new NxGridRange { StartRow = 0, StartCol = 0, EndRow = 0, EndCol = 0 }];
+        StateHasChanged();
+        await RaiseSelectionChanged();
+        pendingScrollIntoView = (0, 0);
     }
 
     private async Task OnCellMouseEnter(MouseEventArgs args, T row, NxGridColumn<T> column)

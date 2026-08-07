@@ -5,7 +5,8 @@
 <h1>Keyboard</h1>
 <p class="doc-intro">
     NxGrid supports full keyboard navigation and editing. All shortcuts work when the grid has focus.
-    Click the grid below and try any of the shortcuts in the table.
+    Click the grid below — or tab into it, which selects the top-left cell for you — and try any of
+    the shortcuts in the table.
 </p>
 
 <div class="doc-section">
@@ -48,6 +49,7 @@
             <tr><th>Key</th><th>Action</th></tr>
         </thead>
         <tbody>
+            <tr><td><kbd class="doc-kbd">Tab</kbd> (into the grid)</td><td>Selects the top-left cell — the whole first row in the row-selection modes — and scrolls it into view, so the next key acts on a cell right away. An existing selection is kept; clicking into the grid never triggers it.</td></tr>
             <tr><td><kbd class="doc-kbd">Arrow keys</kbd></td><td>Move selection one cell — or commit edit and move when editing an empty cell (not started by F2)</td></tr>
             <tr><td><kbd class="doc-kbd">Shift+Arrow</kbd></td><td>Extend the selection rectangle</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+Arrow</kbd> / <kbd class="doc-kbd">⌘+Arrow</kbd></td><td>Jump to the edge of the data block (Excel-style)</td></tr>
