@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-08-07
+
 ### Added
 
 - Combo dropdowns with long option lists now open in constant time. Once the filtered list reaches 200 options it renders through `<Virtualize>`, building only the rows in view instead of the entire option set — a 20,000-option list opens as fast as a five-option one, where previously every option became a DOM node with its own event handler on every keystroke, and the delay grew with the list. Shorter lists render in full exactly as before, so nothing about existing dropdowns changes. Virtualization scrolls by row index and so pins every row to one uniform height; the grid measures that height from the real rows the first time the dropdown opens, which means a taller `ComboBoxItemTemplate` — a two-line name-and-description row, say — is honoured without being declared. A template whose rows differ in height, rendering a subtitle for some items only, is pinned to the tallest row measured: the shorter rows are padded rather than clipped, and the measurement only ever grows. Two new `NxGridColumn` parameters tune it: `ComboBoxVirtualizeThreshold` moves the option count at which virtualization kicks in (`0` always, `int.MaxValue` never — what a list whose rows must keep their own heights wants, since it then keeps rendering in full), and `ComboBoxItemHeight` declares the row height to skip the one measuring render, or to pin a tall variant the measurement cannot discover on its own.
