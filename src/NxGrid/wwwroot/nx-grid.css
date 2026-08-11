@@ -408,6 +408,8 @@
   border-radius: 4px;
   padding: 4px 0;
   min-width: 120px;
+  width: max-content;
+  max-width: calc(100vw - 20px);
   z-index: 1000;
 }
 

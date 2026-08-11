@@ -308,7 +308,9 @@
         var footerItems        = contextMenuItems.Where(i => i.Section == NxGridMenuSection.Footer).ToList();
         var hasFocusCell       = AllowFocusCellMode && SelectionMode == NxGridSelectionMode.Cell;
 
-        <div class="nx-grid-popup nx-grid-context-menu @TopLayerClass" style="@(PopupPos(contextMenuY,contextMenuX))">
+        var contextMenuStyle = PopupPos(contextMenuY, contextMenuX) + (contextMenuNeedsPositioning ? "visibility:hidden;" : "");
+
+        <div class="nx-grid-popup nx-grid-context-menu @TopLayerClass" style="@contextMenuStyle">
             @for (var i = 0; i < headerItems.Count; i++)
             {
                 var capturedItem = headerItems[i];

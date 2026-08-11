@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The right-click context menu no longer spills off the bottom or right of the window. Right-clicking near the bottom now opens the menu upward from the pointer — the same flip a combo dropdown does — and right-clicking near the right edge slides it left until it fits, rather than leaving items unreachable off-screen. The menu still opens at the pointer whenever there is room, and a menu with more custom items than the window is tall scrolls internally instead of overflowing.
+- The context menu no longer shrinks and wraps its labels when opened near the right edge of the window. It sized itself to the space left between the pointer and the window edge, so the same menu was narrow with wrapped text near the edge and full width elsewhere; it now keeps its natural width wherever it opens, capped only by the window.
 - Popups in a grid hosted inside a dialog now keep their theme colors and stay anchored to their cell on the first open, and while the grid re-renders underneath an open one. Affects the column menu, context menu, combo dropdown, date picker, color picker, column chooser, tooltip, and their backdrops.
 
 ## [0.3.7] - 2026-08-07

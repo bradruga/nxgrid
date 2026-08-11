@@ -10,6 +10,8 @@
     In cell-selection mode a <strong>Focus Cell</strong> checkbox highlights the anchor row and column.
     Use <code>OnContextMenuShowing</code> to append custom items, and <code>OnContextMenuItemClicked</code>
     to handle them. The handler receives the right-clicked row and column along with the item that was selected.
+    The menu keeps itself inside the browser window — it opens upward near the bottom edge and slides left near
+    the right edge.
 </p>
 
 <div class="doc-section">
@@ -145,6 +147,29 @@
         <NxGridColumn Property="@(x => x.Age)"        Width="70" Alignment="NxGridColumnAlignment.Right" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@focusCellCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Window-edge positioning</h2>
+    <p class="doc-note">
+        The menu opens at the pointer, then moves itself back inside the browser window if it would spill out.
+        Right-click a cell in the <strong>last row below</strong> — near the bottom of the window — and the menu
+        opens <em>upward</em>, with its bottom edge at the pointer. Right-click near the <strong>right edge</strong>
+        of the window and the menu slides left until it fits; it does not flip to open leftward, so it still starts
+        at the pointer whenever there is room. The custom items here carry deliberately long labels to make the
+        menu wide enough to see it happen. Nothing needs configuring — this applies to every context menu.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()"
+            OnContextMenuShowing="@BuildWideMenu"
+            OnContextMenuItemClicked="@HandleWideClick">
+        <NxGridColumn Property="@(x => x.Id)"         MinWidth="50" MaxWidth="50" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <div class="doc-controls" style="margin-top:8px">
+        <span style="font-size:13px;color:#555;">Last action: <strong>@wideLog</strong></span>
+    </div>
 </div>
 
 <div class="doc-section">
@@ -292,6 +317,18 @@
             _              => args.Item.Id
         };
     }
+
+    string wideLog = "none";
+
+    void BuildWideMenu(NxGridContextMenuArgs<Person> args)
+    {
+        args.Items.Add(new NxGridContextMenuItem { Id = "transfer", Label = "Transfer to another department…", Shortcut = "Ctrl+Shift+T" });
+        args.Items.Add(new NxGridContextMenuItem { Id = "report",   Label = "Generate quarterly headcount report" });
+        args.Items.Add(new NxGridContextMenuItem { Id = "archive",  Label = "Archive employee record permanently", Separator = true });
+    }
+
+    void HandleWideClick(NxGridContextMenuItemArgs<Person> args)
+        => wideLog = $"{args.Item.Label} — {args.Row.FirstName} {args.Row.LastName}";
 
     class OrderLine
     {

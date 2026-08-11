@@ -41,6 +41,10 @@ public partial class NxGrid<T>
             OnContextMenuShowing(menuArgs);
         }
 
+        // The click point is only a first guess: the menu's own height and width aren't known
+        // until it has rendered, so OnAfterRenderAsync measures it and moves it back inside the
+        // window. It renders hidden until then.
+        contextMenuNeedsPositioning = true;
         showContextMenu = true;
         StateHasChanged();
     }

@@ -570,6 +570,21 @@ class NxGrid {
         return { top, left, isMobile: false };
     }
 
+    // Places the right-click context menu at the pointer. The anchor is the click point itself
+    // — zero height, so `below` and `above` are the same line — which makes the shared
+    // _placeBelow rule do exactly what a context menu wants: drop down from the pointer, flip
+    // up above it when the menu would run past the bottom edge, and slide left (never flip)
+    // when it would run past the right.
+    positionContextMenu(x, y) {
+        const gridElement = document.getElementById(this.id);
+        const menuElement = gridElement && gridElement.querySelector('.nx-grid-context-menu');
+        if (!menuElement) return { top: y, left: x, isMobile: false };
+
+        const { bounds } = this._fixedContext();
+        const { top, left } = this._placeBelow({ left: x, top: y, bottom: y }, menuElement, bounds, null);
+        return { top, left, isMobile: false };
+    }
+
 
     getPageRowCount(rowHeight) {
         const gridElement = document.getElementById(this.id);

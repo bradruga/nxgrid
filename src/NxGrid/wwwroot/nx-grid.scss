@@ -480,6 +480,11 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
 
 // ── Context menu ──────────────────────────────────────────────────────────────
 
+// `width: max-content` rather than the default shrink-to-fit, which a fixed element resolves
+// against the space between its own left edge and the viewport's — so a menu opened near the
+// right edge would collapse to its min-content width and wrap every label. It would also make
+// the JS that keeps the menu on screen measure one width and get another once it moves. The
+// cap keeps a long custom item's label inside the window; `.nx-grid-popup` caps the height.
 .nx-grid-context-menu {
     background-color: var(--nx-grid-menu-bg);
     border: 1px solid var(--nx-grid-border);
@@ -487,6 +492,8 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     border-radius: 4px;
     padding: 4px 0;
     min-width: 120px;
+    width: max-content;
+    max-width: calc(100vw - 20px);
     z-index: 1000;
 }
 

@@ -741,6 +741,10 @@ Section boundaries are automatically separated by a `<hr>` divider whenever both
 
 The menu is positioned with `position:fixed` at the mouse coordinates, offset by the containing block when the grid sits inside a dialog or other transformed ancestor (see [Popups inside dialogs and transformed containers](#popups-inside-dialogs-and-transformed-containers)). It closes when it loses focus (via a JS callback).
 
+**Staying inside the window.** The mouse coordinates are only the starting point: the menu is measured once it is in the DOM and moved back inside the window when it would spill out, through the same `_placeBelow` routine every other popup uses — the anchor is just the click point rather than an element, and being zero-height makes "below" and "above" the same line. Right-clicking near the bottom opens the menu *upward*, with its bottom edge at the pointer instead of its top — the same flip a combo dropdown does. Right-clicking near the right edge slides the menu left until it fits; it does not flip to open leftward, so it still starts at the pointer whenever there is room. A menu taller than the window is capped by `.nx-grid-popup`'s `max-height` and scrolls internally. Like every measured popup it renders with `visibility:hidden` for the frame that inserts it (see [Measured before shown](#measured-before-shown)), so it never flashes at the raw click point before landing.
+
+The menu declares `width: max-content` (capped at the window) rather than taking the default shrink-to-fit width. A fixed element resolves shrink-to-fit against the space between its own left edge and the viewport's, so a menu opened near the right edge would collapse to its min-content width and wrap every label — and the width JS measured before moving it would not be the width it ended up with. `max-content` makes the measured width and the final width the same, whatever the pointer's position.
+
 ---
 
 ## JS interop and initialization
@@ -808,7 +812,7 @@ Because the cap lives in CSS, `offsetHeight` is already clamped when JS measures
 
 Coordinates come from JS, which can only measure the anchor once the popup is in the DOM — so every measured popup takes two render passes: the first inserts it, `OnAfterRenderAsync` measures and stores the coordinates, and the second paints it in place. The stored coordinates are whatever the *last* popup of that kind used, so painting on the first pass shows the popup at the previous anchor's position for a frame — visibly at the previously opened cell when the two are far apart, and at the window's top-left corner the very first time.
 
-Every popup positioned this way therefore renders with `visibility:hidden` until its measurement lands: the column menu, the combo dropdown, the date picker, and the color picker. The element still occupies its place in the layout and Blazor still diffs it normally; only the paint is suppressed. The measurement is also gated on the popup still being open, so a close that beats it (Escape, picking an item) cannot measure a detached element and store nonsense coordinates for the next open.
+Every popup positioned this way therefore renders with `visibility:hidden` until its measurement lands: the column menu, the context menu, the combo dropdown, the date picker, and the color picker. The element still occupies its place in the layout and Blazor still diffs it normally; only the paint is suppressed. The measurement is also gated on the popup still being open, so a close that beats it (Escape, picking an item) cannot measure a detached element and store nonsense coordinates for the next open.
 
 This is separate from top-layer promotion, which happens in the same microtask as insertion and needs no extra pass.
 

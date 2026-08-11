@@ -907,6 +907,8 @@ async Task HandleMenuClick(NxGridContextMenuItemArgs<ProjectDto> args)
 
 `OnContextMenuShowing` is called synchronously, so it should use already-loaded data. `args.Row` and `args.Column` tell you exactly what was right-clicked.
 
+Adding items is free of positioning concerns: the menu is measured after it renders and kept inside the browser window. It opens upward from the pointer near the bottom edge, slides left near the right edge, and scrolls internally if your items make it taller than the window.
+
 ### Item placement (Section)
 
 By default, custom items appear below all built-in items. Use the `Section` property to place them elsewhere:

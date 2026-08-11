@@ -563,6 +563,7 @@ public partial class NxGrid<T>
     private bool menuIsMobile;
 
     private bool showContextMenu;
+    private bool contextMenuNeedsPositioning;
     private double contextMenuX;
     private double contextMenuY;
     private T? contextMenuRow;
@@ -1099,6 +1100,24 @@ public partial class NxGrid<T>
                 }
             }
             StateHasChanged();
+        }
+
+        // Gated on the menu still being open, as the other measured popups are: a click that
+        // dismisses it before the measurement lands would otherwise measure a detached element.
+        if (contextMenuNeedsPositioning)
+        {
+            contextMenuNeedsPositioning = false;
+            if (showContextMenu)
+            {
+                // Null when JS is stubbed out (tests) or the module failed to load — the menu
+                // then stays at the raw click point rather than throwing.
+                if (jsInterop != null && await jsInterop.PositionContextMenu(contextMenuX, contextMenuY) is { } ctxPos)
+                {
+                    contextMenuX = ctxPos.Left;
+                    contextMenuY = ctxPos.Top;
+                }
+                StateHasChanged();
+            }
         }
 
         // Sync fill handle: runs when pending update or ShowFillHandle visibility changed.
