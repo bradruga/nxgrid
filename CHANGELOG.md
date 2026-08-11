@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-08-11
+
 ### Fixed
 
 - A combo dropdown that opened above its cell — because the row sits near the bottom of the window — now stays attached to that cell while the list is filtered. It held its top edge in place as options were typed away, so the list crept upward and away from the cell it belonged to, and filtering down to a single option left that option stranded in the middle of the screen. A dropdown that opens above now holds its *bottom* edge against the cell and shrinks upward; one that opens below is unchanged. The same applies to the column menu, whose filter search shortens its value list.
