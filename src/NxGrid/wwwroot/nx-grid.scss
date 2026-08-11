@@ -353,11 +353,18 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
 //   * viewport positioning. C# and JS measure in plain viewport space and hand the result
 //     over as --nx-popup-x/y. --nx-grid-fixed-x/y is the offset of the containing block for
 //     fixed elements, published from JS: 0 on an ordinary page, and the dialog's own origin
-//     when the grid is inside one (JS zeroes it again for popups it promotes to the top
-//     layer, which are measured from the viewport once more). Subtracting it here means no
-//     call site can forget to.
+//     when the grid is inside one (.nx-grid-top-layer below zeroes it again for popups
+//     promoted to the top layer, which are measured from the viewport once more). Subtracting
+//     it here means no call site can forget to.
 //   * never taller than the window. Popups scroll rather than run off the bottom edge;
 //     the flip/clamp logic in nx-grid.js then measures an already-capped height.
+//   * immunity to the UA `[popover]` defaults. A promoted popup carries the `popover`
+//     attribute, which the UA stylesheet gives `inset: 0`, `margin: auto` and
+//     `color: CanvasText` — enough to re-centre the popup in whatever box is left over and
+//     paint its text in the UA's color instead of the theme's, whatever the theme is.
+//     These four declarations are the defaults for any fixed element
+//     anyway, so stating them unconditionally costs an unpromoted popup nothing and means
+//     the UA rule can never win, whatever order promotion and rendering happen in.
 //
 // Backdrops deliberately skip the cap and span the window instead — `inset: 0` would only
 // cover the containing block, which inside a dialog is the dialog rather than the viewport.
@@ -366,6 +373,10 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     position: fixed;
     top:  calc(var(--nx-popup-y, 0px) - var(--nx-grid-fixed-y, 0px));
     left: calc(var(--nx-popup-x, 0px) - var(--nx-grid-fixed-x, 0px));
+    right: auto;
+    bottom: auto;
+    margin: 0;
+    color: inherit;
 }
 
 .nx-grid-popup {
@@ -378,18 +389,15 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     height: 100vh;
 }
 
-// Applied by JS to popups promoted to the browser's top layer, which they are whenever the
-// grid sits inside a dialog (or anything else that would otherwise clip and offset them).
-// A top-layer popup is positioned against the viewport, so the containing-block offset must
-// not be subtracted from its coordinates; the rest neutralises the UA popover defaults that
-// would fight our own positioning and colors.
+// Carried by popups promoted to the browser's top layer, which they are whenever the grid sits
+// inside a dialog (or anything else that would otherwise clip and offset them). A top-layer
+// popup is positioned against the viewport, so the containing-block offset must not be
+// subtracted from its coordinates. This is the only part of a popup's styling that depends on
+// promotion, and the class is rendered by the component (never added from JS) so a re-render
+// while a popup is open cannot drop it.
 .nx-grid-top-layer {
     --nx-grid-fixed-x: 0px;
     --nx-grid-fixed-y: 0px;
-    right: auto;
-    bottom: auto;
-    margin: 0;
-    color: inherit;
 }
 
 .nx-grid-menu-backdrop {

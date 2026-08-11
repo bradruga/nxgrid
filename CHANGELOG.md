@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Popups in a grid hosted inside a dialog now keep their theme colors and stay anchored to their cell on the first open, and while the grid re-renders underneath an open one. Affects the column menu, context menu, combo dropdown, date picker, color picker, column chooser, tooltip, and their backdrops.
+
 ## [0.3.7] - 2026-08-07
 
 ### Added

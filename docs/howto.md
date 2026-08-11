@@ -1272,6 +1272,6 @@ In a browser without Popover API support, popups fall back to being flipped and 
 
 - Nothing to configure — the dialog needs no extra height, and no `overflow: visible` workaround.
 - Grids that stay mounted while the dialog is hidden are fine — the offset is re-measured on resize, scroll, mouse press, and before each popup opens.
-- If your host CSS targets `[popover]` globally, scope it — the grid's popups carry that attribute while open (they also carry the `nx-grid-top-layer` class).
+- If your host CSS targets `[popover]` globally, scope it — the grid's popups carry that attribute while open (they also carry the `nx-grid-top-layer` class). The grid already neutralises the browser's own `[popover]` defaults, so popups keep your theme's text color in a dialog, on the first open and every one after.
 
 See the **Grid in a Dialog** sample page (`/in-dialog`) for a runnable version, and [behavior.md](behavior.md#popups-inside-dialogs-and-transformed-containers) for the full mechanism.

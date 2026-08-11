@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using NUnit.Framework;
@@ -35,6 +36,10 @@ public class DialogHostTests : PageTest
         await Page.GotoAsync(_baseUrl + "/in-dialog");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Open dialog" }).ClickAsync();
         await Expect(DialogGrid.Locator(".nx-grid-header-row")).ToBeVisibleAsync();
+        // The header row is visible before the grid has its final width, and these columns are
+        // stretched to fill it — so every column's position is still moving at that point. Wait
+        // for a data row too, which only renders once the grid has been laid out.
+        await Expect(BodyCell(0, 0)).ToBeVisibleAsync();
     }
 
     private static async Task<LTRB> BoxAsync(ILocator locator)
@@ -45,6 +50,9 @@ public class DialogHostTests : PageTest
     }
 
     private record LTRB(float Left, float Top, float Right, float Bottom);
+
+    // The class attribute carries several tokens, so match the one that matters.
+    private static readonly Regex TopLayerClass = new(@"\bnx-grid-top-layer\b");
 
     [Test]
     public async Task GridInTransformedDialog_PublishesContainingBlockOffset()
@@ -125,12 +133,14 @@ public class DialogHostTests : PageTest
     {
         await OpenDialog();
 
-        var header = await BoxAsync(HeaderCell(ColDepartment));
         await HeaderCell(ColDepartment).Locator(".nx-grid-menu-button").ClickAsync();
 
         var menu = DialogGrid.Locator(".nx-grid-column-menu");
         await Expect(menu).ToBeVisibleAsync();
 
+        // Measured with the menu open: the menu is placed against the header cell's rect as it is
+        // at that moment, and an open popup is out of flow so it cannot have moved the header.
+        var header  = await BoxAsync(HeaderCell(ColDepartment));
         var dialog  = await BoxAsync(Dialog);
         var menuBox = await BoxAsync(menu);
         var viewport = Page.ViewportSize!;
@@ -193,6 +203,98 @@ public class DialogHostTests : PageTest
 
         // The panel is promoted after the backdrop, so it stays clickable on top of it.
         await panel.Locator("input[type=checkbox]").First.ClickAsync();
+    }
+
+    /// <summary>
+    /// A promoted popup only escapes the UA <c>[popover]</c> defaults while it carries
+    /// <c>nx-grid-top-layer</c>, and the class only zeroes <c>--nx-grid-fixed-x/y</c> — the
+    /// containing-block correction a top-layer popup must not apply — while it is on the element.
+    /// The class used to be grafted on from JS, so a Blazor re-render dropped it; these two tests
+    /// pin it to the *first* open of each popup and to a re-render while one is open.
+    /// </summary>
+    /// <remarks>
+    /// The date and color pickers are not covered here — the dialog page has no such column — but
+    /// they carry the class through the same markup as the popups below.
+    /// </remarks>
+    [Test]
+    public async Task EveryPopup_CarriesTopLayerClassOnFirstOpen()
+    {
+        // Each case reloads the page, so every open really is a first open and no popup left over
+        // from the previous case can overlay the element the next one has to click.
+        async Task AssertFirstOpenPromoted(Func<Task> open, params (string Selector, string What)[] popups)
+        {
+            await OpenDialog();
+            await open();
+
+            foreach (var (selector, what) in popups)
+            {
+                var popup = DialogGrid.Locator(selector);
+                await Expect(popup).ToBeVisibleAsync();
+                await Expect(popup).ToHaveClassAsync(TopLayerClass);
+                var fixedX = await popup.EvaluateAsync<float>(
+                    "el => parseFloat(getComputedStyle(el).getPropertyValue('--nx-grid-fixed-x'))");
+                Assert.That(fixedX, Is.EqualTo(0), $"{what}: containing-block offset still subtracted");
+            }
+        }
+
+        await AssertFirstOpenPromoted(
+            () => HeaderCell(ColDepartment).Locator(".nx-grid-menu-button").ClickAsync(),
+            (".nx-grid-column-menu", "column menu"));
+
+        // The chooser opens its panel and a full-window backdrop together.
+        await AssertFirstOpenPromoted(
+            async () =>
+            {
+                await HeaderCell(ColDepartment).Locator(".nx-grid-menu-button").ClickAsync();
+                await DialogGrid.GetByText("Manage columns...").ClickAsync();
+            },
+            (".nx-grid-chooser-panel", "column chooser"),
+            (".nx-grid-chooser-backdrop", "chooser backdrop"));
+
+        // The combo dropdown is the one the bug was reported against: its first open is always
+        // followed by the render that pins the row height it just measured.
+        await AssertFirstOpenPromoted(
+            async () =>
+            {
+                await BodyCell(1, ColDepartment).DblClickAsync();
+                await DialogGrid.Locator(".nx-grid-combo-wrapper .nx-grid-combo-button").ClickAsync();
+            },
+            (".nx-grid-combo-dropdown", "combo dropdown"));
+
+        await AssertFirstOpenPromoted(
+            () => BodyCell(2, 1).ClickAsync(new() { Button = MouseButton.Right }),
+            (".nx-grid-context-menu", "context menu"));
+
+        await AssertFirstOpenPromoted(
+            () => BodyCell(2, 1).HoverAsync(),
+            (".nx-grid-tooltip", "tooltip"));
+    }
+
+    [Test]
+    public async Task TopLayerClass_SurvivesRerenderWhilePopupIsOpen()
+    {
+        await OpenDialog();
+
+        await BodyCell(1, ColDepartment).DblClickAsync();
+        await DialogGrid.Locator(".nx-grid-combo-wrapper .nx-grid-combo-button").ClickAsync();
+
+        var dropdown = DialogGrid.Locator(".nx-grid-combo-dropdown");
+        await Expect(dropdown).ToBeVisibleAsync();
+
+        // Re-render the open dropdown: typing narrows the option list, which rewrites the
+        // element Blazor owns — the diff that used to strip a JS-added class token.
+        await DialogGrid.Locator(".nx-grid-combo-input").PressSequentiallyAsync("Fin");
+        await Expect(dropdown).ToBeVisibleAsync();
+
+        await Expect(dropdown).ToHaveClassAsync(TopLayerClass);
+        var inTopLayer = await dropdown.EvaluateAsync<bool>("el => el.matches(':popover-open')");
+        Assert.That(inTopLayer, Is.True, "dropdown still in the top layer after the re-render");
+
+        // Still anchored to its cell, which only holds while --nx-grid-fixed-x/y are zeroed.
+        var wrapper = await BoxAsync(DialogGrid.Locator(".nx-grid-combo-wrapper"));
+        var popup   = await BoxAsync(dropdown);
+        Assert.That(popup.Left, Is.EqualTo(wrapper.Left).Within(2), "dropdown left edge");
+        Assert.That(popup.Top, Is.EqualTo(wrapper.Bottom).Within(2), "dropdown top edge");
     }
 
     [Test]

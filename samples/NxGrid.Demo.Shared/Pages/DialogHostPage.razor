@@ -25,6 +25,12 @@
         Everything lines up with its cell, and the taller popups spill outside the dialog rather than
         being cut off at its edge.
     </p>
+    <p class="doc-note">
+        The Department dropdown sets <code>ComboBoxVirtualizeThreshold="0"</code> so it virtualizes
+        even with five options. That makes it re-render once immediately after opening, to pin its
+        rows to the row height it just measured — the case that matters here, because a popup keeps
+        its position and its theme colors across every re-render, not just from the second open on.
+    </p>
     <button class="doc-btn" @onclick="@(() => dialogOpen = true)">Open dialog</button>
     <pre class="doc-code" style="margin-top:12px">@dialogCode</pre>
 </div>
@@ -76,8 +82,10 @@
         dialog, the grid promotes each one to the browser's top layer while it is open
         (<code>popover</code> + <code>showPopover()</code>) — it keeps its place in the DOM, so
         dismissal and theming are unaffected, but nothing clips it and the browser window becomes the
-        only boundary. Browsers without Popover API support fall back to flipping and clamping popups
-        inside the dialog so they stay fully visible.
+        only boundary. The browser's own <code>[popover]</code> defaults, which would otherwise
+        re-centre the popup and paint its text in the UA's color, are overridden for every popup
+        whether it is promoted or not. Browsers without Popover API support fall back to flipping and
+        clamping popups inside the dialog so they stay fully visible.
     </p>
 </div>
 
@@ -97,7 +105,10 @@
                 <NxGridColumn Property="@(x => x.FirstName)" Width="130" />
                 <NxGridColumn Property="@(x => x.LastName)" Width="130" />
                 <NxGridColumn Property="@(x => x.Age)" Width="70" Alignment="NxGridColumnAlignment.Right" />
-                <NxGridColumn Property="@(x => x.Department)"
+                @* ComboBoxVirtualizeThreshold="0" forces the virtualized dropdown even for five
+                   options, so this dialog exercises the popup that re-renders immediately after
+                   its first open — see the note above the dialog. *@
+                <NxGridColumn Property="@(x => x.Department)" ComboBoxVirtualizeThreshold="0"
                               ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
             </NxGrid>
         </div>

@@ -303,6 +303,10 @@
   position: fixed;
   top: calc(var(--nx-popup-y, 0px) - var(--nx-grid-fixed-y, 0px));
   left: calc(var(--nx-popup-x, 0px) - var(--nx-grid-fixed-x, 0px));
+  right: auto;
+  bottom: auto;
+  margin: 0;
+  color: inherit;
 }
 
 .nx-grid-popup {
@@ -318,10 +322,6 @@
 .nx-grid-top-layer {
   --nx-grid-fixed-x: 0px;
   --nx-grid-fixed-y: 0px;
-  right: auto;
-  bottom: auto;
-  margin: 0;
-  color: inherit;
 }
 
 .nx-grid-menu-backdrop {

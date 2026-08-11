@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 // NxGrid<T> is split across the following partial class files:
 //
@@ -577,6 +578,33 @@ public partial class NxGrid<T>
     /// </summary>
     private static string PopupPos(double top, double left) =>
         FormattableString.Invariant($"--nx-popup-y:{top}px;--nx-popup-x:{left}px;");
+
+    // True while this grid's popups are promoted to the browser's top layer, which JavaScript
+    // does whenever the grid sits inside a containing block for fixed descendants (a dialog).
+    // See OnTopLayerChanged.
+    private bool popupsInTopLayer;
+
+    /// <summary>
+    /// The extra class every popup carries while it lives in the browser's top layer, where its
+    /// coordinates are measured from the viewport again so <c>--nx-grid-fixed-x/y</c> must not be
+    /// subtracted. Rendered from C# rather than added by JavaScript: <c>class</c> is part of
+    /// Blazor's render tree, so the next diff of the element rewrites the whole attribute and
+    /// would drop a JS-added token — which is what left a popup's first open unstyled.
+    /// </summary>
+    private string TopLayerClass => popupsInTopLayer ? "nx-grid-top-layer" : "";
+
+    /// <summary>
+    /// Called by JavaScript when it starts or stops promoting this grid's popups to the browser's
+    /// top layer — on startup, and again whenever the grid's containing block for fixed elements
+    /// appears or goes away (the grid is moved into or out of a dialog).
+    /// </summary>
+    [JSInvokable]
+    public void OnTopLayerChanged(bool promoted)
+    {
+        if (popupsInTopLayer == promoted) return;
+        popupsInTopLayer = promoted;
+        StateHasChanged();
+    }
 
     // ── Public properties ─────────────────────────────────────────────────────
 

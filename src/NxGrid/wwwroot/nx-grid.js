@@ -247,6 +247,11 @@ class NxGrid {
             }
         });
 
+        // Whether this grid's popups go to the top layer. Starts false so an ordinary page never
+        // makes the interop call that reports it; _fixedContext() below decides for real.
+        this._topLayer = false;
+        this._topLayerFailed = false;
+
         // Popup coordinates are measured in viewport space, so the containing-block offset
         // has to be current before any popup renders. Cheap to recompute, so refresh it on
         // every event that can move the grid relative to the viewport: page scroll (above),
@@ -301,24 +306,40 @@ class NxGrid {
     // dismissal checks, and CSS inheritance all keep working. No-op when the grid is not inside
     // a containing-block ancestor, or when the browser has no popover support — those popups
     // are already correct as plain fixed elements.
+    //
+    // Only the `popover` attribute is set here. The matching .nx-grid-top-layer class is rendered
+    // by C# (see NxGrid.razor.cs) because `class` is part of Blazor's render tree: a token added
+    // from here survives only until Blazor next rewrites the attribute, which is what used to
+    // strip it on a popup's first open.
     _promotePopup(el) {
-        if (!TOP_LAYER_SUPPORTED || !this._fixedAncestor) return;
+        if (!this._topLayer) return;
         if (!el.matches || !el.matches(POPUP_SELECTOR)) return;
         // A popup the host keeps hidden (the desktop column-menu backdrop) must stay hidden;
         // showPopover() on a display:none element throws.
         if (el.checkVisibility && !el.checkVisibility()) return;
         if (el.matches(':popover-open')) return;
 
-        el.classList.add('nx-grid-top-layer');
         el.setAttribute('popover', 'manual');
         try {
             el.showPopover();
         } catch {
             // Leaving the attribute behind would hide the popup outright (UA styles it
-            // display:none until shown), so undo the promotion and fall back to plain fixed.
+            // display:none until shown), so undo the promotion and fall back to plain fixed —
+            // for this popup and every later one, which also drops the class that tells the
+            // stylesheet to stop subtracting the containing-block offset.
             el.removeAttribute('popover');
-            el.classList.remove('nx-grid-top-layer');
+            this._topLayerFailed = true;
+            this._syncTopLayer();
         }
+    }
+
+    // Publishes whether this grid's popups belong in the top layer, so C# can render
+    // .nx-grid-top-layer as part of the popup's markup instead of having JS graft it on.
+    _syncTopLayer() {
+        const promote = TOP_LAYER_SUPPORTED && !!this._fixedAncestor && !this._topLayerFailed;
+        if (promote === this._topLayer) return;
+        this._topLayer = promote;
+        this.dotNetObjectReference.invokeMethodAsync('OnTopLayerChanged', promote);
     }
 
     // Finds the nearest ancestor that is the containing block for the grid's position:fixed
@@ -383,6 +404,7 @@ class NxGrid {
             const gridEl = this._fixedAncestor ? document.getElementById(this.id) : null;
             if (gridEl) this._popupObserver.observe(gridEl, { childList: true });
             else this._popupObserver.disconnect();
+            this._syncTopLayer();
         }
         const ctx = this._measureFixedContext();
         if (this._fixedX !== ctx.x || this._fixedY !== ctx.y) {
