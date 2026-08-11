@@ -122,6 +122,13 @@
         browser after it is inserted, so it stays hidden for that one frame rather than flashing at
         whichever cell opened it last.
     </p>
+    <p class="doc-note">
+        A dropdown that flipped above its cell is anchored by its <strong>bottom</strong> edge, so
+        filtering the list shrinks it upward and the remaining options stay directly over the cell.
+        It is also capped to the room left on the side it opened on and scrolls there rather than
+        running past the edge of the window. Scroll this page until a row sits near the bottom, open
+        its dropdown, and type: the list stays put against the cell.
+    </p>
     <NxGrid T="OrderLine" Data="@minWidthLines" OnUpdate="@HandleMinWidthUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.Item)" Title="Item"

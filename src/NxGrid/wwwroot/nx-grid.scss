@@ -356,8 +356,11 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
 //     when the grid is inside one (.nx-grid-top-layer below zeroes it again for popups
 //     promoted to the top layer, which are measured from the viewport once more). Subtracting
 //     it here means no call site can forget to.
-//   * never taller than the window. Popups scroll rather than run off the bottom edge;
-//     the flip/clamp logic in nx-grid.js then measures an already-capped height.
+//   * never taller than the window, nor than the room left on the side nx-grid.js placed the
+//     popup on (--nx-popup-avail, unset when nothing measured it). Popups scroll rather than
+//     run off an edge; the placement logic in nx-grid.js then measures an already-capped
+//     height. A popup with a tighter cap of its own states it as --nx-popup-cap rather than
+//     re-declaring max-height, so the two limits both apply.
 //   * immunity to the UA `[popover]` defaults. A promoted popup carries the `popover`
 //     attribute, which the UA stylesheet gives `inset: 0`, `margin: auto` and
 //     `color: CanvasText` — enough to re-centre the popup in whatever box is left over and
@@ -380,7 +383,7 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
 }
 
 .nx-grid-popup {
-    max-height: calc(100vh - 20px);
+    max-height: min(var(--nx-popup-cap, calc(100vh - 20px)), var(--nx-popup-avail, 100vh));
     overflow-y: auto;
 }
 
@@ -425,7 +428,7 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
 
 .nx-grid-column-menu-mobile {
     border-radius: 8px;
-    max-height: 80vh;
+    --nx-popup-cap: 80vh;
     overflow-y: auto;
 }
 
@@ -744,7 +747,7 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     background: var(--nx-grid-surface);
     border: 1px solid var(--nx-grid-border);
     box-shadow: 0 2px 8px var(--nx-grid-shadow);
-    max-height: 200px;
+    --nx-popup-cap: 200px;
     overflow-y: auto;
     z-index: 1001;
 }

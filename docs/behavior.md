@@ -445,6 +445,8 @@ Combo box editing applies to columns that have `ComboBoxSource` set. The behavio
 
 **Positioning:** the dropdown opens below the cell. When there is not enough room below (the cell is near the bottom of the viewport), it flips up and opens above the cell instead. It is also clamped horizontally so it never runs off the right or left edge. Like every measured popup, it is rendered `visibility:hidden` on the pass that inserts it and becomes visible only once JS has measured the cell — see [Measured before shown](#measured-before-shown). Without that, opening a second dropdown would paint it at the *previous* dropdown's position for one frame.
 
+The dropdown is measured once, when it opens — typing does not re-measure it. What keeps it attached to its cell as the option list shrinks and grows is which *edge* is anchored: opened below, its top edge stays at the bottom of the cell and the list grows downward; opened above, its **bottom** edge stays at the top of the cell and the list grows upward. Filtering a list that opened above down to a single option therefore leaves that option directly over the cell, rather than hanging from where the top of the unfiltered list used to be. The dropdown is also capped to the room left on whichever side it opened on, so a list that grows back (after a backspace) scrolls inside the popup instead of running off the screen edge. See [Popup placement](#popup-placement).
+
 **Width:** the dropdown matches its cell's width, with a floor of 150 px — or of `ComboBoxMinWidth` when the column sets one, so a narrow column can list long option text without being widened. The floor is capped to the space available, so a minimum wider than the window still leaves the popup fully visible.
 
 ### Virtualization
@@ -769,6 +771,8 @@ All other JS-dependent operations are no-ops if `jsInterop` is null, and silentl
 
 When the column menu opens, it is rendered hidden (via `visibility:hidden`) on the first render pass. After render, JS measures the header cell and the menu is repositioned and made visible. A two-render cycle is unavoidable for correct positioning — the pattern is shared by every measured popup, see [Measured before shown](#measured-before-shown).
 
+The menu drops from the bottom of its header cell, flips to hang from the top of that cell when there is no room below, and is capped to whichever side it took — see [Popup placement](#popup-placement). Because a flipped menu is anchored by its bottom edge, searching in the filter panel (which shortens the value list) leaves the menu attached to its header instead of drifting off it.
+
 Opening the menu can itself trigger a late `scroll` event on the page (e.g. the browser's focus-follows-click auto-scroll, or an automation tool scrolling the button into view before clicking) that arrives a few milliseconds after the menu is positioned. The page-scroll "close on scroll" listener ignores scroll events that land within 250ms of the menu being positioned, so this self-inflicted scroll doesn't immediately dismiss the menu that was just opened. Genuine user scrolling after that grace period still closes it as intended. Clicks on the header row are excluded from the separate "click outside" dismissal for the same reason — see `nx-grid.js`.
 
 The "close on scroll" listener also ignores scroll events whose target is inside the menu itself. The filter panel's value list has its own scroll box (`overflow-y:auto` plus a `<Virtualize>`), and scrolling it fires a `scroll` event that reaches the capture-phase window listener; without this exclusion, scrolling the filter list would dismiss the menu. Only scrolling *outside* the open menu closes it.
@@ -799,14 +803,30 @@ Without compensation, every popup would land offset by that ancestor's position 
   top:  calc(var(--nx-popup-y, 0px) - var(--nx-grid-fixed-y, 0px));
   left: calc(var(--nx-popup-x, 0px) - var(--nx-grid-fixed-x, 0px));
 }
-.nx-grid-popup { max-height: calc(100vh - 20px); overflow-y: auto; }
+.nx-grid-popup {
+  max-height: min(var(--nx-popup-cap, calc(100vh - 20px)), var(--nx-popup-avail, 100vh));
+  overflow-y: auto;
+}
 ```
 
 C# and JS measure in plain viewport space and hand the result over as `--nx-popup-x/y`; the correction happens in the stylesheet, so no call site can forget it. JS walks the grid's ancestor chain, finds the first element that establishes a containing block, and publishes its padding-box origin (adjusted for that element's own scroll) as `--nx-grid-fixed-x/y` — `0px` when there is no such ancestor, so coordinates pass through unchanged. Adding a popup means adding the class; the offset correction, the window cap, and top-layer promotion all follow from it.
 
 The offset is recomputed on grid init, window resize, page scroll, any mouse press (a dialog drag always begins with one), pointer entry into the grid, and before each popup is positioned. It is published through a `<style>` rule scoped to the grid's id — mutated via CSSOM rather than by rewriting the sheet — because Blazor owns the grid element's `style` attribute and would drop anything JS wrote there on the next render.
 
-Because the cap lives in CSS, `offsetHeight` is already clamped when JS measures a popup, so the shared flip-and-clamp routine (`_placeBelow` in `nx-grid.js`) pins an over-tall popup inside the window with no extra bookkeeping.
+Because the cap lives in CSS, `offsetHeight` is already clamped when JS measures a popup, so the shared placement routine (`_placeBelow` in `nx-grid.js`) sees a height that already fits the window with no extra bookkeeping.
+
+### Popup placement
+
+One routine places every popup the grid anchors to something — column menu, context menu, combo dropdown, date picker, color picker — so the rule is the same wherever it is applied:
+
+- **Below by default.** The popup's top edge goes at the bottom of its anchor (the pointer, for the context menu).
+- **Above when it does not fit below and there is more room above.** The popup's **bottom** edge goes at the top of its anchor.
+- **Capped to the room on the side it took**, published as `--nx-popup-avail` and applied by the `.nx-grid-popup` rule on top of the popup's own cap (`--nx-popup-cap`, e.g. the combo dropdown's 200 px). Content beyond it scrolls inside the popup. A popup that fits on neither side therefore takes the roomier one and scrolls, instead of covering its own anchor.
+- **Clamped horizontally**, with a 10 px gap from any edge it would otherwise run past.
+
+Which edge is anchored is what matters for a popup whose content changes size while it is open. A flipped popup is rendered with `transform: translateY(-100%)` — the browser subtracts its *current* height, so the bottom edge stays put as it grows and shrinks and the popup never detaches from its anchor. Nothing has to re-measure on every keystroke: the combo dropdown filtering down to one row (see [Combo box](#combo-box)) and the column menu's value list shrinking as you search both stay put for free. Popups that never change size — the date and color pickers — are unaffected by the distinction.
+
+The "hidden while measuring" pass below is deliberately placed with neither the flip nor the cap applied, so what JS measures is the popup's natural size rather than one a previous placement constrained it to.
 
 ### Measured before shown
 

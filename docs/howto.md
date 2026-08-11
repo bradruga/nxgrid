@@ -383,6 +383,19 @@ the browser window and still flipping above the cell when there is no room below
 </NxGridColumn>
 ```
 
+### Show more options at once
+
+The dropdown is 200 px tall and scrolls beyond that. Raise (or lower) that limit with `--nx-popup-cap`
+on `.nx-grid-combo-dropdown`:
+
+```css
+.nx-grid-combo-dropdown { --nx-popup-cap: 340px; }
+```
+
+The dropdown is still capped to the room actually left below (or above) the cell it belongs to, so a
+taller limit never pushes it off the screen — near the bottom of the window it simply flips above the
+cell and scrolls in whatever space is there.
+
 ### Use a combo box with thousands of options
 
 Nothing to configure: once the filtered list reaches 200 options the dropdown renders through

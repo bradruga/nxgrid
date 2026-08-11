@@ -3,11 +3,16 @@ using Microsoft.JSInterop;
 
 namespace NxGrid;
 
-public record NxComboDropdownPosition(double Top, double Left, double Width, double ItemHeight = 0);
+// Every popup position below carries the same two placement fields: `Above` says the popup was
+// flipped to sit above its anchor, in which case `Top` is its *bottom* edge and the popup is
+// rendered translated up by its own height — which keeps it attached to its anchor when its
+// content changes size while it is open. `MaxHeight` is the room available on whichever side was
+// chosen, or 0 for "no cap of ours". See _placeBelow in nx-grid.js.
+public record NxComboDropdownPosition(double Top, double Left, double Width, double ItemHeight = 0, bool Above = false, double MaxHeight = 0);
 public record NxCharWidths(Dictionary<string, double> Normal, Dictionary<string, double> Bold);
-public record NxMenuPosition(double Top, double Left, bool IsMobile = false);
-public record NxDatePickerPosition(double Top, double Left);
-public record NxColorPickerPosition(double Top, double Left);
+public record NxMenuPosition(double Top, double Left, bool IsMobile = false, bool Above = false, double MaxHeight = 0);
+public record NxDatePickerPosition(double Top, double Left, bool Above = false, double MaxHeight = 0);
+public record NxColorPickerPosition(double Top, double Left, bool Above = false, double MaxHeight = 0);
 public record NxDragFillResult(string Direction, int FillCount);
 public record NxDragSelectResult(int EndRow, int EndCol);
 

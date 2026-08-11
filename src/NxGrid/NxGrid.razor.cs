@@ -517,6 +517,8 @@ public partial class NxGrid<T>
     private double comboDropdownTop;
     private double comboDropdownLeft;
     private double comboDropdownWidth;
+    private bool comboDropdownAbove;
+    private double comboDropdownMaxHeight;
 
     // Row height a virtualized dropdown falls back to when its rows could not be measured.
     private const double ComboItemHeightEstimate = 24;
@@ -534,6 +536,8 @@ public partial class NxGrid<T>
     private DateTime? datePickerHighlightDate;
     private double datePickerTop;
     private double datePickerLeft;
+    private bool datePickerAbove;
+    private double datePickerMaxHeight;
 
     // Color picker state
     private bool isColorPickerOpen;
@@ -541,6 +545,8 @@ public partial class NxGrid<T>
     private bool colorPickerNeedsGradientSetup;
     private double colorPickerTop;
     private double colorPickerLeft;
+    private bool colorPickerAbove;
+    private double colorPickerMaxHeight;
     private bool colorPickerCustomView;
     private int colorPickerH;
     private int colorPickerS;
@@ -561,11 +567,15 @@ public partial class NxGrid<T>
     private double menuTop;
     private double menuLeft;
     private bool menuIsMobile;
+    private bool menuAbove;
+    private double menuMaxHeight;
 
     private bool showContextMenu;
     private bool contextMenuNeedsPositioning;
     private double contextMenuX;
     private double contextMenuY;
+    private bool contextMenuAbove;
+    private double contextMenuMaxHeight;
     private T? contextMenuRow;
     private NxGridColumn<T>? contextMenuColumn;
     private List<NxGridContextMenuItem> contextMenuItems = [];
@@ -577,8 +587,33 @@ public partial class NxGrid<T>
     /// a transformed ancestor (a modal dialog) by the stylesheet, and C# only ever deals in plain
     /// viewport space.
     /// </summary>
-    private static string PopupPos(double top, double left) =>
-        FormattableString.Invariant($"--nx-popup-y:{top}px;--nx-popup-x:{left}px;");
+    /// <param name="top">The popup's top edge in viewport space, or its bottom edge when <paramref name="above"/>.</param>
+    /// <param name="left">The popup's left edge in viewport space.</param>
+    /// <param name="above">
+    /// The popup was flipped above its anchor, so <paramref name="top"/> is its <em>bottom</em>
+    /// edge: it is translated up by its own height. A popup anchored that way stays attached to
+    /// its anchor while its content grows or shrinks — filtering a combo dropdown down to one
+    /// row keeps that row under the cell instead of leaving it hanging where the top of the
+    /// unfiltered list was.
+    /// </param>
+    /// <param name="availableHeight">
+    /// Room left on the side the popup was placed on, published as <c>--nx-popup-avail</c> and
+    /// applied by the stylesheet on top of the popup's own height cap. Content beyond it scrolls
+    /// inside the popup rather than running off the screen edge. 0 means no cap.
+    /// </param>
+    /// <param name="measuring">
+    /// This is the hidden pass that exists for JavaScript to measure the popup. It renders at the
+    /// previous position with neither the flip nor the height cap applied, so what gets measured
+    /// is the popup's natural size rather than one a previous placement constrained it to.
+    /// </param>
+    private static string PopupPos(double top, double left, bool above = false, double availableHeight = 0, bool measuring = false)
+    {
+        var style = FormattableString.Invariant($"--nx-popup-y:{top}px;--nx-popup-x:{left}px;");
+        if (measuring) return style + "visibility:hidden;";
+        if (availableHeight > 0) style += FormattableString.Invariant($"--nx-popup-avail:{availableHeight}px;");
+        if (above) style += "transform:translateY(-100%);";
+        return style;
+    }
 
     // True while this grid's popups are promoted to the browser's top layer, which JavaScript
     // does whenever the grid sits inside a containing block for fixed descendants (a dialog).
@@ -1097,6 +1132,8 @@ public partial class NxGrid<T>
                     menuTop = pos.Top;
                     menuLeft = pos.Left;
                     menuIsMobile = pos.IsMobile;
+                    menuAbove = pos.Above;
+                    menuMaxHeight = pos.MaxHeight;
                 }
             }
             StateHasChanged();
@@ -1115,6 +1152,8 @@ public partial class NxGrid<T>
                 {
                     contextMenuX = ctxPos.Left;
                     contextMenuY = ctxPos.Top;
+                    contextMenuAbove = ctxPos.Above;
+                    contextMenuMaxHeight = ctxPos.MaxHeight;
                 }
                 StateHasChanged();
             }
@@ -1238,6 +1277,10 @@ public partial class NxGrid<T>
         comboDropdownTop = pos.Top;
         comboDropdownLeft = pos.Left;
         comboDropdownWidth = pos.Width;
+        // Above → comboDropdownTop is the dropdown's bottom edge, which is what keeps the list
+        // pinned to its cell as the user types and the option list shrinks.
+        comboDropdownAbove = pos.Above;
+        comboDropdownMaxHeight = pos.MaxHeight;
         // This pass measures the popup while its rows are still at their natural height, so it is
         // also the pass that learns what height to pin them to once virtualization takes over.
         // Cached on the column: later opens then get the right height on their first render.
@@ -1335,6 +1378,8 @@ public partial class NxGrid<T>
         if (pos == null) return;
         datePickerTop = pos.Top;
         datePickerLeft = pos.Left;
+        datePickerAbove = pos.Above;
+        datePickerMaxHeight = pos.MaxHeight;
     }
 
     private List<DatePickerDay> GetCalendarDays()
@@ -1518,6 +1563,8 @@ public partial class NxGrid<T>
         if (pos == null) return;
         colorPickerTop = pos.Top;
         colorPickerLeft = pos.Left;
+        colorPickerAbove = pos.Above;
+        colorPickerMaxHeight = pos.MaxHeight;
     }
 
     private async Task OnColorPickerPaletteClick(string hex)

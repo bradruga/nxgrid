@@ -310,7 +310,7 @@
 }
 
 .nx-grid-popup {
-  max-height: calc(100vh - 20px);
+  max-height: min(var(--nx-popup-cap, calc(100vh - 20px)), var(--nx-popup-avail, 100vh));
   overflow-y: auto;
 }
 
@@ -350,7 +350,7 @@
 
 .nx-grid-column-menu-mobile {
   border-radius: 8px;
-  max-height: 80vh;
+  --nx-popup-cap: 80vh;
   overflow-y: auto;
 }
 
@@ -654,7 +654,7 @@
   background: var(--nx-grid-surface);
   border: 1px solid var(--nx-grid-border);
   box-shadow: 0 2px 8px var(--nx-grid-shadow);
-  max-height: 200px;
+  --nx-popup-cap: 200px;
   overflow-y: auto;
   z-index: 1001;
 }

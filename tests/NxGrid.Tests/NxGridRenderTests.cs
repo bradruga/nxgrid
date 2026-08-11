@@ -448,6 +448,69 @@ public class NxGridRenderTests : BunitContext
         });
     }
 
+    // A dropdown that opens above its cell is anchored by its bottom edge — rendered as a
+    // translateY(-100%) off the coordinate JS returns — so filtering the list shrinks it upward and
+    // it stays attached to the cell instead of hanging from where the unfiltered list's top was.
+    [Test]
+    public void ComboBox_OpenedAbove_AnchorsBottomEdgeAndCapsHeight()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition", 0)
+            .SetResult(new NxComboDropdownPosition(300, 40, 150, 0, Above: true, MaxHeight: 120));
+
+        var cut = RenderComboGrid();
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("x");
+
+        cut.WaitForAssertion(() =>
+        {
+            var style = cut.Find(".nx-grid-combo-dropdown").GetAttribute("style");
+            Assert.That(style, Does.Contain("--nx-popup-y:300px"), "coordinate is the dropdown's bottom edge");
+            Assert.That(style, Does.Contain("transform:translateY(-100%)"), "dropdown not anchored by its bottom edge");
+            Assert.That(style, Does.Contain("--nx-popup-avail:120px"), "dropdown not capped to the room above");
+        });
+    }
+
+    [Test]
+    public void ComboBox_OpenedBelow_IsNotTranslated()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition", 0)
+            .SetResult(new NxComboDropdownPosition(90, 40, 150, 0, Above: false, MaxHeight: 400));
+
+        var cut = RenderComboGrid();
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("x");
+
+        cut.WaitForAssertion(() =>
+        {
+            var style = cut.Find(".nx-grid-combo-dropdown").GetAttribute("style");
+            Assert.That(style, Does.Not.Contain("transform"), "dropdown anchored by its bottom edge while opening below");
+            Assert.That(style, Does.Contain("--nx-popup-avail:400px"));
+        });
+    }
+
+    // The pass JS measures must render the dropdown at its natural size: with the previous open's
+    // flip or height cap still applied, the measurement would describe a constrained popup.
+    [Test]
+    public void ComboBox_MeasuringPass_AppliesNeitherFlipNorCap()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var positioning = JSInterop.Setup<NxComboDropdownPosition>("getComboDropdownPosition", 0);
+
+        var cut = RenderComboGrid();
+        cut.Find(".nx-grid-row .nx-grid-cell").DoubleClick();
+        cut.Find(".nx-grid-combo-input").Input("x");
+
+        var style = cut.Find(".nx-grid-combo-dropdown").GetAttribute("style");
+        Assert.Multiple(() =>
+        {
+            Assert.That(style, Does.Contain("visibility:hidden"));
+            Assert.That(style, Does.Not.Contain("transform"));
+            Assert.That(style, Does.Not.Contain("--nx-popup-avail"));
+        });
+    }
+
     [Test]
     public void ComboBox_SearchText_TypingSearchOnlyWord_ShowsMatchingItem()
     {

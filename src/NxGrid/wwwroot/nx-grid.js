@@ -495,10 +495,21 @@ class NxGrid {
         return navigator.clipboard.readText().catch(() => '');
     }
 
-    // Drops a popup below the element it belongs to, flipping above when it would overflow the
-    // bottom and clamping so it never leaves `bounds`. Coordinates are viewport-space; the CSS
-    // `.nx-grid-popup` rule applies the containing-block offset. Every popup shares this so the
-    // flip and clamp behaviour can only be changed in one place.
+    // Drops a popup below the element it belongs to, flipping above when there is not enough
+    // room below. Coordinates are viewport-space; the CSS `.nx-grid-popup` rule applies the
+    // containing-block offset. Every popup shares this so the placement rule can only be
+    // changed in one place.
+    //
+    // The result describes an *edge*, not a box: `top` is the popup's top edge when it drops
+    // below and its bottom edge when it flips above (`above: true`, which C# renders as a
+    // translateY(-100%)). Anchoring the flipped popup by its bottom is what keeps it attached
+    // to its cell when its content changes size while it is open — a combo dropdown being
+    // filtered down to one row stays under the cell instead of hanging from where the top of
+    // the unfiltered list used to be.
+    //
+    // `maxHeight` is the room left on the side that was chosen. The popup is capped to it
+    // (via --nx-popup-avail) so growing content scrolls inside the popup rather than running
+    // off the edge, and so neither side can overflow when the popup fits in neither.
     //
     // The popup is promoted to the top layer *before* it is measured, so the writes that
     // promotion performs are followed by the reads rather than interleaved with them.
@@ -515,15 +526,20 @@ class NxGrid {
         if (left + popupWidth > bounds.right) left = bounds.right - popupWidth - POPUP_EDGE_GAP;
         if (left < bounds.left) left = bounds.left + POPUP_EDGE_GAP;
 
-        let top = anchor.bottom;
-        if (popupHeight && top + popupHeight > bounds.bottom) {
-            const flipped = anchor.top - popupHeight;
-            top = flipped >= bounds.top
-                ? flipped
-                : Math.max(bounds.top + POPUP_EDGE_GAP, bounds.bottom - popupHeight - POPUP_EDGE_GAP);
-        }
+        // Room on either side of the anchor, less the gap a popup keeps from the edge. Below is
+        // preferred; above wins only when the popup does not fit below and above is roomier —
+        // so when it fits nowhere it takes the larger side and scrolls inside it.
+        const roomBelow = bounds.bottom - anchor.bottom - POPUP_EDGE_GAP;
+        const roomAbove = anchor.top - bounds.top - POPUP_EDGE_GAP;
+        const above = popupHeight > roomBelow && roomAbove > roomBelow;
 
-        return { top, left, width: popupWidth };
+        return {
+            top: above ? anchor.top : anchor.bottom,
+            left,
+            width: popupWidth,
+            above,
+            maxHeight: Math.max(0, above ? roomAbove : roomBelow)
+        };
     }
 
     // Positions an editor popup (combo dropdown, date picker, color picker) under the cell
@@ -532,7 +548,7 @@ class NxGrid {
         const gridElement = document.getElementById(this.id);
         const wrapper = gridElement && gridElement.querySelector(wrapperSelector);
         const popup   = gridElement && gridElement.querySelector(popupSelector);
-        if (!wrapper || !popup) return { top: 0, left: 0, width: width ?? 150 };
+        if (!wrapper || !popup) return { top: 0, left: 0, width: width ?? 150, above: false, maxHeight: 0 };
 
         const { bounds } = this._fixedContext();
         return this._placeBelow(wrapper.getBoundingClientRect(), popup, bounds, width);
@@ -544,30 +560,33 @@ class NxGrid {
         if (!gridElement) return { top: 0, left: 0, isMobile: false };
 
         const menuElement = gridElement.querySelector('.nx-grid-column-menu');
-        if (!menuElement) return { top: 0, left: 0, isMobile: false };
+        if (!menuElement) return { top: 0, left: 0, isMobile: false, above: false, maxHeight: 0 };
 
         const { bounds } = this._fixedContext();
 
-        // On narrow screens show as a centered dialog instead of a dropdown
+        // On narrow screens show as a centered dialog instead of a dropdown. maxHeight stays 0
+        // (no cap of ours) so the centered menu keeps the 80vh its own rule gives it.
         if (window.innerWidth <= 768) {
             this._promotePopup(menuElement);
             return {
                 top:  Math.max(bounds.top  + POPUP_EDGE_GAP, bounds.top  + (bounds.bottom - bounds.top  - menuElement.offsetHeight) / 2),
                 left: Math.max(bounds.left + POPUP_EDGE_GAP, bounds.left + (bounds.right  - bounds.left - menuElement.offsetWidth)  / 2),
-                isMobile: true
+                isMobile: true,
+                above: false,
+                maxHeight: 0
             };
         }
 
         const headerRow = gridElement.querySelector('.nx-grid-header-row');
         const headerCells = headerRow ? headerRow.querySelectorAll('.nx-grid-cell') : [];
-        if (columnIndex < 0 || columnIndex >= headerCells.length) return { top: 0, left: 0, isMobile: false };
+        if (columnIndex < 0 || columnIndex >= headerCells.length) return { top: 0, left: 0, isMobile: false, above: false, maxHeight: 0 };
 
         // The menu's left edge overlaps the header cell's border by a pixel.
         const cellRect = headerCells[columnIndex].getBoundingClientRect();
         const anchor = { left: cellRect.left - 1, top: cellRect.top, bottom: cellRect.bottom };
 
-        const { top, left } = this._placeBelow(anchor, menuElement, bounds, null);
-        return { top, left, isMobile: false };
+        const { top, left, above, maxHeight } = this._placeBelow(anchor, menuElement, bounds, null);
+        return { top, left, isMobile: false, above, maxHeight };
     }
 
     // Places the right-click context menu at the pointer. The anchor is the click point itself
@@ -578,11 +597,11 @@ class NxGrid {
     positionContextMenu(x, y) {
         const gridElement = document.getElementById(this.id);
         const menuElement = gridElement && gridElement.querySelector('.nx-grid-context-menu');
-        if (!menuElement) return { top: y, left: x, isMobile: false };
+        if (!menuElement) return { top: y, left: x, isMobile: false, above: false, maxHeight: 0 };
 
         const { bounds } = this._fixedContext();
-        const { top, left } = this._placeBelow({ left: x, top: y, bottom: y }, menuElement, bounds, null);
-        return { top, left, isMobile: false };
+        const { top, left, above, maxHeight } = this._placeBelow({ left: x, top: y, bottom: y }, menuElement, bounds, null);
+        return { top, left, isMobile: false, above, maxHeight };
     }
 
 
