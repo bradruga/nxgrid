@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-08-12
+
 ### Fixed
 
 - Resizing a column with `HeaderClickSelects = true` no longer changes the selection. Dragging a resize grip down over the rows and back up onto the header hijacked the selection: the pointer re-entering a header while the button was held was read as a header drag and extended the last header click into a full-column selection — which then made the resize apply to every column in it, so releasing the mouse resized several columns at once instead of the one being dragged. The header and row-number gutter now extend a selection only while a drag that actually began on them is in progress, so a resize (and likewise a drag-fill or row drag) passing back over them leaves the selection alone. Column tooltips no longer pop up under a resize drag either.
