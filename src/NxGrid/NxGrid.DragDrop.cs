@@ -25,6 +25,8 @@ public partial class NxGrid<T>
     {
         if (jsInterop == null || args.Button != 0) return;
 
+        EndHeaderGutterDrag();
+
         // Null when the browser is unreachable (a circuit torn down mid-drag) — nothing was dropped.
         if (await jsInterop.DragRow(rowIndex, filteredData.Count, RowHeight) is not { } indicatorIndex) return;
         if (rowIndex < 0 || rowIndex >= filteredData.Count) return;

@@ -19,9 +19,21 @@ public partial class NxGrid<T>
     private int clickDownCol = -1;
     private bool clickWasDragged;
 
+    /// <summary>
+    /// Ends any in-progress header / row-number drag selection. Called from every mouse press that
+    /// starts a different kind of drag, so the header and row-number mouseenter handlers stop
+    /// extending the previous anchor once the pointer passes back over them.
+    /// </summary>
+    private void EndHeaderGutterDrag()
+    {
+        headerDragActive = false;
+        rowNumberDragActive = false;
+    }
+
     private async Task OnCellMouseDown(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
         DismissTooltip();
+        EndHeaderGutterDrag();
         // Cancel if column menu is open
         if (openColumn != null) return;
         if (SelectionMode == NxGridSelectionMode.None) return;
@@ -443,6 +455,9 @@ public partial class NxGrid<T>
         var colIndex = visibleColumns.IndexOf(column);
         if (colIndex < 0) return;
 
+        headerDragActive = true;
+        rowNumberDragActive = false;
+
         int startCol, endCol;
         if (args.ShiftKey && headerAnchorCol.HasValue)
         {
@@ -463,8 +478,13 @@ public partial class NxGrid<T>
     private async Task OnColumnHeaderMouseEnter(MouseEventArgs args, NxGridColumn<T> column)
     {
         ShowHeaderTooltip(args, column);
+
+        // Only clear here — never set true. A held button alone is not a header drag: the pointer
+        // may be mid column-resize (or mid drag-fill / row drag) and just passing over the header.
+        if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) headerDragActive = false;
+
+        if (!headerDragActive) return;
         if (!HeaderClickSelects || SelectionMode != NxGridSelectionMode.Cell) return;
-        if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) return;
         if (!headerAnchorCol.HasValue) return;
 
         var colIndex = visibleColumns.IndexOf(column);
@@ -485,6 +505,10 @@ public partial class NxGrid<T>
     {
         if (args.Button != MouseButtonLeft) return;
         if (SelectionMode == NxGridSelectionMode.None) return;
+
+        rowNumberDragActive = true;
+        headerDragActive = false;
+
         int startRow, endRow;
         if (args.ShiftKey && headerAnchorRow.HasValue && SelectionMode != NxGridSelectionMode.SingleRow)
         {
@@ -504,9 +528,12 @@ public partial class NxGrid<T>
 
     private async Task OnRowNumberMouseEnter(MouseEventArgs args, int rowIndex)
     {
+        // Only clear here — never set true; see OnColumnHeaderMouseEnter.
+        if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) rowNumberDragActive = false;
+
+        if (!rowNumberDragActive) return;
         if (SelectionMode == NxGridSelectionMode.None) return;
         if (SelectionMode == NxGridSelectionMode.SingleRow) return;
-        if ((args.Buttons & MouseButtonsLeft) != MouseButtonsLeft) return;
         if (!headerAnchorRow.HasValue) return;
 
         selectedRanges = [new NxGridRange
@@ -524,6 +551,7 @@ public partial class NxGrid<T>
     {
         if (!HeaderClickSelects || SelectionMode == NxGridSelectionMode.None) return;
         if (args.Button != MouseButtonLeft) return;
+        EndHeaderGutterDrag();
         selectedRanges = [new NxGridRange { StartRow = 0, StartCol = 0, EndRow = filteredData.Count - 1, EndCol = visibleColumns.Count - 1 }];
         StateHasChanged();
         await RaiseSelectionChanged();
@@ -608,6 +636,9 @@ public partial class NxGrid<T>
     private async Task OnResizeGripMouseDown(MouseEventArgs args, NxGridColumn<T> column)
     {
         if (args.Button != MouseButtonLeft) return; // Only respond to left mouse button
+
+        DismissTooltip();
+        EndHeaderGutterDrag();
 
         isResizing = true;
         var columnIndex = visibleColumns.IndexOf(column);

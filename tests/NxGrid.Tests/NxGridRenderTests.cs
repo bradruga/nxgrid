@@ -980,4 +980,60 @@ public class NxGridRenderTests : BunitContext
         Assert.DoesNotThrow(() => cut.Render(p => p.Add(x => x.Data, new List<Row>())));
         Assert.That(captured!.Ranges, Is.Empty);
     }
+
+    private IRenderedComponent<NxGrid<Row>> RenderHeaderSelectGrid(Action<NxGridSelectionArgs<Row>> onSelection)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        return Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", "Engineering"), new Row("Bob", "Marketing")])
+            .Add(x => x.HeaderClickSelects, true)
+            .Add(x => x.OnSelectionChanged, EventCallback.Factory.Create(this, onSelection))
+            .Add(x => x.ChildContent, b =>
+            {
+                b.OpenComponent<NxGridColumn<Row>>(0);
+                b.AddAttribute(1, "Display", (Func<Row, object?>)(r => r.Name));
+                b.AddAttribute(2, "Title", "Name");
+                b.CloseComponent();
+                b.OpenComponent<NxGridColumn<Row>>(3);
+                b.AddAttribute(4, "Display", (Func<Row, object?>)(r => r.Department));
+                b.AddAttribute(5, "Title", "Department");
+                b.CloseComponent();
+            }));
+    }
+
+    [Test]
+    public void HeaderMouseEnter_DuringColumnResize_LeavesSelectionAlone()
+    {
+        NxGridSelectionArgs<Row>? captured = null;
+        var cut = RenderHeaderSelectGrid(a => captured = a);
+
+        // Select the first column, then a single cell — the header anchor stays on column 0.
+        cut.Find(".nx-grid-header-row .nx-grid-cell").MouseDown(new MouseEventArgs { Button = 0 });
+        cut.Find(".nx-grid-row .nx-grid-cell").MouseDown(new MouseEventArgs { Button = 0 });
+        Assert.That(captured!.Ranges[0].Columns, Has.Count.EqualTo(1));
+
+        // Start resizing the second column, then sweep back over its header with the button still
+        // held. That is not a header drag, so it must not extend the old anchor into a column
+        // selection (which would also make the resize apply to every selected column).
+        cut.FindAll(".nx-grid-header-row .nx-grid-resize-grip")[1].MouseDown(new MouseEventArgs { Button = 0 });
+        cut.FindAll(".nx-grid-header-row .nx-grid-cell")[1].MouseEnter(new MouseEventArgs { Buttons = 1 });
+
+        Assert.That(captured!.Ranges, Has.Count.EqualTo(1));
+        Assert.That(captured.Ranges[0].Columns, Has.Count.EqualTo(1), "resize drag hijacked the selection");
+        Assert.That(captured.Ranges[0].Items, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void HeaderMouseEnter_DuringHeaderDrag_ExtendsSelection()
+    {
+        NxGridSelectionArgs<Row>? captured = null;
+        var cut = RenderHeaderSelectGrid(a => captured = a);
+
+        cut.Find(".nx-grid-header-row .nx-grid-cell").MouseDown(new MouseEventArgs { Button = 0 });
+        cut.FindAll(".nx-grid-header-row .nx-grid-cell")[1].MouseEnter(new MouseEventArgs { Buttons = 1 });
+
+        Assert.That(captured!.Ranges[0].Columns, Has.Count.EqualTo(2));
+        Assert.That(captured.Ranges[0].Items, Has.Count.EqualTo(2), "column selection should span every row");
+    }
 }

@@ -170,6 +170,8 @@ The keyboard/mouse distinction is made in JavaScript from the browser's own `:fo
 
 When `HeaderClickSelects = false`, clicking row numbers has no effect, and clicking the corner has no effect.
 
+Dragging across headers (or row numbers) extends the selection only while the drag that started on that header (or row number) is still in progress. A held button alone is not enough: a column resize, drag-fill, or row drag whose pointer passes back over the header or gutter leaves the selection untouched, and does not extend the last header/row-number anchor.
+
 ### Programmatic selection
 
 `SelectRow(T row)` finds the row in `filteredData`, selects it spanning all columns (like a row-number click), scrolls it into view, and fires `OnSelectionChanged`. If the row is not present in `filteredData` (e.g. filtered out), the call is a no-op.
@@ -581,6 +583,8 @@ Dragging the resize grip at the right edge of any column header initiates a JS-d
 **Frozen columns during the drag.** When the resized column is frozen, any frozen column pinned to its right has its sticky `left` offset shifted by the same live width delta, so it stays flush against the resized column throughout the drag rather than overlapping it until release.
 
 **Locking all columns on first resize.** The first time any column is resized, the grid switches permanently into *manual mode* for that page visit (and for future visits if `StateKey` is set). At that point every visible column's current rendered pixel width is captured and saved as `UserWidth`, not just the column being dragged. This prevents `flex-grow` columns from redistributing their widths unexpectedly after the drag.
+
+**Selection during the drag.** A resize drag never changes the selection, however far the pointer wanders — over the rows, back onto the header, across the row-number gutter — so the set of columns the resize applies to is fixed at mousedown. Cell and header tooltips stay suppressed for the duration of the drag.
 
 **Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns are resized to the same new width simultaneously. All other visible columns are still locked at their pre-drag widths.
 

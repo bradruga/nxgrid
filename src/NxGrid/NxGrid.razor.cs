@@ -438,6 +438,15 @@ public partial class NxGrid<T>
 
     private int? headerAnchorCol;
     private int? headerAnchorRow;
+
+    // True only while a left-button drag that actually started on a column header / row number is
+    // still in progress. The header and row-number mouseenter handlers extend the anchored
+    // selection only during such a drag — otherwise any other held-button drag (a column resize
+    // being the common case) would extend from a stale anchor as soon as the pointer wandered back
+    // over the header or gutter. Cleared by every drag that starts somewhere else.
+    private bool headerDragActive;
+    private bool rowNumberDragActive;
+
     private (int row, int col) copyOrigin;
 
     private List<T> loadedData = [];

@@ -61,6 +61,8 @@ public partial class NxGrid<T>
         if (args.Button != MouseButtonLeft) return;
         if (ActiveRange == null || jsInterop == null) return;
 
+        EndHeaderGutterDrag();
+
         // Hide immediately while dragging; JS will restore after fill completes.
         await jsInterop.ClearFillHandleAnchor();
         StateHasChanged();

@@ -16,7 +16,7 @@ public partial class NxGrid<T>
     internal void StartCellTooltipTimer(MouseEventArgs args, T row, NxGridColumn<T> column)
     {
         DismissTooltip();
-        if (CellTooltip == null || isEditing) return;
+        if (CellTooltip == null || isEditing || isResizing) return;
 
         var capturedRow = row;
         var capturedCol = column;
@@ -60,6 +60,7 @@ public partial class NxGrid<T>
     internal void ShowHeaderTooltip(MouseEventArgs args, NxGridColumn<T> column)
     {
         if (column.HeaderTooltip == null && column.HeaderTooltipTemplate == null) return;
+        if (isResizing) return;   // a resize drag sweeping over headers must not raise tooltips
         DismissTooltip();
 
         var capturedCol = column;
