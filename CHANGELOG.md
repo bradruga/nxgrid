@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A virtualized combo dropdown no longer keeps scrolling after the wheel stops. Flicking the wheel hard enough to outrun the renderer left the list scrolling on by itself, several rows a frame, until it reached the end of the options — and looking torn while it did. The dropdown, the grid body, and the column menu's filter value list now all opt out of the browser's scroll anchoring, which was compensating for the resizing spacers a virtualized list works by and feeding its compensation back in as further scrolling.
+
 ## [0.3.8] - 2026-08-11
 
 ### Fixed

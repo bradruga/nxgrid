@@ -35,10 +35,21 @@
   --nx-grid-readonly-bg: rgba(128, 128, 128, 0.14);
 }
 
+/* Every scroll container that holds a <Virtualize> states `overflow-anchor: none` (here, the
+   combo dropdown, and the filter value list). Virtualize resizes its spacer divs on every
+   update, and scroll anchoring answers a change in content above the anchor by moving the scroll
+   offset — which Virtualize then reads as a scroll and answers with another spacer change. The two
+   drive each other, so a flick that outruns the renderer leaves the list scrolling on its own,
+   at a steady several rows a frame, until it hits the end.
+
+   Blazor's Virtualize already sets this from JS, but as an *inline* style on the container it
+   found — and all three of these carry a `style` attribute that Blazor's renderer owns and
+   rewrites, which drops the property. Stating it in the stylesheet is what makes it survive. */
 .nx-grid {
   border: 1px solid var(--nx-grid-border);
   overflow-x: auto;
   overflow-y: auto;
+  overflow-anchor: none;
   position: relative;
   font-size: var(--nx-grid-font-size);
   font-family: var(--nx-grid-font-family);
@@ -490,6 +501,8 @@
   border: 1px solid var(--nx-grid-border);
   height: 300px;
   overflow-y: auto;
+  /* A virtualized value list, so no scroll anchoring — see .nx-grid above. */
+  overflow-anchor: none;
   padding: 8px;
   margin-bottom: 8px;
   background: var(--nx-grid-surface);
@@ -656,6 +669,8 @@
   box-shadow: 0 2px 8px var(--nx-grid-shadow);
   --nx-popup-cap: 200px;
   overflow-y: auto;
+  /* A virtualized option list, so no scroll anchoring — see .nx-grid above. */
+  overflow-anchor: none;
   z-index: 1001;
 }
 

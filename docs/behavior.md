@@ -465,6 +465,8 @@ A taller `ComboBoxItemTemplate` is therefore honoured automatically. Set `ComboB
 
 If the measurement never arrives (the JS module failed to load), the rows are left unpinned at their natural heights and `<Virtualize>` runs on its own estimate, which it corrects from the rows it renders. The list is still virtualized and still scrolls; only the row-height guarantee is gone.
 
+**No scroll anchoring.** The dropdown — like the grid body and the column menu's filter value list, the other two virtualized scrollers — sets `overflow-anchor: none` in the stylesheet. A virtualized list works by resizing spacer divs above and below the rows in view, which is exactly the change the browser's scroll anchoring exists to compensate for, and it compensates by moving the scroll offset; `<Virtualize>` then reads that as a scroll and answers with another spacer change. Left enabled, the two keep each other going, so a wheel flick that outran the renderer left the list scrolling on by itself at several rows a frame until it reached the end of the options. `<Virtualize>` opts out of anchoring itself, but only as an inline style on the scroll container, which is dropped whenever Blazor rewrites that element's `style` attribute — as the pass that positions the popup does on every open after the first. The stylesheet is what makes the opt-out hold.
+
 **Keyboard while dropdown is open:**
 
 | Key | Behavior |
