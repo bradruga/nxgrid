@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-17
+
 ### Added
 
 - `NxGridColumn.Sortable` — set to `false` to make a single column unsortable. The header title stops responding to clicks and the column menu omits Sort Ascending / Sort Descending / Clear Sort. Filtering is unaffected.
