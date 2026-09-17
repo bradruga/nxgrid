@@ -146,6 +146,27 @@
                 <td><a href="columns">Columns</a></td>
             </tr>
             <tr>
+                <td>Sortable</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, clicking the header title cycles the sort and the column menu offers Sort Ascending / Sort Descending / Clear Sort. Set to false to make the column unsortable by the user. A column with no Property or Display is unsortable regardless.</td>
+                <td><a href="columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>Resizable</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, the column renders a resize grip on its right edge. Set to false to omit the grip entirely — the column cannot be drag-resized or double-click auto-sized, and is skipped by a multi-column resize.</td>
+                <td><a href="columns">Columns</a></td>
+            </tr>
+            <tr>
+                <td>Filterable</td>
+                <td>bool</td>
+                <td>true</td>
+                <td>When true, the column menu shows the filter panel. Set to false to stop the user filtering this column — a FilterState set in code still applies, and the grid-wide Clear All Filters entry is unaffected. A column with no Property or Display is unfilterable regardless.</td>
+                <td><a href="columns">Columns</a></td>
+            </tr>
+            <tr>
                 <td>AutoSizable</td>
                 <td>bool</td>
                 <td>true</td>

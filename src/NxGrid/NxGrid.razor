@@ -30,11 +30,11 @@
                  @onmousedown="@(args => OnColumnHeaderMouseDown(args, column))"
                  @onmousedown:preventDefault
                  @oncontextmenu="@(() => { if (HasColumnMenu) OnColumnButtonClick(column); })"
-                 @oncontextmenu:preventDefault="@HasColumnMenu"
+                 @oncontextmenu:preventDefault="@(HasColumnMenu && HasMenuContent(column))"
                  @onmouseenter="@(args => OnColumnHeaderMouseEnter(args, column))"
                  @onmouseleave="@(() => HideHeaderTooltip())">
                 <div class="nx-grid-column-title-wrap">
-                    <span class="nx-grid-column-title @(column.HeaderTemplate != null ? "nx-grid-column-title-template" : "") @(HeaderClickSelects || column.EffectiveValueGetter == null ? "nx-grid-column-title-no-sort" : "")"
+                    <span class="nx-grid-column-title @(column.HeaderTemplate != null ? "nx-grid-column-title-template" : "") @(HeaderClickSelects || !column.CanSort ? "nx-grid-column-title-no-sort" : "")"
                               @onclick="@(async () => await OnColumnClick(column))">
                         @if (column.HeaderTemplate != null)
                         {
@@ -74,7 +74,7 @@
                     }
                 </div>
 
-                @if (HasColumnMenu)
+                @if (HasColumnMenu && HasMenuContent(column))
                 {
                     <button type="button" class="nx-grid-menu-button"
                             @onclick="@(() => OnColumnButtonClick(column))"
@@ -85,13 +85,16 @@
                     </button>
                 }
 
-                <div class="nx-grid-resize-grip"
-                     @onmousedown="@(args => OnResizeGripMouseDown(args, column))"
-                     @onmousedown:stopPropagation
-                     onmousedown:preventDefault
-                     @ondblclick="@(() => OnResizeGripDoubleClick(column))"
-                     @ondblclick:stopPropagation>
-                </div>
+                @if (column.Resizable)
+                {
+                    <div class="nx-grid-resize-grip"
+                         @onmousedown="@(args => OnResizeGripMouseDown(args, column))"
+                         @onmousedown:stopPropagation
+                         onmousedown:preventDefault
+                         @ondblclick="@(() => OnResizeGripDoubleClick(column))"
+                         @ondblclick:stopPropagation>
+                    </div>
+                }
             </div>
         }
     </div>
@@ -190,8 +193,14 @@
     @if (openColumn != null)
     {
         var menuStyle = PopupPos(menuTop, menuLeft, menuAbove, menuMaxHeight, menuNeedsPositioning);
+        var showSort = openColumn.CanSort;
+        var showClearFilters = columns.Any(c => c.FilterState.Count > 0);
+        var showLayout = HasMenuLayoutItems(openColumn);
+        var showFilter = openColumn.CanFilter;
         <div class="nx-grid-popup-backdrop nx-grid-menu-backdrop @TopLayerClass"></div>
         <div class="nx-grid-popup nx-grid-column-menu @(menuIsMobile ? "nx-grid-column-menu-mobile" : "") @TopLayerClass" style="@menuStyle">
+            @if (showSort)
+            {
             <button type="button" class="nx-grid-menu-item"
                     @onclick="@(() => ApplySortState(1))">
                 <span class="nx-grid-menu-item-icon">
@@ -219,7 +228,8 @@
                 </span>
                 Clear Sort
             </button>
-            @if (columns.Any(c => c.FilterState.Count > 0))
+            }
+            @if (showClearFilters)
             {
                 <button type="button" class="nx-grid-menu-item"
                         @onclick="@OnClearAllFiltersClick">
@@ -232,9 +242,12 @@
                 </button>
             }
 
-            @if (openColumn.Freezable || openColumn.Hideable || ActiveColumns.Any(c => c.Hideable && c.Visible) || ActiveColumns.Any(c => c.UserWidth != null))
+            @if (showLayout)
             {
-                <div class="nx-grid-menu-divider"></div>
+                @if (showSort || showClearFilters)
+                {
+                    <div class="nx-grid-menu-divider"></div>
+                }
                 @if (openColumn.Freezable)
                 {
                     <button type="button" class="nx-grid-menu-item" @onclick="@OnFreezeToggleClick">
@@ -291,13 +304,19 @@
                 }
             }
 
-            <div class="nx-grid-menu-divider"></div>
-            <NxGridFilter T="@T"
+            @if (showFilter)
+            {
+                @if (showSort || showClearFilters || showLayout)
+                {
+                    <div class="nx-grid-menu-divider"></div>
+                }
+                <NxGridFilter T="@T"
                               Data="@Data"
                               Columns="@visibleColumns"
                               Column="@openColumn"
                               OnFilter="@OnFilterOk"
                               OnCancel="@OnFilterCancel"/>
+            }
         </div>
     }
 

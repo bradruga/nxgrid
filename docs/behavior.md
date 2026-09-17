@@ -100,13 +100,15 @@ When the grid has no `ChildContent` (no `<NxGridColumn>` children declared), it 
 
 **Sort key:** `Property` is the primary sort key. If `Property` is not set but `Display` is, `Display` is used as the sort key. If neither is set, the column cannot be sorted.
 
+**Per-column opt-out:** `Sortable="false"` makes a column unsortable by the user. The header title stops responding to clicks and the column menu omits Sort Ascending / Sort Descending / Clear Sort. The same applies to a column with no sort key. A sort saved under `StateKey` for a column that is no longer sortable is ignored on restore.
+
 **Two ways to change sort:**
 - Click the column title (cycles 0 → 1 → 2 → 0, promoting the column to primary on each non-zero state). Available regardless of `HasColumnMenu`.
 - Use the column menu (Sort Ascending / Sort Descending / Clear Sort), which sets the state directly. Requires `HasColumnMenu = true`.
 
 When `HeaderClickSelects = true`, clicking a column header selects the full column instead of cycling sort. Sort cycling via title click is disabled in that mode.
 
-The column title shows a pointer cursor only when clicking it can change sort — i.e. `HeaderClickSelects = false` and the column has a sort key (see above). Otherwise the cursor is the default arrow.
+The column title shows a pointer cursor only when clicking it can change sort — i.e. `HeaderClickSelects = false`, `Sortable = true`, and the column has a sort key (see above). Otherwise the cursor is the default arrow.
 
 A sort icon (↑ or ↓) appears in the column header of the primary sort column only. A filter icon appears when FilterState is non-empty.
 
@@ -117,6 +119,8 @@ A sort icon (↑ or ↓) appears in the column header of the primary sort column
 `FilterState` is a list of **included** values (a whitelist). An empty list means no filter. Rows are included only when the cell value appears in `FilterState`.
 
 The filter key is `Property ?? Display` (same priority as sort). The value is normalized before comparison: a string that is null or whitespace-only is treated as `null`. This means filtering for `null` will match both actual `null` and whitespace-only strings.
+
+**Per-column opt-out:** `Filterable="false"` removes the filter panel from that column's menu. The same applies to a column with no filter key, whose value list would hold a single "(Blanks)" entry covering every row. A `FilterState` assigned in code still applies either way, and the grid-wide "Clear All Filters" entry still appears. A filter saved under `StateKey` for a column that is no longer filterable is ignored on restore.
 
 Multiple columns can be filtered simultaneously; each filter is applied in column order (AND).
 
@@ -578,7 +582,7 @@ The paste origin is the top-left corner of the current selection. The clipboard 
 
 ## Column resize
 
-Dragging the resize grip at the right edge of any column header initiates a JS-driven drag. All column cells update live during the drag via a scoped `<style>` element injected into `document.head`; the style is removed only after Blazor commits the post-drag render, so there is no flash on release.
+Dragging the resize grip at the right edge of any column header initiates a JS-driven drag. `Resizable="false"` omits the grip entirely, so the column can be neither drag-resized nor double-click auto-sized, and it is skipped by a multi-column resize. A width saved under `StateKey` for a non-resizable column is ignored on restore. All column cells update live during the drag via a scoped `<style>` element injected into `document.head`; the style is removed only after Blazor commits the post-drag render, so there is no flash on release.
 
 **Frozen columns during the drag.** When the resized column is frozen, any frozen column pinned to its right has its sticky `left` offset shifted by the same live width delta, so it stays flush against the resized column throughout the drag rather than overlapping it until release.
 
@@ -586,7 +590,7 @@ Dragging the resize grip at the right edge of any column header initiates a JS-d
 
 **Selection during the drag.** A resize drag never changes the selection, however far the pointer wanders — over the rows, back onto the header, across the row-number gutter — so the set of columns the resize applies to is fixed at mousedown. Cell and header tooltips stay suppressed for the duration of the drag.
 
-**Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns are resized to the same new width simultaneously. All other visible columns are still locked at their pre-drag widths.
+**Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns with `Resizable="true"` are resized to the same new width simultaneously. All other visible columns are still locked at their pre-drag widths.
 
 After resize, `OnColumnResized` fires once per *explicitly* resized column (the dragged column, plus any co-selected columns) with `args.ColumnIndex` and `args.NewWidth`. It does not fire for columns that were merely locked.
 
@@ -770,6 +774,23 @@ The JS module (`nx-grid.js`) is lazily imported on first render. Several behavio
 `ScrollToEnd()` polls with a 20 ms delay until JS interop is initialized, then scrolls to the last row.
 
 All other JS-dependent operations are no-ops if `jsInterop` is null, and silently succeed once it is ready.
+
+---
+
+## Column menu contents
+
+The ▾ button appears on a column only when `HasColumnMenu = true` **and** that column's menu would render at least one entry. Right-clicking such a header does nothing and falls through to the browser's own menu. The menu is built from four groups, each independently conditional:
+
+| Group | Shown when |
+|---|---|
+| Sort Ascending / Descending / Clear Sort | the column is sortable — `Sortable="true"` and it has a sort key |
+| Clear All Filters | any column in the grid has a non-empty `FilterState` |
+| Freeze / Hide / Manage columns… / Reset all column widths | the column is `Freezable` or `Hideable`, or any column is hideable, or any column has a user-set width |
+| Filter panel | the column is filterable — `Filterable="true"` and it has a filter key |
+
+Dividers are drawn only between groups that actually rendered, so a menu never opens with a leading, trailing, or doubled divider. A column configured with `Sortable="false" Filterable="false" Freezable="false" Hideable="false"` — a template-only action column, typically — has no menu and no ▾ button at all.
+
+The menu closes on any entry click and on click-away (`OnColumnMenuLostFocus`), so a menu with no filter panel — and therefore no Cancel button — is still dismissible.
 
 ---
 

@@ -107,6 +107,36 @@
 </div>
 
 <div class="doc-section">
+    <h2>Sortable, Resizable, Filterable</h2>
+    <p class="doc-note">
+        All three default to <code>true</code>. <code>Sortable="false"</code> stops the header
+        title from cycling the sort and removes the three sort entries from the column menu.
+        <code>Resizable="false"</code> omits the resize grip, so the column cannot be dragged or
+        double-click auto-sized. <code>Filterable="false"</code> removes the filter panel —
+        a <code>FilterState</code> set in code still applies.
+    </p>
+    <p class="doc-note">
+        Try it below: <strong>Department</strong> cannot be sorted but can still be filtered and
+        resized. <strong>Age</strong> sorts but has no grip. <strong>Last Name</strong> sorts and
+        resizes but cannot be filtered. The <strong>Edit</strong> column has all four off plus
+        <code>Freezable</code> and <code>Hideable</code> — with nothing left to show, it gets no
+        ▾ button at all.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell" HasColumnMenu="true">
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="160" />
+        <NxGridColumn Property="@(x => x.Department)" Width="160" Sortable="false" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="90"  Resizable="false" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="140" Filterable="false" />
+        <NxGridColumn Title="" Width="70" Sizing="NxGridColumnSizing.Fixed"
+                      Sortable="false" Resizable="false" Filterable="false"
+                      Freezable="false" Hideable="false">
+            <Template><button class="demo-btn">Edit</button></Template>
+        </NxGridColumn>
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@sortResizeCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>FitContent</h2>
     <p class="doc-note">
         Columns automatically size to fit their widest data value on first render and whenever
@@ -156,5 +186,6 @@
     string templateCode    = DemoCodeSamples.Template;
     string valueGetterCode = DemoCodeSamples.FormattedDisplay;
     string autoSizeCode    = DemoCodeSamples.AutoSize;
+    string sortResizeCode  = DemoCodeSamples.SortableResizable;
     string fitColumnsCode  = DemoCodeSamples.FitColumns;
 }

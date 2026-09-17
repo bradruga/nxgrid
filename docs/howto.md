@@ -17,6 +17,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to use custom cell templates](#how-to-use-custom-cell-templates)
 - [How to select and scroll programmatically](#how-to-select-and-scroll-programmatically)
 - [How to hide and show columns](#how-to-hide-and-show-columns)
+- [How to lock down sorting, resizing, or filtering on one column](#how-to-lock-down-sorting-resizing-or-filtering-on-one-column)
 - [How to allow arithmetic expressions in editable cells](#how-to-allow-arithmetic-expressions-in-editable-cells)
 - [How to show Sum, Avg, and Count for the selected range](#how-to-show-sum-avg-and-count-for-the-selected-range)
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
@@ -824,6 +825,35 @@ Call `SetColumnHidden(columnId, hidden)` on the grid reference. The change takes
 ```
 
 `SetColumnHidden` matches the column by `Id` first, then falls back to `Title`. Always set `Id` on columns you plan to control programmatically so the identity stays stable across `Title` changes.
+
+---
+
+## How to lock down sorting, resizing, or filtering on one column
+
+`Sortable`, `Resizable` and `Filterable` are per-column opt-outs; all default to `true`. Use them for columns where the interaction is meaningless or where the layout must not move.
+
+```razor
+<NxGrid T="Person" Data="@people" HasColumnMenu="true">
+    @* A row-action column: nothing to sort or filter by, width fixed by design.
+       With Freezable and Hideable off too, its menu would be empty — so it gets no ▾ button. *@
+    <NxGridColumn Title="" Width="40" Sizing="Fixed"
+                  Sortable="false" Resizable="false" Filterable="false"
+                  Freezable="false" Hideable="false">
+        <Template><button @onclick="@(() => Edit(context))">Edit</button></Template>
+    </NxGridColumn>
+    <NxGridColumn Property="@(x => x.Name)" Width="200" />
+    @* Sortable, but pinned at a width that lines up with the report it mirrors *@
+    <NxGridColumn Property="@(x => x.Code)" Width="80" Resizable="false" />
+    @* Free-text notes: a value checklist over thousands of distinct strings is useless *@
+    <NxGridColumn Property="@(x => x.Notes)" Filterable="false" />
+</NxGrid>
+```
+
+- `Sortable="false"` stops the header title click and removes Sort Ascending / Sort Descending / Clear Sort from the column menu.
+- `Resizable="false"` removes the resize grip, which also removes double-click auto-size and excludes the column from a multi-column resize.
+- `Filterable="false"` removes the filter panel. A `FilterState` you assign in code still applies, and the grid-wide **Clear All Filters** entry still appears.
+
+The ▾ button is rendered only when a column's menu would contain something, so turning all of these off (along with `Freezable` and `Hideable`) leaves the header clean. To take the menu away from every column at once, set `HasColumnMenu="false"` on the grid instead.
 
 ---
 

@@ -436,10 +436,27 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
+    /// <summary>Whether the column menu's freeze / hide / manage / reset group has any entry.</summary>
+    private bool HasMenuLayoutItems(NxGridColumn<T> column)
+        => column.Freezable
+           || column.Hideable
+           || ActiveColumns.Any(c => c.Hideable && c.Visible)
+           || ActiveColumns.Any(c => c.UserWidth != null);
+
+    /// <summary>
+    /// Whether the column menu would render anything for this column. When it would not, the
+    /// header's menu button is not rendered and right-click does not open an empty popup.
+    /// </summary>
+    private bool HasMenuContent(NxGridColumn<T> column)
+        => column.CanSort
+           || column.CanFilter
+           || columns.Any(c => c.FilterState.Count > 0)
+           || HasMenuLayoutItems(column);
+
     private void OnColumnButtonClick(NxGridColumn<T> column)
     {
         var index = visibleColumns.IndexOf(column);
-        if (index == -1) return;
+        if (index == -1 || !HasMenuContent(column)) return;
 
         menuNeedsPositioning = true;
         openColumn = column;
@@ -652,7 +669,9 @@ public partial class NxGrid<T>
 
             // Apply the new width to the dragged column (and any multi-selected columns),
             // clamping each to its own MinWidth/MaxWidth constraints
-            var columnsToResize = GetEntireColumnSelection(columnIndex).ToHashSet();
+            var columnsToResize = GetEntireColumnSelection(columnIndex)
+                .Where(i => visibleColumns[i].Resizable)
+                .ToHashSet();
             foreach (var idx in columnsToResize)
             {
                 var col = visibleColumns[idx];
@@ -688,7 +707,7 @@ public partial class NxGrid<T>
         if (columnIndex < 0) return;
 
         var columnsToResize = GetEntireColumnSelection(columnIndex)
-            .Where(i => visibleColumns[i].AutoSizable)
+            .Where(i => visibleColumns[i].Resizable && visibleColumns[i].AutoSizable)
             .ToList();
         if (columnsToResize.Count == 0) return;
 

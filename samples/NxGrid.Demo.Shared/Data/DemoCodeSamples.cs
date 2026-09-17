@@ -728,6 +728,28 @@ void OnSignalRRowReceived(Person newRow)
 </NxGrid>
 """;
 
+    public static readonly string SortableResizable = """
+// Sortable="false"   — no header-title sort cycle, no sort entries in the menu.
+// Resizable="false"  — no resize grip: no drag, no double-click auto-size, and
+//                      the column is skipped by a multi-column resize.
+// Filterable="false" — no filter panel in the menu. A FilterState set in code
+//                      still applies, and Clear All Filters is unaffected.
+<NxGrid T="Person" Data="@people" HasColumnMenu="true">
+    <NxGridColumn Property="@(x => x.FirstName)"  Width="160" />
+    <NxGridColumn Property="@(x => x.Department)" Width="160" Sortable="false" />
+    <NxGridColumn Property="@(x => x.Age)"        Width="90"  Resizable="false"
+                  Alignment="NxGridColumnAlignment.Right" />
+    <NxGridColumn Property="@(x => x.LastName)"   Width="140" Filterable="false" />
+
+    // Everything off: no menu content at all, so the column gets no menu button.
+    <NxGridColumn Title="" Width="70" Sizing="NxGridColumnSizing.Fixed"
+                  Sortable="false" Resizable="false" Filterable="false"
+                  Freezable="false" Hideable="false">
+        <Template><button>Edit</button></Template>
+    </NxGridColumn>
+</NxGrid>
+""";
+
     public static readonly string FitColumns = """
 // FitContent="Auto" (default) — columns measure their widest value automatically.
 // Sizing="Flex" (default) lets each column flex from that measured width into remaining space.

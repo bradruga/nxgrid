@@ -103,7 +103,7 @@ public static class SearchIndex
         new("Batch Update",         "batch-update",     Category: "Editing", Keywords: "bulk save multiple"),
 
         // Columns
-        new("Columns",              "columns",           Category: "Columns", Keywords: "column configuration setup"),
+        new("Columns",              "columns",           Category: "Columns", Keywords: "column configuration setup sortable resizable filterable"),
         new("Frozen Columns",       "frozen-columns",    Category: "Columns", Keywords: "freeze pin sticky left"),
         new("Hidden Columns",       "hidden-columns",    Category: "Columns", Keywords: "hide show column visibility"),
         new("Visible Columns",      "visible-columns",   Category: "Columns", Keywords: "show column chooser"),

@@ -1,4 +1,4 @@
-@typeparam T
+﻿@typeparam T
 @using System.Linq.Expressions
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
@@ -134,6 +134,29 @@
     /// column without affecting drag resize. Default: <c>true</c>.
     /// </summary>
     [Parameter] public bool AutoSizable { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, the header title can be clicked to cycle the sort and the column menu
+    /// offers Sort Ascending / Sort Descending / Clear Sort. Set to <c>false</c> to make the
+    /// column unsortable by the user. A persisted sort for an unsortable column is ignored on
+    /// restore. Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool Sortable { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, the column renders a resize grip that can be dragged to resize and
+    /// double-clicked to auto-size. Set to <c>false</c> to omit the grip entirely. A persisted
+    /// width for a non-resizable column is ignored on restore. Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool Resizable { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, the column menu shows the filter panel (search box, value checklist, and
+    /// "Clear Filter From"). Set to <c>false</c> to prevent the user from filtering this column;
+    /// a <see cref="FilterState"/> set in code still applies. A persisted filter for an
+    /// unfilterable column is ignored on restore. Default: <c>true</c>.
+    /// </summary>
+    [Parameter] public bool Filterable { get; set; } = true;
 
     /// <summary>
     /// Controls whether the column automatically measures its widest data value to determine its width.
@@ -448,6 +471,19 @@
     /// even when <see cref="Display"/> is set for formatted rendering.
     /// </summary>
     public Func<T, object?>? EffectiveValueGetter => compiledPropertyGetter ?? Display;
+
+    /// <summary>
+    /// Whether the user can sort by this column: <see cref="Sortable"/> is <c>true</c> and the
+    /// column has an <see cref="EffectiveValueGetter"/> to sort on.
+    /// </summary>
+    public bool CanSort => Sortable && EffectiveValueGetter != null;
+
+    /// <summary>
+    /// Whether the user can filter this column: <see cref="Filterable"/> is <c>true</c> and the
+    /// column has an <see cref="EffectiveValueGetter"/> to build the value list from. Without one
+    /// every row groups to <c>null</c>, so the list would hold a single "(Blanks)" entry.
+    /// </summary>
+    public bool CanFilter => Filterable && EffectiveValueGetter != null;
 
     /// <summary>
     /// Resolved column header title following the fallback chain:

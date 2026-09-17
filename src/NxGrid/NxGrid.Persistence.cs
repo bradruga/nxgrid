@@ -112,7 +112,7 @@ public partial class NxGrid<T>
         {
             var column = FindColumn(savedCol.Id);
             if (column == null) continue;
-            if (restoreWidths && savedCol.Width != null)
+            if (restoreWidths && savedCol.Width != null && column.Resizable)
             {
                 var w = savedCol.Width.Value;
                 if (column.MinWidth.HasValue) w = Math.Max(w, column.MinWidth.Value);
@@ -135,7 +135,7 @@ public partial class NxGrid<T>
             foreach (var savedSort in state.Sorts)
             {
                 var col = FindColumn(savedSort.ColumnId);
-                if (col == null) continue;
+                if (col == null || !col.CanSort) continue;
                 col.SortState = savedSort.Direction;
                 sortHistory.Add(col);
             }
@@ -146,7 +146,7 @@ public partial class NxGrid<T>
             foreach (var (colId, storedValues) in state.Filters)
             {
                 var column = FindColumn(colId);
-                if (column == null) continue;
+                if (column == null || !column.CanFilter) continue;
 
                 var valueSet = storedValues.ToHashSet();
                 column.FilterState = Data

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `NxGridColumn.Sortable` — set to `false` to make a single column unsortable. The header title stops responding to clicks and the column menu omits Sort Ascending / Sort Descending / Clear Sort. Filtering is unaffected.
+- `NxGridColumn.Resizable` — set to `false` to omit a single column's resize grip. The column cannot be drag-resized or double-click auto-sized, and is skipped when a multi-column resize spans it.
+- `NxGridColumn.Filterable` — set to `false` to remove the filter panel from a single column's menu. A `FilterState` set in code still applies, and the grid-wide Clear All Filters entry is unaffected.
+- The ▾ column menu button is now omitted on a column whose menu would be empty — for example a template-only action column with sorting, filtering, freezing and hiding all turned off. Right-clicking such a header no longer opens a blank popup.
+
+### Fixed
+
+- The column menu no longer offers Sort Ascending / Sort Descending / Clear Sort for a column with no `Property` or `Display`. Clicking the header of such a column already did nothing; the menu entries did nothing either.
+- The column menu no longer shows a filter panel for a column with no `Property` or `Display`. Every row grouped to the same value, so the list held a single "(Blanks)" entry that selected the whole grid.
+
 ## [0.3.9] - 2026-08-12
 
 ### Fixed
