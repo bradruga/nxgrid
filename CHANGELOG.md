@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NxGridColumn.Filterable` — set to `false` to remove the filter panel from a single column's menu. A `FilterState` set in code still applies, and the grid-wide Clear All Filters entry is unaffected.
 - The ▾ column menu button is now omitted on a column whose menu would be empty — for example a template-only action column with sorting, filtering, freezing and hiding all turned off. Right-clicking such a header no longer opens a blank popup.
 
+### Changed
+
+- Combo box: typing now highlights the first matching option (or an exact match anywhere in the list), so typing `Eng` and pressing Enter commits Engineering without arrowing to it first, and one Down Arrow reaches the second match. Nothing is highlighted while the edit value is empty, so Enter on a cleared cell still cancels.
+
 ### Fixed
 
 - The column menu no longer offers Sort Ascending / Sort Descending / Clear Sort for a column with no `Property` or `Display`. Clicking the header of such a column already did nothing; the menu entries did nothing either.

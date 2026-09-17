@@ -76,16 +76,17 @@ public partial class NxGrid<T>
 
         if (visibleColumns[col].IsComboColumn)
         {
-            comboHighlightIndex = -1;
             LoadAllComboItems();
             RefreshComboFilteredOptions();
             if (initialChar != null)
             {
+                comboHighlightIndex = DefaultComboHighlight();
                 isComboOpen = true;
                 comboNeedsPositioning = true;
             }
             else
             {
+                comboHighlightIndex = -1;
                 isComboOpen = false;
             }
         }
@@ -251,7 +252,8 @@ public partial class NxGrid<T>
         if (isEditing && editCol >= 0 && visibleColumns[editCol].IsComboColumn)
         {
             RefreshComboFilteredOptions();
-            comboHighlightIndex = -1;
+            comboHighlightIndex = DefaultComboHighlight();
+            comboScrollPending = comboHighlightIndex >= 0;
             if (!isComboOpen)
             {
                 isComboOpen = true;
@@ -546,6 +548,20 @@ public partial class NxGrid<T>
               || string.Equals(o.Id,   editValue, StringComparison.OrdinalIgnoreCase));
         if (exactIndex >= 0)
             SelectComboOption(exactIndex);
+    }
+
+    /// <summary>
+    /// The option a freshly filtered dropdown highlights: an exact <c>Text</c>/<c>Id</c> match,
+    /// otherwise the first match. <c>-1</c> while the edit value is empty, where no option is
+    /// implied — Enter on a cleared cell cancels rather than committing an arbitrary option.
+    /// </summary>
+    private int DefaultComboHighlight()
+    {
+        if (string.IsNullOrEmpty(editValue) || comboFilteredOptions.Count == 0) return -1;
+        var exactIndex = comboFilteredOptions.FindIndex(
+            o => string.Equals(o.Text, editValue, StringComparison.OrdinalIgnoreCase)
+              || string.Equals(o.Id,   editValue, StringComparison.OrdinalIgnoreCase));
+        return exactIndex >= 0 ? exactIndex : 0;
     }
 
     private async Task OnComboItemMouseDown(int optionIndex)

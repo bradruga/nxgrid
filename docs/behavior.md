@@ -477,11 +477,13 @@ If the measurement never arrives (the JS module failed to load), the rows are le
 
 | Key | Behavior |
 |---|---|
-| Down Arrow | Moves highlight down (clamps at last item) |
+| Down Arrow | Moves highlight down (clamps at last item) — from the auto-highlighted first match, one press reaches the second |
 | Up Arrow | Moves highlight up (clamps at index 0) |
-| Enter | Selects highlighted item (if any), then commits; or commits current text if nothing highlighted |
+| Enter | Selects the highlighted item, then commits; commits the current text if nothing is highlighted |
 | Tab | Same as Enter |
 | Escape | Closes dropdown, stays in edit mode; a second Escape then cancels the edit |
+
+**The first match is highlighted as you type.** Every keystroke re-filters the list and highlights the option Enter would commit, so typing `Eng` and pressing Enter commits Engineering without arrowing to it first, and one Down Arrow reaches the *second* match rather than the first. An exact `Text`/`Id` match anywhere in the filtered list is highlighted in preference to list order, so a value that is itself another option's prefix still commits itself. Nothing is highlighted while the edit value is empty — Enter on a cell cleared with Backspace cancels the edit rather than committing the first option in the list — and typing text that matches nothing cancels as before. Opening the dropdown with the ▾ button or Down Arrow shows the list with nothing highlighted, since neither implies an option.
 
 Moving the highlight scrolls it into view. In a virtualized list the highlighted row may not be in the DOM at all, so its offset is computed from the pinned row height rather than measured; assigning the dropdown's `scrollTop` then makes `<Virtualize>` render the window containing it.
 
