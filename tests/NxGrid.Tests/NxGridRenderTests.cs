@@ -503,12 +503,12 @@ public class NxGridRenderTests : BunitContext
         cut.Find(".nx-grid-combo-input").Input("x");
 
         var style = cut.Find(".nx-grid-combo-dropdown").GetAttribute("style");
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(style, Does.Contain("visibility:hidden"));
             Assert.That(style, Does.Not.Contain("transform"));
             Assert.That(style, Does.Not.Contain("--nx-popup-avail"));
-        });
+        }
     }
 
     [Test]
@@ -787,13 +787,14 @@ public class NxGridRenderTests : BunitContext
         var cut = RenderLargeComboGrid(300, itemHeight: 40);
         OpenDropdownWithEveryOption(cut);
 
+        // Typing already highlighted the first match, so Arrow Down moves to the second option.
         await cut.Find(".nx-grid-combo-input")
             .TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "ArrowDown" });
 
         cut.WaitForAssertion(() =>
         {
             var invocation = JSInterop.VerifyInvoke("scrollComboItemIntoView");
-            Assert.That(invocation.Arguments[0], Is.EqualTo(0), "highlighted row index");
+            Assert.That(invocation.Arguments[0], Is.EqualTo(1), "highlighted row index");
             Assert.That(invocation.Arguments[1], Is.EqualTo(40d), "pinned row height");
         });
     }
@@ -951,7 +952,7 @@ public class NxGridRenderTests : BunitContext
         // Data reloads shorter while the selection is still held, and there is no KeyProperty to
         // remap by. The stale row indices must be clamped rather than crash a later lookup.
         var two = new List<Row> { new("A", "x"), new("B", "x") };
-        Assert.DoesNotThrow(() => cut.Render(p => p.Add(x => x.Data, two)));
+        Assert.DoesNotThrow((Action)(() => cut.Render(p => p.Add(x => x.Data, two))));
 
         // Selection was clamped to the surviving rows, and every emitted item is from the new data.
         Assert.That(captured!.Ranges[0].Items, Has.Count.EqualTo(2));
@@ -977,7 +978,7 @@ public class NxGridRenderTests : BunitContext
         cut.Find(".nx-grid-header-row .nx-grid-cell").MouseDown();
         Assert.That(captured!.Ranges, Is.Not.Empty);
 
-        Assert.DoesNotThrow(() => cut.Render(p => p.Add(x => x.Data, new List<Row>())));
+        Assert.DoesNotThrow((Action)(() => cut.Render(p => p.Add(x => x.Data, new List<Row>()))));
         Assert.That(captured!.Ranges, Is.Empty);
     }
 

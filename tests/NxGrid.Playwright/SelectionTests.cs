@@ -82,6 +82,10 @@ public class SelectionTests : PageTest
     {
         await GoToSelectionPage();
 
+        // Data rows exist only once the page is interactive. Without this wait the Tab press can
+        // land on the prerendered grid, which has no focus handler yet, and nothing is selected.
+        await Expect(CellModeGrid.Locator(".nx-grid-row .nx-grid-cell").First).ToBeVisibleAsync();
+
         // "Clear log" is the last focusable element before the Cell-mode grid, so one real
         // Tab press from it lands keyboard focus on the grid container.
         await Page.Locator(".doc-btn-secondary").First.ClickAsync();
