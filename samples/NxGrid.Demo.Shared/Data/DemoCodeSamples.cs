@@ -272,6 +272,27 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string RowHeights = """
+// The grid reports, the host stores. Key heights by row identity so they
+// follow rows through sort and filter.
+<NxGrid T="Person" Data="@people"
+        RowGutter="NxGridRowGutter.Numbers"
+        RowHeightGetter="@(p => rowHeights.TryGetValue(p.Id, out var h) ? h : null)"
+        OnRowResized="@OnRowResized">
+    ...
+</NxGrid>
+
+@code {
+    Dictionary<int, int> rowHeights = new();
+
+    void OnRowResized(NxGridRowResizedArgs<Person> args)
+    {
+        if (args.NewHeight is { } h) rowHeights[args.Row.Id] = h;   // drag
+        else rowHeights.Remove(args.Row.Id);                        // double-click: back to default
+    }
+}
+""";
+
     public static readonly string Selection = """
 <NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged">
     ...

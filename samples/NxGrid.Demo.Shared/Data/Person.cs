@@ -8,4 +8,5 @@ public class Person
     public int Age { get; set; }
     public string Department { get; set; } = string.Empty;
     public decimal Salary { get; set; }
+    public string Notes { get; set; } = string.Empty;
 }

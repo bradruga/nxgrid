@@ -74,6 +74,7 @@ while (jsInterop == null) await Task.Delay(20);
 | Column freezing | `NxGrid.ColumnFreezing.cs` |
 | Column hiding / chooser | `NxGrid.ColumnHiding.cs` |
 | LocalStorage persistence | `NxGrid.Persistence.cs` |
+| Row resize | `NxGrid.RowResizing.cs` |
 
 State and helper methods that serve only one concern belong in that file.
 

@@ -1,0 +1,90 @@
+@page "/row-heights"
+
+<PageTitle>Row Heights — NxGrid</PageTitle>
+
+<h1>Row Heights</h1>
+<p class="doc-intro">
+    Every row is <code>RowHeight</code> tall unless <code>RowHeightGetter</code> says otherwise. Wire
+    <code>OnRowResized</code> and users can drag a row's bottom edge in the gutter, the way they drag
+    column widths. The grid reports the new height; the host stores it and hands it back through the getter.
+</p>
+
+<div class="doc-section">
+    <h2>Live Grid — Drag a Row Edge</h2>
+    <p class="doc-note">
+        Drag the bottom edge of a row number to resize that row. Double-click the edge to return the row
+        to the default height. Click or drag across row numbers to select several rows first and the
+        resize applies to all of them. Sort a column afterwards: heights follow their rows.
+        The <strong>Notes</strong> column is <code>MultiLine</code>: rows with no explicit height grow to
+        fit their notes, while a dragged height wins and clips.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn doc-btn-secondary" @onclick="@(() => rowHeights.Clear())">Reset all heights</button>
+        <span style="font-size:13px;color:#555;">Last event: <strong>@log</strong></span>
+    </div>
+    <NxGrid T="Person" Data="@people"
+            RowGutter="NxGridRowGutter.Numbers"
+            HeaderClickSelects="true"
+            RowHeightGetter="@(p => rowHeights.TryGetValue(p.Id, out var h) ? h : null)"
+            OnRowResized="@OnRowResized"
+            Editable="true"
+            OnUpdate="@HandleUpdate">
+        <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" Width="120" />
+        <NxGridColumn Property="@(x => x.Notes)"      MultiLine="true" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>How It Works</h2>
+    <pre class="doc-code">@rowHeightsCode</pre>
+    <p class="doc-note">
+        The grid keeps no row heights of its own, so a host that ignores <code>OnRowResized</code> sees the
+        row snap back. Setting <code>RowHeightGetter</code> renders every row — virtualization is off, the
+        same trade a <code>MultiLine</code> column makes — so leave it unset on grids that need to scale.
+        Heights are floored at 16px. In a grid with <code>MultiLine</code> columns an explicit height wins
+        over auto-grow.
+    </p>
+</div>
+
+@code {
+    List<Person> people = WithNotes(SampleData.GetPeopleCopy());
+    readonly Dictionary<int, int> rowHeights = new();
+
+    static List<Person> WithNotes(List<Person> people)
+    {
+        foreach (var p in people)
+            p.Notes = $"Joined {p.Department.ToLowerInvariant()} team";
+        if (people.Count > 2) people[2].Notes = "Remote, based in Denver.\nPrefers morning meetings.";
+        if (people.Count > 6) people[6].Notes = "On parental leave until March.\nBackfill: contractor.\nReview access on return.";
+        if (people.Count > 11) people[11].Notes = "Certified forklift operator.\nSafety lead for building B.";
+        return people;
+    }
+
+    string log = "none";
+    string rowHeightsCode = DemoCodeSamples.RowHeights;
+
+    void OnRowResized(NxGridRowResizedArgs<Person> args)
+    {
+        if (args.NewHeight is { } h)
+        {
+            rowHeights[args.Row.Id] = h;
+            log = $"row {args.RowIndex + 1} ({args.Row.FirstName}) → {h}px";
+        }
+        else
+        {
+            rowHeights.Remove(args.Row.Id);
+            log = $"row {args.RowIndex + 1} ({args.Row.FirstName}) → default";
+        }
+    }
+
+    void HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+}

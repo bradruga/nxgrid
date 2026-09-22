@@ -70,6 +70,12 @@ public partial class NxGrid<T>
     [Parameter] public int RowHeight { get; set; } = 28;
 
     /// <summary>
+    /// Per-row height in pixels; return <c>null</c> for <see cref="RowHeight"/>. Setting this turns
+    /// virtualization off, as a <c>MultiLine</c> column does. Heights below 16px are raised to 16px.
+    /// </summary>
+    [Parameter] public Func<T, int?>? RowHeightGetter { get; set; }
+
+    /// <summary>
     /// When <c>false</c>, the column header row is not rendered.
     /// Sort, filter, column resize, and <see cref="HasColumnMenu"/> are unavailable without headers.
     /// Default: <c>true</c>.
@@ -278,6 +284,13 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridColumnResizedArgs> OnColumnResized { get; set; }
 
     /// <summary>
+    /// Fires when the user drags a row's bottom edge in the gutter, or double-clicks it to restore
+    /// the default height (<c>NewHeight = null</c>). Wiring this shows the grip. The grid keeps no
+    /// heights: store <c>args.NewHeight</c> and return it from <see cref="RowHeightGetter"/>.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridRowResizedArgs<T>> OnRowResized { get; set; }
+
+    /// <summary>
     /// Fires after any column's filter state changes and <c>ApplyFilterAndSort</c> has run.
     /// <see cref="NxGridFilterChangedArgs{T}.Column"/> is <c>null</c> when all filters are
     /// cleared at once (e.g. <see cref="ClearAllFilters"/> or <see cref="ClearSavedState"/>).
@@ -464,6 +477,7 @@ public partial class NxGrid<T>
     private List<NxGridColumn<T>> visibleColumns = [];
     private int lastColumnCount;
     private string rowStyle = "";
+    private string rowMinWidthPart = "";
     private string headerRowStyle = "";
     private int contentWidth;
 
@@ -916,7 +930,13 @@ public partial class NxGrid<T>
     private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
     private bool HasTemplateHeaders => visibleColumns.Any(c => c.HeaderTemplate != null);
     private bool HasFooterRow => visibleColumns.Any(c => c.FooterTemplate != null);
-    private bool IsVirtualized => Virtualize && !HasMultiLineColumns && !IsGrouped;
+    private bool HasVariableRowHeight => HasMultiLineColumns || RowHeightGetter != null;
+    private bool IsVirtualized => Virtualize && !HasVariableRowHeight && !IsGrouped;
+
+    private string GetRowStyle(int rowIndex) =>
+        RowHeightGetter?.Invoke(filteredData[rowIndex]) is { } h
+            ? $"height:{Math.Max(MinRowHeightPx, h)}px;{rowMinWidthPart}"
+            : rowStyle;
 
     /// <inheritdoc/>
     protected override void OnParametersSet()
@@ -1224,6 +1244,7 @@ public partial class NxGrid<T>
         }
         contentWidth = totalWidth;
         var minWidthPart = $"min-width:{totalWidth}px";
+        rowMinWidthPart = minWidthPart;
         headerRowStyle = $"min-height:{RowHeight}px;{minWidthPart}";
         var heightProp = HasMultiLineColumns ? "min-height" : "height";
         return $"{heightProp}:{RowHeight}px;{minWidthPart}";

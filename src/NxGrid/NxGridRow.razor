@@ -25,6 +25,14 @@
              @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
              @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
             <span>@(RowIndex + 1)</span>
+            @if (RowResizable)
+            {
+                <div class="nx-grid-row-resize-grip"
+                     @onmousedown="@(args => OnResizeGripMouseDown != null ? OnResizeGripMouseDown(args, RowIndex) : Task.CompletedTask)"
+                     @onmousedown:stopPropagation
+                     @ondblclick="@(() => OnResizeGripDoubleClick != null ? OnResizeGripDoubleClick(RowIndex) : Task.CompletedTask)"
+                     @ondblclick:stopPropagation></div>
+            }
         </div>
     }
     else if (RowGutter == NxGridRowGutter.Blank)
@@ -32,6 +40,14 @@
         <div class="nx-grid-row-start"
              @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
              @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
+            @if (RowResizable)
+            {
+                <div class="nx-grid-row-resize-grip"
+                     @onmousedown="@(args => OnResizeGripMouseDown != null ? OnResizeGripMouseDown(args, RowIndex) : Task.CompletedTask)"
+                     @onmousedown:stopPropagation
+                     @ondblclick="@(() => OnResizeGripDoubleClick != null ? OnResizeGripDoubleClick(RowIndex) : Task.CompletedTask)"
+                     @ondblclick:stopPropagation></div>
+            }
         </div>
     }
 
@@ -304,6 +320,9 @@
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseEnter { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnDragHandleMouseDown { get; set; }
+    [Parameter] public bool RowResizable { get; set; }
+    [Parameter] public Func<MouseEventArgs, int, Task>? OnResizeGripMouseDown { get; set; }
+    [Parameter] public Func<int, Task>? OnResizeGripDoubleClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnDatePickerButtonClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnColorPickerButtonClick { get; set; }
@@ -329,6 +348,8 @@
     // The selection range is stored as a value tuple rather than a reference so that
     // in-place mutations to NxGridRange (e.g. during mouse-drag) are detected correctly.
     private T? prevRow;
+    private string prevRowStyle = "";
+    private bool prevRowResizable;
     private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevRangeSnapshot;
     private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevPickRangeSnapshot;
     private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevCutRangeSnapshot;
@@ -366,6 +387,8 @@
     protected override bool ShouldRender()
     {
         var rowChanged       = !EqualityComparer<T>.Default.Equals(prevRow, Row);
+        var styleChanged     = RowStyle != prevRowStyle;   // per-row heights arrive through RowStyle
+        var gripChanged      = RowResizable != prevRowResizable;
         var selChanged       = SelectionChangedForRow();
         var pickChanged      = PickRangeChangedForRow();
         var cutChanged       = RangeChangedForRow(prevCutRangeSnapshot, GetRangeSnapshot(CutRange));
@@ -377,11 +400,13 @@
         var modeChanged      = SelectionMode != prevSelectionMode;
         var focusChanged     = FocusCellChangedForRow();
 
-        if (!rowChanged && !selChanged && !pickChanged && !cutChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged && !focusChanged)
+        if (!rowChanged && !styleChanged && !gripChanged && !selChanged && !pickChanged && !cutChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged && !focusChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
         prevRow                 = Row;
+        prevRowStyle            = RowStyle;
+        prevRowResizable        = RowResizable;
         prevRangeSnapshot       = GetRangeSnapshot();
         prevPickRangeSnapshot   = GetPickRangeSnapshot();
         prevCutRangeSnapshot    = GetRangeSnapshot(CutRange);

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Cut: Ctrl/⌘+X and a **Cut** context-menu item, available whenever `OnUpdate` is set. The cut range shows a dashed marquee until it is pasted, Escape is pressed, another copy or cut replaces it, or the data is re-sorted, re-filtered or changed. Pasting a cut moves the cells: the source is cleared in the same `OnUpdate` batch, `TransformPastedValue` receives zero deltas so formula references do not shift, and `OnPasted` reports `WasCut = true`. Copying something else in another application first turns the paste back into an ordinary paste.
 - `NxGridPastedArgs.WasCut` and the `--nx-grid-cut-border` CSS variable.
+- Row heights: `RowHeightGetter` supplies a per-row height, and wiring `OnRowResized` adds a drag grip to the bottom edge of each row-number (or blank) gutter cell. Drag previews live and reports the new height; double-click reports `null` to restore the default. A drag on a row inside a full-row selection resizes every selected row, as column resize does for full-column selections. The grid stores no heights — the host keeps them and returns them from the getter. Setting the getter turns virtualization off, as a `MultiLine` column does.
 
 ### Changed
 

@@ -610,6 +610,19 @@ class NxGrid {
         if (!gridElement) return 10;
         const headerRow = gridElement.querySelector('.nx-grid-header-row');
         const headerHeight = headerRow ? headerRow.offsetHeight : 0;
+        if (gridElement.classList.contains('nx-grid-var-height')) {
+            // Rows differ in height: count the rows that fit below the header from the current scroll
+            const viewTop = gridElement.scrollTop + headerHeight;
+            const viewBottom = gridElement.scrollTop + gridElement.clientHeight;
+            let count = 0;
+            for (const row of gridElement.querySelectorAll('.nx-grid-row')) {
+                const bottom = row.offsetTop + row.offsetHeight;
+                if (bottom <= viewTop) continue;
+                if (bottom > viewBottom) break;
+                count++;
+            }
+            return Math.max(1, count);
+        }
         return Math.max(1, Math.floor((gridElement.clientHeight - headerHeight) / rowHeight));
     }
 
@@ -620,9 +633,9 @@ class NxGrid {
         const headerRow = gridElement.querySelector('.nx-grid-header-row');
         const headerHeight = headerRow ? headerRow.offsetHeight : 0;
 
-        // Vertical — use actual DOM positions when virtualization is disabled (multiline mode)
+        // Vertical — use actual DOM positions when rows vary in height (multiline / RowHeightGetter)
         let rowTop, rowBottom;
-        if (gridElement.classList.contains('nx-grid-multiline')) {
+        if (gridElement.classList.contains('nx-grid-var-height')) {
             const rows = gridElement.querySelectorAll('.nx-grid-row');
             if (rowIndex < rows.length) {
                 rowTop    = rows[rowIndex].offsetTop - headerHeight;
@@ -1242,6 +1255,60 @@ class NxGrid {
         return initialWidths.map((w, i) => i === columnIndex ? currentWidth : w);
     }
 
+    // Drags a row's bottom edge. The preview is a <style> rule on the row's data-row attribute,
+    // kept until cleanupResizeStyle() runs after Blazor has rendered the host's height. Only the
+    // gripped row previews; co-selected rows are sized by C# on release, as with columns.
+    // Resolves to the final height, or null for a click without a drag.
+    async resizeRow(rowIndex, startMouseY, minHeight) {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return null;
+        const row = gridElement.querySelector(`.nx-grid-row[data-row="${rowIndex}"]`);
+        if (!row) return null;
+
+        const initialHeight = row.getBoundingClientRect().height;
+        let currentHeight = initialHeight;
+
+        const styleEl = document.createElement('style');
+        document.head.appendChild(styleEl);
+        const safeId = CSS.escape(this.id);
+        const updateStyle = (h) => {
+            styleEl.textContent = `#${safeId} .nx-grid-row[data-row="${rowIndex}"]{height:${h}px!important;min-height:${h}px!important}`;
+        };
+
+        const grip = row.querySelector('.nx-grid-row-resize-grip');
+        if (grip) grip.classList.add('nx-grid-row-resize-grip-active');
+        document.body.style.cursor = 'row-resize';
+        document.body.style.userSelect = 'none';
+
+        const mouseMoveHandler = (event) => {
+            currentHeight = Math.max(minHeight, initialHeight + event.clientY - startMouseY);
+            updateStyle(currentHeight);
+            this._repositionFillHandle();
+        };
+        document.addEventListener('mousemove', mouseMoveHandler);
+
+        await new Promise((resolve) => {
+            const mouseUpHandler = () => {
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+                resolve();
+            };
+            document.addEventListener('mouseup', mouseUpHandler);
+        });
+
+        if (grip) grip.classList.remove('nx-grid-row-resize-grip-active');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
+        if (Math.abs(currentHeight - initialHeight) < 2) {
+            styleEl.remove();
+            return null;
+        }
+
+        this._resizeStyleEl = styleEl;
+        return Math.round(currentHeight);
+    }
+
     cleanupResizeStyle() {
         if (this._resizeStyleEl) {
             this._resizeStyleEl.remove();
@@ -1355,7 +1422,7 @@ class NxGrid {
         const colRight = colRect.right; // viewport coord
 
         let rowBottomViewport;
-        if (gridElement.classList.contains('nx-grid-multiline')) {
+        if (gridElement.classList.contains('nx-grid-var-height')) {
             const rows = gridElement.querySelectorAll('.nx-grid-row');
             if (maxRow < rows.length)
                 rowBottomViewport = rows[maxRow].getBoundingClientRect().bottom;
@@ -1393,22 +1460,22 @@ class NxGrid {
             };
         });
 
-        const isMultiLine = gridElement.classList.contains('nx-grid-multiline');
+        const varHeight = gridElement.classList.contains('nx-grid-var-height');
 
         const getRowTop = (idx) => {
-            if (!isMultiLine) return headerHeight + idx * rowHeight;
+            if (!varHeight) return headerHeight + idx * rowHeight;
             const rows = gridElement.querySelectorAll('.nx-grid-row');
             return idx < rows.length ? rows[idx].offsetTop : headerHeight + idx * rowHeight;
         };
         const getRowBottom = (idx) => {
-            if (!isMultiLine) return headerHeight + (idx + 1) * rowHeight;
+            if (!varHeight) return headerHeight + (idx + 1) * rowHeight;
             const rows = gridElement.querySelectorAll('.nx-grid-row');
             if (idx < rows.length) { const r = rows[idx]; return r.offsetTop + r.offsetHeight; }
             return headerHeight + (idx + 1) * rowHeight;
         };
         const getRowAtY = (clientY) => {
             const relY = clientY - gridRect.top + gridElement.scrollTop;
-            if (!isMultiLine) {
+            if (!varHeight) {
                 const dataY = relY - headerHeight;
                 return Math.max(0, Math.min(rowCount - 1, Math.floor(dataY / rowHeight)));
             }
@@ -1542,14 +1609,29 @@ class NxGrid {
         let targetIndex = startRowIndex;
         let lastClientY = null;
 
+        const varHeight = gridElement.classList.contains('nx-grid-var-height');
         const updateIndicator = (clientY) => {
             lastClientY = clientY;
             const gridRect = gridElement.getBoundingClientRect();
             const relY = clientY - gridRect.top - headerHeight + gridElement.scrollTop;
-            let idx = Math.round(relY / rowHeight);
-            targetIndex = Math.max(0, Math.min(rowCount, idx));
-            // Absolute top inside the scrollable content — no scrollTop adjustment needed
-            indicator.style.top = `${headerHeight + targetIndex * rowHeight}px`;
+            if (varHeight) {
+                // Rows differ in height: the drop slot is before the first row whose midpoint is below the pointer
+                const rows = gridElement.querySelectorAll('.nx-grid-row');
+                const contentY = relY + headerHeight;
+                let idx = rows.length;
+                for (let i = 0; i < rows.length; i++) {
+                    if (contentY < rows[i].offsetTop + rows[i].offsetHeight / 2) { idx = i; break; }
+                }
+                targetIndex = Math.max(0, Math.min(rowCount, idx));
+                const last = rows[rows.length - 1];
+                indicator.style.top = `${targetIndex < rows.length ? rows[targetIndex].offsetTop
+                                        : last ? last.offsetTop + last.offsetHeight : headerHeight}px`;
+            } else {
+                let idx = Math.round(relY / rowHeight);
+                targetIndex = Math.max(0, Math.min(rowCount, idx));
+                // Absolute top inside the scrollable content — no scrollTop adjustment needed
+                indicator.style.top = `${headerHeight + targetIndex * rowHeight}px`;
+            }
             indicator.style.display = 'block';
         };
 

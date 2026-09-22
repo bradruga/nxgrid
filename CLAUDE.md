@@ -49,6 +49,7 @@ src/NxGrid/
   NxGrid.ColumnFreezing.cs  # ComputeFrozenOffsets, freeze toggle handler
   NxGrid.ColumnHiding.cs    # SetColumnHidden, hide/show handlers, column chooser
   NxGrid.Persistence.cs     # StateKey save/restore via localStorage
+  NxGrid.RowResizing.cs     # Row-height grip drag, OnRowResized fan-out
   NxGridColumn.razor      # Column configuration component
   NxGridJsInterop.cs     # JS interop bridge
   wwwroot/

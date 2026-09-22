@@ -19,6 +19,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to hide and show columns](#how-to-hide-and-show-columns)
 - [How to lock down sorting, resizing, or filtering on one column](#how-to-lock-down-sorting-resizing-or-filtering-on-one-column)
 - [How to allow arithmetic expressions in editable cells](#how-to-allow-arithmetic-expressions-in-editable-cells)
+- [How to let users resize row heights](#how-to-let-users-resize-row-heights)
 - [How to show Sum, Avg, and Count for the selected range](#how-to-show-sum-avg-and-count-for-the-selected-range)
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
 - [How to format numbers and dates in a column](#how-to-format-numbers-and-dates-in-a-column)
@@ -887,6 +888,33 @@ The user can type `4*6` in Quantity and the cell commits `24` (as `int`). Typing
 **Supported operators:** `+`, `-`, `*`, `/`, parentheses, unary negation. No functions. Whitespace is ignored.
 
 **Paste:** expressions pasted into a `MathExpression` column are also evaluated (after `TransformPastedValue` runs).
+
+---
+
+## How to let users resize row heights
+
+The grid reports, the host stores. Keep heights keyed by row identity so they follow rows through sort and filter.
+
+```razor
+<NxGrid T="Person" Data="@people"
+        RowGutter="NxGridRowGutter.Numbers"
+        RowHeightGetter="@(p => rowHeights.TryGetValue(p.Id, out var h) ? h : null)"
+        OnRowResized="@OnRowResized">
+    ...
+</NxGrid>
+
+@code {
+    Dictionary<int, int> rowHeights = new();
+
+    void OnRowResized(NxGridRowResizedArgs<Person> args)
+    {
+        if (args.NewHeight is { } h) rowHeights[args.Row.Id] = h;   // drag
+        else rowHeights.Remove(args.Row.Id);                        // double-click: back to default
+    }
+}
+```
+
+Setting `RowHeightGetter` renders every row (virtualization off), the same trade a `MultiLine` column makes.
 
 ---
 

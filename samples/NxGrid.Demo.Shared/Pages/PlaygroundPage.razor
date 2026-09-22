@@ -47,6 +47,8 @@
                 <label class="pg-toggle"><input type="checkbox" @onchange="@(e => showCopyWithHeaders = (bool)(e.Value ?? false))" checked="@showCopyWithHeaders" /><span>Copy With Headers</span></label>
                 <label class="pg-toggle"><input type="checkbox" @onchange="@(e => enableSelectionMath = (bool)(e.Value ?? false))" checked="@enableSelectionMath" /><span>Selection Math</span></label>
                 <label class="pg-toggle"><input type="checkbox" @onchange="@(e => virtualize = (bool)(e.Value ?? false))" checked="@virtualize" /><span>Virtualize</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => headerClickSelects = (bool)(e.Value ?? false))" checked="@headerClickSelects" /><span>Header Click Selects</span></label>
+                <label class="pg-toggle"><input type="checkbox" @onchange="@(e => rowResize = (bool)(e.Value ?? false))" checked="@rowResize" /><span>Row Resize</span></label>
             </div>
 
             <hr class="pg-divider" />
@@ -174,7 +176,10 @@
                     SelectionMode="@selectionMode"
                     RowGutter="@rowGutter"
                     Cursor="@cursor"
-                    RowHeight="@rowHeight">
+                    RowHeight="@rowHeight"
+                    HeaderClickSelects="@headerClickSelects"
+                    RowHeightGetter="@(rowResize ? GetRowHeight : null)"
+                    OnRowResized="@(rowResize ? EventCallback.Factory.Create<NxGridRowResizedArgs<Person>>(this, OnRowResized) : default)">
                 <NxGridColumn Title="@cols[0].Title" Property="@(x => x.Id)"
                               Width="@cols[0].Width" MaxWidth="@cols[0].MaxWidth"
                               Alignment="@cols[0].Alignment"
@@ -245,6 +250,9 @@
     bool allowFocusCellMode = true;
     bool showCopyWithHeaders = true;
     bool enableSelectionMath = false;
+    bool headerClickSelects = false;
+    bool rowResize = false;
+    readonly Dictionary<int, int> rowHeights = new();
     NxGridSelectionMode selectionMode = NxGridSelectionMode.Cell;
     NxGridRowGutter rowGutter = NxGridRowGutter.Numbers;
     NxGridCursor cursor = NxGridCursor.Cell;
@@ -291,6 +299,14 @@
         }
     }
 
+    int? GetRowHeight(Person p) => rowHeights.TryGetValue(p.Id, out var h) ? h : null;
+
+    void OnRowResized(NxGridRowResizedArgs<Person> args)
+    {
+        if (args.NewHeight is { } h) rowHeights[args.Row.Id] = h;
+        else rowHeights.Remove(args.Row.Id);
+    }
+
     async Task HandleUpdate(NxGridUpdateArgs<Person> args)
     {
         foreach (var rowArgs in args.Rows)
@@ -313,6 +329,12 @@
         if (enableSelectionMath) sb.Append("\n        EnableSelectionMath=\"true\"");
         if (!virtualize)         sb.Append("\n        Virtualize=\"false\"");
         if (rowHeight != 28)     sb.Append($"\n        RowHeight=\"{rowHeight}\"");
+        if (headerClickSelects)  sb.Append("\n        HeaderClickSelects=\"true\"");
+        if (rowResize)
+        {
+            sb.Append("\n        RowHeightGetter=\"@(p => rowHeights.TryGetValue(p.Id, out var h) ? h : null)\"");
+            sb.Append("\n        OnRowResized=\"@OnRowResized\"");
+        }
         if (selectionMode != NxGridSelectionMode.Cell)
             sb.Append($"\n        SelectionMode=\"NxGridSelectionMode.{selectionMode}\"");
         if (rowGutter != NxGridRowGutter.Numbers)

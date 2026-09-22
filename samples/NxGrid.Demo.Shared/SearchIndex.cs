@@ -125,6 +125,7 @@ public static class SearchIndex
 
         // Appearance
         new("Layout Options",       "layout",            Category: "Appearance", Keywords: "row height banding gutter border"),
+        new("Row Heights",          "row-heights",       Category: "Appearance", Keywords: "row height resize drag tall RowHeightGetter OnRowResized"),
         new("Cell Coloring",        "cell-coloring",     Category: "Appearance", Keywords: "color background style conditional"),
         new("Theming",              "theming",           Category: "Appearance", Keywords: "theme css custom property dark light"),
 

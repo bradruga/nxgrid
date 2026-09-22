@@ -410,6 +410,21 @@
   cursor: col-resize;
 }
 
+.nx-grid-row-resize-grip {
+  height: 7px;
+  border-bottom: 3px solid transparent;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  cursor: row-resize;
+}
+
+.nx-grid-row-start:hover .nx-grid-row-resize-grip,
+.nx-grid-row-resize-grip.nx-grid-row-resize-grip-active {
+  border-color: var(--nx-grid-accent);
+}
+
 .nx-grid-menu-item {
   display: flex;
   align-items: center;

@@ -35,6 +35,13 @@
                 <td>Row height in pixels. Becomes the minimum height when <code>MultiLine</code> columns are present.</td>
                 <td></td>
             </tr>
+            <tr>
+                <td>RowHeightGetter</td>
+                <td>Func&lt;T, int?&gt;?</td>
+                <td>—</td>
+                <td>Per-row height in pixels; return <code>null</code> for <code>RowHeight</code>. Floored at 16. Setting it turns virtualization off, as a <code>MultiLine</code> column does.</td>
+                <td><a href="row-heights">Row Heights</a></td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -294,6 +301,13 @@
                 <td>EventCallback&lt;NxGridColumnResizedArgs&gt;</td>
                 <td>Fires when the user drags a resize grip <strong>or double-clicks it to auto-size</strong>, passing <code>ColumnIndex</code> and <code>NewWidth</code>.</td>
                 <td></td>
+            </tr>
+            <tr>
+                <td>OnRowResized</td>
+                <td>EventCallback&lt;NxGridRowResizedArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires when the user drags a row's bottom edge in the gutter (<code>NewHeight</code> in px) or double-clicks it (<code>NewHeight = null</code>). Wiring it renders the grip. Store the height and return it from <code>RowHeightGetter</code>.</td>
+                <td><a href="row-heights">Row Heights</a></td>
             </tr>
             <tr>
                 <td>OnCellDoubleClicked</td>

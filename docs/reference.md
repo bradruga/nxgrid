@@ -68,6 +68,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `Data` | `List<T>` | required | Client-side data. Sorting and filtering operate on this list in place. |
 | `KeyProperty` | `Func<T, object?>?` | — | Row identity function. When set, selection is preserved when `Data` is replaced by matching rows on key value instead of reference equality. See [Selection stability (KeyProperty)](#selection-stability-keyproperty). |
 | `RowHeight` | `int` | `28` | Row height in pixels. Passed to the virtualizer. |
+| `RowHeightGetter` | `Func<T, int?>?` | — | Per-row height in pixels; return `null` for `RowHeight`. Values below 16 are raised to 16. Setting this turns virtualization off, as a `MultiLine` column does. Pair with `OnRowResized` for user-draggable rows. |
 
 ### Layout
 
@@ -86,7 +87,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `ShowCopyWithHeaders` | `bool` | `true` | When `true`, the right-click context menu includes a **Copy with headers** item below **Copy**. Set to `false` to hide it — the plain **Copy** item and the `Ctrl+C` shortcut are unaffected. |
 | `StateKey` | `string?` | — | When set, the grid saves column widths (including manual-mode lock state), sort state, filter state, and per-column frozen and hidden state to `localStorage` under the key `nxgrid:{StateKey}` after every user change, and restores it on first render. Each grid instance on a page should use a unique key. Also renders as `data-state-key="..."` on the root element, useful as a Playwright locator (e.g. `page.Locator("[data-state-key='tickets']")`). |
 | `PersistenceScope` | `NxGridPersistenceScope` | `All` | Controls which parts of the grid state are saved and restored when `StateKey` is set. Combine flags with `\|`: `NxGridPersistenceScope.Widths \| NxGridPersistenceScope.Sort`. Pre-built composites: `All` (default) and `Layout` (`Widths \| Frozen \| Hidden`). Has no effect when `StateKey` is not set. |
-| `Virtualize` | `bool` | `true` | When `true` (default), rows are rendered with Blazor's `<Virtualize>` component so only the visible rows are in the DOM. Set to `false` to render all rows at once — useful for small grids where browser Ctrl+F search, accessibility tools, or print should see every row. Automatically overridden to `false` when any column has `MultiLine = true`. |
+| `Virtualize` | `bool` | `true` | When `true` (default), rows are rendered with Blazor's `<Virtualize>` component so only the visible rows are in the DOM. Set to `false` to render all rows at once — useful for small grids where browser Ctrl+F search, accessibility tools, or print should see every row. Automatically overridden to `false` when any column has `MultiLine = true` or `RowHeightGetter` is set. |
 | `EnableSelectionMath` | `bool` | `false` | When `true`, a status bar is rendered below the grid body (sticky, does not scroll vertically) showing **Sum**, **Avg**, and **Count** for the current selection. Non-numeric cells in the selection are excluded from Sum and Avg but included in Count. Sum and Avg are hidden when the selection contains no numeric cells. The bar disappears when there is no active selection. |
 | `GroupBy` | `Func<T, object?>?` | — | When set, rows are grouped by the value of this function after filtering. Group order follows first-appearance in the filtered result. Sort operates within each group — it does not reorder groups. When `GroupBy` is set, virtualization is disabled regardless of the `Virtualize` parameter (same behavior as `MultiLine`). |
 | `GroupHeaderTemplate` | `RenderFragment<NxGridGroupHeaderArgs<T>>?` | — | Custom markup for each group header row. When omitted, the header renders as `"{GroupValue} ({Count})"`. When this parameter is set alongside `ChildContent`, column declarations must be wrapped in explicit `<ChildContent>` tags (Blazor requirement for components with multiple named render fragments). |
@@ -119,6 +120,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `SelectedItems` | `List<T>?` | Two-way bindable list of the currently selected row objects (all ranges combined, deduplicated). Use `@bind-SelectedItems="@myList"` as a shorthand for `OnSelectionChanged`. `SelectedItemsChanged` fires in sync with `OnSelectionChanged`. Setting this from outside (e.g. `myList = []`) also updates the visual selection in the grid. |
 | `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. A handler may add or remove rows from `Data` in place — the grid re-runs its filter/sort pipeline after the callback. |
 | `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip **or double-clicks it to auto-size**. `args.ColumnIndex` and `args.NewWidth` (px). |
+| `OnRowResized` | `EventCallback<NxGridRowResizedArgs<T>>` | Fires when the user drags a row's bottom edge in the gutter (`args.NewHeight` in px) or double-clicks it (`args.NewHeight = null`, back to default). Wiring this renders the grip; the gutter must be `Numbers` or `Blank`. When the row is inside a selection spanning every column, fires once per selected row. The grid stores nothing — keep the height and return it from `RowHeightGetter`. |
 | `OnFilterChanged` | `EventCallback<NxGridFilterChangedArgs<T>>` | Fires after any column's filter state changes and `ApplyFilterAndSort` has run. `args.Column` is `null` when all filters are cleared at once (e.g. `ClearAllFilters()` or `ClearSavedState()`). Does not fire when `Data` is replaced externally. |
 | `OnSortChanged` | `EventCallback<NxGridSortChangedArgs<T>>` | Fires after the sort column or direction changes and `ApplyFilterAndSort` has run. `args.Column` is `null` and `args.Direction` is `0` when sort is cleared. Does not fire when only filter state changes, or when state is restored from `localStorage` on first render. |
 | `OnCellClicked` | `EventCallback<NxGridCellClickArgs<T>>` | Fires after a clean left-click on a body cell (mousedown and mouseup on the same cell, no drag-select). Fires for all cells regardless of editability. Does not fire on right-click, drag-select, header click, row-number gutter click, keyboard navigation, or `SelectRow()`. Fires after `OnSelectionChanged`. |
@@ -957,6 +959,13 @@ public sealed class NxGridColumnResizedArgs
     public int NewWidth { get; init; }
 }
 
+public sealed class NxGridRowResizedArgs<T>
+{
+    public T Row { get; init; }
+    public int RowIndex { get; init; }      // index into the filtered data
+    public int? NewHeight { get; init; }    // px after a drag; null after a double-click (default height)
+}
+
 public enum NxGridMenuSection
 {
     Header,         // above Copy / Copy with headers / Paste
@@ -1111,7 +1120,7 @@ All colors are overridable. Set these on `:root` or any ancestor element:
 
 Things that cannot be changed through CSS variables (require a CSS override targeting the class names):
 
-- Row height — controlled by the `RowHeight` parameter
+- Row height — controlled by the `RowHeight` parameter, or per row by `RowHeightGetter`
 - Column widths — controlled by `Width`, `MinWidth`, `MaxWidth`
 
 **Cell text whitespace:** all cell text renders with `white-space: pre`, so leading spaces, trailing spaces, and tab characters are preserved and visible exactly as stored. Multi-line columns additionally use `white-space: pre-wrap` so embedded newlines wrap inside the cell.

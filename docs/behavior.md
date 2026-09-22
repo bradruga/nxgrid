@@ -58,7 +58,7 @@ For a **background refresh** (refreshing data that is already loaded), keep `IsL
 2. **Sort** — the active sort column is applied to the filtered result.
 3. **Render** — rows are rendered from `filteredData`:
    - **Virtualized (default):** `<Virtualize>` renders only the visible rows with 12-row overscan and uniform `ItemSize = RowHeight`. Rows outside the viewport are not in the DOM.
-   - **Non-virtualized:** a plain `@foreach` loop renders all rows at once. This mode is active when `Virtualize = false` is set explicitly, or automatically when any visible column has `MultiLine = true`. In multiline mode rows use `min-height: RowHeight` so they can grow to fit content; in non-multiline non-virtualized mode rows use a fixed `height: RowHeight`.
+   - **Non-virtualized:** a plain `@foreach` loop renders all rows at once. This mode is active when `Virtualize = false` is set explicitly, or automatically when any visible column has `MultiLine = true` or `RowHeightGetter` is set. In multiline mode rows use `min-height: RowHeight` so they can grow to fit content; in non-multiline non-virtualized mode rows use a fixed `height: RowHeight`.
 
 The pipeline re-runs (`ApplyFilterAndSort`) when:
 - `OnParametersSet` detects that `Data` has a different reference or a different count than the last render.
@@ -381,7 +381,7 @@ Several behaviors differ from single-line editing in a `MultiLine` column specif
 
 **Real-time row height:** as the user types, the row expands and contracts immediately. An invisible `visibility:hidden` span holding the current edit value sits behind the textarea as a layout anchor, so the row height is driven by the text content rather than the textarea itself (which is absolutely positioned). A trailing newline is handled by appending a Unicode zero-width space to the anchor so the empty final line is fully accounted for.
 
-**Virtualization is off:** any grid containing at least one `MultiLine` column switches to `@foreach` rendering for all rows. The scroll position for `scrollCellIntoView` uses actual DOM `offsetTop`/`offsetHeight` instead of the computed `rowIndex × RowHeight` formula.
+**Virtualization is off:** any grid containing at least one `MultiLine` column (or a `RowHeightGetter`) switches to `@foreach` rendering for all rows. `scrollCellIntoView`, PageUp/PageDown, the fill handle, drag-fill and row drag-drop then measure real DOM `offsetTop`/`offsetHeight` instead of computing `rowIndex × RowHeight`.
 
 **Single-line cells in a multiline grid:** non-multiline columns in the same grid render their edit control as a `<textarea>` styled for single-line use (`white-space: nowrap; resize: none; overflow: hidden`) rather than a plain `<input>`. This ensures the text is top-aligned inside the cell, matching view mode, and that the editor fills the full (potentially tall) row height.
 
@@ -609,6 +609,24 @@ Dragging the resize grip at the right edge of any column header initiates a JS-d
 After resize, `OnColumnResized` fires once per *explicitly* resized column (the dragged column, plus any co-selected columns) with `args.ColumnIndex` and `args.NewWidth`. It does not fire for columns that were merely locked.
 
 **`UserWidth`** is set on a column object after a user drag (or when all columns are locked on first resize). Once set, `width` is pinned to `UserWidth`. `MinWidth` and `MaxWidth` remain active as hard floors and ceilings even after a user resize.
+
+---
+
+## Row resize
+
+Rows are `RowHeight` tall unless `RowHeightGetter` returns a height for them. The grid owns no row heights: a resize is reported through `OnRowResized`, the host stores it, and the next render reads it back through the getter. Heights therefore follow rows through sort and filter for free, and a host that ignores the event sees the row snap back.
+
+**Grip.** When `OnRowResized` has a handler and the gutter is `Numbers` or `Blank`, each gutter cell gets a grip along its bottom edge. `Hidden` has nowhere to draw one and `DragHandle` already owns the mouse there.
+
+**Drag.** The row previews its new height live through a `<style>` rule keyed on the row's `data-row` attribute, so nothing else moves until release. On mouseup `OnRowResized` fires once with the rounded height; a movement under 2px is a click and fires nothing. The rule is removed only after Blazor commits the render that follows, so the row does not flash back to its old height between the event and the host's re-render. Heights are floored at 16px, both in the drag and in what the getter returns.
+
+**Multi-row resize.** Mirrors the column rule: when the grip's row lies inside a selection that spans every visible column (a row-number click or drag with `HeaderClickSelects`, or Ctrl/⌘+A), only the gripped row previews during the drag, and on release `OnRowResized` fires once per selected row with the same height, so the others take it on the render that follows. Otherwise only the gripped row changes.
+
+**Double-click.** Fires `OnRowResized` with `NewHeight = null` for the gripped row, or for every row of a full-row selection: the row goes back to the default height (or to auto-growing, in a `MultiLine` grid). Nothing is measured — on a fixed-height row cells never wrap, so "fit content" is always one line; in a multiline grid a row with no explicit height already fits its content.
+
+**Virtualization.** Setting `RowHeightGetter` switches the grid to `@foreach` rendering, exactly as a `MultiLine` column does, because `<Virtualize>` requires uniform rows. Grids that need virtualization at scale should not set the getter.
+
+**With `MultiLine` columns.** An explicit height wins: the row is fixed at that height and overflowing text is clipped. A row the getter returns `null` for keeps `min-height` and grows with its content.
 
 ---
 
