@@ -580,4 +580,220 @@ public class NxGridKeyboardTests : BunitContext
         Assert.That(pressedArgs, Is.Null, "keyless events should not reach OnKeyPressed");
         Assert.That(cut.FindAll(".nx-grid-edit-input"), Is.Empty, "keyless events should not start editing");
     }
+
+    // ── Cut ───────────────────────────────────────────────────────────────────
+
+    private sealed class CutHarness
+    {
+        public IRenderedComponent<NxGrid<EditRow>> Cut = default!;
+        public JSRuntimeInvocationHandler CopyHandler = default!;
+        public JSRuntimeInvocationHandler<string> ReadHandler = default!;
+        public NxGridUpdateArgs<EditRow>? Update;
+        public NxGridCopiedArgs<EditRow>? Copied;
+        public NxGridPastedArgs<EditRow>? Pasted;
+        public NxGridKeyPressedArgs? Pressed;
+        public (int Row, int Col)? Deltas;
+
+        public Task Key(string key, bool ctrl = false, bool shift = false) =>
+            Cut.Find(".nx-grid").TriggerEventAsync("onkeydown",
+                new KeyboardEventArgs { Key = key, CtrlKey = ctrl, ShiftKey = shift });
+
+        public string ClipboardText => (string)CopyHandler.Invocations.Last().Arguments[0]!;
+        public int MarqueeCells => Cut.FindAll(".nx-grid-cell-cut").Count;
+    }
+
+    // One editable Name column (plus a read-only Age column when asked), OnUpdate wired,
+    // clipboard scripted: copies are captured, and the next paste reads `pasteText`.
+    private CutHarness RenderCutGrid(List<EditRow> rows, string pasteText, bool withUpdate = true, bool withAgeColumn = false)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var h = new CutHarness();
+        h.CopyHandler = JSInterop.SetupVoid("copyToClipboard", _ => true);
+        h.CopyHandler.SetVoidResult();
+        h.ReadHandler = JSInterop.Setup<string>("readFromClipboard", _ => true);
+        h.ReadHandler.SetResult(pasteText);
+
+        h.Cut = Render<NxGrid<EditRow>>(p =>
+        {
+            p.Add(x => x.Data, rows)
+             .Add(x => x.Editable, true)
+             .Add(x => x.OnCopied, EventCallback.Factory.Create<NxGridCopiedArgs<EditRow>>(this, a => h.Copied = a))
+             .Add(x => x.OnPasted, EventCallback.Factory.Create<NxGridPastedArgs<EditRow>>(this, a => h.Pasted = a))
+             .Add(x => x.OnKeyPressed, EventCallback.Factory.Create<NxGridKeyPressedArgs>(this, a => h.Pressed = a))
+             .Add(x => x.TransformPastedValue, (v, r, c) => { h.Deltas = (r, c); return v; })
+             .AddChildContent<NxGridColumn<EditRow>>(col => col
+                 .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Name)));
+            if (withUpdate)
+                p.Add(x => x.OnUpdate, EventCallback.Factory.Create<NxGridUpdateArgs<EditRow>>(this, a => h.Update = a));
+            if (withAgeColumn)
+                p.AddChildContent<NxGridColumn<EditRow>>(col => col
+                    .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Age))
+                    .Add(x => x.Editable, false));
+        });
+        return h;
+    }
+
+    private static List<EditRow> ThreeRows() =>
+        [new() { Name = "Alice" }, new() { Name = "Bob" }, new() { Name = "Carol" }];
+
+    private static string? NewValue(NxGridUpdateArgs<EditRow> update, string rowName) =>
+        update.Rows.Single(r => r.Row.Name == rowName).Changes.Single().NewValue?.ToString();
+
+    [Test]
+    public async Task CtrlX_WithOnUpdate_WritesClipboardMarksSource_FiresOnCopiedOnly()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice");
+
+        await ClickCell(h.Cut, 0);
+        await h.Key("x", ctrl: true);
+
+        Assert.That(h.ClipboardText, Is.EqualTo("Alice"));
+        Assert.That(h.Copied, Is.Not.Null, "cut goes through the copy channel");
+        Assert.That(h.Copied!.MinRow, Is.EqualTo(0));
+        Assert.That(h.Update, Is.Null, "cut alone must not write anything");
+        Assert.That(h.Pressed, Is.Null, "cut must not reach OnKeyPressed");
+        Assert.That(h.MarqueeCells, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task CtrlX_WithoutOnUpdate_ForwardedToOnKeyPressed()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice", withUpdate: false);
+
+        await ClickCell(h.Cut, 0);
+        await h.Key("x", ctrl: true);
+
+        Assert.That(h.Pressed, Is.Not.Null);
+        Assert.That(h.Pressed!.KeyboardEvent.Key, Is.EqualTo("x"));
+        Assert.That(h.CopyHandler.Invocations, Is.Empty, "grid must not touch the clipboard");
+        Assert.That(h.MarqueeCells, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task CutThenPaste_ClearsSourceInSameUpdate_ReportsWasCut()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice");
+
+        await ClickCell(h.Cut, 0);
+        await h.Key("x", ctrl: true);
+        await ClickCell(h.Cut, 2);
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.Update, Is.Not.Null);
+        Assert.That(h.Update!.Rows.Count, Is.EqualTo(2), "source clear and destination write in one batch");
+        Assert.That(NewValue(h.Update, "Alice"), Is.EqualTo(""));
+        Assert.That(NewValue(h.Update, "Carol"), Is.EqualTo("Alice"));
+        Assert.That(h.Pasted!.WasCut, Is.True);
+        Assert.That(h.MarqueeCells, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task CutPaste_PassesZeroDeltasToTransform()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice");
+
+        await ClickCell(h.Cut, 0);
+        await h.Key("x", ctrl: true);
+        await ClickCell(h.Cut, 2);
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.Deltas, Is.EqualTo((0, 0)));
+    }
+
+    [Test]
+    public async Task CopyPaste_StillPassesRealDeltasToTransform()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice");
+
+        await ClickCell(h.Cut, 0);
+        await h.Key("c", ctrl: true);
+        await ClickCell(h.Cut, 2);
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.Deltas, Is.EqualTo((2, 0)));
+        Assert.That(h.Pasted!.WasCut, Is.False);
+        Assert.That(h.Update!.Rows.Count, Is.EqualTo(1), "copy must not clear the source");
+    }
+
+    [Test]
+    public async Task SecondPasteAfterCut_IsOrdinaryPaste()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice");
+
+        await ClickCell(h.Cut, 0);
+        await h.Key("x", ctrl: true);
+        await ClickCell(h.Cut, 2);
+        await h.Key("v", ctrl: true);
+        await ClickCell(h.Cut, 1);
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.Pasted!.WasCut, Is.False);
+        Assert.That(h.Update!.Rows.Count, Is.EqualTo(1));
+        Assert.That(NewValue(h.Update, "Bob"), Is.EqualTo("Alice"));
+    }
+
+    [Test]
+    public async Task ForeignClipboardText_CancelsMove_AndClearsMarquee()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Zed");   // not what the cut wrote
+
+        await ClickCell(h.Cut, 0);
+        await h.Key("x", ctrl: true);
+        await ClickCell(h.Cut, 2);
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.Pasted!.WasCut, Is.False);
+        Assert.That(h.Update!.Rows.Count, Is.EqualTo(1), "source must be left alone");
+        Assert.That(NewValue(h.Update, "Carol"), Is.EqualTo("Zed"));
+        Assert.That(h.MarqueeCells, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Escape_ClearsMarquee_WithoutWriting()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice");
+
+        await ClickCell(h.Cut, 0);
+        await h.Key("x", ctrl: true);
+        Assert.That(h.MarqueeCells, Is.EqualTo(1));
+
+        await h.Key("Escape");
+
+        Assert.That(h.MarqueeCells, Is.EqualTo(0));
+        Assert.That(h.Update, Is.Null);
+        Assert.That(h.Pressed, Is.Null, "Escape that cleared a cut is consumed");
+    }
+
+    [Test]
+    public async Task OverlappingMove_PastedValueWins_UncoveredSourceCleared()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice\nBob");
+
+        await ClickCell(h.Cut, 0);
+        await h.Cut.FindAll(".nx-grid-row .nx-grid-cell")[1]
+            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ShiftKey = true });
+        await h.Key("x", ctrl: true);
+        Assert.That(h.ClipboardText, Is.EqualTo("Alice\nBob"));
+
+        await ClickCell(h.Cut, 1);
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.Update!.Rows.Count, Is.EqualTo(3));
+        Assert.That(NewValue(h.Update, "Alice"), Is.EqualTo(""), "row 0 moved away");
+        Assert.That(NewValue(h.Update, "Bob"), Is.EqualTo("Alice"), "row 1 is both source and destination");
+        Assert.That(NewValue(h.Update, "Carol"), Is.EqualTo("Bob"));
+    }
+
+    [Test]
+    public async Task CutPaste_ReadOnlyDestination_LeavesSourceAlone()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice", withAgeColumn: true);
+
+        await ClickCell(h.Cut, 0);          // row 0, Name
+        await h.Key("x", ctrl: true);
+        await ClickCell(h.Cut, 3);          // row 1, Age (read-only)
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.Update, Is.Null, "nothing landed, so nothing is cleared");
+    }
 }

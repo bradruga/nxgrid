@@ -70,6 +70,12 @@ public partial class NxGrid<T>
         }
     }
 
+    private async Task OnContextMenuCutClick()
+    {
+        showContextMenu = false;
+        await CopySelectionToClipboard(isCut: true);
+    }
+
     private async Task OnContextMenuCopyClick()
     {
         showContextMenu = false;
@@ -97,7 +103,7 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
-    private async Task CopySelectionToClipboard(bool includeHeaders = false)
+    private async Task CopySelectionToClipboard(bool includeHeaders = false, bool isCut = false)
     {
         if (selectedRanges.Count == 0 || jsInterop == null) return;
 
@@ -137,10 +143,26 @@ public partial class NxGrid<T>
             rows.Add(string.Join("\t", cells));
         }
 
-        await jsInterop.SetClipboardText(string.Join("\n", rows));
+        var text = string.Join("\n", rows);
+        await jsInterop.SetClipboardText(text);
+
+        ClearCutMark();
+        if (isCut)
+        {
+            cutRange         = new NxGridRange { StartRow = minRow, StartCol = minCol, EndRow = maxRow, EndCol = maxCol };
+            cutSourceRanges  = selectedRanges.Select(r => new NxGridRange { StartRow = r.StartRow, StartCol = r.StartCol, EndRow = r.EndRow, EndCol = r.EndCol }).ToList();
+            cutClipboardText = text;
+        }
 
         if (OnCopied.HasDelegate)
             await OnCopied.InvokeAsync(new NxGridCopiedArgs<T> { MinRow = minRow, MaxRow = maxRow, MinCol = minCol, MaxCol = maxCol });
+    }
+
+    private void ClearCutMark()
+    {
+        cutRange         = null;
+        cutSourceRanges  = [];
+        cutClipboardText = null;
     }
 
     //

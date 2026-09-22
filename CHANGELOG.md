@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Cut: Ctrl/⌘+X and a **Cut** context-menu item, available whenever `OnUpdate` is set. The cut range shows a dashed marquee until it is pasted, Escape is pressed, another copy or cut replaces it, or the data is re-sorted, re-filtered or changed. Pasting a cut moves the cells: the source is cleared in the same `OnUpdate` batch, `TransformPastedValue` receives zero deltas so formula references do not shift, and `OnPasted` reports `WasCut = true`. Copying something else in another application first turns the paste back into an ordinary paste.
+- `NxGridPastedArgs.WasCut` and the `--nx-grid-cut-border` CSS variable.
+
+### Changed
+
+- **Breaking:** Ctrl/⌘+X on a grid with an `OnUpdate` handler is now handled by the grid. It previously reached `OnKeyPressed`; hosts that bound their own cut there should remove it. Grids without `OnUpdate` are unaffected.
+
 ## [0.4.0] - 2026-09-17
 
 ### Added

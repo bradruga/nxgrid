@@ -58,7 +58,7 @@ public static class SearchIndex
         new("NxGrid — Layout Parameters",     "reference/nxgrid",        Section: "Layout",  Category: "Reference", Keywords: "Class Style ShowHeader RowGutter RowBanding HasColumnMenu"),
         new("NxGrid — Content Templates",     "reference/nxgrid",        Section: "Content", Category: "Reference", Keywords: "ChildContent EmptyTemplate LoadingTemplate IsLoading Overlays"),
         new("NxGrid — Tooltips",              "reference/nxgrid",        Section: "Tooltips", Category: "Reference", Keywords: "CellTooltip TooltipTemplate"),
-        new("NxGrid — Events",                "reference/nxgrid",        Section: "Events",  Category: "Reference", Keywords: "OnSelectionChanged OnCellClicked OnFilterChanged OnSortChanged OnKeyPressed OnUpdate OnRowDrop OnNewRow"),
+        new("NxGrid — Events",                "reference/nxgrid",        Section: "Events",  Category: "Reference", Keywords: "OnSelectionChanged OnCellClicked OnFilterChanged OnSortChanged OnKeyPressed OnUpdate OnRowDrop OnNewRow OnCopied OnPasted"),
         new("NxGrid — Styling",               "reference/nxgrid",        Section: "Styling", Category: "Reference", Keywords: "CellStyle style css"),
         new("NxGrid — Editing Parameters",    "reference/nxgrid",        Section: "Editing", Category: "Reference", Keywords: "Editable CellEditableGetter OnEditing OnUpdate EnableDragFill NewRowTriggers"),
         new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey SelectCell BeginEditAsync ClearSavedState SetColumnHidden SetEditValue CommitEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
@@ -118,6 +118,7 @@ public static class SearchIndex
 
         // Interaction
         new("Keyboard Navigation",  "keyboard",          Category: "Interaction", Keywords: "arrow tab enter keys shortcut"),
+        new("Cut, Copy & Paste",    "clipboard",         Category: "Interaction", Keywords: "clipboard cut copy paste move marquee tsv excel OnCopied OnPasted WasCut TransformPastedValue"),
         new("Context Menu",         "context-menu",      Category: "Interaction", Keywords: "right-click menu items"),
         new("Tooltips",             "tooltips",          Category: "Interaction", Keywords: "hover tooltip hint"),
         new("Filter & Sort Events", "filter-sort-events",Category: "Interaction", Keywords: "filter sort event callback"),

@@ -568,9 +568,21 @@ The Delete key (with no Ctrl/⌘ modifier) clears all cells in the current selec
 
 Copies the current selection as tab-separated values (TSV), one row per line. Cell values come from `Display ?? Property` (the same value that is rendered), so the copied text matches what is displayed. The copy origin `(startRow, startCol)` is recorded for use during paste.
 
+### Cut (Ctrl/⌘+X or context menu)
+
+Available only when the grid has an `OnUpdate` handler; otherwise Ctrl/⌘+X is forwarded to `OnKeyPressed` and the menu has no Cut item. Cut writes the clipboard exactly as Copy does (same TSV, same `OnCopied` callback) and draws a dashed marquee around the selection's bounding box. Nothing is cleared yet.
+
+The mark is cleared by: any paste (whether or not it turns out to be the move), Escape (with no edit open), another copy or cut, and any re-run of the filter/sort pipeline (sort, filter, data change), since the marked row indices would no longer be meaningful.
+
 ### Paste (Ctrl/⌘+V)
 
 Paste reads plain text from the clipboard and parses it as TSV (rows split on `\n`, cells split on `\t`). Paste skips cells that are not editable or where `CellEditableGetter` returns `false`.
+
+**Paste after a cut** is a move. It is recognized only while the clipboard still holds the text the cut wrote; copying something else in another application first turns it back into an ordinary paste. On a move:
+
+- `TransformPastedValue` receives `rowDelta = colDelta = 0`, so relative references are not shifted — `=C1+1` cut from A1 and pasted at A5 is still `=C1+1`.
+- Each cut cell whose destination cell was actually written is reset to its column default (the same as the Delete key), in the same `OnUpdate` batch as the destination writes. A source cell that is also a destination keeps the pasted value. Source cells whose destination was read-only or off the grid are left alone.
+- `OnPasted` reports `WasCut = true`. A second paste of the same clipboard is an ordinary paste.
 
 **Single-cell paste** (clipboard contains exactly one row and one column):
 
@@ -726,13 +738,14 @@ When `StateKey` is non-null, the grid serialises its current column configuratio
 
 ## Context menu
 
-Right-clicking any cell opens a context menu at the cursor position. The built-in **Copy** item is always first and always present. **Copy with headers** follows it unless `ShowCopyWithHeaders` is `false`, in which case the item is omitted entirely — plain **Copy** and the `Ctrl+C` shortcut are unaffected.
+Right-clicking any cell opens a context menu at the cursor position. A **Cut** item leads when the grid has an `OnUpdate` handler. The built-in **Copy** item is always present. **Copy with headers** follows it unless `ShowCopyWithHeaders` is `false`, in which case the item is omitted entirely — plain **Copy** and the `Ctrl+C` shortcut are unaffected.
 
 **Custom items** are added via `OnContextMenuShowing`. The handler is called synchronously before the menu opens — append `NxGridContextMenuItem` entries to `args.Items`. Use the `Section` property to control where each item appears relative to the built-ins:
 
 ```
 [Header items]           ← NxGridMenuSection.Header
 ─────────────            ← auto divider (when Header items present)
+Cut                      ← when OnUpdate is set
 Copy                     ← always present
 Copy with headers        ← unless ShowCopyWithHeaders is false
 Paste                    ← when cell is editable

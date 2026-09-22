@@ -47,6 +47,7 @@
     --nx-grid-accent-dark:      #15803D;
     --nx-grid-selection-border: #16A34A;
     --nx-grid-pick-border:      #16A34A;
+    --nx-grid-cut-border:       #16A34A;
     --nx-grid-item-hover-bg:    rgba(22, 163, 74, 0.07);
     --nx-grid-menu-icon:        #16A34A;
     --nx-grid-checkbox-border:  #D0D0D8;
@@ -101,6 +102,7 @@ html.site-dark, .site-dark {
     --nx-grid-accent-dark:      #16A34A;
     --nx-grid-selection-border: #4ADE80;
     --nx-grid-pick-border:      #4ADE80;
+    --nx-grid-cut-border:       #4ADE80;
     --nx-grid-row-number-fg:    #606072;
     --nx-grid-icon-fg:          #8E8E9F;
     --nx-grid-icon-muted-fg:    #606072;

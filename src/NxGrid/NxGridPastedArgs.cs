@@ -32,4 +32,10 @@ public sealed class NxGridPastedArgs<T>
 
     /// <summary>Number of columns in the parsed clipboard content.</summary>
     public required int ClipboardCols { get; init; }
+
+    /// <summary>
+    /// <c>true</c> when this paste completed a cut: the grid cleared the moved source cells and
+    /// called <see cref="NxGrid{T}.TransformPastedValue"/> with zero deltas. See docs/behavior.md.
+    /// </summary>
+    public bool WasCut { get; init; }
 }

@@ -56,6 +56,7 @@
             && !isAnchor
             && !selected;
         var inPickRange = PickRange?.IsCellInRange(RowIndex, ci) == true;
+        var cutClasses = GetCutClasses(RowIndex, ci);
         // True when this cell shows an idle editor button (combo ▾ / date picker / color swatch)
         // overlaid on its right edge; cell content then reserves space so text ellipsizes
         // before the button instead of running underneath it.
@@ -64,7 +65,7 @@
             && (col.Editable ?? GridEditable)
             && (CellEditableGetter == null || CellEditableGetter(Row, col));
 
-        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(inPickRange ? "nx-grid-cell-pick-range" : "") @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
+        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(inPickRange ? "nx-grid-cell-pick-range" : "") @cutClasses @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
              data-col="@ci"
              style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
              @onmousedown="@(args => HandleMouseDown(args, col))"
@@ -284,6 +285,7 @@
     [Parameter] public NxGridRange? SelectedRange { get; set; }
     [Parameter] public IReadOnlyList<NxGridRange> AdditionalRanges { get; set; } = [];
     [Parameter] public NxGridRange? PickRange { get; set; }
+    [Parameter] public NxGridRange? CutRange { get; set; }
     [Parameter] public NxGridRowGutter RowGutter { get; set; }
     [Parameter] public bool IsEditing { get; set; }
     [Parameter] public int EditRow { get; set; }
@@ -329,6 +331,7 @@
     private T? prevRow;
     private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevRangeSnapshot;
     private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevPickRangeSnapshot;
+    private (int MinRow, int MaxRow, int MinCol, int MaxCol)? prevCutRangeSnapshot;
     private List<(int, int, int, int)> prevAdditionalSnapshots = [];
     private bool prevIsEditing;
     private NxGridCursor prevCursor;
@@ -365,6 +368,7 @@
         var rowChanged       = !EqualityComparer<T>.Default.Equals(prevRow, Row);
         var selChanged       = SelectionChangedForRow();
         var pickChanged      = PickRangeChangedForRow();
+        var cutChanged       = RangeChangedForRow(prevCutRangeSnapshot, GetRangeSnapshot(CutRange));
         var addlChanged      = AdditionalRangesChangedForRow();
         var editChanged      = EditChangedForRow();
         var tokenChanged     = RenderToken != prevRenderToken;
@@ -373,13 +377,14 @@
         var modeChanged      = SelectionMode != prevSelectionMode;
         var focusChanged     = FocusCellChangedForRow();
 
-        if (!rowChanged && !selChanged && !pickChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged && !focusChanged)
+        if (!rowChanged && !selChanged && !pickChanged && !cutChanged && !addlChanged && !editChanged && !tokenChanged && !cursorChanged && !gutterChanged && !modeChanged && !focusChanged)
             return false;
 
         // Save snapshot so the next call can compare against it
         prevRow                 = Row;
         prevRangeSnapshot       = GetRangeSnapshot();
         prevPickRangeSnapshot   = GetPickRangeSnapshot();
+        prevCutRangeSnapshot    = GetRangeSnapshot(CutRange);
         prevAdditionalSnapshots = GetAdditionalSnapshots();
         prevIsEditing           = IsEditing;
         prevEditRow             = EditRow;
@@ -410,13 +415,33 @@
             Math.Min(PickRange.StartCol, PickRange.EndCol),
             Math.Max(PickRange.StartCol, PickRange.EndCol));
 
-    private bool PickRangeChangedForRow()
+    private bool PickRangeChangedForRow() => RangeChangedForRow(prevPickRangeSnapshot, GetPickRangeSnapshot());
+
+    private static (int, int, int, int)? GetRangeSnapshot(NxGridRange? range) =>
+        range == null ? null : (
+            Math.Min(range.StartRow, range.EndRow),
+            Math.Max(range.StartRow, range.EndRow),
+            Math.Min(range.StartCol, range.EndCol),
+            Math.Max(range.StartCol, range.EndCol));
+
+    private bool RangeChangedForRow((int, int, int, int)? prev, (int, int, int, int)? curr)
     {
-        var curr = GetPickRangeSnapshot();
-        if (curr == prevPickRangeSnapshot) return false;
-        var prevTouches = prevPickRangeSnapshot is var (pr0, pr1, _, _) && RowIndex >= pr0 && RowIndex <= pr1;
-        var currTouches = curr              is var (cr0, cr1, _, _) && RowIndex >= cr0 && RowIndex <= cr1;
+        if (curr == prev) return false;
+        var prevTouches = prev is var (pr0, pr1, _, _) && RowIndex >= pr0 && RowIndex <= pr1;
+        var currTouches = curr is var (cr0, cr1, _, _) && RowIndex >= cr0 && RowIndex <= cr1;
         return prevTouches || currTouches;
+    }
+
+    // Dashed cut marquee: each cell on the box's edge draws that edge via ::after
+    private string GetCutClasses(int row, int col)
+    {
+        if (CutRange == null || !CutRange.IsCellInRange(row, col)) return "";
+        var classes = "nx-grid-cell-cut";
+        if (row == Math.Min(CutRange.StartRow, CutRange.EndRow)) classes += " nx-grid-cut-top";
+        if (row == Math.Max(CutRange.StartRow, CutRange.EndRow)) classes += " nx-grid-cut-bottom";
+        if (col == Math.Min(CutRange.StartCol, CutRange.EndCol)) classes += " nx-grid-cut-left";
+        if (col == Math.Max(CutRange.StartCol, CutRange.EndCol)) classes += " nx-grid-cut-right";
+        return classes;
     }
 
     private List<(int, int, int, int)> GetAdditionalSnapshots()

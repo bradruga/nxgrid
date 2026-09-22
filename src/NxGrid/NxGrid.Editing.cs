@@ -590,19 +590,7 @@ public partial class NxGrid<T>
                 for (var c = minCol; c <= maxCol; c++)
                 {
                     if (!visitedCells.Add((r, c))) continue;
-                    if (!IsColumnEditable(visibleColumns[c])) continue;
-                    if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], visibleColumns[c])) continue;
-
-                    var oldValue = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
-                    var defaultStr = GetColumnDefaultString(visibleColumns[c]);
-                    var (typedDefault, applyDefault) = visibleColumns[c].ParseAndBuildApply(defaultStr);
-
-                    if (!rowChanges.TryGetValue(r, out var changes))
-                    {
-                        changes = [];
-                        rowChanges[r] = changes;
-                    }
-                    changes.Add(new NxGridCellChange<T> { Column = visibleColumns[c], OldValue = oldValue, NewValue = typedDefault, ApplyAction = applyDefault });
+                    AccumulateClear(rowChanges, r, c);
                 }
             }
         }
@@ -618,6 +606,24 @@ public partial class NxGrid<T>
 
         renderToken++;
         StateHasChanged();
+    }
+
+    // Resets one cell to its column default (Delete-key semantics); skips non-editable cells.
+    private void AccumulateClear(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int r, int c)
+    {
+        var column = visibleColumns[c];
+        if (!IsColumnEditable(column)) return;
+        if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], column)) return;
+
+        var oldValue = column.EffectiveValueGetter?.Invoke(filteredData[r]);
+        var (typedDefault, applyDefault) = column.ParseAndBuildApply(GetColumnDefaultString(column));
+
+        if (!rowChanges.TryGetValue(r, out var changes))
+        {
+            changes = [];
+            rowChanges[r] = changes;
+        }
+        changes.Add(new NxGridCellChange<T> { Column = column, OldValue = oldValue, NewValue = typedDefault, ApplyAction = applyDefault });
     }
 
     private string? GetColumnDefaultString(NxGridColumn<T> column)
@@ -655,6 +661,11 @@ public partial class NxGrid<T>
         var text = await jsInterop.GetClipboardText();
         if (string.IsNullOrEmpty(text)) return;
 
+        // A pending cut is a move only while the clipboard still holds what the cut wrote; a copy
+        // made elsewhere in between turns this back into an ordinary paste. Line endings are
+        // normalized because some browsers hand back CRLF for the LF that was written.
+        var isMove = cutRange != null && text.Replace("\r", "") == cutClipboardText?.Replace("\r", "");
+
         // Parse TSV: rows split by newline, cells split by tab
         var clipRows = text.TrimEnd('\n', '\r').Split('\n');
         var clipCols = clipRows[0].TrimEnd('\r').Split('\t');
@@ -676,8 +687,9 @@ public partial class NxGrid<T>
                 {
                     if (tr >= filteredData.Count || tc >= visibleColumns.Count) continue;
                     if (!IsColumnEditable(visibleColumns[tc])) continue;
+                    // A move keeps the content's meaning, so its offset is zero
                     var value = TransformPastedValue != null
-                        ? TransformPastedValue(singleValue, tr - copyOrigin.row, tc - copyOrigin.col)
+                        ? TransformPastedValue(singleValue, isMove ? 0 : tr - copyOrigin.row, isMove ? 0 : tc - copyOrigin.col)
                         : singleValue;
                     AccumulateChange(rowChanges, tr, tc, value);
                 }
@@ -685,8 +697,8 @@ public partial class NxGrid<T>
         else
         {
             // Multi-cell: paste starting at top-left of selection with a fixed delta
-            var rowDelta = originRow - copyOrigin.row;
-            var colDelta = originCol - copyOrigin.col;
+            var rowDelta = isMove ? 0 : originRow - copyOrigin.row;
+            var colDelta = isMove ? 0 : originCol - copyOrigin.col;
 
             for (var r = 0; r < clipRows.Length; r++)
             {
@@ -704,6 +716,23 @@ public partial class NxGrid<T>
                 }
             }
         }
+
+        if (isMove)
+        {
+            // Clear each cut cell whose destination was actually written, in the same OnUpdate
+            // batch. A source cell the paste overwrote (overlapping move) keeps the pasted value.
+            var cutMinRow = cutRange!.StartRow;
+            var cutMinCol = cutRange.StartCol;
+            for (var sr = cutMinRow; sr <= cutRange.EndRow; sr++)
+                for (var sc = cutMinCol; sc <= cutRange.EndCol && sc < visibleColumns.Count; sc++)
+                {
+                    if (!cutSourceRanges.Any(range => range.IsCellInRange(sr, sc))) continue;
+                    if (!HasChange(rowChanges, sr - cutMinRow + originRow, sc - cutMinCol + originCol)) continue;
+                    if (HasChange(rowChanges, sr, sc)) continue;
+                    AccumulateClear(rowChanges, sr, sc);
+                }
+        }
+        ClearCutMark();   // any paste ends the pending cut, foreign content included
 
         if (OnUpdate.HasDelegate)
         {
@@ -723,12 +752,18 @@ public partial class NxGrid<T>
                 SelectionEndRow = selEndRow,
                 SelectionEndCol = selEndCol,
                 ClipboardRows   = clipRows.Length,
-                ClipboardCols   = clipCols.Length
+                ClipboardCols   = clipCols.Length,
+                WasCut          = isMove
             });
 
         renderToken++;
         StateHasChanged();
     }
+
+    private bool HasChange(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int rowIdx, int colIdx) =>
+        colIdx < visibleColumns.Count
+        && rowChanges.TryGetValue(rowIdx, out var list)
+        && list.Any(ch => ch.Column == visibleColumns[colIdx]);
 
     private void AccumulateChange(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int rowIdx, int colIdx, string? newValue)
     {

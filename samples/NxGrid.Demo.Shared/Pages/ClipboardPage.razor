@@ -1,0 +1,154 @@
+@page "/clipboard"
+
+<PageTitle>Clipboard — NxGrid</PageTitle>
+
+<h1>Cut, Copy &amp; Paste</h1>
+<p class="doc-intro">
+    The selection travels to the OS clipboard as tab-separated text, so it round-trips with Excel and
+    Google Sheets. Cut draws a dashed marquee around the source; the paste that follows moves the cells,
+    clearing the source in the same <code>OnUpdate</code> batch that writes the destination.
+</p>
+
+<div class="doc-section">
+    <h2>Live Grid — Cut, Copy and Paste</h2>
+    <p class="doc-note">
+        Select some cells and press <kbd class="doc-kbd">Ctrl+X</kbd> or <kbd class="doc-kbd">Ctrl+C</kbd>,
+        click a destination, then <kbd class="doc-kbd">Ctrl+V</kbd>. <kbd class="doc-kbd">Escape</kbd> cancels a
+        pending cut. The right-click menu offers the same commands.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn doc-btn-secondary" @onclick="ResetData">Reset data</button>
+        <button class="doc-btn doc-btn-secondary" @onclick="@(() => log.Clear())">Clear log</button>
+    </div>
+    <NxGrid T="Person" Data="@people"
+            Editable="true"
+            OnUpdate="@HandleUpdate"
+            OnCopied="@OnCopied"
+            OnPasted="@OnPasted"
+            RowGutter="NxGridRowGutter.Numbers"
+            Cursor="@NxGridCursor.Cell">
+        <NxGridColumn Property="@(x => x.Id)"         Width="50"  MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <div class="doc-output">
+        @if (log.Count == 0)
+        {
+            <span>Clipboard events appear here…</span>
+        }
+        else
+        {
+            @foreach (var line in log)
+            {
+                <div>@line</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2>What Happens on a Cut</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Step</th><th>Grid</th><th>Host</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><kbd class="doc-kbd">Ctrl+X</kbd> or menu <em>Cut</em></td>
+                <td>Writes the selection to the clipboard exactly as a copy would, fires <code>OnCopied</code>, and draws the marquee. Nothing is written to the data yet.</td>
+                <td>Capture side-channel data (formatting, calculated values) from <code>OnCopied</code>, the same as for a copy.</td>
+            </tr>
+            <tr>
+                <td><kbd class="doc-kbd">Ctrl+V</kbd> or menu <em>Paste</em></td>
+                <td>Writes the destination and clears each moved source cell in one <code>OnUpdate</code>. <code>TransformPastedValue</code> receives zero deltas, so references do not shift. <code>OnPasted</code> reports <code>WasCut = true</code>.</td>
+                <td>Apply the batch as usual. Use <code>WasCut</code> to move formatting along, or to rewrite formulas elsewhere that pointed at the moved cells.</td>
+            </tr>
+            <tr>
+                <td><kbd class="doc-kbd">Escape</kbd></td>
+                <td>Clears the marquee. The clipboard is left alone.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Another copy or cut; sort, filter or data change</td>
+                <td>Clears the marquee. No move is pending.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>Paste of text copied in another application</td>
+                <td>Ordinary paste. <code>WasCut</code> is <code>false</code>, the source is untouched, the marquee clears.</td>
+                <td>—</td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="doc-note">
+        A source cell whose destination is read-only or off the grid is left in place. A source cell that is
+        also a destination (an overlapping move) keeps the pasted value. Cut is offered only when the grid has
+        an <code>OnUpdate</code> handler; without one, <kbd class="doc-kbd">Ctrl+X</kbd> is forwarded to
+        <code>OnKeyPressed</code> and the menu has no Cut item.
+    </p>
+</div>
+
+<div class="doc-section">
+    <h2>OnCopied / OnPasted</h2>
+    <p class="doc-note">
+        The OS clipboard carries plain text only. Anything else that should travel with a copy or a cut goes
+        through these two callbacks. See the <a href="spreadsheet">Spreadsheet</a> example, which moves cell
+        formatting this way.
+    </p>
+    <pre class="doc-code">@cutPasteCode</pre>
+</div>
+
+<div class="doc-section">
+    <h2>Shortcut Reference</h2>
+    <table class="doc-table">
+        <thead>
+            <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><kbd class="doc-kbd">Ctrl+C</kbd> / <kbd class="doc-kbd">⌘+C</kbd></td><td>Copy the selection as TSV</td></tr>
+            <tr><td><kbd class="doc-kbd">Ctrl+X</kbd> / <kbd class="doc-kbd">⌘+X</kbd></td><td>Cut: copy and mark the selection; the next paste moves it</td></tr>
+            <tr><td><kbd class="doc-kbd">Ctrl+V</kbd> / <kbd class="doc-kbd">⌘+V</kbd></td><td>Paste at the selection origin. A single copied cell fills the whole selection.</td></tr>
+            <tr><td><kbd class="doc-kbd">Escape</kbd></td><td>Cancel a pending cut</td></tr>
+            <tr><td><kbd class="doc-kbd">Delete</kbd></td><td>Clear the selected cells</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+    List<Person> people = SampleData.GetPeopleCopy();
+    readonly List<string> log = [];
+    string cutPasteCode = DemoCodeSamples.CutPaste;
+
+    void ResetData()
+    {
+        people = SampleData.GetPeopleCopy();
+        log.Clear();
+    }
+
+    void Log(string line)
+    {
+        log.Insert(0, line);
+        if (log.Count > 8) log.RemoveAt(log.Count - 1);
+    }
+
+    void HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        var cells = 0;
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+            {
+                change.Apply(rowArgs.Row);
+                cells++;
+            }
+        Log($"OnUpdate — {args.Rows.Count} row(s), {cells} cell(s) changed");
+    }
+
+    void OnCopied(NxGridCopiedArgs<Person> args) =>
+        Log($"OnCopied — rows {args.MinRow}–{args.MaxRow}, cols {args.MinCol}–{args.MaxCol}");
+
+    void OnPasted(NxGridPastedArgs<Person> args) =>
+        Log($"OnPasted — {args.ClipboardRows}×{args.ClipboardCols} at row {args.OriginRow}, col {args.OriginCol}"
+            + (args.WasCut ? " — WasCut = true, source cleared" : " — WasCut = false"));
+}

@@ -647,6 +647,7 @@
 
     // style clipboard (in-memory, separate from OS clipboard text)
     Cell?[,]? copiedStyleClipboard;
+    (int Row, int Col) copiedStyleOrigin;
 
     string? selectedFill        = "#FFFF00";
     string? selectedTextColor   = "#000000";
@@ -1168,6 +1169,7 @@
         var rows = args.MaxRow - args.MinRow + 1;
         var cols = args.MaxCol - args.MinCol + 1;
         copiedStyleClipboard = new Cell?[rows, cols];
+        copiedStyleOrigin = (args.MinRow, args.MinCol);
         for (var r = 0; r < rows; r++)
             for (var c = 0; c < cols; c++)
                 copiedStyleClipboard[r, c] = CloneStyle(sheet[args.MinRow + r, args.MinCol + c]);
@@ -1178,6 +1180,12 @@
         if (copiedStyleClipboard == null) return;
         var clipRows = copiedStyleClipboard.GetLength(0);
         var clipCols = copiedStyleClipboard.GetLength(1);
+
+        // A cut moves formatting with the values: reset the source before styling the destination
+        if (args.WasCut)
+            for (var r = 0; r < clipRows; r++)
+                for (var c = 0; c < clipCols; c++)
+                    ApplyStyle(new Cell(), sheet[copiedStyleOrigin.Row + r, copiedStyleOrigin.Col + c]);
 
         if (clipRows == 1 && clipCols == 1)
         {

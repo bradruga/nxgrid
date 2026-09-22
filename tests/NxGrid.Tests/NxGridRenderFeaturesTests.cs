@@ -152,13 +152,14 @@ public class NxGridRenderFeaturesTests : BunitContext
 
     // ── ShowCopyWithHeaders ───────────────────────────────────────────────────
 
-    private static IRenderedComponent<NxGrid<Row>> RenderWithContextMenu(BunitContext ctx, bool? showCopyWithHeaders)
+    private static IRenderedComponent<NxGrid<Row>> RenderWithContextMenu(BunitContext ctx, bool? showCopyWithHeaders, bool withUpdate = false)
     {
         ctx.JSInterop.Mode = JSRuntimeMode.Loose;
         var cut = ctx.Render<NxGrid<Row>>(p =>
         {
             p.Add(x => x.Data, [new Row("Alice", 1)]);
             if (showCopyWithHeaders != null) p.Add(x => x.ShowCopyWithHeaders, showCopyWithHeaders.Value);
+            if (withUpdate) p.Add(x => x.OnUpdate, EventCallback.Factory.Create<NxGridUpdateArgs<Row>>(ctx, _ => { }));
             p.AddChildContent<NxGridColumn<Row>>(col => col
                 .Add(x => x.Display, r => r.Name)
                 .Add(x => x.Title, "Name"));
@@ -178,6 +179,17 @@ public class NxGridRenderFeaturesTests : BunitContext
     {
         var cut = RenderWithContextMenu(this, null);
         Assert.That(ContextMenuLabels(cut), Does.Contain("Copy with headers"));
+    }
+
+    [Test]
+    public void ContextMenu_Cut_ShownOnlyWithOnUpdate()
+    {
+        var without = ContextMenuLabels(RenderWithContextMenu(this, null));
+        Assert.That(without.Any(l => l.StartsWith("Cut")), Is.False, "no OnUpdate, no Cut");
+
+        var with = ContextMenuLabels(RenderWithContextMenu(this, null, withUpdate: true));
+        Assert.That(with[0], Does.StartWith("Cut"), "Cut leads the built-ins");
+        Assert.That(with[1], Does.StartWith("Copy"));
     }
 
     // ── Popup geometry ────────────────────────────────────────────────────────

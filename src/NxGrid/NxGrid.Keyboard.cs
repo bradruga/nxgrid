@@ -6,6 +6,7 @@ public partial class NxGrid<T>
 {
     private const string KeyCopy       = "c";
     private const string KeyPaste      = "v";
+    private const string KeyCut        = "x";
     private const string KeyDelete     = "Delete";
     private const string KeyArrowUp    = "ArrowUp";
     private const string KeyArrowDown  = "ArrowDown";
@@ -38,6 +39,19 @@ public partial class NxGrid<T>
             if (ModifierPressed(args) && string.Equals(args.Key, KeyPaste, StringComparison.OrdinalIgnoreCase))
             {
                 await PasteFromClipboard();
+                return;
+            }
+
+            // Cut only where a paste could land; otherwise Ctrl+X stays a host hotkey
+            if (ModifierPressed(args) && string.Equals(args.Key, KeyCut, StringComparison.OrdinalIgnoreCase) && OnUpdate.HasDelegate)
+            {
+                await CopySelectionToClipboard(isCut: true);
+                return;
+            }
+
+            if (args.Key == KeyEscape && cutRange != null)
+            {
+                ClearCutMark();
                 return;
             }
 

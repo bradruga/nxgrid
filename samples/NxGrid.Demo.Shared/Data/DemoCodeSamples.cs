@@ -243,6 +243,35 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string CutPaste = """
+<NxGrid T="Person" Data="@people" Editable="true"
+        OnUpdate="@HandleUpdate"
+        OnCopied="@OnCopied"
+        OnPasted="@OnPasted">
+    ...
+</NxGrid>
+
+@code {
+    CellStyle?[,]? styleClipboard;
+    (int Row, int Col) styleOrigin;
+
+    // Fires for copy and cut alike: capture whatever travels beside the plain text.
+    void OnCopied(NxGridCopiedArgs<Person> args)
+    {
+        styleOrigin    = (args.MinRow, args.MinCol);
+        styleClipboard = CaptureStyles(args.MinRow, args.MaxRow, args.MinCol, args.MaxCol);
+    }
+
+    // Fires after OnUpdate has written the destination (and, on a cut, cleared the source).
+    void OnPasted(NxGridPastedArgs<Person> args)
+    {
+        if (args.WasCut)
+            ClearStyles(styleOrigin, styleClipboard);   // the values moved; move the formatting too
+        ApplyStyles(styleClipboard, args.OriginRow, args.OriginCol);
+    }
+}
+""";
+
     public static readonly string Selection = """
 <NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged">
     ...

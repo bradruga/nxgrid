@@ -13,6 +13,7 @@
   --nx-grid-accent-dark: #005a9e;
   --nx-grid-selection-border: #217346;
   --nx-grid-pick-border: #0078d4;
+  --nx-grid-cut-border: #0078d4;
   --nx-grid-row-number-fg: #666;
   --nx-grid-icon-fg: #000;
   --nx-grid-icon-muted-fg: #555;
@@ -196,6 +197,40 @@
 
 .nx-grid-row .nx-grid-cell.nx-grid-cell-pick-range {
   background-color: rgba(0, 120, 212, 0.07);
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cell-cut::before,
+.nx-grid-row .nx-grid-cell.nx-grid-cell-cut::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 0 solid var(--nx-grid-surface);
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cell-cut::after {
+  border-style: dashed;
+  border-color: var(--nx-grid-cut-border);
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cut-top::before,
+.nx-grid-row .nx-grid-cell.nx-grid-cut-top::after {
+  border-top-width: 2px;
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cut-bottom::before,
+.nx-grid-row .nx-grid-cell.nx-grid-cut-bottom::after {
+  border-bottom-width: 2px;
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cut-left::before,
+.nx-grid-row .nx-grid-cell.nx-grid-cut-left::after {
+  border-left-width: 2px;
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cut-right::before,
+.nx-grid-row .nx-grid-cell.nx-grid-cut-right::after {
+  border-right-width: 2px;
 }
 
 .nx-grid-edit-input {

@@ -126,6 +126,7 @@ public partial class NxGrid<T>
     private void ApplyFilterAndSort()
     {
         _fillHandleUpdatePending = true;
+        ClearCutMark();   // row indices are about to change under the marquee
 
         var data = Data;
 

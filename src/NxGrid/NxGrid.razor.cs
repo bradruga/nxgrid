@@ -449,6 +449,12 @@ public partial class NxGrid<T>
 
     private (int row, int col) copyOrigin;
 
+    // Pending cut: the marquee box, the cells that were actually selected, and the text written
+    // to the clipboard so a paste can tell whether the clipboard still holds this cut.
+    private NxGridRange? cutRange;
+    private List<NxGridRange> cutSourceRanges = [];
+    private string? cutClipboardText;
+
     private List<T> loadedData = [];
     private int loadedDataCount;
     private bool prevShowReadOnlyStyling = true;

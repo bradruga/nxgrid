@@ -351,6 +351,13 @@
             {
                 <div class="nx-grid-menu-divider"></div>
             }
+            @if (OnUpdate.HasDelegate)
+            {
+                <button type="button" class="nx-grid-context-item"
+                        @onclick="@OnContextMenuCutClick">
+                    <span>Cut</span><span class="nx-grid-context-shortcut">Ctrl+X</span>
+                </button>
+            }
             <button type="button" class="nx-grid-context-item"
                     @onclick="@OnContextMenuCopyClick">
                 <span>Copy</span><span class="nx-grid-context-shortcut">Ctrl+C</span>
@@ -780,6 +787,7 @@
         SelectedRange="@ActiveRange"
         AdditionalRanges="@selectedRanges"
         PickRange="@GetCurrentPickRange()"
+        CutRange="@cutRange"
         RowGutter="@EffectiveRowGutter"
         IsEditing="@isEditing"
         EditRow="@editRow"

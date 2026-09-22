@@ -981,6 +981,7 @@ void BuildMenu(NxGridContextMenuArgs<ProjectDto> args)
 // Menu renders:
 //   Open project
 //   ───────────    ← auto boundary divider
+//   Cut            ← when OnUpdate is set
 //   Copy
 //   Copy with headers
 //   Paste
@@ -1000,7 +1001,7 @@ Two built-ins can be suppressed with grid parameters — no `OnContextMenuShowin
         AllowFocusCellMode="false">   <!-- drops the "Focus Cell" checkbox -->
 ```
 
-`Copy` cannot be hidden, and `Paste` is already hidden automatically whenever the right-clicked cell isn't editable. Hiding **Copy with headers** does not affect plain `Copy` or the `Ctrl+C` shortcut.
+`Copy` cannot be hidden. `Cut` appears only when the grid has an `OnUpdate` handler, and `Paste` is already hidden automatically whenever the right-clicked cell isn't editable. Hiding **Copy with headers** does not affect plain `Copy` or the `Ctrl+C` shortcut.
 
 ### Conditional and disabled items
 
