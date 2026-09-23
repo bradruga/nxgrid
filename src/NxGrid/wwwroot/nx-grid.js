@@ -178,12 +178,17 @@ class NxGrid {
             // Focus that follows a mouse press is not tab-focus (see _gridFocusInHandler).
             // The browser dispatches that focus synchronously within the press, so clearing
             // the flag on the next macrotask always outlives it — for any button, since a
-            // right-click focuses the grid too.
+            // right-click focuses the grid too. The release clears it as well: a busy main
+            // thread (Blazor Server applying the click's render batch) can delay the timer past
+            // a Tab that follows the click within a few milliseconds.
             this._pointerFocus = true;
             setTimeout(() => { this._pointerFocus = false; }, 0);
             if (event.button === 0) this._leftButtonDown = true;
         };
-        this._buttonUpHandler   = (event) => { if (event.button === 0) this._leftButtonDown = false; };
+        this._buttonUpHandler = (event) => {
+            this._pointerFocus = false;
+            if (event.button === 0) this._leftButtonDown = false;
+        };
         document.addEventListener('mousedown', this._buttonDownHandler, true);
         document.addEventListener('mouseup',   this._buttonUpHandler,   true);
 
