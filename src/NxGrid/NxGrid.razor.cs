@@ -502,11 +502,15 @@ public partial class NxGrid<T>
     private int editRow = -1;
     private int editCol = -1;
     private string editValue = "";
-    private string editOriginalValue = "";
-    private bool editInitiatedByF2;
-    private bool editInitiatedByChar;
+    // Excel's two editing modes. Enter mode: arrows belong to the grid (commit-and-move, or point
+    // at cells in edit-pick mode). Edit mode: arrows belong to the caret. Set by StartEditing from
+    // how the edit began; F2 flips it mid-edit.
+    private bool editEnterMode;
+    // A pick is live from the moment it fires until the user types; the next pick then replaces it.
+    private bool pickIsLive;
     private bool prevEditPickMode;
     private bool IsEditPickMode => isEditing && EditPickPredicate?.Invoke(editValue) == true;
+    private bool IsPointMode => IsEditPickMode && editEnterMode;
 
     // Pick-drag state: tracks a click-and-drag range selection while in edit-pick mode.
     private bool isPickDragging;
@@ -731,6 +735,13 @@ public partial class NxGrid<T>
     public Task CommitEditAsync() => CommitEdit(moveKey: null, refocusGrid: false);
 
     /// <summary>
+    /// Discards any in-progress cell edit without committing it, as Escape does: <see cref="OnUpdate"/>
+    /// never fires, <see cref="OnEditCancelled"/> does. Focus is left where it is, matching
+    /// <see cref="CommitEditAsync"/>. No-op when no edit is active.
+    /// </summary>
+    public Task CancelEditAsync() => CancelEdit(refocusGrid: false);
+
+    /// <summary>
     /// Opens the inline editor on a specific cell, as if the user had double-clicked it, and
     /// scrolls it into view. Any in-progress edit elsewhere is committed first. Runs the full
     /// editability chain (column <see cref="NxGridColumn{T}.Editable"/>, <see cref="OnUpdate"/>,
@@ -858,6 +869,33 @@ public partial class NxGrid<T>
         await RaiseSelectionChanged();
         // Deferred: the row may have been added to Data moments ago and not be in the DOM yet.
         pendingScrollIntoView = (rowIndex, IsRowSelectionMode ? 0 : colIndex);
+    }
+
+    /// <summary>
+    /// Selects the rectangle from one cell to another, as a Shift-click would, fires
+    /// <see cref="OnSelectionChanged"/>, and scrolls the end cell into view. Rows are resolved as
+    /// <see cref="SelectCell"/> resolves them. Selects whole rows in the row-selection modes (one row
+    /// in <c>SingleRow</c>). Focus is left where it is. No-op when either row is not in the filtered
+    /// data or either column is hidden.
+    /// </summary>
+    public async Task SelectRange(T startRow, NxGridColumn<T> startColumn, T endRow, NxGridColumn<T> endColumn)
+    {
+        if (SelectionMode == NxGridSelectionMode.None) return;
+        var startRowIndex = FindRowIndex(startRow);
+        if (startRowIndex < 0) return;
+        var endRowIndex = FindRowIndex(endRow);
+        if (endRowIndex < 0) return;
+        var startColIndex = visibleColumns.IndexOf(startColumn);
+        var endColIndex = visibleColumns.IndexOf(endColumn);
+        if (startColIndex < 0 || endColIndex < 0) return;
+
+        if (SelectionMode == NxGridSelectionMode.SingleRow) endRowIndex = startRowIndex;
+        selectedRanges = IsRowSelectionMode
+            ? [new NxGridRange { StartRow = startRowIndex, StartCol = 0, EndRow = endRowIndex, EndCol = visibleColumns.Count - 1 }]
+            : [new NxGridRange { StartRow = startRowIndex, StartCol = startColIndex, EndRow = endRowIndex, EndCol = endColIndex }];
+        StateHasChanged();
+        await RaiseSelectionChanged();
+        pendingScrollIntoView = (endRowIndex, IsRowSelectionMode ? 0 : endColIndex);
     }
 
     // Locates a row in the current filtered data: reference equality first, then KeyProperty

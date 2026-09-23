@@ -11,6 +11,9 @@
 <h1>Spreadsheet</h1>
 <p class="doc-intro">
     A spreadsheet built on NxGrid: formulas, cell formatting, charts, and conditional formatting.
+    Type <kbd class="doc-kbd">=</kbd> in a cell, then click a cell or use the arrow keys to point at
+    one; <kbd class="doc-kbd">Shift+Arrow</kbd> extends it to a range, and <kbd class="doc-kbd">F2</kbd>
+    switches the arrows back to moving the caret.
 </p>
 
 <div class="ss-app" style="display:flex; flex-direction:column; flex:1; min-height:0; border:1px solid var(--border); border-radius:6px; overflow:hidden; background:var(--bg);">
@@ -647,6 +650,7 @@
 
     // style clipboard (in-memory, separate from OS clipboard text)
     Cell?[,]? copiedStyleClipboard;
+    int lastPickRefLength;
     (int Row, int Col) copiedStyleOrigin;
 
     string? selectedFill        = "#FFFF00";
@@ -1324,9 +1328,15 @@
             ? $"{(char)('A' + minC)}{minR + 1}"
             : $"{(char)('A' + minC)}{minR + 1}:{(char)('A' + maxC)}{maxR + 1}";
 
-        // In-cell pick always appends: when typing a formula the cursor is naturally at
-        // the end, so appending is correct. The formula bar path uses cursor tracking instead.
-        var newFormula = formulaBarValue + refText;
+        // In-cell pick appends: when typing a formula the cursor is naturally at the end. A pick
+        // that supersedes the previous one (an arrow moved it, or a second click with no typing in
+        // between) overwrites the reference appended last time. The formula bar path uses cursor
+        // tracking instead.
+        var basis = args.ReplacesPrevious && formulaBarValue.Length >= lastPickRefLength
+            ? formulaBarValue[..^lastPickRefLength]
+            : formulaBarValue;
+        var newFormula = basis + refText;
+        lastPickRefLength = refText.Length;
         formulaBarValue = newFormula;
         UpdateEditingRefs(newFormula);
         grid?.SetEditValue(newFormula);

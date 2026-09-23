@@ -399,21 +399,7 @@ public partial class NxGrid<T>
                 && pickAnchorCol >= 0 && pickAnchorCol < visibleColumns.Count
                 && endRow >= 0 && endCol >= 0)
             {
-                lastPickedRange = new NxGridRange
-                {
-                    StartRow = pickAnchorRow,
-                    StartCol = pickAnchorCol,
-                    EndRow   = endRow,
-                    EndCol   = endCol
-                };
-                if (OnCellPickedWhileEditing.HasDelegate)
-                    await OnCellPickedWhileEditing.InvokeAsync(new NxGridEditCellPickArgs<T>
-                    {
-                        StartRow   = filteredData[pickAnchorRow],
-                        StartColumn = visibleColumns[pickAnchorCol],
-                        EndRow     = filteredData[endRow],
-                        EndColumn  = visibleColumns[endCol]
-                    });
+                await RaisePick(pickAnchorRow, pickAnchorCol, endRow, endCol);
             }
             if (jsInterop != null) await jsInterop.FocusEditInput();
             clickDownRow = -1;

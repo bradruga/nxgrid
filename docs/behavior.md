@@ -312,17 +312,33 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 
 **Programmatic commit.** `CommitEditAsync()` commits any in-progress edit through the same pipeline as a keyboard commit (math expression evaluation, `Format`/`TryParse` parsing, `OnUpdate`) for every editor type — plain input, textarea, combo box (committed exactly as Enter with a closed dropdown: an exact `Text`/selected-item match commits its `Id`, otherwise the edit cancels), and date picker (calendar closes). It is a no-op when no editor is open, and when a commit is already in flight (e.g. one triggered by focus loss) it awaits that commit instead of starting a second one, so `OnUpdate` fires exactly once per edit. The returned task completes only after `OnUpdate` has finished — call it first in a Save handler that lives outside the grid, then read the model.
 
-**Arrow keys commit and move unless editing was started by F2.** Specifically, arrow keys commit the edit and move the selection when:
+**Enter mode and edit mode.** Every edit is in one of Excel's two modes, which decide what the arrow keys do:
 
-- Editing was initiated by **typing a printable character** (whether the cell was empty or not), or
-- Editing was initiated by **double-click** and the cell was empty.
+- **Enter mode** — arrows belong to the grid: they commit the edit and move the selection (or, in edit-pick mode, point at cells; see below). An edit starts in enter mode when it was initiated by **typing a printable character**, or by **double-click on an empty cell**.
+- **Edit mode** — arrows move the caret within the text. An edit starts in edit mode when it was initiated by **F2**, or by **double-click on a cell that already had content**.
 
-Arrow keys move the cursor within the text input when:
-
-- Editing was initiated by **F2** (regardless of cell content), or
-- Editing was initiated by **double-click** and the cell already had content.
+**F2 while editing toggles between the two.** Type `12`, press F2, and the arrows move the caret; press F2 again and they commit and move. Toggling also ends any live pick (see below).
 
 On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. When `MathExpression = true` on the column, the raw input string is evaluated as an arithmetic expression before type-parsing runs (see [Math expression evaluation](#math-expression-evaluation)). `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with a `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
+
+### Edit-pick mode and keyboard pointing
+
+When `EditPickPredicate` is set and returns `true` for the current edit value (typically `v => v.StartsWith("=")`), the edit is in **edit-pick mode**. Clicking or click-dragging other cells no longer commits the edit; on mouseup the grid draws a pick box over the range and fires `OnCellPickedWhileEditing`. The host formats the reference and writes it into the editor with `SetEditValue`. The grid never interprets the text.
+
+**Point mode** is edit-pick mode while the edit is in enter mode. The arrow keys then point instead of committing, and the caret never moves:
+
+| Input | Result |
+|---|---|
+| Arrow, no live pick | Picks the cell one step from the cell being edited |
+| Arrow, live pick | Moves the pick one step; a range collapses to its anchor cell first |
+| Shift + arrow | Extends the live pick from its anchor (with no live pick, a plain one-step pick) |
+| Typing anything | Anchors the pick; the next pick starts a new reference from the edited cell |
+| F2 | Switches to edit mode: arrows move the caret and pointing stops until F2 is pressed again |
+| Enter, Tab, Escape | Commit or cancel as usual |
+
+Picks are clamped to the grid and the picked cell is scrolled into view. Date-picker, colour-picker and combo columns keep their own arrow handling ahead of pointing. In the DOM, the grid carries `nx-grid-point-mode` while pointing, which the capture-phase key handler uses to suppress the browser's caret movement for every arrow.
+
+**`ReplacesPrevious`.** A pick is *live* from the moment it fires until the user types into the editor. A pick made while one is live — an arrow moving it, or a second click with no typing between — reports `ReplacesPrevious = true`, and the host overwrites the reference it inserted last time instead of appending. This is the same rule for mouse and keyboard, so clicking A1 and then B7 yields `=B7` rather than `=A1B7`.
 
 ### New-row append
 

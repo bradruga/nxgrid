@@ -61,7 +61,7 @@ public static class SearchIndex
         new("NxGrid — Events",                "reference/nxgrid",        Section: "Events",  Category: "Reference", Keywords: "OnSelectionChanged OnCellClicked OnFilterChanged OnSortChanged OnKeyPressed OnUpdate OnRowDrop OnNewRow OnCopied OnPasted"),
         new("NxGrid — Styling",               "reference/nxgrid",        Section: "Styling", Category: "Reference", Keywords: "CellStyle style css"),
         new("NxGrid — Editing Parameters",    "reference/nxgrid",        Section: "Editing", Category: "Reference", Keywords: "Editable CellEditableGetter OnEditing OnUpdate EnableDragFill NewRowTriggers"),
-        new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey SelectCell BeginEditAsync ClearSavedState SetColumnHidden SetEditValue CommitEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
+        new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey SelectCell SelectRange BeginEditAsync ClearSavedState SetColumnHidden SetEditValue CommitEditAsync CancelEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
 
         // Reference — NxGridColumn
         new("NxGridColumn Reference",              "reference/nxgrid-column", Category: "Reference", Keywords: "column api parameters"),
@@ -137,7 +137,7 @@ public static class SearchIndex
         new("Stress Test",          "stress-test",       Category: "Advanced", Keywords: "performance benchmark"),
 
         // Examples
-        new("Spreadsheet Example",         "spreadsheet",        Category: "Examples", Keywords: "formula chart excel"),
+        new("Spreadsheet Example",         "spreadsheet",        Category: "Examples", Keywords: "formula chart excel point mode arrow reference EditPickPredicate OnCellPickedWhileEditing"),
         new("Trading Desk Example",        "trading-desk",        Category: "Examples", Keywords: "realtime live data stock"),
         new("Airport Departures Example",  "airport-departures",  Category: "Examples", Keywords: "flight board"),
     ];

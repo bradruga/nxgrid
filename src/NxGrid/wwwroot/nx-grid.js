@@ -139,6 +139,12 @@ class NxGrid {
                                          cls.contains('nx-grid-colorpicker-input'));
             if (!isEditInput) return;
 
+            // Point mode (keyboard formula pointing): every arrow picks a cell, none may move the caret
+            if (gridElement.classList.contains('nx-grid-point-mode') && event.key.startsWith('Arrow')) {
+                event.preventDefault();
+                return;
+            }
+
             if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
                 event.preventDefault();
                 return;

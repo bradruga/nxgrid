@@ -410,14 +410,14 @@
                 <td>EditPickPredicate</td>
                 <td>Func&lt;string, bool&gt;?</td>
                 <td>—</td>
-                <td>When set, the grid enters edit-pick mode while editing whenever this returns <code>true</code> for the current edit value. In that mode, clicking another cell fires <code>OnCellPickedWhileEditing</code> instead of committing the edit.</td>
+                <td>When set, the grid enters edit-pick mode while editing whenever this returns <code>true</code> for the current edit value. In that mode, clicking another cell fires <code>OnCellPickedWhileEditing</code> instead of committing the edit, and in enter mode the arrow keys point at cells instead of committing.</td>
                 <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
                 <td>OnCellPickedWhileEditing</td>
                 <td>EventCallback&lt;NxGridEditCellPickArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
-                <td>Fires on mouseup when the user clicks or click-drags a range while edit-pick mode is active. Args carry <code>StartRow</code>/<code>StartColumn</code>/<code>EndRow</code>/<code>EndColumn</code> — end equals start for a single click. Call <code>SetEditValue</code> from this handler to inject content into the edit input.</td>
+                <td>Fires when the user clicks, click-drags, or arrows to a range while edit-pick mode is active. Args carry <code>StartRow</code>/<code>StartColumn</code>/<code>EndRow</code>/<code>EndColumn</code> (end equals start for a single cell) and <code>ReplacesPrevious</code>, true when the pick supersedes the previous one with no typing in between. Call <code>SetEditValue</code> from this handler to write the reference into the edit input.</td>
                 <td><a href="spreadsheet">Spreadsheet</a></td>
             </tr>
             <tr>
@@ -512,6 +512,11 @@
                 <td><a href="new-row">New Row on Tab</a></td>
             </tr>
             <tr>
+                <td>Task SelectRange(T startRow, NxGridColumn&lt;T&gt; startColumn, T endRow, NxGridColumn&lt;T&gt; endColumn)</td>
+                <td>Selects the rectangle between two cells, fires <code>OnSelectionChanged</code>, and scrolls the end cell into view. Whole rows in the row-selection modes. Leaves focus where it is. No-op if either row is filtered out or either column is hidden.</td>
+                <td></td>
+            </tr>
+            <tr>
                 <td>Task BeginEditAsync(T row, NxGridColumn&lt;T&gt; column)</td>
                 <td>Opens the inline editor on a specific cell, as if double-clicked. Commits any other in-progress edit first, runs the full editability chain (<code>Editable</code>, <code>CellEditableGetter</code>, <code>OnEditing</code>), and no-ops silently when anything blocks it.</td>
                 <td><a href="new-row">New Row on Tab</a></td>
@@ -535,6 +540,11 @@
                 <td>Task CommitEditAsync()</td>
                 <td>Commits any in-progress cell edit through the normal commit pipeline (math evaluation, parsing, <code>OnUpdate</code>) without moving the selection. No-op when nothing is being edited; when a commit is already in flight it awaits it, so <code>OnUpdate</code> fires exactly once. Completes only after <code>OnUpdate</code> has finished — call it first in a Save handler outside the grid.</td>
                 <td><a href="editing">Editing</a></td>
+            </tr>
+            <tr>
+                <td>Task CancelEditAsync()</td>
+                <td>Discards any in-progress cell edit as Escape does: <code>OnUpdate</code> never fires, <code>OnEditCancelled</code> does. Leaves focus where it is. No-op when nothing is being edited.</td>
+                <td></td>
             </tr>
             <tr>
                 <td>Task ResetColumnWidths()</td>

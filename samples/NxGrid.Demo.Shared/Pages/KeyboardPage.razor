@@ -50,7 +50,7 @@
         </thead>
         <tbody>
             <tr><td><kbd class="doc-kbd">Tab</kbd> (into the grid)</td><td>Selects the top-left cell — the whole first row in the row-selection modes — and scrolls it into view, so the next key acts on a cell right away. An existing selection is kept; clicking into the grid never triggers it.</td></tr>
-            <tr><td><kbd class="doc-kbd">Arrow keys</kbd></td><td>Move selection one cell — or commit edit and move when editing an empty cell (not started by F2)</td></tr>
+            <tr><td><kbd class="doc-kbd">Arrow keys</kbd></td><td>Move selection one cell — or, while editing in enter mode (started by typing, or double-click on an empty cell), commit the edit and move. In edit-pick mode they point at cells instead; see <a href="spreadsheet">Spreadsheet</a>.</td></tr>
             <tr><td><kbd class="doc-kbd">Shift+Arrow</kbd></td><td>Extend the selection rectangle</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+Arrow</kbd> / <kbd class="doc-kbd">⌘+Arrow</kbd></td><td>Jump to the edge of the data block (Excel-style)</td></tr>
             <tr><td><kbd class="doc-kbd">Home</kbd> / <kbd class="doc-kbd">End</kbd></td><td>Jump to first / last column in the row</td></tr>
@@ -60,7 +60,7 @@
             <tr><td><kbd class="doc-kbd">Tab</kbd> (last row)</td><td>Wraps back to the first row — unless <code>OnNewRow</code> is registered, in which case it appends a row instead. See <a href="new-row">New Row on Tab</a>.</td></tr>
             <tr><td><kbd class="doc-kbd">Enter</kbd> / <kbd class="doc-kbd">Shift+Enter</kbd></td><td>Move down / up one row</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+Enter</kbd> / <kbd class="doc-kbd">⌘+Enter</kbd></td><td>While editing: apply the current value to every editable cell in the selection</td></tr>
-            <tr><td><kbd class="doc-kbd">F2</kbd></td><td>Open edit mode (shows the existing value)</td></tr>
+            <tr><td><kbd class="doc-kbd">F2</kbd></td><td>Open edit mode (shows the existing value). While editing: toggle between enter mode (arrows act on the grid) and edit mode (arrows move the caret)</td></tr>
             <tr><td>Printable character</td><td>Open edit mode, replacing the current value</td></tr>
             <tr><td><kbd class="doc-kbd">Escape</kbd></td><td>Cancel the current edit and restore the original value; with no edit open, cancel a pending cut</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+A</kbd> / <kbd class="doc-kbd">⌘+A</kbd></td><td>Select all cells</td></tr>

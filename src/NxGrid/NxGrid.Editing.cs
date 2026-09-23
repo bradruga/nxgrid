@@ -59,9 +59,7 @@ public partial class NxGrid<T>
         isEditing = true;
         editRow = row;
         editCol = col;
-        editOriginalValue = currentText;
-        editInitiatedByF2 = initiatedByF2;
-        editInitiatedByChar = initialChar != null;
+        editEnterMode = !initiatedByF2 && (initialChar != null || string.IsNullOrEmpty(currentText));
         // initialChar == null → F2/double-click mode (show existing value)
         // initialChar != null → typing mode (replace with first typed char)
         editValue = initialChar ?? currentText;
@@ -218,14 +216,14 @@ public partial class NxGrid<T>
         }
     }
 
-    private async Task CancelEdit()
+    private async Task CancelEdit(bool refocusGrid = true)
     {
         if (!isEditing) return;
         var cancelledRow = filteredData[editRow];
         var cancelledCol = visibleColumns[editCol];
         ClearEditState();
         StateHasChanged();
-        if (jsInterop != null) await jsInterop.FocusGrid();
+        if (refocusGrid && jsInterop != null) await jsInterop.FocusGrid();
         if (OnEditCancelled.HasDelegate)
             await OnEditCancelled.InvokeAsync(new NxGridEditCancelledArgs<T> { Row = cancelledRow, Column = cancelledCol });
     }
@@ -233,6 +231,7 @@ public partial class NxGrid<T>
     private void OnEditInputChange(ChangeEventArgs args)
     {
         editValue = args.Value?.ToString() ?? "";
+        pickIsLive = false;   // typing anchors the last pick; the next one starts a new reference
 
         if (OnEditValueChanged.HasDelegate && isEditing && editRow >= 0 && editRow < filteredData.Count && editCol >= 0 && editCol < visibleColumns.Count)
             _ = OnEditValueChanged.InvokeAsync(new NxGridEditValueChangedArgs<T> { Row = filteredData[editRow], Column = visibleColumns[editCol], Value = editValue });
@@ -401,14 +400,18 @@ public partial class NxGrid<T>
             case KeyArrowLeft:
                 if (isDatePickerColumn && isDatePickerOpen)
                     NavigateCalendar(-1);
-                else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
+                else if (IsPointMode)
+                    await MovePick(0, -1, args.ShiftKey);
+                else if (editEnterMode)
                     await CommitEdit(KeyArrowLeft);
                 break;
 
             case KeyArrowRight:
                 if (isDatePickerColumn && isDatePickerOpen)
                     NavigateCalendar(1);
-                else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
+                else if (IsPointMode)
+                    await MovePick(0, 1, args.ShiftKey);
+                else if (editEnterMode)
                     await CommitEdit(KeyArrowRight);
                 break;
 
@@ -453,7 +456,9 @@ public partial class NxGrid<T>
                         StateHasChanged();
                     }
                 }
-                else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
+                else if (IsPointMode)
+                    await MovePick(1, 0, args.ShiftKey);
+                else if (editEnterMode)
                     await CommitEdit(KeyArrowDown);
                 break;
 
@@ -466,8 +471,17 @@ public partial class NxGrid<T>
                     comboScrollPending = true;
                     StateHasChanged();
                 }
-                else if (!editInitiatedByF2 && (editInitiatedByChar || string.IsNullOrEmpty(editOriginalValue)))
+                else if (IsPointMode)
+                    await MovePick(-1, 0, args.ShiftKey);
+                else if (editEnterMode)
                     await CommitEdit(KeyArrowUp);
+                break;
+
+            case KeyF2:
+                // Excel's F2: flip between enter mode (arrows act on the grid) and edit mode (arrows move the caret)
+                editEnterMode = !editEnterMode;
+                pickIsLive = false;
+                StateHasChanged();
                 break;
 
             case KeyPageUp:
@@ -490,6 +504,61 @@ public partial class NxGrid<T>
                 }
                 break;
         }
+    }
+
+    // Keyboard pointing: an arrow picks the cell one step from the edited cell, or moves the live
+    // pick; Shift extends the live pick from its anchor. Picks are clamped to the grid.
+    private async Task MovePick(int rowDelta, int colDelta, bool extend)
+    {
+        int anchorRow, anchorCol, endRow, endCol;
+        if (pickIsLive && lastPickedRange is { } live)
+        {
+            anchorRow = live.StartRow;
+            anchorCol = live.StartCol;
+            if (extend)
+            {
+                endRow = live.EndRow + rowDelta;
+                endCol = live.EndCol + colDelta;
+            }
+            else
+            {
+                anchorRow += rowDelta;
+                anchorCol += colDelta;
+                endRow = anchorRow;
+                endCol = anchorCol;
+            }
+        }
+        else
+        {
+            anchorRow = endRow = editRow + rowDelta;
+            anchorCol = endCol = editCol + colDelta;
+        }
+
+        anchorRow = Math.Clamp(anchorRow, 0, filteredData.Count - 1);
+        endRow    = Math.Clamp(endRow,    0, filteredData.Count - 1);
+        anchorCol = Math.Clamp(anchorCol, 0, visibleColumns.Count - 1);
+        endCol    = Math.Clamp(endCol,    0, visibleColumns.Count - 1);
+
+        await RaisePick(anchorRow, anchorCol, endRow, endCol);
+        _ = ScrollCellIntoView(endRow, endCol);
+    }
+
+    // Shared by mouse and keyboard picks: records the pick box and reports it, flagging whether it
+    // supersedes a pick the user has not typed since.
+    private async Task RaisePick(int anchorRow, int anchorCol, int endRow, int endCol)
+    {
+        lastPickedRange = new NxGridRange { StartRow = anchorRow, StartCol = anchorCol, EndRow = endRow, EndCol = endCol };
+        if (OnCellPickedWhileEditing.HasDelegate)
+            await OnCellPickedWhileEditing.InvokeAsync(new NxGridEditCellPickArgs<T>
+            {
+                StartRow         = filteredData[anchorRow],
+                StartColumn      = visibleColumns[anchorCol],
+                EndRow           = filteredData[endRow],
+                EndColumn        = visibleColumns[endCol],
+                ReplacesPrevious = pickIsLive
+            });
+        pickIsLive = true;
+        StateHasChanged();
     }
 
     private void ClearEditState()
@@ -518,8 +587,8 @@ public partial class NxGrid<T>
         colorPickerNeedsPositioning = false;
         colorPickerNeedsGradientSetup = false;
         isEditing = false;
-        editInitiatedByF2 = false;
-        editInitiatedByChar = false;
+        editEnterMode = false;
+        pickIsLive = false;
         editRow = -1;
         editCol = -1;
         prevEditPickMode = false;

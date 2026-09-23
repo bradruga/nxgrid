@@ -147,8 +147,8 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `OnEditBlocked` | `EventCallback<NxGridEditBlockedArgs<T>>` | Fires when a user directly tries to edit a cell blocked by `CellEditableGetter`. Receives `args.Row` and `args.Column`. Does **not** fire for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells. |
 | `OnEditValueChanged` | `EventCallback<NxGridEditValueChangedArgs<T>>` | Fires when the in-cell edit value changes — once when a cell first enters edit mode (initial value) and again on every subsequent keystroke. |
 | `OnEditCancelled` | `EventCallback<NxGridEditCancelledArgs<T>>` | Fires when the user cancels an in-progress cell edit (e.g. Escape). |
-| `EditPickPredicate` | `Func<string, bool>?` | When set, the grid enters edit-pick mode while editing whenever this returns `true` for the current edit value (e.g. `v => v.StartsWith("=")`). In that mode, clicking another cell fires `OnCellPickedWhileEditing` instead of committing the edit, and mousedown on cells suppresses focus stealing. |
-| `OnCellPickedWhileEditing` | `EventCallback<NxGridEditCellPickArgs<T>>` | Fires on mouseup when the user clicks or click-drags a range while edit-pick mode is active. Args carry `StartRow`/`StartColumn`/`EndRow`/`EndColumn`; end equals start for a single click. Call `SetEditValue` from this handler to inject content into the edit input. |
+| `EditPickPredicate` | `Func<string, bool>?` | When set, the grid enters edit-pick mode while editing whenever this returns `true` for the current edit value (e.g. `v => v.StartsWith("=")`). In that mode, clicking another cell fires `OnCellPickedWhileEditing` instead of committing the edit, mousedown on cells suppresses focus stealing, and in enter mode the arrow keys point at cells instead of committing (see [Edit-pick mode](behavior.md#edit-pick-mode-and-keyboard-pointing)). |
+| `OnCellPickedWhileEditing` | `EventCallback<NxGridEditCellPickArgs<T>>` | Fires when the user clicks, click-drags, or arrows to a range while edit-pick mode is active. Args carry `StartRow`/`StartColumn`/`EndRow`/`EndColumn` (end equals start for a single cell) and `ReplacesPrevious`, `true` when the pick supersedes the one before it because nothing was typed in between — overwrite that reference rather than appending. Call `SetEditValue` from this handler to write the reference into the edit input. |
 | `TransformPastedValue` | `Func<string, int, int, string>?` | `(rawValue, rowDelta, colDelta)` — lets the host rewrite pasted text before it is committed (e.g. formula adjustment). Both deltas are `0` when the paste completes a cut, since a move does not change what the content refers to. |
 | `OnCopied` | `EventCallback<NxGridCopiedArgs<T>>` | Fires after the selection is written to the clipboard. `args` exposes `MinRow`, `MaxRow`, `MinCol`, `MaxCol` — the bounding box of the copied range. Use to capture side-channel data (e.g. cell styles) alongside the OS clipboard text. |
 | `OnPasted` | `EventCallback<NxGridPastedArgs<T>>` | Fires after a paste completes (after `OnUpdate`). `args` exposes `OriginRow`/`OriginCol` (top-left of the paste destination), `SelectionEndRow`/`SelectionEndCol` (bottom-right of the active selection, for single-cell fill), and `ClipboardRows`/`ClipboardCols` (dimensions of the parsed clipboard), and `WasCut` (`true` when the paste completed a cut and the grid cleared the source). Use alongside `OnCopied` to apply side-channel data (e.g. cell styles) to the paste destination. |
@@ -170,6 +170,7 @@ Task  ScrollToEnd()                                // scroll to the last row; ac
 Task  SelectRow(T row)                             // programmatically select a row and scroll it into view; when KeyProperty is set, falls back to key-value match if reference is not found; re-pipes to find a row just added to Data
 Task  SelectRowByKey(object? keyValue)             // select and scroll to the first row whose KeyProperty value equals keyValue; logs a warning and is a no-op when KeyProperty is not set or no match is found
 Task  SelectCell(T row, NxGridColumn<T> column)    // select a single cell and scroll it into view; selects the whole row in the row-selection modes; no-op when the row is not in the filtered data or the column is hidden
+Task  SelectRange(T startRow, NxGridColumn<T> startColumn, T endRow, NxGridColumn<T> endColumn)  // select the rectangle between two cells and scroll the end cell into view; rows resolve as in SelectCell; whole rows in the row-selection modes; focus is left where it is; no-op when either row is absent or either column is hidden
 Task  BeginEditAsync(T row, NxGridColumn<T> col)   // open the inline editor on a specific cell, as if double-clicked; commits any other in-progress edit first; runs the full editability chain and no-ops silently when anything blocks it
 Task  ClearAllFilters()                            // clear all column filters and re-apply sort; saves state when StateKey is set; fires OnFilterChanged; column widths/sort/frozen/hidden are preserved
 Task  ClearSavedState()                            // remove the localStorage entry for StateKey and reset all columns to their declared defaults immediately
@@ -177,6 +178,7 @@ void  SetColumnHidden(string columnId, bool hidden) // show or hide a column pro
 void  ClearSelection()                              // clear the current selection; no-op when nothing is selected
 void  SetEditValue(string value)                   // replace the active edit input's text; no-op when not editing. Use in an OnCellPickedWhileEditing handler
 Task  CommitEditAsync()                            // commit any in-progress cell edit through the normal pipeline (math evaluation, parsing, OnUpdate) without moving the selection; no-op when not editing; if a commit is already in flight, awaits it instead of double-firing OnUpdate. Completes only after OnUpdate has finished — call it first in an external Save handler
+Task  CancelEditAsync()                            // discard any in-progress cell edit as Escape does: OnUpdate never fires, OnEditCancelled does; focus is left where it is; no-op when not editing
 Task  ResetColumnWidths()                          // clear all user-dragged widths, restoring every column to its declared Width parameter; also resets manualMode so flex columns resume auto-sizing; re-measures FitContent columns
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
 Task  FitColumnsAsync()                            // re-measure and apply FitWidth for all columns whose effective FitContent is true; skips columns the user has manually resized
@@ -925,8 +927,9 @@ public sealed class NxGridEditCellPickArgs<T>
 {
     public T StartRow { get; init; }
     public NxGridColumn<T> StartColumn { get; init; }
-    public T EndRow { get; init; }       // same as StartRow for a single click
-    public NxGridColumn<T> EndColumn { get; init; }  // same as StartColumn for a single click
+    public T EndRow { get; init; }       // same as StartRow for a single cell
+    public NxGridColumn<T> EndColumn { get; init; }  // same as StartColumn for a single cell
+    public bool ReplacesPrevious { get; init; }      // picked again without typing in between: overwrite the previous reference
 }
 
 public sealed class NxGridCellClickArgs<T>
