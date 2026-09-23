@@ -66,7 +66,7 @@
             <tr><td><kbd class="doc-kbd">Ctrl+A</kbd> / <kbd class="doc-kbd">⌘+A</kbd></td><td>Select all cells</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+C</kbd> / <kbd class="doc-kbd">⌘+C</kbd></td><td>Copy the selection as TSV to the clipboard</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+X</kbd> / <kbd class="doc-kbd">⌘+X</kbd></td><td>Cut: copy the selection and mark it; the next paste moves it (grids with <code>OnUpdate</code> only). See <a href="clipboard">Clipboard</a>.</td></tr>
-            <tr><td><kbd class="doc-kbd">Ctrl+V</kbd> / <kbd class="doc-kbd">⌘+V</kbd></td><td>Paste TSV from the clipboard at the selection origin</td></tr>
+            <tr><td><kbd class="doc-kbd">Ctrl+V</kbd> / <kbd class="doc-kbd">⌘+V</kbd></td><td>Paste TSV from the clipboard at the selection origin; a multi-cell paste selects the pasted block</td></tr>
             <tr><td><kbd class="doc-kbd">Delete</kbd></td><td>Clear selected cells (sets to "" or null if <code>Nullable=true</code>)</td></tr>
             <tr><td><kbd class="doc-kbd">Ctrl+Delete</kbd> / <kbd class="doc-kbd">⌘+Delete</kbd></td><td>Not handled internally — forwarded to <code>OnKeyPressed</code> so the host can bind it (e.g. delete the selected row)</td></tr>
         </tbody>

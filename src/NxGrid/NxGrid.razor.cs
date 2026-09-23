@@ -889,13 +889,20 @@ public partial class NxGrid<T>
         var endColIndex = visibleColumns.IndexOf(endColumn);
         if (startColIndex < 0 || endColIndex < 0) return;
 
+        await SelectIndexRange(startRowIndex, startColIndex, endRowIndex, endColIndex);
         if (SelectionMode == NxGridSelectionMode.SingleRow) endRowIndex = startRowIndex;
+        pendingScrollIntoView = (endRowIndex, IsRowSelectionMode ? 0 : endColIndex);
+    }
+
+    // Replaces the selection with one rectangle by index (whole rows in the row-selection modes) and fires OnSelectionChanged.
+    private async Task SelectIndexRange(int startRow, int startCol, int endRow, int endCol)
+    {
+        if (SelectionMode == NxGridSelectionMode.SingleRow) endRow = startRow;
         selectedRanges = IsRowSelectionMode
-            ? [new NxGridRange { StartRow = startRowIndex, StartCol = 0, EndRow = endRowIndex, EndCol = visibleColumns.Count - 1 }]
-            : [new NxGridRange { StartRow = startRowIndex, StartCol = startColIndex, EndRow = endRowIndex, EndCol = endColIndex }];
+            ? [new NxGridRange { StartRow = startRow, StartCol = 0, EndRow = endRow, EndCol = visibleColumns.Count - 1 }]
+            : [new NxGridRange { StartRow = startRow, StartCol = startCol, EndRow = endRow, EndCol = endCol }];
         StateHasChanged();
         await RaiseSelectionChanged();
-        pendingScrollIntoView = (endRowIndex, IsRowSelectionMode ? 0 : endColIndex);
     }
 
     // Locates a row in the current filtered data: reference equality first, then KeyProperty

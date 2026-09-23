@@ -813,6 +813,12 @@ public partial class NxGrid<T>
                 await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
         }
 
+        // A multi-cell paste selects the pasted block, clamped to the grid; no scroll.
+        if (clipRows.Length > 1 || clipCols.Length > 1)
+            await SelectIndexRange(originRow, originCol,
+                Math.Min(originRow + clipRows.Length - 1, filteredData.Count - 1),
+                Math.Min(originCol + clipCols.Length - 1, visibleColumns.Count - 1));
+
         if (OnPasted.HasDelegate)
             await OnPasted.InvokeAsync(new NxGridPastedArgs<T>
             {

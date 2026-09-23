@@ -608,6 +608,8 @@ The single value is written to every cell in the current selection. If `Transfor
 
 The paste origin is the top-left corner of the current selection. The clipboard grid is laid over the data starting at that origin. Cells outside the grid bounds are skipped. `TransformPastedValue` is called with the delta from the copy origin to the paste origin (a fixed offset applied to all cells, not per-cell): `(value, pasteOriginRow - copyOrigin.row, pasteOriginCol - copyOrigin.col)`.
 
+Afterward the pasted block is selected (clamped to the last row and last visible column; whole rows in `MultiRow`, the origin row only in `SingleRow`), replacing any multi-range selection, even if no cell was writable. `OnSelectionChanged` fires once, after `OnUpdate` and before `OnPasted`. The viewport does not scroll and focus does not move. A single-cell paste leaves the selection as it was.
+
 ---
 
 ## Column resize

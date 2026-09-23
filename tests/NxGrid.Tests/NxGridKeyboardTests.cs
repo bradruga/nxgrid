@@ -593,6 +593,9 @@ public class NxGridKeyboardTests : BunitContext
         public NxGridPastedArgs<EditRow>? Pasted;
         public NxGridKeyPressedArgs? Pressed;
         public (int Row, int Col)? Deltas;
+        public NxGridSelectionArgs<EditRow>? Selection;
+        public int SelectionChangedCount;
+        public List<string> EventOrder = [];
 
         public Task Key(string key, bool ctrl = false, bool shift = false) =>
             Cut.Find(".nx-grid").TriggerEventAsync("onkeydown",
@@ -604,7 +607,8 @@ public class NxGridKeyboardTests : BunitContext
 
     // One editable Name column (plus a read-only Age column when asked), OnUpdate wired,
     // clipboard scripted: copies are captured, and the next paste reads `pasteText`.
-    private CutHarness RenderCutGrid(List<EditRow> rows, string pasteText, bool withUpdate = true, bool withAgeColumn = false)
+    private CutHarness RenderCutGrid(List<EditRow> rows, string pasteText, bool withUpdate = true, bool withAgeColumn = false,
+        NxGridSelectionMode selectionMode = NxGridSelectionMode.Cell)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         var h = new CutHarness();
@@ -617,14 +621,21 @@ public class NxGridKeyboardTests : BunitContext
         {
             p.Add(x => x.Data, rows)
              .Add(x => x.Editable, true)
+             .Add(x => x.SelectionMode, selectionMode)
+             .Add(x => x.OnSelectionChanged, EventCallback.Factory.Create<NxGridSelectionArgs<EditRow>>(this, a =>
+             {
+                 h.Selection = a;
+                 h.SelectionChangedCount++;
+                 h.EventOrder.Add("selection");
+             }))
              .Add(x => x.OnCopied, EventCallback.Factory.Create<NxGridCopiedArgs<EditRow>>(this, a => h.Copied = a))
-             .Add(x => x.OnPasted, EventCallback.Factory.Create<NxGridPastedArgs<EditRow>>(this, a => h.Pasted = a))
+             .Add(x => x.OnPasted, EventCallback.Factory.Create<NxGridPastedArgs<EditRow>>(this, a => { h.Pasted = a; h.EventOrder.Add("pasted"); }))
              .Add(x => x.OnKeyPressed, EventCallback.Factory.Create<NxGridKeyPressedArgs>(this, a => h.Pressed = a))
              .Add(x => x.TransformPastedValue, (v, r, c) => { h.Deltas = (r, c); return v; })
              .AddChildContent<NxGridColumn<EditRow>>(col => col
                  .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Name)));
             if (withUpdate)
-                p.Add(x => x.OnUpdate, EventCallback.Factory.Create<NxGridUpdateArgs<EditRow>>(this, a => h.Update = a));
+                p.Add(x => x.OnUpdate, EventCallback.Factory.Create<NxGridUpdateArgs<EditRow>>(this, a => { h.Update = a; h.EventOrder.Add("update"); }));
             if (withAgeColumn)
                 p.AddChildContent<NxGridColumn<EditRow>>(col => col
                     .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Age))
@@ -795,5 +806,82 @@ public class NxGridKeyboardTests : BunitContext
         await h.Key("v", ctrl: true);
 
         Assert.That(h.Update, Is.Null, "nothing landed, so nothing is cleared");
+    }
+
+    // ── Selection after paste ─────────────────────────────────────────────────
+
+    private static NxGridSelectionRange<EditRow> SelectedRange(CutHarness h) => h.Selection!.Ranges.Single();
+
+    private static void AssertRange(NxGridSelectionRange<EditRow> r, int startRow, int startCol, int endRow, int endCol) =>
+        Assert.That((r.StartRow, r.StartCol, r.EndRow, r.EndCol), Is.EqualTo((startRow, startCol, endRow, endCol)));
+
+    [Test]
+    public async Task MultiCellPaste_OntoSingleCell_SelectsPastedBlock()
+    {
+        var h = RenderCutGrid(ThreeRows(), "x\ty\nz\tw", withAgeColumn: true);
+
+        await ClickCell(h.Cut, 0);
+        h.EventOrder.Clear();
+        await h.Key("v", ctrl: true);
+
+        AssertRange(SelectedRange(h), 0, 0, 1, 1);
+        Assert.That(h.EventOrder, Is.EqualTo(new[] { "update", "selection", "pasted" }));
+        Assert.That(h.SelectionChangedCount, Is.EqualTo(2), "one for the click, one for the paste");
+        Assert.That(h.Pasted!.SelectionEndRow, Is.EqualTo(0), "SelectionEnd* reports the selection at paste time");
+    }
+
+    [Test]
+    public async Task SingleCellPaste_LeavesSelectionAlone()
+    {
+        var h = RenderCutGrid(ThreeRows(), "x");
+
+        await ClickCell(h.Cut, 0);
+        await h.Cut.FindAll(".nx-grid-row .nx-grid-cell")[2]
+            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ShiftKey = true });
+        var before = h.SelectionChangedCount;
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.SelectionChangedCount, Is.EqualTo(before));
+        AssertRange(SelectedRange(h), 0, 0, 2, 0);
+    }
+
+    [Test]
+    public async Task MultiCellPaste_PastEdge_IsClamped()
+    {
+        var h = RenderCutGrid(ThreeRows(), "a\tb\tc\nd\te\tf", withAgeColumn: true);
+
+        await ClickCell(h.Cut, 5);          // row 2, Age
+        await h.Key("v", ctrl: true);
+
+        AssertRange(SelectedRange(h), 2, 1, 2, 1);
+    }
+
+    [Test]
+    public async Task MultiCellPaste_RowSelectionMode_SelectsWholeRows()
+    {
+        var h = RenderCutGrid(ThreeRows(), "x\ny", withAgeColumn: true, selectionMode: NxGridSelectionMode.MultiRow);
+
+        await ClickCell(h.Cut, 2);          // row 1
+        await h.Key("v", ctrl: true);
+
+        AssertRange(SelectedRange(h), 1, 0, 2, 1);
+    }
+
+    [Test]
+    public async Task CutMove_SelectsDestinationNotSource()
+    {
+        var h = RenderCutGrid(ThreeRows(), "Alice\nBob");
+
+        await ClickCell(h.Cut, 0);
+        await h.Cut.FindAll(".nx-grid-row .nx-grid-cell")[1]
+            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ShiftKey = true });
+        await h.Key("x", ctrl: true);
+        await ClickCell(h.Cut, 1);
+        var before = h.SelectionChangedCount;
+        await h.Key("v", ctrl: true);
+
+        Assert.That(h.Pasted!.WasCut, Is.True);
+        Assert.That(h.SelectionChangedCount, Is.EqualTo(before + 1));
+        AssertRange(SelectedRange(h), 1, 0, 2, 0);
     }
 }

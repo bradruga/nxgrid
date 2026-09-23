@@ -438,7 +438,7 @@
                 <td>OnPasted</td>
                 <td>EventCallback&lt;NxGridPastedArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
-                <td>Fires after a paste completes (after <code>OnUpdate</code>). <code>args</code> exposes <code>OriginRow</code>/<code>OriginCol</code> (top-left of the paste destination), <code>SelectionEndRow</code>/<code>SelectionEndCol</code> (for single-cell fill extent), <code>ClipboardRows</code>/<code>ClipboardCols</code> (clipboard dimensions), and <code>WasCut</code> (the paste completed a cut and the grid cleared the source). Use alongside <code>OnCopied</code> to apply side-channel data to the paste destination.</td>
+                <td>Fires after a paste completes (after <code>OnUpdate</code>). <code>args</code> exposes <code>OriginRow</code>/<code>OriginCol</code> (top-left of the paste destination), <code>SelectionEndRow</code>/<code>SelectionEndCol</code> (for single-cell fill extent), <code>ClipboardRows</code>/<code>ClipboardCols</code> (clipboard dimensions), and <code>WasCut</code> (the paste completed a cut and the grid cleared the source). <code>SelectionEnd*</code> describe the selection at paste time; by the time <code>OnPasted</code> fires, a multi-cell paste has already selected the pasted block. Use alongside <code>OnCopied</code> to apply side-channel data to the paste destination.</td>
                 <td><a href="clipboard">Clipboard</a></td>
             </tr>
             <tr>
