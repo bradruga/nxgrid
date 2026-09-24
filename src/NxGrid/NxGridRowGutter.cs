@@ -6,7 +6,7 @@ namespace NxGrid;
 /// </summary>
 public enum NxGridRowGutter
 {
-    /// <summary>Default. A 32 px blank gutter is rendered with no content.</summary>
+    /// <summary>Default. A blank gutter is rendered with no content.</summary>
     Blank,
 
     /// <summary>The gutter column is not rendered at all.</summary>

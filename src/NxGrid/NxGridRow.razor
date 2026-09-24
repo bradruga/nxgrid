@@ -19,27 +19,19 @@
             </span>
         </div>
     }
-    else if (RowGutter == NxGridRowGutter.Numbers)
+    else if (RowGutter == NxGridRowGutter.Numbers || RowGutter == NxGridRowGutter.Blank)
     {
-        <div class="nx-grid-row-start nx-grid-row-number"
+        <div class="nx-grid-row-start @(RowGutter == NxGridRowGutter.Numbers ? "nx-grid-row-number" : "")"
              @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
              @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
-            <span>@(RowIndex + 1)</span>
-            @if (RowResizable)
+            @if (RowGutterTemplate != null)
             {
-                <div class="nx-grid-row-resize-grip"
-                     @onmousedown="@(args => OnResizeGripMouseDown != null ? OnResizeGripMouseDown(args, RowIndex) : Task.CompletedTask)"
-                     @onmousedown:stopPropagation
-                     @ondblclick="@(() => OnResizeGripDoubleClick != null ? OnResizeGripDoubleClick(RowIndex) : Task.CompletedTask)"
-                     @ondblclick:stopPropagation></div>
+                @RowGutterTemplate(Row)
             }
-        </div>
-    }
-    else if (RowGutter == NxGridRowGutter.Blank)
-    {
-        <div class="nx-grid-row-start"
-             @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
-             @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
+            else if (RowGutter == NxGridRowGutter.Numbers)
+            {
+                <span>@(RowIndex + 1)</span>
+            }
             @if (RowResizable)
             {
                 <div class="nx-grid-row-resize-grip"
@@ -303,6 +295,7 @@
     [Parameter] public NxGridRange? PickRange { get; set; }
     [Parameter] public NxGridRange? CutRange { get; set; }
     [Parameter] public NxGridRowGutter RowGutter { get; set; }
+    [Parameter] public RenderFragment<T>? RowGutterTemplate { get; set; }
     [Parameter] public bool IsEditing { get; set; }
     [Parameter] public int EditRow { get; set; }
     [Parameter] public int EditCol { get; set; }

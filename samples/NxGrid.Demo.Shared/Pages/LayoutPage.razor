@@ -24,14 +24,20 @@
         <label><input type="radio" name="rowgutter" @onchange="@(() => rowGutter = NxGridRowGutter.DragHandle)" checked="@(rowGutter == NxGridRowGutter.DragHandle)" /> DragHandle</label>
     </div>
     <div class="doc-controls">
+        <label><input type="checkbox" checked="@gutterTemplate" @onchange="@ToggleGutterTemplate" /> <strong>RowGutterTemplate</strong> <span style="font-size:12px;color:#777;">(numbers by Id; rows 3–5 left out of Data, gap marked)</span></label>
+        <label><strong>RowGutterWidth</strong> <input type="number" @bind="gutterWidth" min="16" max="120" style="width:60px" /></label>
+    </div>
+    <div class="doc-controls">
         <span style="font-size:13px;color:#555;font-weight:600;">Cursor:</span>
         <label><input type="radio" name="cursor" @onchange="@(() => cursor = NxGridCursor.Default)" checked="@(cursor == NxGridCursor.Default)" /> Default</label>
         <label><input type="radio" name="cursor" @onchange="@(() => cursor = NxGridCursor.Cell)"    checked="@(cursor == NxGridCursor.Cell)" />    Cell</label>
         <label><input type="radio" name="cursor" @onchange="@(() => cursor = NxGridCursor.Pointer)" checked="@(cursor == NxGridCursor.Pointer)" /> Pointer</label>
     </div>
-    <NxGrid T="Person" Data="@layoutPeople"
+    <NxGrid T="Person" Data="@shownPeople"
             ShowHeader="@showHeader"
             RowGutter="@rowGutter"
+            RowGutterTemplate="@(gutterTemplate ? GutterCell : null)"
+            RowGutterWidth="@gutterWidth"
             RowBanding="@rowBanding"
             HasColumnMenu="@hasColumnMenu"
             HeaderClickSelects="@headerClickSelects"
@@ -45,6 +51,12 @@
         <NxGridColumn Property="@(x => x.Department)" />
     </NxGrid>
     <div class="doc-output">@resizeLog</div>
+    <p class="doc-note" style="margin-top:12px">
+        <code>RowGutterTemplate</code> renders the gutter cell's content and receives the row. The grid keeps the
+        cell, the row-select click and the row-resize grip. Hidden rows are the motivating case: leave them out
+        of <code>Data</code>, number from the row, and mark the gap. Widen the gutter with <code>RowGutterWidth</code>.
+    </p>
+    <pre class="doc-code">@gutterTemplateCode</pre>
 </div>
 
 <div class="doc-section">
@@ -83,7 +95,9 @@
         <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
             <tr><td>ShowHeader</td><td>true</td><td>When <code>false</code>, the column header row is not rendered. Sort, filter, resize, and HasColumnMenu are unavailable.</td></tr>
-            <tr><td>RowGutter</td><td>Blank</td><td><code>Blank</code> — 32 px gutter, no content. <code>Hidden</code> — gutter not rendered. <code>Numbers</code> — 1-based row numbers. <code>DragHandle</code> — drag handles for row reordering; requires <code>OnRowDrop</code>.</td></tr>
+            <tr><td>RowGutter</td><td>Blank</td><td><code>Blank</code> — empty gutter. <code>Hidden</code> — gutter not rendered. <code>Numbers</code> — 1-based row numbers. <code>DragHandle</code> — drag handles for row reordering; requires <code>OnRowDrop</code>.</td></tr>
+            <tr><td>RowGutterTemplate</td><td>—</td><td>RenderFragment&lt;T&gt; rendering each row's gutter content in place of the number or blank. Ignored for <code>Hidden</code> and <code>DragHandle</code>.</td></tr>
+            <tr><td>RowGutterWidth</td><td>32</td><td>Gutter width in pixels for every mode except <code>Hidden</code></td></tr>
             <tr><td>RowBanding</td><td>true</td><td>Alternates even/odd row background colors</td></tr>
             <tr><td>HasColumnMenu</td><td>true</td><td>Shows the ▾ button in each column header for sort and filter</td></tr>
             <tr><td>HeaderClickSelects</td><td>false</td><td>Click a column header to select the entire column; click the row-number gutter to select the entire row</td></tr>
@@ -98,8 +112,24 @@
 
 @code {
     List<Person> layoutPeople = SampleData.GetPeopleCopy();
+    List<Person> shownPeople = [];
     bool showHeader = true;
     NxGridRowGutter rowGutter = NxGridRowGutter.Blank;
+    bool gutterTemplate;
+    int gutterWidth = 32;
+
+    protected override void OnInitialized() => shownPeople = layoutPeople;
+
+    void ToggleGutterTemplate(ChangeEventArgs e)
+    {
+        gutterTemplate = (bool)e.Value!;
+        shownPeople = gutterTemplate ? layoutPeople.Where(p => p.Id is < 3 or > 5).ToList() : layoutPeople;
+    }
+
+    bool HidesRowsBelow(Person p) => gutterTemplate && p.Id == 2;
+
+    RenderFragment<Person> GutterCell => p =>
+        @<span style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:#666;@(HidesRowsBelow(p) ? "border-bottom:3px double #666;" : "")">@p.Id</span>;
     bool rowBanding = true;
     bool hasColumnMenu = true;
     bool headerClickSelects;
@@ -113,10 +143,11 @@
 
     void OnLayoutRowDrop(NxGridRowDropArgs<Person> args)
     {
-        var item = layoutPeople[args.OldIndex];
-        layoutPeople.RemoveAt(args.OldIndex);
-        layoutPeople.Insert(args.NewIndex, item);
+        var item = shownPeople[args.OldIndex];
+        shownPeople.RemoveAt(args.OldIndex);
+        shownPeople.Insert(args.NewIndex, item);
     }
 
     string overlaysCode = DemoCodeSamples.Overlays;
+    string gutterTemplateCode = DemoCodeSamples.RowGutterTemplate;
 }

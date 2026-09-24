@@ -20,6 +20,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to lock down sorting, resizing, or filtering on one column](#how-to-lock-down-sorting-resizing-or-filtering-on-one-column)
 - [How to allow arithmetic expressions in editable cells](#how-to-allow-arithmetic-expressions-in-editable-cells)
 - [How to let users resize row heights](#how-to-let-users-resize-row-heights)
+- [How to put your own content in the row gutter](#how-to-put-your-own-content-in-the-row-gutter)
 - [How to show Sum, Avg, and Count for the selected range](#how-to-show-sum-avg-and-count-for-the-selected-range)
 - [How to add custom context menu items](#how-to-add-custom-context-menu-items)
 - [How to format numbers and dates in a column](#how-to-format-numbers-and-dates-in-a-column)
@@ -915,6 +916,43 @@ The grid reports, the host stores. Keep heights keyed by row identity so they fo
 ```
 
 Setting `RowHeightGetter` renders every row (virtualization off), the same trade a `MultiLine` column makes.
+
+---
+
+## How to put your own content in the row gutter
+
+`RowGutterTemplate` renders the gutter cell's content and receives the row as `context`. The grid still owns the cell: row-select clicks and the row-resize grip keep working. Widen the gutter with `RowGutterWidth` when the content needs more than 32 px.
+
+The motivating case is hidden rows. Leave hidden rows out of `Data` and every grid feature does the right thing on its own; the only thing that breaks is `Numbers`, which counts the rows it is given. Number from the row instead, and mark where rows are folded away:
+
+```razor
+<NxGrid T="SheetRow" Data="@visibleRows"
+        KeyProperty="@(r => r.Index)"
+        RowGutter="NxGridRowGutter.Numbers"
+        RowGutterWidth="40"
+        HeaderClickSelects="true">
+    <ChildContent>
+        ...
+    </ChildContent>
+    <RowGutterTemplate>
+        <span class="@(HidesRowsBelow(context) ? "gutter-gap" : "")">@(context.Index + 1)</span>
+    </RowGutterTemplate>
+</NxGrid>
+
+@code {
+    List<SheetRow> allRows = ...;
+    HashSet<int> hidden = new();
+    List<SheetRow> visibleRows => allRows.Where(r => !hidden.Contains(r.Index)).ToList();
+
+    bool HidesRowsBelow(SheetRow r) => hidden.Contains(r.Index + 1);
+}
+```
+
+```css
+.gutter-gap { border-bottom: 3px double #666; }
+```
+
+`Numbers` mode centers the content and applies the row-number color; `Blank` mode hands you a bare cell. A button inside the template should add `@onclick:stopPropagation` and `@onmousedown:stopPropagation` so it does not also select the row.
 
 ---
 

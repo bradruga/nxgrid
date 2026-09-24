@@ -30,6 +30,21 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string RowGutterTemplate = """
+@* Hidden rows are left out of Data; the gutter numbers from the row and marks the gap. *@
+<NxGrid T="Person" Data="@visibleRows"
+        RowGutter="NxGridRowGutter.Numbers"
+        RowGutterTemplate="@GutterCell"
+        RowGutterWidth="40">
+    <NxGridColumn ... />
+</NxGrid>
+
+@code {
+    RenderFragment<Person> GutterCell => p =>
+        @<span class="@(hidden.Contains(p.Id + 1) ? "gutter-gap" : "")">@p.Id</span>;
+}
+""";
+
     public static readonly string Overlays = """
 <NxGrid T="Person" Data="@people">
     <NxGridColumn ... />

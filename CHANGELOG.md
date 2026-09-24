@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `RowGutterTemplate` renders the gutter cell's content for each row, replacing the row number (`Numbers`) or the empty cell (`Blank`). Row-select clicks and the row-resize grip keep working. `Hidden` still renders no gutter and `DragHandle` ignores the template.
+- `RowGutterWidth` sets the gutter width in pixels (default 32) for every mode except `Hidden`; the row minimum width and frozen-column offsets follow it. Available as `--nx-grid-gutter-width` on the grid element.
+
 ## [0.4.2] - 2026-09-23
 
 ### Changed

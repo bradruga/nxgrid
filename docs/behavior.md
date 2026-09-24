@@ -630,11 +630,25 @@ After resize, `OnColumnResized` fires once per *explicitly* resized column (the 
 
 ---
 
+## Row gutter
+
+The gutter is the sticky cell at the left of every row, `RowGutterWidth` px wide (default 32), plus the corner cell above it in the header and an empty cell in the footer row. `RowGutter` picks what it shows: nothing, a 1-based row number, or a drag handle. `Hidden` omits the cell entirely, and every width sum, frozen offset and resize `nth-child` then starts at column one.
+
+**Template.** `RowGutterTemplate` renders inside the gutter cell in `Numbers` and `Blank` mode, in place of the number or the empty cell. The cell keeps its class (`nx-grid-row-number` in `Numbers` mode, which centers and shrinks the content; bare in `Blank` mode), background, borders, sticky positioning and height, so a template only supplies content. `Hidden` still renders no gutter. A grid declared `DragHandle` never renders the template, including while a sort or filter has downgraded it to a blank gutter.
+
+**Mouse.** The grid owns pointer events on the gutter cell: with `HeaderClickSelects`, mousedown selects the row and dragging across gutter cells extends the selection, exactly as without a template. A template element that stops propagation (a button, a link) takes its own click and gives up the grid's, the same rule a column `Template` lives by. The row-resize grip is a positioned element rendered after the template content, so it paints above it along the bottom edge; template content that positions itself with a `z-index` can cover it.
+
+**Rendering.** The template runs once per rendered row, on the same schedule as a column `Template`: a row re-renders when its data, selection, edit state or the grid's render token changes. A template whose output depends on host state outside the row (a "rows hidden below" marker, say) shows the change when the host replaces `Data` or calls `ForceRerender()`. Virtualization is unaffected; `Numbers` and a template that prints a number cost the same.
+
+**Width.** `RowGutterWidth` replaces the fixed 32 px wherever it appears: the gutter, corner and footer cells (through `--nx-grid-gutter-width` on the grid element), the row `min-width` sum, and the sticky `left` of frozen columns. Content wider than the gutter is not clipped, so a template with real content wants a wider gutter rather than CSS overflow tricks. Nothing about the gutter is persisted under `StateKey`.
+
+---
+
 ## Row resize
 
 Rows are `RowHeight` tall unless `RowHeightGetter` returns a height for them. The grid owns no row heights: a resize is reported through `OnRowResized`, the host stores it, and the next render reads it back through the getter. Heights therefore follow rows through sort and filter for free, and a host that ignores the event sees the row snap back.
 
-**Grip.** When `OnRowResized` has a handler and the gutter is `Numbers` or `Blank`, each gutter cell gets a grip along its bottom edge. `Hidden` has nowhere to draw one and `DragHandle` already owns the mouse there.
+**Grip.** When `OnRowResized` has a handler and the gutter is `Numbers` or `Blank`, each gutter cell gets a grip along its bottom edge, above any `RowGutterTemplate` content. `Hidden` has nowhere to draw one and `DragHandle` already owns the mouse there.
 
 **Drag.** The row previews its new height live through a `<style>` rule keyed on the row's `data-row` attribute, so nothing else moves until release. On mouseup `OnRowResized` fires once with the rounded height; a movement under 2px is a click and fires nothing. The rule is removed only after Blazor commits the render that follows, so the row does not flash back to its old height between the event and the host's re-render. Heights are floored at 16px, both in the drag and in what the getter returns.
 
@@ -671,7 +685,7 @@ Manual mode persists across page loads when `StateKey` is set. Calling `ClearSav
 
 `UserWidth` values are sanitized against the current `MinWidth`/`MaxWidth` when restored from `localStorage`, so adding or tightening constraints after the user has resized will be respected immediately on the next page load.
 
-The header and data rows share the same `rowStyle`, which sets a `min-width` equal to the sum of all columns' `UserWidth ?? max(Width, MinWidth ?? 0)` plus 32 px for the row-number gutter. This prevents the grid from collapsing below a usable minimum when the container is narrow.
+The header and data rows share the same `rowStyle`, which sets a `min-width` equal to the sum of all columns' `UserWidth ?? max(Width, MinWidth ?? 0)` plus `RowGutterWidth` px for the gutter (0 when `Hidden`). This prevents the grid from collapsing below a usable minimum when the container is narrow.
 
 ---
 

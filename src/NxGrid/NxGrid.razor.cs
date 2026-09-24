@@ -85,13 +85,22 @@ public partial class NxGrid<T>
     /// <summary>
     /// Controls the fixed leftmost gutter column.
     /// <list type="bullet">
-    ///   <item><see cref="NxGridRowGutter.Blank"/> — 32 px blank gutter (default).</item>
+    ///   <item><see cref="NxGridRowGutter.Blank"/> — blank gutter (default).</item>
     ///   <item><see cref="NxGridRowGutter.Hidden"/> — gutter not rendered.</item>
     ///   <item><see cref="NxGridRowGutter.Numbers"/> — 1-based row numbers.</item>
     ///   <item><see cref="NxGridRowGutter.DragHandle"/> — drag handles; requires <see cref="OnRowDrop"/>.</item>
     /// </list>
     /// </summary>
     [Parameter] public NxGridRowGutter RowGutter { get; set; } = NxGridRowGutter.Blank;
+
+    /// <summary>
+    /// Renders each row's gutter content in place of the row number or blank. Ignored for
+    /// <see cref="NxGridRowGutter.Hidden"/> and <see cref="NxGridRowGutter.DragHandle"/>. See docs/behavior.md.
+    /// </summary>
+    [Parameter] public RenderFragment<T>? RowGutterTemplate { get; set; }
+
+    /// <summary>Width of the gutter column in pixels. Applies to every mode except <see cref="NxGridRowGutter.Hidden"/>.</summary>
+    [Parameter] public int RowGutterWidth { get; set; } = 32;
 
     /// <summary>
     /// When <c>true</c>, alternates even/odd row background colors using
@@ -1269,7 +1278,7 @@ public partial class NxGrid<T>
 
     private string BuildRowStyle()
     {
-        var totalWidth = RowGutter == NxGridRowGutter.Hidden ? 0 : 32;
+        var totalWidth = RowGutter == NxGridRowGutter.Hidden ? 0 : RowGutterWidth;
         foreach (var col in visibleColumns)
         {
             if (col.Sizing == NxGridColumnSizing.Fixed || col.UserWidth.HasValue)

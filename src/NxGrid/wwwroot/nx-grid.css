@@ -308,8 +308,8 @@
 
 .nx-grid-row-start {
   border-right: 1px solid var(--nx-grid-border);
-  width: 32px;
-  min-width: 32px;
+  width: var(--nx-grid-gutter-width);
+  min-width: var(--nx-grid-gutter-width);
   background-color: var(--nx-grid-header-bg);
   position: sticky;
   left: 0;

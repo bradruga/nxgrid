@@ -122,6 +122,68 @@ public class NxGridRenderFeaturesTests : BunitContext
         Assert.That(cut.FindAll(".nx-grid-row-start").Count, Is.EqualTo(0));
     }
 
+    [Test]
+    public void RowGutterTemplate_ReplacesRowNumber_AndKeepsNumberClass()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", 1), new Row("Bob", 6)])
+            .Add(x => x.RowGutter, NxGridRowGutter.Numbers)
+            .Add(x => x.RowGutterTemplate, r => $"R{r.Count}")
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)));
+
+        var cells = cut.FindAll(".nx-grid-row .nx-grid-row-start");
+        Assert.That(cells.Select(c => c.TextContent.Trim()), Is.EqualTo(new[] { "R1", "R6" }));
+        Assert.That(cells[0].ClassList, Contains.Item("nx-grid-row-number"));
+    }
+
+    [Test]
+    public void RowGutterTemplate_RendersInBlankGutter_WithoutNumberClass()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", 1)])
+            .Add(x => x.RowGutterTemplate, r => r.Name)
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)));
+
+        var cell = cut.Find(".nx-grid-row .nx-grid-row-start");
+        Assert.That(cell.TextContent.Trim(), Is.EqualTo("Alice"));
+        Assert.That(cell.ClassList, Does.Not.Contain("nx-grid-row-number"));
+    }
+
+    [Test]
+    public void RowGutterTemplate_IgnoredForHiddenAndDragHandle()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        IRenderedComponent<NxGrid<Row>> RenderWith(NxGridRowGutter gutter) => Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", 1)])
+            .Add(x => x.RowGutter, gutter)
+            .Add(x => x.RowGutterTemplate, r => "TEMPLATE")
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)));
+
+        Assert.That(RenderWith(NxGridRowGutter.Hidden).FindAll(".nx-grid-row-start"), Is.Empty);
+        Assert.That(RenderWith(NxGridRowGutter.DragHandle).Markup, Does.Not.Contain("TEMPLATE"));
+    }
+
+    [Test]
+    public void RowGutterWidth_SetsCustomProperty_AndRowMinWidth()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", 1)])
+            .Add(x => x.RowGutterWidth, 64)
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)
+                .Add(x => x.Width, 100)
+                .Add(x => x.Sizing, NxGridColumnSizing.Fixed)));
+
+        Assert.That(cut.Find(".nx-grid").GetAttribute("style"), Does.Contain("--nx-grid-gutter-width:64px"));
+        Assert.That(cut.Find(".nx-grid-row").GetAttribute("style"), Does.Contain("min-width:164px"));
+    }
+
     // ── HasColumnMenu ─────────────────────────────────────────────────────────
 
     [Test]
