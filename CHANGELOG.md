@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-09-24
+
 ### Added
 
 - `RowGutterTemplate` renders the gutter cell's content for each row, replacing the row number (`Numbers`) or the empty cell (`Blank`). Row-select clicks and the row-resize grip keep working. `Hidden` still renders no gutter and `DragHandle` ignores the template.
