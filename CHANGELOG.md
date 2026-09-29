@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-09-29
+
 ### Added
 
 - Context menus on column headers and row gutter cells, opt-in through the new `ContextMenuTargets` parameter (default `Cell`, so existing grids are unchanged). With `ColumnHeader` and/or `RowGutter` included, `OnContextMenuShowing` runs for a right-click on them, with the new `NxGridContextMenuArgs.Target` saying where. Header items are appended to the column menu (the ▾ button shows them too), or open a plain popup when that menu has nothing else to show; gutter items open a plain popup. Neither carries the built-in Copy / Paste items. With `HeaderClickSelects` on, a gutter right-click selects the row first. `NxGridContextMenuItemArgs` gains `Target` as well.
