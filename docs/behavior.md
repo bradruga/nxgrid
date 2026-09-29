@@ -717,6 +717,48 @@ This means a custom cell background will visually mix with the selection highlig
 
 ---
 
+## Cell spans
+
+`CellSpanGetter` merges rectangles of cells. A span behaves as one large cell, as a merged cell does in Excel. With the getter unset nothing below applies, and it is never called in `MultiRow` / `SingleRow` or while `GroupBy` is set.
+
+The grid asks the getter about every cell it renders, so it can place a covered cell whose anchor row is outside the virtualized window without searching for it. Every cell of a span, the anchor and each covered cell, must return the same `NxGridCellSpan`. The grid keeps no spans of its own; call `ForceRerender()` after changing what the getter returns. Spans across the frozen-column boundary are not supported.
+
+### Rendering
+
+- The **anchor cell** keeps its box in its own row and column. Its content sits in a span box sized to the spanned columns and rows, which paints over the covered cells and the rows below. The box is measured from the rendered cells after each render, when rows scroll in, when the grid resizes, and live while a column or row inside it is being resized.
+- The span box takes the anchor's background, border, alignment and font, so a `CellStyle` for the anchor styles the whole span: `BorderRight` draws at the right edge of the last spanned column and `BorderBottom` at the bottom of the last spanned row.
+- **Covered cells** keep their box for layout, so column widths and row heights are unchanged, but render no content and no inner grid lines. `CellStyle` is not asked for them.
+- When a span's anchor row is outside the virtualized window, its covered rows show only their background.
+- Frozen columns and the row gutter stay above span boxes when the grid scrolls sideways.
+
+### Selection
+
+- Clicking any cell of a span selects the whole span, with the anchor as the selection's anchor.
+- Any selection range that touches a span grows to include all of it: drag, Shift+click, Shift+arrow, header and row-number clicks, `SelectCell`, `SelectRange` and paste. Growing for one span can reach another; the grid repeats until no span crosses the range's edge. `OnSelectionChanged` reports the grown range.
+- `OnCellClicked`, `OnCellDoubleClicked`, `OnContextMenuShowing` and `CellTooltip` receive the anchor's row and column, never a covered cell.
+- The selection math status bar counts a span once, by its anchor's value.
+
+### Keyboard
+
+- Arrow keys treat a span as one cell: an arrow into a span lands on it, and the next arrow in the same direction leaves it from the far edge. Moving down into a span that starts to the left still lands on the span.
+- Tab, Shift+Tab, Enter and Shift+Enter, with or without an open editor, stop on a span once.
+- Shift+arrow steps the range's moving corner off the far edge of any span it sits on, then grows the range to whole spans.
+- Ctrl+arrow reads a covered cell as holding its anchor's value.
+- Home, End, Ctrl+Home, Ctrl+End and Page Up/Down move as usual; a landing cell inside a span selects the span.
+
+### Editing
+
+- Only a span's anchor is ever edited. F2, typing, Space on a checkbox and double-click act on the span, and the editor covers the whole span box. `BeginEditAsync` on a covered cell does nothing, and `CellEditableGetter` and `OnEditBlocked` are not consulted for it.
+- Delete, Ctrl+Enter and a checkbox toggle across the selection skip covered cells, as they skip read-only cells, and report only anchors in `OnUpdate`.
+- **Paste** starts at the span's anchor when the selection's top-left is covered. Clipboard cells that land on covered cells are dropped, not written and not reported. A single-value paste writes each anchor in the selection once. Pasting a cut clears only the source anchors.
+- **Drag-fill** writes to anchors and skips covered cells. The fill handle of a selection ending in a span sits at the span's bottom-right corner. Filling across spans of a different shape is not prevented; reject the resulting `OnUpdate` if you want Excel's "merged cells must be the same size" rule.
+
+### Clipboard
+
+Copy writes the anchor's value at the anchor's position and an empty string for each covered position, so the TSV keeps the rectangle's shape, as Excel does. Copy with headers is unchanged.
+
+---
+
 ## Column visibility
 
 ### How hidden columns work

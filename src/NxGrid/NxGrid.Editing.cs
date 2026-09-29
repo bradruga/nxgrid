@@ -13,6 +13,7 @@ public partial class NxGrid<T>
     private async Task StartEditing(int row, int col, string? initialChar, bool initiatedByF2 = false)
     {
         if (SelectionMode == NxGridSelectionMode.None) return;
+        if (IsCoveredCell(row, col)) return;   // only a span's anchor opens an editor
         var column = visibleColumns[col];
         if (!IsColumnEditable(column) || !OnUpdate.HasDelegate) return;
 
@@ -164,47 +165,48 @@ public partial class NxGrid<T>
         int newRow = row, newCol = col;
         if (moveKey == KeyEnter)
         {
-            newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1);
+            newRow = Math.Clamp(StepOverSpan(row, col, 1, 0).Row, 0, filteredData.Count - 1);
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col }];
         }
         else if (moveKey == KeyShiftEnter)
         {
-            newRow = Math.Clamp(row - 1, 0, filteredData.Count - 1);
+            newRow = Math.Clamp(StepOverSpan(row, col, -1, 0).Row, 0, filteredData.Count - 1);
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col }];
         }
         else if (moveKey == KeyTab)
         {
-            newCol = col + 1;
+            newCol = StepOverSpan(row, col, 0, 1).Col;
             if (newCol >= visibleColumns.Count) { newCol = 0; newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1); }
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol }];
         }
         else if (moveKey == KeyShiftTab)
         {
-            newCol = col - 1;
+            newCol = StepOverSpan(row, col, 0, -1).Col;
             if (newCol < 0) { newCol = visibleColumns.Count - 1; newRow = row - 1; if (newRow < 0) newRow = filteredData.Count - 1; }
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol }];
         }
         else if (moveKey == KeyArrowUp)
         {
-            newRow = Math.Clamp(row - 1, 0, filteredData.Count - 1);
+            newRow = Math.Clamp(StepOverSpan(row, col, -1, 0).Row, 0, filteredData.Count - 1);
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col }];
         }
         else if (moveKey == KeyArrowDown)
         {
-            newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1);
+            newRow = Math.Clamp(StepOverSpan(row, col, 1, 0).Row, 0, filteredData.Count - 1);
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = col, EndRow = newRow, EndCol = col }];
         }
         else if (moveKey == KeyArrowLeft)
         {
-            newCol = Math.Clamp(col - 1, 0, visibleColumns.Count - 1);
+            newCol = Math.Clamp(StepOverSpan(row, col, 0, -1).Col, 0, visibleColumns.Count - 1);
             selectedRanges = [new NxGridRange { StartRow = row, StartCol = newCol, EndRow = row, EndCol = newCol }];
         }
         else if (moveKey == KeyArrowRight)
         {
-            newCol = Math.Clamp(col + 1, 0, visibleColumns.Count - 1);
+            newCol = Math.Clamp(StepOverSpan(row, col, 0, 1).Col, 0, visibleColumns.Count - 1);
             selectedRanges = [new NxGridRange { StartRow = row, StartCol = newCol, EndRow = row, EndCol = newCol }];
         }
 
+        ExpandSelectionToSpans();
         StateHasChanged();
 
         if (jsInterop != null && refocusGrid) await jsInterop.FocusGrid();
@@ -294,6 +296,7 @@ public partial class NxGrid<T>
                     for (var c = minCol; c <= maxCol; c++)
                     {
                         if (!visitedCells.Add((r, c))) continue;
+                        if (IsCoveredCell(r, c)) continue;
                         if (!IsColumnEditable(visibleColumns[c])) continue;
                         if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], visibleColumns[c])) continue;
                         var oldValue = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
@@ -677,9 +680,10 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
-    // Resets one cell to its column default (Delete-key semantics); skips non-editable cells.
+    // Resets one cell to its column default (Delete-key semantics); skips non-editable and covered cells.
     private void AccumulateClear(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int r, int c)
     {
+        if (IsCoveredCell(r, c)) return;
         var column = visibleColumns[c];
         if (!IsColumnEditable(column)) return;
         if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], column)) return;
@@ -739,8 +743,9 @@ public partial class NxGrid<T>
         var clipRows = text.TrimEnd('\n', '\r').Split('\n');
         var clipCols = clipRows[0].TrimEnd('\r').Split('\t');
 
-        var originRow  = Math.Min(ActiveRange.StartRow, ActiveRange.EndRow);
-        var originCol  = Math.Min(ActiveRange.StartCol, ActiveRange.EndCol);
+        var (originRow, originCol) = SpanAnchorOf(
+            Math.Min(ActiveRange.StartRow, ActiveRange.EndRow),
+            Math.Min(ActiveRange.StartCol, ActiveRange.EndCol));
         var selEndRow  = Math.Max(ActiveRange.StartRow, ActiveRange.EndRow);
         var selEndCol  = Math.Max(ActiveRange.StartCol, ActiveRange.EndCol);
 
@@ -755,6 +760,7 @@ public partial class NxGrid<T>
                 for (var tc = originCol; tc <= selEndCol; tc++)
                 {
                     if (tr >= filteredData.Count || tc >= visibleColumns.Count) continue;
+                    if (IsCoveredCell(tr, tc)) continue;
                     if (!IsColumnEditable(visibleColumns[tc])) continue;
                     // A move keeps the content's meaning, so its offset is zero
                     var value = TransformPastedValue != null
@@ -777,6 +783,7 @@ public partial class NxGrid<T>
                     var targetRow = originRow + r;
                     var targetCol = originCol + c;
                     if (targetRow >= filteredData.Count || targetCol >= visibleColumns.Count) continue;
+                    if (IsCoveredCell(targetRow, targetCol)) continue;   // dropped, not written
                     if (!IsColumnEditable(visibleColumns[targetCol])) continue;
                     var value = TransformPastedValue != null
                         ? TransformPastedValue(cells[c], rowDelta, colDelta)
@@ -913,6 +920,7 @@ public partial class NxGrid<T>
             {
                 var col = visibleColumns[c];
                 if (!col.IsCheckboxColumn || !IsColumnEditable(col)) continue;
+                if (IsCoveredCell(r, c)) continue;
                 // Non-trigger cells are silently skipped when blocked (same as paste/delete bulk behavior)
                 if ((r != triggerRow || c != triggerCol) &&
                     CellEditableGetter != null && !CellEditableGetter(filteredData[r], col))
@@ -930,6 +938,7 @@ public partial class NxGrid<T>
 
     private async Task OnCellDoubleClick(T row, NxGridColumn<T> column)
     {
+        (row, column) = ResolveSpanAnchor(row, column);
         if (column.IsCheckboxColumn) return;
         if (!IsColumnEditable(column))
         {

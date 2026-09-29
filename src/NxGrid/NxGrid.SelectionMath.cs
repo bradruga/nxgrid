@@ -26,6 +26,7 @@ public partial class NxGrid<T>
                 {
                     if (c >= visibleColumns.Count) continue;
                     if (!visited.Add((r, c))) continue;
+                    if (IsCoveredCell(r, c)) continue;
                     count++;
                     var val = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
                     if (val != null && TryConvertToDouble(val, out var d))

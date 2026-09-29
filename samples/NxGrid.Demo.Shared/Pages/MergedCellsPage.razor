@@ -1,0 +1,155 @@
+@page "/merged-cells"
+
+<PageTitle>Merged Cells — NxGrid</PageTitle>
+
+<h1>Merged Cells</h1>
+<p class="doc-intro">
+    Return an <code>NxGridCellSpan</code> from <code>CellSpanGetter</code> and a rectangle of cells draws and
+    behaves as one, as a merged cell does in Excel. The host owns the spans: the grid only asks, for each cell it
+    renders, which span holds it.
+</p>
+
+<div class="doc-section">
+    <h2>Live Grid — Merge and Unmerge</h2>
+    <p class="doc-note">
+        The title, the half-year labels, the notes down the right and the footnote are merged. Click any part of a
+        merged cell to select all of it; arrow keys, Tab and Enter step over it as one cell; F2 or typing edits it.
+        Select a block and press <strong>Merge</strong>, or select a merged cell and press <strong>Unmerge</strong>.
+        Copy a row that crosses a merge and paste it into Excel: covered cells arrive empty.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn" @onclick="Merge" disabled="@(selection == null)">Merge</button>
+        <button class="doc-btn doc-btn-secondary" @onclick="Unmerge" disabled="@(selection == null)">Unmerge</button>
+        <span style="font-size:13px;color:#555;">Selection: <strong>@SelectionText</strong></span>
+    </div>
+    <NxGrid T="SheetLine" @ref="grid" Data="@lines"
+            RowGutter="NxGridRowGutter.Numbers"
+            HasColumnMenu="false"
+            Cursor="@NxGridCursor.Cell"
+            Editable="true"
+            OnUpdate="@HandleUpdate"
+            CellStyle="@LineStyle"
+            CellSpanGetter="@SpanOf"
+            OnSelectionChanged="@(args => selection = args.Ranges.LastOrDefault())">
+        <NxGridColumn Property="@(x => x.A)" Title="Item"  Width="180" Sortable="false" />
+        <NxGridColumn Property="@(x => x.B)" Title="Q1"    Width="90"  Sortable="false" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.C)" Title="Q2"    Width="90"  Sortable="false" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.D)" Title="Q3"    Width="90"  Sortable="false" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.E)" Title="Q4"    Width="90"  Sortable="false" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.F)" Title="Notes" Width="200" Sortable="false" MultiLine="true" />
+    </NxGrid>
+</div>
+
+<div class="doc-section">
+    <h2>How It Works</h2>
+    <pre class="doc-code">@mergedCellsCode</pre>
+    <p class="doc-note">
+        Every cell of a span, anchor and covered alike, returns the same span, so the grid can place a cell it
+        renders without searching for the anchor. Coordinates are grid coordinates: a row's index in
+        <code>VisibleItems</code> and a column's index among visible columns. Spans must not overlap and must lie
+        inside the grid. Only the anchor holds a value: covered cells are never edited, pasted into, filled, counted
+        or copied. The grid keeps no spans of its own, so call <code>ForceRerender()</code> after changing them.
+    </p>
+</div>
+
+@code {
+    private sealed class SheetLine
+    {
+        public int Index { get; init; }
+        public string A { get; set; } = "";
+        public string B { get; set; } = "";
+        public string C { get; set; } = "";
+        public string D { get; set; } = "";
+        public string E { get; set; } = "";
+        public string F { get; set; } = "";
+    }
+
+    static readonly string[] Titles = ["Item", "Q1", "Q2", "Q3", "Q4", "Notes"];
+
+    NxGrid<SheetLine>? grid;
+    NxGridSelectionRange<SheetLine>? selection;
+    string mergedCellsCode = DemoCodeSamples.MergedCells;
+
+    readonly List<SheetLine> lines =
+    [
+        new() { Index = 0, A = "FY2026 Operating Budget" },
+        new() { Index = 1, B = "First half", D = "Second half" },
+        new() { Index = 2, A = "Revenue", B = "Q1", C = "Q2", D = "Q3", E = "Q4" },
+        new() { Index = 3, A = "Product sales", B = "412,000", C = "436,500", D = "451,200", E = "498,000", F = "Revenue lines reviewed by finance in October." },
+        new() { Index = 4, A = "Services",      B = "118,400", C = "121,000", D = "119,750", E = "130,200" },
+        new() { Index = 5, A = "Licensing",     B = "54,000",  C = "54,000",  D = "57,500",  E = "57,500" },
+        new() { Index = 6, A = "Total",         B = "584,400", C = "611,500", D = "628,450", E = "685,700" },
+        new() { Index = 7, A = "Figures in USD. Q4 includes the December price change." },
+    ];
+
+    readonly List<NxGridCellSpan> spans =
+    [
+        new(0, 0, 1, 6),   // title across the sheet
+        new(1, 1, 1, 2),   // First half over Q1:Q2
+        new(1, 3, 1, 2),   // Second half over Q3:Q4
+        new(3, 5, 3, 1),   // note down the side of the revenue lines
+        new(7, 0, 1, 6),   // footnote
+    ];
+
+    // Indexed once per change, so the per-cell lookup the grid makes is a dictionary hit.
+    Dictionary<(int, int), NxGridCellSpan> spanIndex = [];
+
+    protected override void OnInitialized() => Reindex();
+
+    void Reindex()
+    {
+        spanIndex = [];
+        foreach (var s in spans)
+            for (var r = s.Row; r <= s.EndRow; r++)
+                for (var c = s.Column; c <= s.EndColumn; c++)
+                    spanIndex[(r, c)] = s;
+    }
+
+    NxGridCellSpan? SpanOf(SheetLine line, NxGridColumn<SheetLine> column) =>
+        spanIndex.TryGetValue((line.Index, Array.IndexOf(Titles, column.Title)), out var s) ? s : null;
+
+    void Merge()
+    {
+        if (selection == null) return;
+        var merged = new NxGridCellSpan(selection.StartRow, selection.StartCol,
+            selection.EndRow - selection.StartRow + 1, selection.EndCol - selection.StartCol + 1);
+        spans.RemoveAll(s => Overlaps(s, merged));
+        if (merged.Rows * merged.Columns > 1) spans.Add(merged);
+        Reindex();
+        grid?.ForceRerender();
+    }
+
+    void Unmerge()
+    {
+        if (selection == null) return;
+        var picked = new NxGridCellSpan(selection.StartRow, selection.StartCol,
+            selection.EndRow - selection.StartRow + 1, selection.EndCol - selection.StartCol + 1);
+        spans.RemoveAll(s => Overlaps(s, picked));
+        Reindex();
+        grid?.ForceRerender();
+    }
+
+    static bool Overlaps(NxGridCellSpan a, NxGridCellSpan b) =>
+        a.Row <= b.EndRow && b.Row <= a.EndRow && a.Column <= b.EndColumn && b.Column <= a.EndColumn;
+
+    string SelectionText => selection == null
+        ? "none"
+        : $"rows {selection.StartRow + 1}–{selection.EndRow + 1}, {Titles[selection.StartCol]}–{Titles[selection.EndCol]}";
+
+    NxGridCellStyle? LineStyle(SheetLine line, NxGridColumn<SheetLine> column) => line.Index switch
+    {
+        0 => new() { Style = "font-weight:600;font-size:15px;justify-content:center;background-color:#eef3fb;" },
+        1 => new() { Style = "font-weight:600;justify-content:center;" },
+        2 => new() { Style = "font-weight:600;", BorderBottom = "2px solid #999" },
+        6 => new() { Style = "font-weight:600;", BorderTop = "2px solid #999" },
+        7 => new() { Style = "font-style:italic;color:#666;" },
+        _ => null
+    };
+
+    void HandleUpdate(NxGridUpdateArgs<SheetLine> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+}

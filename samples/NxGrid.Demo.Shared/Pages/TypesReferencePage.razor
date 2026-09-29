@@ -238,6 +238,41 @@ NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id)</pre>
 </div>
 
 <div class="doc-section">
+    <h2>NxGridCellSpan</h2>
+    <p class="doc-note">Returned by <code>CellSpanGetter</code> for every cell inside a merged rectangle. A <code>readonly record struct</code>. <a href="merged-cells">Merged Cells</a></p>
+    <table class="doc-table">
+        <thead><tr><th>Member</th><th>Type</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Row</td>
+                <td>int</td>
+                <td>Anchor (top-left) row, as an index into <code>VisibleItems</code>.</td>
+            </tr>
+            <tr>
+                <td>Column</td>
+                <td>int</td>
+                <td>Anchor column, as an index among visible columns.</td>
+            </tr>
+            <tr>
+                <td>Rows / Columns</td>
+                <td>int</td>
+                <td>Extent, each at least 1.</td>
+            </tr>
+            <tr>
+                <td>EndRow / EndColumn</td>
+                <td>int</td>
+                <td>Last row and column spanned (inclusive).</td>
+            </tr>
+            <tr>
+                <td>IsAnchor(row, column)</td>
+                <td>bool</td>
+                <td><code>true</code> for the anchor cell.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="doc-section">
     <h2>NxGridCellChange&lt;T&gt;</h2>
     <p class="doc-note">One entry per changed cell inside <code>NxGridRowChange&lt;T&gt;.Changes</code>, received from <code>OnUpdate</code>. <a href="editing">Editing</a>, <a href="batch-update">Batch Update</a></p>
     <table class="doc-table">

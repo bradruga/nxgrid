@@ -362,6 +362,13 @@ public partial class NxGrid<T>
     /// </summary>
     [Parameter] public Func<T, NxGridColumn<T>, NxGridCellStyle?>? CellStyle { get; set; }
 
+    /// <summary>
+    /// Merged cells. Return the <see cref="NxGridCellSpan"/> holding a cell, the same one for its anchor
+    /// and every covered cell, or <c>null</c>. Ignored in the row-selection modes and while grouped.
+    /// Call <see cref="ForceRerender"/> after changing spans. See docs/behavior.md, "Cell spans".
+    /// </summary>
+    [Parameter] public Func<T, NxGridColumn<T>, NxGridCellSpan?>? CellSpanGetter { get; set; }
+
     // ── Clipboard / Editing ───────────────────────────────────────────────────
 
     /// <summary>
@@ -1260,6 +1267,10 @@ public partial class NxGrid<T>
                 StateHasChanged();
             }
         }
+
+        // Span boxes are sized from the rendered cells, so they are measured after every render.
+        if (SpansActive && jsInterop != null)
+            await jsInterop.LayoutSpans();
 
         // Sync fill handle: runs when pending update or ShowFillHandle visibility changed.
         // JS owns the element's style — no StateHasChanged() needed after this call.

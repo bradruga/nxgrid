@@ -875,7 +875,7 @@
         if (StickyLeft is int left)
         {
             var right = StickyRight is int r ? $"right:{r}px;" : "";
-            style += $"position:sticky;left:{left}px;{right}z-index:1;background-color:inherit;";
+            style += $"position:sticky;left:{left}px;{right}z-index:2;background-color:inherit;";   // above span boxes
         }
         return style;
     }

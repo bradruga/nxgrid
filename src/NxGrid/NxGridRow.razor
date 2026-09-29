@@ -77,9 +77,23 @@
             && (col.Editable ?? GridEditable)
             && (CellEditableGetter == null || CellEditableGetter(Row, col));
 
-        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(inPickRange ? "nx-grid-cell-pick-range" : "") @cutClasses @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "")"
+        // Cell spans: the anchor keeps its own box and paints the span box over its neighbours;
+        // covered cells keep their box for layout only. See docs/behavior.md, "Cell spans".
+        var span = CellSpanGetter?.Invoke(Row, col);
+        var isSpanAnchor = span is { } anchorSpan && anchorSpan.IsAnchor(RowIndex, ci);
+        var isCovered = span != null && !isSpanAnchor;
+        var spanClasses = span is not { } cs ? ""
+            : isSpanAnchor ? "nx-grid-cell-span-anchor"
+            : "nx-grid-cell-covered" + (ci < cs.EndColumn ? " nx-grid-cell-covered-r" : "") + (RowIndex < cs.EndRow ? " nx-grid-cell-covered-b" : "");
+        var spanAttr = span is { } ds ? FormattableString.Invariant($"{ds.Row},{ds.Column},{ds.Rows},{ds.Columns}") : null;
+        var cellStyle = isCovered
+            ? col.CellStyle + CursorStyle
+            : CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle;
+
+        <div class="nx-grid-cell @(col.IsLastFrozen ? "nx-grid-cell-frozen-last" : "") @(selected ? "nx-grid-cell-selected" : isAnchor ? "nx-grid-cell-anchor" : isFocusHighlighted ? "nx-grid-cell-focus-highlight" : "") @(inPickRange ? "nx-grid-cell-pick-range" : "") @cutClasses @(IsEditing && EditRow == RowIndex && EditCol == colIdx && col.IsMultiLineColumn ? "nx-grid-cell-editing-ml" : "") @spanClasses"
              data-col="@ci"
-             style="@(CellStyleFunc?.Invoke(Row, col, selected) + GetSelectionBorderStyle(RowIndex, colIdx) + CursorStyle)"
+             data-span="@spanAttr"
+             style="@cellStyle"
              @onmousedown="@(args => HandleMouseDown(args, col))"
              @onmouseenter="@(args => HandleMouseEnter(args, col))"
              @onmouseleave="@(() => OnMouseLeave?.Invoke(Row, col))"
@@ -87,203 +101,15 @@
              @oncontextmenu="@(args => OnContextMenu?.Invoke(args, Row, col))"
              @oncontextmenu:preventDefault
              @ondblclick="@(() => OnDoubleClick?.Invoke(Row, col) ?? Task.CompletedTask)">
-            @if (IsEditing && EditRow == RowIndex && EditCol == colIdx)
+            @if (isSpanAnchor)
             {
-                @if (col.IsComboColumn)
-                {
-                    <div class="nx-grid-combo-wrapper">
-                        <input class="nx-grid-combo-input"
-                               @ref="editInputRef"
-                               value="@EditValue"
-                               style="@alignStyle"
-                               @oninput="@(e => OnEditInput?.Invoke(e))"
-                               @onkeydown="@(e => HandleEditKeyDown(e))"
-                               @onkeydown:stopPropagation
-                               @onmousedown:stopPropagation
-                               @onmouseup:stopPropagation />
-                        <button type="button" class="nx-grid-combo-button"
-                                @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
-                                @onmousedown:stopPropagation
-                                @onmousedown:preventDefault>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
-                                </button>
-                    </div>
-                }
-                else if (col.IsMultiLineColumn)
-                {
-                    @* Invisible height anchor — keeps the row from collapsing while the textarea is absolute.
-                       Trailing \n doesn't generate line height in pre-wrap without content on that line,
-                       so append a zero-width space to force the new line to occupy height. *@
-                    <span class="nx-grid-cell-text nx-grid-cell-text-multiline" style="visibility:hidden">@(EditValue.EndsWith('\n') ? EditValue + "​" : EditValue)</span>
-                    <textarea class="nx-grid-edit-textarea"
-                              @ref="editInputRef"
-                              value="@EditValue"
-                              style="@alignStyle"
-                              @oninput="@(e => OnEditInput?.Invoke(e))"
-                              @onkeydown="@(e => HandleEditKeyDown(e))"
-                              @onkeydown:stopPropagation
-                              @onmousedown:stopPropagation
-                              @onmouseup:stopPropagation></textarea>
-                }
-                else if (col.IsDatePickerColumn)
-                {
-                    <div class="nx-grid-datepicker-wrapper">
-                        <input class="nx-grid-datepicker-input"
-                               @ref="editInputRef"
-                               value="@EditValue"
-                               style="@alignStyle"
-                               @oninput="@(e => OnEditInput?.Invoke(e))"
-                               @onkeydown="@(e => HandleEditKeyDown(e))"
-                               @onkeydown:stopPropagation
-                               @onmousedown:stopPropagation
-                               @onmouseup:stopPropagation />
-                        <button type="button" class="nx-grid-datepicker-button"
-                                @onmousedown="@(() => OnDatePickerButtonClick != null ? OnDatePickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
-                                @onmousedown:stopPropagation
-                                @onmousedown:preventDefault>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </svg>
-                        </button>
-                    </div>
-                }
-                else if (col.IsColorPickerColumn)
-                {
-                    <div class="nx-grid-colorpicker-wrapper">
-                        <input class="nx-grid-colorpicker-input"
-                               @ref="editInputRef"
-                               value="@EditValue"
-                               style="@alignStyle"
-                               @oninput="@(e => OnEditInput?.Invoke(e))"
-                               @onkeydown="@(e => HandleEditKeyDown(e))"
-                               @onkeydown:stopPropagation
-                               @onmousedown:stopPropagation
-                               @onmouseup:stopPropagation />
-                        <button type="button" class="nx-grid-colorpicker-swatch-button"
-                                style="background-color:@EditValue"
-                                @onmousedown="@(() => OnColorPickerButtonClick != null ? OnColorPickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
-                                @onmousedown:stopPropagation
-                                @onmousedown:preventDefault>
-                        </button>
-                    </div>
-                }
-                else if (isMultiLineGrid)
-                {
-                    @* Textarea in single-line mode: fills height so text is top-aligned (input always centers) *@
-                    <textarea class="nx-grid-edit-textarea-sl"
-                              @ref="editInputRef"
-                              value="@EditValue"
-                              style="@alignStyle"
-                              @oninput="@(e => OnEditInput?.Invoke(e))"
-                              @onkeydown="@(e => HandleEditKeyDown(e))"
-                              @onkeydown:stopPropagation
-                              @onmousedown:stopPropagation
-                              @onmouseup:stopPropagation></textarea>
-                }
-                else
-                {
-                    <input class="nx-grid-edit-input"
-                           @ref="editInputRef"
-                           value="@EditValue"
-                           style="@alignStyle"
-                           @oninput="@(e => OnEditInput?.Invoke(e))"
-                           @onkeydown="@(e => HandleEditKeyDown(e))"
-                           @onkeydown:stopPropagation
-                           @onmousedown:stopPropagation
-                           @onmouseup:stopPropagation />
-                }
+                <div class="nx-grid-span-box" style="@GetSpanBoxStyle(span!.Value)">
+                    @CellContent(col, colIdx, alignStyle, hasIdleEditorButton, isMultiLineGrid)
+                </div>
             }
-            else if (col.Template != null)
+            else if (!isCovered)
             {
-                <span class="nx-grid-cell-template @(col.IsComboColumn && hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">@col.Template(Row)</span>
-                @if (col.IsComboColumn && hasIdleEditorButton)
-                {
-                    <button type="button" class="nx-grid-combo-button nx-grid-combo-button-idle"
-                            @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
-                            @onmousedown:stopPropagation
-                            @onmousedown:preventDefault>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
-                            </button>
-                }
-            }
-            else if (col.IsCheckboxColumn)
-            {
-                var boolValue = col.EffectiveGetter?.Invoke(Row) is true;
-                var colEditable = col.Editable ?? GridEditable;
-                var isBlocked = CellEditableGetter != null && !CellEditableGetter(Row, col);
-                var wrapCls = "nx-grid-checkbox-wrap"
-                    + (boolValue    ? " nx-grid-checkbox-checked"  : "")
-                    + (!colEditable ? " nx-grid-checkbox-disabled"
-                      : isBlocked  ? " nx-grid-checkbox-blocked"   : "");
-                <span class="@wrapCls"
-                      @onclick="@(() => HandleCheckboxClick(colIdx))"
-                      @ondblclick:stopPropagation>
-                    @if (boolValue)
-                    {
-                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    }
-                </span>
-            }
-            else
-            {
-                var rawValue = col.EffectiveGetter?.Invoke(Row);
-                object? cellValue;
-                if (col.IsDatePickerColumn && col.Display == null)
-                    cellValue = (object?)(col.FormatDateValue(rawValue) ?? rawValue?.ToString());
-                else
-                    cellValue = rawValue;
-                var cellDisplay = col.MultiLine && cellValue is string sv && sv.EndsWith('\n')
-                    ? (object?)(sv + "​")
-                    : cellValue;
-                @if (col.IsColorPickerColumn && col.Display == null)
-                {
-                    var colorStr = rawValue?.ToString() ?? "";
-                    <span class="nx-grid-cell-text nx-grid-cell-text-color @(hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">
-                        <span class="nx-grid-colorpicker-cell-swatch" style="background-color:@colorStr" aria-hidden="true"></span>@colorStr
-                    </span>
-                }
-                else
-                {
-                    <span class="nx-grid-cell-text @(col.MultiLine ? "nx-grid-cell-text-multiline" : "") @(hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">@cellDisplay</span>
-                }
-                @if (col.IsComboColumn && hasIdleEditorButton)
-                {
-                    <button type="button" class="nx-grid-combo-button nx-grid-combo-button-idle"
-                            @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
-                            @onmousedown:stopPropagation
-                            @onmousedown:preventDefault>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
-                            </button>
-                }
-                @if (col.IsDatePickerColumn && hasIdleEditorButton)
-                {
-                    <button type="button" class="nx-grid-datepicker-button nx-grid-datepicker-button-idle"
-                            @onmousedown="@(() => OnDatePickerButtonClick != null ? OnDatePickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
-                            @onmousedown:stopPropagation
-                            @onmousedown:preventDefault>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="16" y1="2" x2="16" y2="6"/>
-                            <line x1="8" y1="2" x2="8" y2="6"/>
-                            <line x1="3" y1="10" x2="21" y2="10"/>
-                        </svg>
-                    </button>
-                }
-                @if (col.IsColorPickerColumn && hasIdleEditorButton)
-                {
-                    var idleColor = rawValue?.ToString() ?? "";
-                    <button type="button" class="nx-grid-colorpicker-swatch-button nx-grid-colorpicker-swatch-button-idle"
-                            style="background-color:@idleColor"
-                            @onmousedown="@(() => OnColorPickerButtonClick != null ? OnColorPickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
-                            @onmousedown:stopPropagation
-                            @onmousedown:preventDefault>
-                    </button>
-                }
+                @CellContent(col, colIdx, alignStyle, hasIdleEditorButton, isMultiLineGrid)
             }
         </div>
     }
@@ -312,6 +138,7 @@
     [Parameter] public Action<MouseEventArgs, T, NxGridColumn<T>>? OnContextMenu { get; set; }
     [Parameter] public Func<T, NxGridColumn<T>, Task>? OnDoubleClick { get; set; }
     [Parameter] public Func<T, NxGridColumn<T>, bool>? CellEditableGetter { get; set; }
+    [Parameter] public Func<T, NxGridColumn<T>, NxGridCellSpan?>? CellSpanGetter { get; set; }
     [Parameter] public Action<ChangeEventArgs>? OnEditInput { get; set; }
     [Parameter] public Func<KeyboardEventArgs, Task>? OnEditKeyDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseDown { get; set; }
@@ -341,6 +168,230 @@
     };
 
     private ElementReference editInputRef;
+
+    // The cell's content: the editor while editing, otherwise the value. A span's anchor renders it
+    // inside the span box, a covered cell not at all.
+    private RenderFragment CellContent(NxGridColumn<T> col, int colIdx, string alignStyle, bool hasIdleEditorButton, bool isMultiLineGrid) => __builder =>
+    {
+        if (IsEditing && EditRow == RowIndex && EditCol == colIdx)
+        {
+            @if (col.IsComboColumn)
+            {
+                <div class="nx-grid-combo-wrapper">
+                    <input class="nx-grid-combo-input"
+                           @ref="editInputRef"
+                           value="@EditValue"
+                           style="@alignStyle"
+                           @oninput="@(e => OnEditInput?.Invoke(e))"
+                           @onkeydown="@(e => HandleEditKeyDown(e))"
+                           @onkeydown:stopPropagation
+                           @onmousedown:stopPropagation
+                           @onmouseup:stopPropagation />
+                    <button type="button" class="nx-grid-combo-button"
+                            @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                            @onmousedown:stopPropagation
+                            @onmousedown:preventDefault>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
+                            </button>
+                </div>
+            }
+            else if (col.IsMultiLineColumn)
+            {
+                @* Invisible height anchor — keeps the row from collapsing while the textarea is absolute.
+                   Trailing \n doesn't generate line height in pre-wrap without content on that line,
+                   so append a zero-width space to force the new line to occupy height. *@
+                <span class="nx-grid-cell-text nx-grid-cell-text-multiline" style="visibility:hidden">@(EditValue.EndsWith('\n') ? EditValue + "​" : EditValue)</span>
+                <textarea class="nx-grid-edit-textarea"
+                          @ref="editInputRef"
+                          value="@EditValue"
+                          style="@alignStyle"
+                          @oninput="@(e => OnEditInput?.Invoke(e))"
+                          @onkeydown="@(e => HandleEditKeyDown(e))"
+                          @onkeydown:stopPropagation
+                          @onmousedown:stopPropagation
+                          @onmouseup:stopPropagation></textarea>
+            }
+            else if (col.IsDatePickerColumn)
+            {
+                <div class="nx-grid-datepicker-wrapper">
+                    <input class="nx-grid-datepicker-input"
+                           @ref="editInputRef"
+                           value="@EditValue"
+                           style="@alignStyle"
+                           @oninput="@(e => OnEditInput?.Invoke(e))"
+                           @onkeydown="@(e => HandleEditKeyDown(e))"
+                           @onkeydown:stopPropagation
+                           @onmousedown:stopPropagation
+                           @onmouseup:stopPropagation />
+                    <button type="button" class="nx-grid-datepicker-button"
+                            @onmousedown="@(() => OnDatePickerButtonClick != null ? OnDatePickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                            @onmousedown:stopPropagation
+                            @onmousedown:preventDefault>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </button>
+                </div>
+            }
+            else if (col.IsColorPickerColumn)
+            {
+                <div class="nx-grid-colorpicker-wrapper">
+                    <input class="nx-grid-colorpicker-input"
+                           @ref="editInputRef"
+                           value="@EditValue"
+                           style="@alignStyle"
+                           @oninput="@(e => OnEditInput?.Invoke(e))"
+                           @onkeydown="@(e => HandleEditKeyDown(e))"
+                           @onkeydown:stopPropagation
+                           @onmousedown:stopPropagation
+                           @onmouseup:stopPropagation />
+                    <button type="button" class="nx-grid-colorpicker-swatch-button"
+                            style="background-color:@EditValue"
+                            @onmousedown="@(() => OnColorPickerButtonClick != null ? OnColorPickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                            @onmousedown:stopPropagation
+                            @onmousedown:preventDefault>
+                    </button>
+                </div>
+            }
+            else if (isMultiLineGrid)
+            {
+                @* Textarea in single-line mode: fills height so text is top-aligned (input always centers) *@
+                <textarea class="nx-grid-edit-textarea-sl"
+                          @ref="editInputRef"
+                          value="@EditValue"
+                          style="@alignStyle"
+                          @oninput="@(e => OnEditInput?.Invoke(e))"
+                          @onkeydown="@(e => HandleEditKeyDown(e))"
+                          @onkeydown:stopPropagation
+                          @onmousedown:stopPropagation
+                          @onmouseup:stopPropagation></textarea>
+            }
+            else
+            {
+                <input class="nx-grid-edit-input"
+                       @ref="editInputRef"
+                       value="@EditValue"
+                       style="@alignStyle"
+                       @oninput="@(e => OnEditInput?.Invoke(e))"
+                       @onkeydown="@(e => HandleEditKeyDown(e))"
+                       @onkeydown:stopPropagation
+                       @onmousedown:stopPropagation
+                       @onmouseup:stopPropagation />
+            }
+        }
+        else if (col.Template != null)
+        {
+            <span class="nx-grid-cell-template @(col.IsComboColumn && hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">@col.Template(Row)</span>
+            @if (col.IsComboColumn && hasIdleEditorButton)
+            {
+                <button type="button" class="nx-grid-combo-button nx-grid-combo-button-idle"
+                        @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                        @onmousedown:stopPropagation
+                        @onmousedown:preventDefault>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
+                        </button>
+            }
+        }
+        else if (col.IsCheckboxColumn)
+        {
+            var boolValue = col.EffectiveGetter?.Invoke(Row) is true;
+            var colEditable = col.Editable ?? GridEditable;
+            var isBlocked = CellEditableGetter != null && !CellEditableGetter(Row, col);
+            var wrapCls = "nx-grid-checkbox-wrap"
+                + (boolValue    ? " nx-grid-checkbox-checked"  : "")
+                + (!colEditable ? " nx-grid-checkbox-disabled"
+                  : isBlocked  ? " nx-grid-checkbox-blocked"   : "");
+            <span class="@wrapCls"
+                  @onclick="@(() => HandleCheckboxClick(colIdx))"
+                  @ondblclick:stopPropagation>
+                @if (boolValue)
+                {
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                }
+            </span>
+        }
+        else
+        {
+            var rawValue = col.EffectiveGetter?.Invoke(Row);
+            object? cellValue;
+            if (col.IsDatePickerColumn && col.Display == null)
+                cellValue = (object?)(col.FormatDateValue(rawValue) ?? rawValue?.ToString());
+            else
+                cellValue = rawValue;
+            var cellDisplay = col.MultiLine && cellValue is string sv && sv.EndsWith('\n')
+                ? (object?)(sv + "​")
+                : cellValue;
+            @if (col.IsColorPickerColumn && col.Display == null)
+            {
+                var colorStr = rawValue?.ToString() ?? "";
+                <span class="nx-grid-cell-text nx-grid-cell-text-color @(hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">
+                    <span class="nx-grid-colorpicker-cell-swatch" style="background-color:@colorStr" aria-hidden="true"></span>@colorStr
+                </span>
+            }
+            else
+            {
+                <span class="nx-grid-cell-text @(col.MultiLine ? "nx-grid-cell-text-multiline" : "") @(hasIdleEditorButton ? "nx-grid-cell-text-btn-pad" : "")">@cellDisplay</span>
+            }
+            @if (col.IsComboColumn && hasIdleEditorButton)
+            {
+                <button type="button" class="nx-grid-combo-button nx-grid-combo-button-idle"
+                        @onmousedown="@(() => OnComboButtonClick != null ? OnComboButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                        @onmousedown:stopPropagation
+                        @onmousedown:preventDefault>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m7 10l5 5l5-5z"/></svg>
+                        </button>
+            }
+            @if (col.IsDatePickerColumn && hasIdleEditorButton)
+            {
+                <button type="button" class="nx-grid-datepicker-button nx-grid-datepicker-button-idle"
+                        @onmousedown="@(() => OnDatePickerButtonClick != null ? OnDatePickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                        @onmousedown:stopPropagation
+                        @onmousedown:preventDefault>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                </button>
+            }
+            @if (col.IsColorPickerColumn && hasIdleEditorButton)
+            {
+                var idleColor = rawValue?.ToString() ?? "";
+                <button type="button" class="nx-grid-colorpicker-swatch-button nx-grid-colorpicker-swatch-button-idle"
+                        style="background-color:@idleColor"
+                        @onmousedown="@(() => OnColorPickerButtonClick != null ? OnColorPickerButtonClick(RowIndex, colIdx) : Task.CompletedTask)"
+                        @onmousedown:stopPropagation
+                        @onmousedown:preventDefault>
+                </button>
+            }
+        }
+    };
+
+    // The span box draws the selection border on the span's outer edges, as a single cell would.
+    private string GetSpanBoxStyle(NxGridCellSpan span)
+    {
+        var shadows = new System.Text.StringBuilder();
+        if (AdditionalRanges.Count <= 1)
+            AppendSpanBorderShadows(shadows, span, SelectedRange, "var(--nx-grid-selection-border)");
+        AppendSpanBorderShadows(shadows, span, PickRange, "var(--nx-grid-pick-border)");
+        return shadows.Length > 0 ? $"box-shadow:{shadows.ToString().TrimEnd(',')};" : "";
+    }
+
+    private static void AppendSpanBorderShadows(System.Text.StringBuilder sb, NxGridCellSpan span, NxGridRange? range, string color)
+    {
+        if (range == null || !range.IsCellInRange(span.Row, span.Column)) return;
+
+        if (span.Row       <= Math.Min(range.StartRow, range.EndRow)) sb.Append($"inset 0 2px 0 0 {color},");
+        if (span.EndRow    >= Math.Max(range.StartRow, range.EndRow)) sb.Append($"inset 0 -2px 0 0 {color},");
+        if (span.Column    <= Math.Min(range.StartCol, range.EndCol)) sb.Append($"inset 2px 0 0 0 {color},");
+        if (span.EndColumn >= Math.Max(range.StartCol, range.EndCol)) sb.Append($"inset -2px 0 0 0 {color},");
+    }
 
     // Snapshot of parameters from the last render — used by ShouldRender.
     // The selection range is stored as a value tuple rather than a reference so that

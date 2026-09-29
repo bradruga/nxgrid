@@ -376,6 +376,13 @@
                 <td>Return per-cell style overrides. Set <code>Style</code> for arbitrary inline CSS, <code>Border</code> for a full-cell outline, or individual sides (<code>BorderTop</code>, <code>BorderRight</code>, <code>BorderBottom</code>, <code>BorderLeft</code>). Individual sides override <code>Border</code>. Applied before selection blending so background colors mix correctly.</td>
                 <td><a href="theming">Theming</a></td>
             </tr>
+            <tr>
+                <td>CellSpanGetter</td>
+                <td>Func&lt;T, NxGridColumn&lt;T&gt;, NxGridCellSpan?&gt;?</td>
+                <td>—</td>
+                <td>Merged cells. Return the same <code>NxGridCellSpan</code> for a span's anchor and every cell it covers, <code>null</code> elsewhere. A span draws as one box and selects, navigates, edits and copies as one cell; covered cells are never written. Ignored in the row-selection modes and while grouped. Call <code>ForceRerender()</code> after changing spans.</td>
+                <td><a href="merged-cells">Merged Cells</a></td>
+            </tr>
         </tbody>
     </table>
 </div>

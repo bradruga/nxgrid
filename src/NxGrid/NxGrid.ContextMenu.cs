@@ -18,8 +18,10 @@ public partial class NxGrid<T>
                 StartRow = rowIndex, StartCol = colIndex,
                 EndRow = rowIndex,   EndCol = colIndex
             }];
+            ExpandSelectionToSpans();
         }
 
+        (row, column) = ResolveSpanAnchor(row, column);
         contextMenuCellEditable = OnUpdate.HasDelegate
             && IsColumnEditable(column)
             && (CellEditableGetter == null || CellEditableGetter(row, column));
@@ -189,7 +191,8 @@ public partial class NxGrid<T>
             var cells = new List<string>();
             for (var c = minCol; c <= maxCol; c++)
             {
-                if (selectedRanges.Any(range => range.IsCellInRange(r, c)))
+                // A covered cell copies as empty so the TSV keeps the rectangle's shape, as Excel does
+                if (selectedRanges.Any(range => range.IsCellInRange(r, c)) && !IsCoveredCell(r, c))
                 {
                     var getter = visibleColumns[c].EffectiveCopyGetter;
                     cells.Add(getter != null ? getter(filteredData[r])?.ToString() ?? "" : "");

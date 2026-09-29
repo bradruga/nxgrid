@@ -276,6 +276,7 @@ public partial class NxGrid<T>
     private void AccumulateFillChange(Dictionary<int, List<NxGridCellChange<T>>> rowChanges,
         int rowIdx, int colIdx, object? fillValue)
     {
+        if (IsCoveredCell(rowIdx, colIdx)) return;
         if (!rowChanges.TryGetValue(rowIdx, out var list))
         {
             list = [];

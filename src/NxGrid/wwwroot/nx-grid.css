@@ -73,7 +73,7 @@
   position: sticky;
   top: 0;
   background-color: var(--nx-grid-header-bg);
-  z-index: 2;
+  z-index: 3;
 }
 
 .nx-grid-column-title {
@@ -180,6 +180,29 @@
   border-color: var(--nx-grid-accent);
 }
 
+.nx-grid-row .nx-grid-cell.nx-grid-cell-span-anchor {
+  overflow: visible;
+  background-color: inherit;
+}
+
+.nx-grid-span-box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  align-items: inherit;
+  justify-content: inherit;
+  text-align: inherit;
+  padding: 2px 6px;
+  overflow: hidden;
+  background: inherit;
+  border: inherit;
+}
+
 .nx-grid-row .nx-grid-cell.nx-grid-cell-anchor {
   border-right-color: var(--nx-grid-selected-border);
   border-bottom-color: var(--nx-grid-selected-border);
@@ -231,6 +254,14 @@
 .nx-grid-row .nx-grid-cell.nx-grid-cut-right::before,
 .nx-grid-row .nx-grid-cell.nx-grid-cut-right::after {
   border-right-width: 2px;
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cell-covered-r {
+  border-right-color: transparent;
+}
+
+.nx-grid-row .nx-grid-cell.nx-grid-cell-covered-b {
+  border-bottom-color: transparent;
 }
 
 .nx-grid-edit-input {
@@ -313,7 +344,7 @@
   background-color: var(--nx-grid-header-bg);
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: 2;
 }
 
 .nx-grid-row-number {

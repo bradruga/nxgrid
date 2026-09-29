@@ -15,6 +15,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to respond to selection changes](#how-to-respond-to-selection-changes)
 - [How to override a built-in shortcut](#how-to-override-a-built-in-shortcut)
 - [How to apply custom cell styling](#how-to-apply-custom-cell-styling)
+- [How to merge cells](#how-to-merge-cells)
 - [How to use custom cell templates](#how-to-use-custom-cell-templates)
 - [How to select and scroll programmatically](#how-to-select-and-scroll-programmatically)
 - [How to hide and show columns](#how-to-hide-and-show-columns)
@@ -713,6 +714,61 @@ return "background-color:#ffe0b2;";
 // ✗ Selection highlight will override this
 return "background-color:orange;";
 ```
+
+---
+
+## How to merge cells
+
+Keep the merges as a list of rectangles, index them by cell, and answer `CellSpanGetter` from the index. Return the same span for every cell it covers, not just the anchor.
+
+```razor
+<NxGrid T="SheetLine" @ref="grid" Data="@lines" Editable="true" OnUpdate="@HandleUpdate"
+        CellSpanGetter="@SpanOf"
+        OnSelectionChanged="@(a => selection = a.Ranges.LastOrDefault())">
+    ...
+</NxGrid>
+
+@code {
+    NxGrid<SheetLine>? grid;
+    NxGridSelectionRange<SheetLine>? selection;
+    List<NxGridCellSpan> spans = [new(0, 0, 1, 6)];            // A1:F1, the title
+    Dictionary<(int Row, int Col), NxGridCellSpan> index = [];
+
+    void Reindex()
+    {
+        index = [];
+        foreach (var s in spans)
+            for (var r = s.Row; r <= s.EndRow; r++)
+                for (var c = s.Column; c <= s.EndColumn; c++)
+                    index[(r, c)] = s;
+    }
+
+    NxGridCellSpan? SpanOf(SheetLine line, NxGridColumn<SheetLine> column) =>
+        index.TryGetValue((line.Index, ColumnIndex(column)), out var s) ? s : null;
+
+    void Merge()
+    {
+        var sel = selection!;
+        var merged = new NxGridCellSpan(sel.StartRow, sel.StartCol,
+            sel.EndRow - sel.StartRow + 1, sel.EndCol - sel.StartCol + 1);
+        spans.RemoveAll(s => s.Row <= merged.EndRow && merged.Row <= s.EndRow
+                          && s.Column <= merged.EndColumn && merged.Column <= s.EndColumn);
+        spans.Add(merged);
+        Reindex();
+        grid!.ForceRerender();
+    }
+}
+```
+
+**Coordinates are the grid's.** `Row` is the index into `VisibleItems` and `Column` the index among visible columns. If you remove rows from `Data` (hidden rows) or hide columns, translate your own numbers before answering.
+
+**Call `ForceRerender()` after a merge or unmerge.** The grid keeps no spans, and rows whose data did not change are not re-rendered on their own.
+
+**Style the anchor to style the span.** `CellStyle` is asked for the anchor only, and its background, font and borders apply to the whole merged box — center a title with `Style = "justify-content:center;"`.
+
+**Values live on the anchor.** Covered cells are never edited, pasted into, filled or copied, so whatever their properties hold is invisible. Clear them on merge if you want Excel's "keep the top-left value" behaviour to be visible after an unmerge.
+
+See the [Merged Cells](../samples/NxGrid.Demo.Shared/Pages/MergedCellsPage.razor) sample and behavior.md, "Cell spans".
 
 ---
 

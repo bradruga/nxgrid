@@ -138,6 +138,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | Parameter | Type | Notes |
 |---|---|---|
 | `CellStyle` | `Func<T, NxGridColumn<T>, NxGridCellStyle?>?` | Return per-cell style overrides. Border properties are applied in CSS shorthand-then-specific order (`Border` first, then individual sides). The `Style` string is applied before border properties, so named properties win. Selection blending still applies to any `background-color` set in `Style`. |
+| `CellSpanGetter` | `Func<T, NxGridColumn<T>, NxGridCellSpan?>?` | Merged cells. Return the `NxGridCellSpan` holding a cell — the same span for its anchor and every cell it covers — or `null`. A span draws as one box and selects, navigates, edits, pastes, fills and copies as one cell; covered cells are never written. Ignored in `MultiRow` / `SingleRow` and while `GroupBy` is set. The grid keeps no spans: call `ForceRerender()` after changing them. See [`NxGridCellSpan`](#nxgridcellspan) and behavior.md, "Cell spans". |
 
 ### Clipboard / editing
 
@@ -870,6 +871,28 @@ public sealed class NxGridCellStyle
 Border precedence mirrors CSS: `Border` (shorthand) is emitted first, then any set individual side
 overrides it. Setting both `Border = "1px solid #ccc"` and `BorderLeft = "3px solid red"` produces
 three thin gray sides and one thick red left side.
+
+---
+
+## `NxGridCellSpan`
+
+```csharp
+public readonly record struct NxGridCellSpan(int Row, int Column, int Rows, int Columns)
+{
+    public int EndRow    => Row + Rows - 1;
+    public int EndColumn => Column + Columns - 1;
+    public bool IsAnchor(int row, int column);
+}
+```
+
+Returned by `CellSpanGetter`. `Row` and `Column` locate the anchor (top-left) cell in the same
+coordinates `NxGridSelectionRange` uses: `Row` indexes `VisibleItems`, `Column` indexes the visible
+columns. `Rows` and `Columns` are the extent, each at least 1.
+
+The host keeps the contract: spans do not overlap, lie wholly inside the grid, are returned for every
+cell they cover, and are translated to grid coordinates when the host's own row numbers differ (rows
+filtered out of `Data`). The getter is called once per rendered cell per render, like `CellStyle`,
+so index the spans once rather than searching a list.
 
 ---
 

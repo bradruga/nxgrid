@@ -875,10 +875,27 @@ class NxGrid {
         const borderColor = 'var(--nx-grid-selection-border)';
 
         const applyClasses = (er, ec) => {
-            const minR = Math.min(anchorRow, er);
-            const maxR = Math.max(anchorRow, er);
-            const minC = isRowMode ? 0 : Math.min(anchorCol, ec);
-            const maxC = isRowMode ? maxCol : Math.max(anchorCol, ec);
+            let minR = Math.min(anchorRow, er);
+            let maxR = Math.max(anchorRow, er);
+            let minC = isRowMode ? 0 : Math.min(anchorCol, ec);
+            let maxC = isRowMode ? maxCol : Math.max(anchorCol, ec);
+
+            // Grow over every rendered span the rectangle touches, as C# does once the drag ends
+            const spans = [];
+            for (const el of gridElement.querySelectorAll('.nx-grid-cell[data-span]')) {
+                const [r, c, rs, cs] = el.dataset.span.split(',').map(Number);
+                spans.push({ r, c, er: r + rs - 1, ec: c + cs - 1 });
+            }
+            for (let grew = spans.length > 0; grew;) {
+                grew = false;
+                for (const s of spans) {
+                    if (s.r > maxR || s.er < minR || s.c > maxC || s.ec < minC) continue;
+                    if (s.r < minR) { minR = s.r; grew = true; }
+                    if (s.er > maxR) { maxR = s.er; grew = true; }
+                    if (s.c < minC) { minC = s.c; grew = true; }
+                    if (s.ec > maxC) { maxC = s.ec; grew = true; }
+                }
+            }
 
             // Resolve selection color once for blending (handles CSS variable overrides).
             // parseRgbStr fallback handles rgba() values; null means transparent/unparseable → skip blend.
@@ -958,6 +975,20 @@ class NxGrid {
                         cell.style.boxShadow = parts.join(',');
                     } else {
                         cell.style.boxShadow = '';
+                    }
+
+                    // A span's box paints over its cells, so it carries the border for the span's outer edges
+                    const box = cell.querySelector(':scope > .nx-grid-span-box');
+                    if (box) {
+                        const [, , rs, cs] = cell.dataset.span.split(',').map(Number);
+                        const parts = [];
+                        if (inRange) {
+                            if (ri === minR) parts.push(`inset 0 2px 0 0 ${borderColor}`);
+                            if (ri + rs - 1 === maxR) parts.push(`inset 0 -2px 0 0 ${borderColor}`);
+                            if (ci === minC) parts.push(`inset 2px 0 0 0 ${borderColor}`);
+                            if (ci + cs - 1 === maxC) parts.push(`inset -2px 0 0 0 ${borderColor}`);
+                        }
+                        box.style.boxShadow = parts.join(',');
                     }
                 }
             }
@@ -1150,6 +1181,13 @@ class NxGrid {
             this._layoutObserver.disconnect();
             this._layoutObserver = null;
         }
+        if (this._spanStyleEl) {
+            this._spanMutationObserver.disconnect();
+            this._spanResizeObserver.disconnect();
+            if (this._spanFrame) cancelAnimationFrame(this._spanFrame);
+            this._spanStyleEl.remove();
+            this._spanStyleEl = null;
+        }
         if (this._fixedOriginRefresh) {
             window.removeEventListener('resize', this._fixedOriginRefresh);
             const gridElement = document.getElementById(this.id);
@@ -1230,6 +1268,7 @@ class NxGrid {
             currentWidth = Math.min(effectiveMax, Math.max(effectiveMin, initialWidths[columnIndex] + delta));
             updateStyles(currentWidth);
             this._repositionFillHandle();
+            this._layoutSpans();
         };
         document.addEventListener('mousemove', mouseMoveHandler);
 
@@ -1295,6 +1334,7 @@ class NxGrid {
             currentHeight = Math.max(minHeight, initialHeight + event.clientY - startMouseY);
             updateStyle(currentHeight);
             this._repositionFillHandle();
+            this._layoutSpans();
         };
         document.addEventListener('mousemove', mouseMoveHandler);
 
@@ -1325,6 +1365,58 @@ class NxGrid {
             this._resizeStyleEl.remove();
             this._resizeStyleEl = null;
         }
+    }
+
+    // Sizes every rendered span box to the columns and rows it spans. The geometry lives in a
+    // <style> element of our own rather than on the box, because Blazor owns the box's style
+    // attribute and rewrites it on every render. Re-runs when rows are added (virtualized
+    // scrolling) and when the grid resizes (flex columns); C# calls it after every render.
+    layoutSpans() {
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return;
+        if (!this._spanStyleEl) {
+            this._spanStyleEl = document.createElement('style');
+            document.head.appendChild(this._spanStyleEl);
+            const schedule = () => {
+                if (this._spanFrame) return;
+                this._spanFrame = requestAnimationFrame(() => { this._spanFrame = 0; this._layoutSpans(); });
+            };
+            this._spanMutationObserver = new MutationObserver(schedule);
+            this._spanMutationObserver.observe(gridElement, { childList: true, subtree: true });
+            this._spanResizeObserver = new ResizeObserver(schedule);
+            this._spanResizeObserver.observe(gridElement);
+        }
+        this._layoutSpans();
+    }
+
+    _layoutSpans() {
+        if (!this._spanStyleEl) return;
+        const gridElement = document.getElementById(this.id);
+        if (!gridElement) return;
+        const safeId = CSS.escape(this.id);
+        const rules = [];
+        for (const box of gridElement.querySelectorAll('.nx-grid-span-box')) {
+            const cell = box.parentElement;
+            const rowEl = cell && cell.closest('.nx-grid-row[data-row]');
+            if (!rowEl || !cell.dataset.span) continue;
+            const [row, col, rows, cols] = cell.dataset.span.split(',').map(Number);
+            const cellRect = cell.getBoundingClientRect();
+
+            // Every column of the anchor's row is rendered, so the right edge is always measurable
+            const rightCell = rowEl.querySelector(`.nx-grid-cell[data-col="${col + cols - 1}"]`);
+            const right = rightCell ? rightCell.getBoundingClientRect().right : cellRect.right;
+
+            // The last row may be outside the virtualized window; rows are uniform there
+            const endRowEl = gridElement.querySelector(`.nx-grid-row[data-row="${row + rows - 1}"]`);
+            const rowRect = rowEl.getBoundingClientRect();
+            const bottom = endRowEl ? endRowEl.getBoundingClientRect().bottom : rowRect.bottom + (rows - 1) * rowRect.height;
+
+            // Absolute offsets start inside the border; step back over a left/top border CellStyle gave the anchor
+            rules.push(`#${safeId} .nx-grid-row[data-row="${row}"] > .nx-grid-cell[data-col="${col}"] > .nx-grid-span-box{` +
+                `left:${-cell.clientLeft}px;top:${-cell.clientTop}px;width:${right - cellRect.left}px;height:${bottom - cellRect.top}px}`);
+        }
+        const text = rules.join('');
+        if (this._spanStyleEl.textContent !== text) this._spanStyleEl.textContent = text;
     }
 
     async measureCharWidths() {

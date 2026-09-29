@@ -178,6 +178,7 @@ public partial class NxGrid<T>
             }
         }
 
+        ExpandSelectionToSpans();
         StateHasChanged();
         await RaiseSelectionChanged();
 
@@ -185,8 +186,11 @@ public partial class NxGrid<T>
         {
             clickDownRow = -1;
             clickDownCol = -1;
-            var result = await jsInterop.DragSelect(rowIndex, colIndex, false, visibleColumns.Count - 1);
-            if (result != null && (result.EndRow != rowIndex || result.EndCol != colIndex))
+            // A click on a covered cell selected its span; the drag starts from the span's anchor.
+            var dragRow = ActiveRange?.StartRow ?? rowIndex;
+            var dragCol = ActiveRange?.StartCol ?? colIndex;
+            var result = await jsInterop.DragSelect(dragRow, dragCol, false, visibleColumns.Count - 1);
+            if (result != null && (result.EndRow != dragRow || result.EndCol != dragCol))
             {
                 clickWasDragged = true;
                 ActiveRange!.EndRow = result.EndRow;
@@ -195,7 +199,10 @@ public partial class NxGrid<T>
                 await RaiseSelectionChanged();
             }
             else if (OnCellClicked.HasDelegate)
-                await OnCellClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = row, Column = column });
+            {
+                var (clickRow, clickCol) = ResolveSpanAnchor(row, column);
+                await OnCellClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = clickRow, Column = clickCol });
+            }
         }
         else
         {
@@ -346,6 +353,7 @@ public partial class NxGrid<T>
         // Selection is not life-or-death: if the data or columns changed out from under a held
         // selection, clamp/drop stale ranges here so we never index past the current lists.
         SanitizeSelectionRanges();
+        ExpandSelectionToSpans();
 
         if (!OnSelectionChanged.HasDelegate && !SelectedItemsChanged.HasDelegate)
             return;
@@ -414,7 +422,10 @@ public partial class NxGrid<T>
             var rowIndex = filteredData.IndexOf(row);
             var colIndex = visibleColumns.IndexOf(column);
             if (rowIndex == clickDownRow && colIndex == clickDownCol)
-                await OnCellClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = row, Column = column });
+            {
+                var (clickRow, clickCol) = ResolveSpanAnchor(row, column);
+                await OnCellClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = clickRow, Column = clickCol });
+            }
         }
 
         clickDownRow = -1;

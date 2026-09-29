@@ -128,19 +128,22 @@ public partial class NxGrid<T>
             }
 
             // F2 → edit showing existing value
+            // The active cell is the span's anchor when the selection's anchor corner is covered
+            var (activeRow, activeCol) = ActiveRange != null ? SpanAnchorOf(ActiveRange.StartRow, ActiveRange.StartCol) : (-1, -1);
+
             if (args.Key == KeyF2 && ActiveRange != null)
             {
-                await StartEditing(ActiveRange.StartRow, ActiveRange.StartCol, initialChar: null, initiatedByF2: true);
+                await StartEditing(activeRow, activeCol, initialChar: null, initiatedByF2: true);
                 return;
             }
 
             // Space on a checkbox column → toggle (must come before IsPrintableKey, which also matches " ")
             if (args.Key == " " && ActiveRange != null && !args.CtrlKey && !args.AltKey && !args.MetaKey)
             {
-                var checkboxCol = visibleColumns[ActiveRange.StartCol];
+                var checkboxCol = visibleColumns[activeCol];
                 if (checkboxCol.IsCheckboxColumn)
                 {
-                    await OnCheckboxToggleCell(ActiveRange.StartRow, ActiveRange.StartCol);
+                    await OnCheckboxToggleCell(activeRow, activeCol);
                     return;
                 }
             }
@@ -148,7 +151,7 @@ public partial class NxGrid<T>
             // Printable character → start editing with that character pre-filled
             if (IsPrintableKey(args) && ActiveRange != null)
             {
-                await StartEditing(ActiveRange.StartRow, ActiveRange.StartCol, initialChar: args.Key);
+                await StartEditing(activeRow, activeCol, initialChar: args.Key);
                 return;
             }
         }
@@ -189,12 +192,13 @@ public partial class NxGrid<T>
         var newEndRow = effectiveShift ? active.EndRow : active.StartRow;
         var newEndCol = effectiveShift ? active.EndCol : active.StartCol;
 
+        // A plain step treats a span as one cell: it leaves from the span's far edge
         switch (args.Key)
         {
-            case KeyArrowUp:    newEndRow = args.CtrlKey ? FindEdgeRow(newEndRow, newEndCol, -1) : newEndRow - 1; break;
-            case KeyArrowDown:  newEndRow = args.CtrlKey ? FindEdgeRow(newEndRow, newEndCol,  1) : newEndRow + 1; break;
-            case KeyArrowLeft:  newEndCol = args.CtrlKey ? FindEdgeCol(newEndRow, newEndCol, -1) : newEndCol - 1; break;
-            case KeyArrowRight: newEndCol = args.CtrlKey ? FindEdgeCol(newEndRow, newEndCol,  1) : newEndCol + 1; break;
+            case KeyArrowUp:    newEndRow = args.CtrlKey ? FindEdgeRow(newEndRow, newEndCol, -1) : StepOverSpan(newEndRow, newEndCol, -1, 0).Row; break;
+            case KeyArrowDown:  newEndRow = args.CtrlKey ? FindEdgeRow(newEndRow, newEndCol,  1) : StepOverSpan(newEndRow, newEndCol,  1, 0).Row; break;
+            case KeyArrowLeft:  newEndCol = args.CtrlKey ? FindEdgeCol(newEndRow, newEndCol, -1) : StepOverSpan(newEndRow, newEndCol, 0, -1).Col; break;
+            case KeyArrowRight: newEndCol = args.CtrlKey ? FindEdgeCol(newEndRow, newEndCol,  1) : StepOverSpan(newEndRow, newEndCol, 0,  1).Col; break;
         }
 
         newEndRow = Math.Clamp(newEndRow, 0, filteredData.Count - 1);
@@ -365,12 +369,12 @@ public partial class NxGrid<T>
 
         if (!args.ShiftKey)
         {
-            col++;
+            col = StepOverSpan(row, col, 0, 1).Col;
             if (col >= visibleColumns.Count) { col = 0; row++; if (row >= filteredData.Count) row = 0; }
         }
         else
         {
-            col--;
+            col = StepOverSpan(row, col, 0, -1).Col;
             if (col < 0) { col = visibleColumns.Count - 1; row--; if (row < 0) row = filteredData.Count - 1; }
         }
 
@@ -403,7 +407,7 @@ public partial class NxGrid<T>
             return;
         }
 
-        row += args.ShiftKey ? -1 : 1;
+        row = StepOverSpan(row, col, args.ShiftKey ? -1 : 1, 0).Row;
         row = Math.Clamp(row, 0, filteredData.Count - 1);
 
         selectedRanges = [new NxGridRange
@@ -421,6 +425,7 @@ public partial class NxGrid<T>
 
     private bool IsCellEmpty(int rowIndex, int colIndex)
     {
+        (rowIndex, colIndex) = SpanAnchorOf(rowIndex, colIndex);   // a span holds its anchor's value
         var getter = visibleColumns[colIndex].EffectiveValueGetter;
         if (getter == null) return true;
         var value = getter(filteredData[rowIndex]);

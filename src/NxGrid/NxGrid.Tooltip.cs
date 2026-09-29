@@ -18,8 +18,7 @@ public partial class NxGrid<T>
         DismissTooltip();
         if (CellTooltip == null || isEditing || isResizing) return;
 
-        var capturedRow = row;
-        var capturedCol = column;
+        var (capturedRow, capturedCol) = ResolveSpanAnchor(row, column);
         var x = args.ClientX;
         var y = args.ClientY;
 

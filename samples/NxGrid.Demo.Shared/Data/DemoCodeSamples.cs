@@ -315,6 +315,33 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string MergedCells = """
+// Every cell of a span, anchor and covered alike, returns the same NxGridCellSpan.
+// Row = index in VisibleItems, Column = index among visible columns.
+<NxGrid T="SheetLine" @ref="grid" Data="@lines" Editable="true" OnUpdate="@HandleUpdate"
+        CellSpanGetter="@SpanOf">
+    ...
+</NxGrid>
+
+@code {
+    List<NxGridCellSpan> spans = [new(0, 0, 1, 6), new(3, 5, 3, 1)];
+    Dictionary<(int, int), NxGridCellSpan> spanIndex = [];   // rebuilt from spans on every change
+
+    NxGridCellSpan? SpanOf(SheetLine line, NxGridColumn<SheetLine> column) =>
+        spanIndex.TryGetValue((line.Index, ColumnIndex(column)), out var s) ? s : null;
+
+    void Merge(NxGridSelectionRange<SheetLine> sel)
+    {
+        var merged = new NxGridCellSpan(sel.StartRow, sel.StartCol,
+            sel.EndRow - sel.StartRow + 1, sel.EndCol - sel.StartCol + 1);
+        spans.RemoveAll(s => Overlaps(s, merged));
+        spans.Add(merged);
+        Reindex();
+        grid!.ForceRerender();   // the grid keeps no spans of its own
+    }
+}
+""";
+
     public static readonly string Selection = """
 <NxGrid T="Person" Data="@people" OnSelectionChanged="@OnSelectionChanged">
     ...

@@ -109,6 +109,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public Task CleanupResizeStyle()
         => Guarded(() => jsObject.InvokeVoidAsync("cleanupResizeStyle").AsTask());
 
+    public Task LayoutSpans()
+        => Guarded(() => jsObject.InvokeVoidAsync("layoutSpans").AsTask());
+
     public Task<NxCharWidths?> MeasureCharWidths()
         => Guarded<NxCharWidths?>(() => jsObject.InvokeAsync<NxCharWidths?>("measureCharWidths").AsTask(), null);
 
