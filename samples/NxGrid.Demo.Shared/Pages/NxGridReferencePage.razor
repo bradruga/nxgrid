@@ -307,7 +307,7 @@
             <tr>
                 <td>OnKeyPressed</td>
                 <td>EventCallback&lt;NxGridKeyPressedArgs&gt;</td>
-                <td>Fires for keyboard events the grid does not handle internally, letting the host page react to custom hotkeys.</td>
+                <td>Fires for every key before the grid's own handling. Set <code>args.Handled = true</code> to claim a key and skip the built-in action (e.g. override Ctrl+A); otherwise the grid handles it as usual.</td>
                 <td><a href="keyboard">Keyboard</a></td>
             </tr>
             <tr>

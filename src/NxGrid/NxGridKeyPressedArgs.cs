@@ -3,9 +3,8 @@ using Microsoft.AspNetCore.Components.Web;
 namespace NxGrid;
 
 /// <summary>
-/// Arguments passed to <see cref="NxGrid{T}.OnKeyPressed"/> for keyboard events that the grid
-/// does not handle internally. Use this to react to custom hotkeys without the host needing to
-/// capture keyboard events separately.
+/// Arguments passed to <see cref="NxGrid{T}.OnKeyPressed"/> for every key the grid receives while
+/// no cell editor is open, before the grid's own handling. Set <see cref="Handled"/> to claim the key.
 /// </summary>
 public sealed class NxGridKeyPressedArgs
 {
@@ -14,4 +13,7 @@ public sealed class NxGridKeyPressedArgs
 
     /// <summary><c>true</c> when Ctrl (Windows/Linux) or ⌘ (Mac) was held when the key was pressed.</summary>
     public required bool ModifierPressed { get; init; }
+
+    /// <summary>Set to <c>true</c> to skip the grid's built-in handling for this key (e.g. to override Ctrl+A).</summary>
+    public bool Handled { get; set; }
 }

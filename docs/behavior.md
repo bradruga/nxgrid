@@ -263,11 +263,17 @@ The algorithm matches Excel's behavior:
 
 A cell is "empty" if its value (from `Property ?? Display`) is null or its `ToString()` is whitespace-only.
 
-### Unhandled keys
+### OnKeyPressed and unhandled keys
 
-Any key not matched by the grid (and not a printable character that would start editing) is forwarded to the `OnKeyPressed` callback, if one is registered. After the callback, the grid triggers a re-render so any side effects from the host are reflected.
+Every key the grid element receives while no cell editor is open is passed to the `OnKeyPressed` callback, if one is registered, **before** the grid's own handling. The callback may set `args.Handled = true` to claim the key: the grid then skips its built-in action for that press (so a host can give Ctrl+A Excel's block-then-sheet behaviour, or take over Ctrl+C). With `Handled` left `false`, the grid handles the key exactly as the table above describes.
 
-Delete with Ctrl/⌘ held is intentionally *not* handled internally (plain Delete clears the selection — see [Delete](#delete)), so `Ctrl/⌘+Delete` is forwarded to `OnKeyPressed`, letting the host bind it to a custom action such as deleting the selected row.
+Keys typed into an open cell editor never reach `OnKeyPressed`; they belong to the editor.
+
+The browser default is suppressed the same way in both cases — the grid's document-level capture handler already prevents it for every key while the grid element is focused — so a claimed Ctrl+A does not select the page.
+
+For a key the grid does not match (and that is not a printable character that would start editing) nothing else happens; the grid just re-renders so any side effects from the host are reflected. The same re-render follows a claimed key.
+
+Delete with Ctrl/⌘ held is intentionally *not* handled internally (plain Delete clears the selection — see [Delete](#delete)), so `Ctrl/⌘+Delete` reaches `OnKeyPressed` with nothing to override, letting the host bind it to a custom action such as deleting the selected row.
 
 ---
 
@@ -567,7 +573,7 @@ When a date is committed (by clicking a day or pressing Enter on the highlighted
 
 ## Delete
 
-The Delete key (with no Ctrl/⌘ modifier) clears all cells in the current selection. `Ctrl/⌘+Delete` is left unhandled and forwarded to `OnKeyPressed` instead (see [Unhandled keys](#unhandled-keys)). For each cell:
+The Delete key (with no Ctrl/⌘ modifier) clears all cells in the current selection. `Ctrl/⌘+Delete` is left unhandled and forwarded to `OnKeyPressed` instead (see [OnKeyPressed and unhandled keys](#onkeypressed-and-unhandled-keys)). For each cell:
 
 1. If the column is not editable, the cell is skipped.
 2. If `CellEditableGetter` returns `false` for that cell, the cell is skipped.

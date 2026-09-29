@@ -120,7 +120,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 |---|---|---|
 | `OnSelectionChanged` | `EventCallback<NxGridSelectionArgs<T>>` | Fires on every selection change (mouse, keyboard, programmatic). |
 | `SelectedItems` | `List<T>?` | Two-way bindable list of the currently selected row objects (all ranges combined, deduplicated). Use `@bind-SelectedItems="@myList"` as a shorthand for `OnSelectionChanged`. `SelectedItemsChanged` fires in sync with `OnSelectionChanged`. Setting this from outside (e.g. `myList = []`) also updates the visual selection in the grid. |
-| `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for keyboard events the grid does not handle internally. Lets the host page react to custom hotkeys without losing focus. A handler may add or remove rows from `Data` in place — the grid re-runs its filter/sort pipeline after the callback. |
+| `OnKeyPressed` | `EventCallback<NxGridKeyPressedArgs>` | Fires for every key the grid receives while no cell editor is open, **before** the grid's own handling. Set `args.Handled = true` to claim the key and skip the built-in behaviour (e.g. to override Ctrl+A); leave it `false` and the grid handles the key as usual. Lets the host page react to custom hotkeys without losing focus. A handler may add or remove rows from `Data` in place — the grid re-runs its filter/sort pipeline after the callback. |
 | `OnColumnResized` | `EventCallback<NxGridColumnResizedArgs>` | Fires when the user drags a resize grip **or double-clicks it to auto-size**. `args.ColumnIndex` and `args.NewWidth` (px). |
 | `OnRowResized` | `EventCallback<NxGridRowResizedArgs<T>>` | Fires when the user drags a row's bottom edge in the gutter (`args.NewHeight` in px) or double-clicks it (`args.NewHeight = null`, back to default). Wiring this renders the grip; the gutter must be `Numbers` or `Blank`. When the row is inside a selection spanning every column, fires once per selected row. The grid stores nothing — keep the height and return it from `RowHeightGetter`. |
 | `OnFilterChanged` | `EventCallback<NxGridFilterChangedArgs<T>>` | Fires after any column's filter state changes and `ApplyFilterAndSort` has run. `args.Column` is `null` when all filters are cleared at once (e.g. `ClearAllFilters()` or `ClearSavedState()`). Does not fire when `Data` is replaced externally. |
@@ -476,6 +476,8 @@ Keys are compared with `object.Equals`. Duplicate key values in `Data` produce u
 | Ctrl/⌘+V | Paste TSV at selection origin; a multi-cell paste selects the pasted block |
 | Delete | Clear selected cells |
 | Ctrl/⌘+Delete | Not handled internally — forwarded to `OnKeyPressed` (bind a host action, e.g. delete row) |
+
+Every key above reaches `OnKeyPressed` first; a handler that sets `args.Handled = true` replaces the built-in action for that press. See [How to override a built-in shortcut](howto.md#how-to-override-a-built-in-shortcut).
 
 ---
 
@@ -904,6 +906,13 @@ public sealed class NxGridEditingArgs<T>
     public T Row { get; init; }
     public NxGridColumn<T> Column { get; init; }
     public bool Cancel { get; set; }  // set to true to prevent the editor from opening
+}
+
+public sealed class NxGridKeyPressedArgs
+{
+    public KeyboardEventArgs KeyboardEvent { get; init; }  // Key, Code, CtrlKey, ShiftKey, …
+    public bool ModifierPressed { get; init; }             // Ctrl (Windows/Linux) or ⌘ (Mac) held
+    public bool Handled { get; set; }  // set to true to skip the grid's built-in handling for this key
 }
 
 public sealed class NxGridEditBlockedArgs<T>

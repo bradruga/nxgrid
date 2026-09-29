@@ -555,6 +555,58 @@ public class NxGridKeyboardTests : BunitContext
         Assert.That(pressedArgs!.KeyboardEvent.Key, Is.EqualTo("F9"));
     }
 
+    [Test]
+    public async Task OnKeyPressed_BuiltInKey_FiresBeforeGridHandling()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        NxGridKeyPressedArgs? pressedArgs = null;
+        NxGridSelectionArgs<EditRow>? selection = null;
+        var rows = new List<EditRow> { new() { Name = "Alice" }, new() { Name = "Bob" } };
+
+        var cut = Render<NxGrid<EditRow>>(p => p
+            .Add(x => x.Data, rows)
+            .Add(x => x.OnSelectionChanged,
+                EventCallback.Factory.Create<NxGridSelectionArgs<EditRow>>(this, args => selection = args))
+            .Add(x => x.OnKeyPressed,
+                EventCallback.Factory.Create<NxGridKeyPressedArgs>(this, args => pressedArgs = args))
+            .AddChildContent<NxGridColumn<EditRow>>(col => col
+                .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Name))));
+
+        await ClickCell(cut, 0);
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown",
+            new KeyboardEventArgs { Key = "ArrowDown" });
+
+        Assert.That(pressedArgs, Is.Not.Null, "OnKeyPressed should fire for built-in keys too");
+        Assert.That(pressedArgs!.KeyboardEvent.Key, Is.EqualTo("ArrowDown"));
+        Assert.That(selection!.Ranges[0].StartRow, Is.EqualTo(1), "unclaimed key still moves the selection");
+    }
+
+    [Test]
+    public async Task OnKeyPressed_HandledCtrlA_SkipsSelectAll()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        NxGridSelectionArgs<EditRow>? selection = null;
+        var rows = new List<EditRow> { new() { Name = "Alice" }, new() { Name = "Bob" } };
+
+        var cut = Render<NxGrid<EditRow>>(p => p
+            .Add(x => x.Data, rows)
+            .Add(x => x.OnSelectionChanged,
+                EventCallback.Factory.Create<NxGridSelectionArgs<EditRow>>(this, args => selection = args))
+            .Add(x => x.OnKeyPressed,
+                EventCallback.Factory.Create<NxGridKeyPressedArgs>(this, args =>
+                {
+                    if (args.ModifierPressed && args.KeyboardEvent.Key == "a") args.Handled = true;
+                }))
+            .AddChildContent<NxGridColumn<EditRow>>(col => col
+                .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Name))));
+
+        await ClickCell(cut, 0);
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown",
+            new KeyboardEventArgs { Key = "a", CtrlKey = true });
+
+        Assert.That(selection!.Ranges[0].EndRow, Is.EqualTo(0), "claimed Ctrl+A must not select all");
+    }
+
     // ── Synthetic key events ──────────────────────────────────────────────────
 
     [Test]
@@ -662,7 +714,8 @@ public class NxGridKeyboardTests : BunitContext
         Assert.That(h.Copied, Is.Not.Null, "cut goes through the copy channel");
         Assert.That(h.Copied!.MinRow, Is.EqualTo(0));
         Assert.That(h.Update, Is.Null, "cut alone must not write anything");
-        Assert.That(h.Pressed, Is.Null, "cut must not reach OnKeyPressed");
+        Assert.That(h.Pressed, Is.Not.Null, "the host sees every key first");
+        Assert.That(h.Pressed!.Handled, Is.False, "an unclaimed cut still runs");
         Assert.That(h.MarqueeCells, Is.EqualTo(1));
     }
 
@@ -772,7 +825,8 @@ public class NxGridKeyboardTests : BunitContext
 
         Assert.That(h.MarqueeCells, Is.EqualTo(0));
         Assert.That(h.Update, Is.Null);
-        Assert.That(h.Pressed, Is.Null, "Escape that cleared a cut is consumed");
+        Assert.That(h.Pressed!.KeyboardEvent.Key, Is.EqualTo("Escape"), "the host sees Escape first");
+        Assert.That(h.Pressed.Handled, Is.False, "an unclaimed Escape still clears the cut");
     }
 
     [Test]

@@ -78,6 +78,7 @@ public static class DemoCodeSamples
     {
         // args.KeyboardEvent  — full KeyboardEventArgs (Key, Code, CtrlKey, etc.)
         // args.ModifierPressed — true when Ctrl or Cmd is held
+        // args.Handled        — set true to skip the grid's own handling of this key
 
         if (args.KeyboardEvent.Key == "e" && args.ModifierPressed)
         {
@@ -89,8 +90,14 @@ public static class DemoCodeSamples
         }
         else if (args.KeyboardEvent.Key == "Delete" && args.ModifierPressed)
         {
-            // Plain Delete clears the selection; Ctrl/Cmd+Delete is forwarded here.
+            // Plain Delete clears the selection; Ctrl/Cmd+Delete is not a grid shortcut.
             DeleteSelectedRow();
+        }
+        else if (args.KeyboardEvent.Key == "a" && args.ModifierPressed)
+        {
+            // Ctrl+A is a grid shortcut (select all). Claim it to replace that behavior.
+            SelectCurrentRow();
+            args.Handled = true;
         }
     }
 }

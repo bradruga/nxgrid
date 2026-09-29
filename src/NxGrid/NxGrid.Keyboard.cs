@@ -28,6 +28,29 @@ public partial class NxGrid<T>
         // `key` property, which deserializes to a null Key. Nothing here can act on those.
         if (string.IsNullOrEmpty(args.Key)) return;
 
+        // The host sees every key first and may claim it (args.Handled) to override a built-in.
+        if (OnKeyPressed.HasDelegate)
+        {
+            var pressed = new NxGridKeyPressedArgs
+            {
+                KeyboardEvent = args,
+                ModifierPressed = ModifierPressed(args)
+            };
+            await OnKeyPressed.InvokeAsync(pressed);
+
+            // Host hotkeys commonly add or delete rows (Ctrl+Delete on a line-item grid), so
+            // re-pipe when Data changed under us before acting on the old row indices.
+            if (HasUnseenDataChange)
+                RepipeAndReconcileSelection();
+
+            if (pressed.Handled)
+            {
+                renderToken++;
+                StateHasChanged();
+                return;
+            }
+        }
+
         if (SelectionMode != NxGridSelectionMode.None)
         {
             if (ModifierPressed(args) && string.Equals(args.Key, KeyCopy, StringComparison.OrdinalIgnoreCase))
@@ -130,20 +153,9 @@ public partial class NxGrid<T>
             }
         }
 
-        // Unhandled key — let the host page respond
+        // Unhandled key — the host already saw it; re-render so its side effects show
         if (OnKeyPressed.HasDelegate)
         {
-            await OnKeyPressed.InvokeAsync(new NxGridKeyPressedArgs
-            {
-                KeyboardEvent = args,
-                ModifierPressed = ModifierPressed(args)
-            });
-
-            // Host hotkeys commonly add or delete rows (Ctrl+Delete on a line-item grid), so
-            // re-pipe when Data changed under us before rendering against the old row indices.
-            if (HasUnseenDataChange)
-                RepipeAndReconcileSelection();
-
             renderToken++;
             StateHasChanged();
         }

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `OnKeyPressed` now fires for every key the grid receives (while no cell editor is open), before the grid's own handling, instead of only for keys the grid does not handle. Set the new `NxGridKeyPressedArgs.Handled` to `true` to claim a key and skip the built-in action — for example to give Ctrl+A Excel's block-then-sheet behaviour. Handlers that switch on specific keys are unaffected; a handler that reacted to *any* key it received now needs a key check.
+
 ## [0.4.3] - 2026-09-24
 
 ### Added

@@ -15,7 +15,7 @@
         <span style="font-size:13px;color:#555;">Last key event: <strong>@keyLog</strong></span>
         <button class="doc-btn doc-btn-secondary" @onclick="@(() => keyLog = "")">Clear</button>
     </div>
-    <NxGrid T="Person" Data="@kbPeople"
+    <NxGrid @ref="kbGrid" T="Person" Data="@kbPeople"
             OnKeyPressed="@OnKeyPressed"
             OnSelectionChanged="@OnSelectionChanged"
             OnUpdate="@HandleUpdate"
@@ -34,11 +34,15 @@
 <div class="doc-section">
     <h2>OnKeyPressed — Custom Hotkeys</h2>
     <p class="doc-note">
-        <code>OnKeyPressed</code> fires for keys the grid does not handle internally.
-        Use it to add custom hotkeys (e.g. Ctrl+E to export) without losing grid focus.
+        <code>OnKeyPressed</code> fires for every key before the grid handles it.
+        Use it to add custom hotkeys (e.g. Ctrl+E to export) without losing grid focus, or set
+        <code>args.Handled = true</code> to claim a built-in shortcut and skip the grid's own action.
         Try pressing <kbd class="doc-kbd">Ctrl+E</kbd>, <kbd class="doc-kbd">Ctrl+N</kbd>, or <kbd class="doc-kbd">Ctrl+Delete</kbd> in the grid above.
-        (Plain <kbd class="doc-kbd">Delete</kbd> clears the selection and never reaches <code>OnKeyPressed</code>; only <kbd class="doc-kbd">Ctrl+Delete</kbd> is forwarded.)
+        Tick the box, and <kbd class="doc-kbd">Ctrl+A</kbd> selects the current row instead of every cell.
     </p>
+    <label class="doc-controls" style="font-size:13px;">
+        <input type="checkbox" @bind="claimCtrlA" /> Override Ctrl+A (select the current row)
+    </label>
     <pre class="doc-code">@keyPressedCode</pre>
 </div>
 
@@ -71,11 +75,15 @@
             <tr><td><kbd class="doc-kbd">Ctrl+Delete</kbd> / <kbd class="doc-kbd">⌘+Delete</kbd></td><td>Not handled internally — forwarded to <code>OnKeyPressed</code> so the host can bind it (e.g. delete the selected row)</td></tr>
         </tbody>
     </table>
+    <p class="doc-note">Every key above reaches <code>OnKeyPressed</code> first; set <code>args.Handled = true</code> there to replace the built-in action.</p>
 </div>
 
 @code {
+    NxGrid<Person>? kbGrid;
     List<Person> kbPeople = SampleData.GetPeopleCopy();
     string keyLog = "none";
+    bool claimCtrlA;
+    Person? activePerson;
     string selectionLog = "Click the grid and use keyboard shortcuts…";
 
     async Task HandleUpdate(NxGridUpdateArgs<Person> args)
@@ -86,11 +94,11 @@
         await Task.CompletedTask;
     }
 
-    void OnKeyPressed(NxGridKeyPressedArgs args)
+    async Task OnKeyPressed(NxGridKeyPressedArgs args)
     {
         var key = args.KeyboardEvent.Key;
         var mod = args.ModifierPressed ? "Ctrl+" : "";
-        keyLog = $"{mod}{key} — custom hotkey fired";
+        keyLog = $"{mod}{key} — seen by OnKeyPressed, left to the grid";
 
         if (args.KeyboardEvent.Key == "e" && args.ModifierPressed)
             keyLog = "Ctrl+E — trigger export";
@@ -98,12 +106,19 @@
             keyLog = "Ctrl+N — add new row";
         else if (args.KeyboardEvent.Key == "Delete" && args.ModifierPressed)
             keyLog = "Ctrl+Delete — delete the selected row";
+        else if (args.KeyboardEvent.Key == "a" && args.ModifierPressed && claimCtrlA)
+        {
+            if (activePerson != null && kbGrid != null) await kbGrid.SelectRow(activePerson);
+            args.Handled = true;
+            keyLog = "Ctrl+A — claimed by the host: selected the current row";
+        }
     }
 
     void OnSelectionChanged(NxGridSelectionArgs<Person> args)
     {
         var range = args.Ranges.FirstOrDefault();
         if (range == null) { selectionLog = "No selection"; return; }
+        activePerson = range.Items.FirstOrDefault();
         var rows = range.EndRow - range.StartRow + 1;
         var cols = range.EndCol - range.StartCol + 1;
         selectionLog = $"Selection: {rows} row{(rows == 1 ? "" : "s")} × {cols} col{(cols == 1 ? "" : "s")} [rows {range.StartRow}–{range.EndRow}]";

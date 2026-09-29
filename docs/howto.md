@@ -13,6 +13,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How inline editing works](#how-inline-editing-works)
 - [How to add a new row when the user tabs off the last one](#how-to-add-a-new-row-when-the-user-tabs-off-the-last-one)
 - [How to respond to selection changes](#how-to-respond-to-selection-changes)
+- [How to override a built-in shortcut](#how-to-override-a-built-in-shortcut)
 - [How to apply custom cell styling](#how-to-apply-custom-cell-styling)
 - [How to use custom cell templates](#how-to-use-custom-cell-templates)
 - [How to select and scroll programmatically](#how-to-select-and-scroll-programmatically)
@@ -643,6 +644,44 @@ void OnSelectionChanged(NxGridSelectionArgs<Person> args)
 ```
 
 ---
+
+## How to override a built-in shortcut
+
+`OnKeyPressed` fires for every key before the grid acts on it. Set `args.Handled = true` and the grid skips its own handling for that press, so any built-in shortcut can be replaced from the host. Excel's Ctrl+A — first press selects the block of data around the active cell, second press selects everything — is the typical case:
+
+```razor
+<NxGrid @ref="grid" T="Cell" Data="@cells" OnKeyPressed="@OnKeyPressed">
+```
+
+```csharp
+NxGrid<Cell>? grid;
+bool blockSelected;
+
+void OnKeyPressed(NxGridKeyPressedArgs args)
+{
+    if (!args.ModifierPressed) return;
+
+    switch (args.KeyboardEvent.Key)
+    {
+        case "a":
+            if (blockSelected || !TryGetDataBlock(out var block))   // host logic: rows and columns around the active cell
+            {
+                blockSelected = false;      // second press, or nothing around: let the grid select all
+                return;
+            }
+            grid!.SelectRange(block.FirstRow, block.FirstColumn, block.LastRow, block.LastColumn);
+            blockSelected = true;
+            args.Handled = true;            // the grid's own select-all does not run
+            break;
+
+        case "b":
+            ToggleBold();                   // not a grid shortcut — Handled is irrelevant
+            break;
+    }
+}
+```
+
+Leave `Handled` at its default and the grid behaves exactly as before, so a handler that only adds hotkeys the grid does not own needs no change. Keys typed into an open cell editor never reach the callback.
 
 ## How to apply custom cell styling
 
