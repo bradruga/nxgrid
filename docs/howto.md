@@ -562,6 +562,24 @@ exactly once and the user never sees the old selection painted over the new rows
 
 `OnNewRow` is inert unless `OnUpdate` is registered and at least one column is editable, so a read-only grid keeps plain Tab wrapping.
 
+### Growing the grid when a paste runs past the last row
+
+A user who copies five lines from an old document into a new one with a single blank line expects five lines. Register `OnPasteNewRows` and reuse the same row factory as `OnNewRow`:
+
+```csharp
+void HandlePasteNewRows(NxGridPasteNewRowsArgs<OrderLine> args)
+{
+    for (var i = 0; i < args.RowsNeeded; i++)
+    {
+        var line = new OrderLine();
+        lines.Add(line);
+        args.NewRows.Add(line);   // the grid pastes into these, in order
+    }
+}
+```
+
+`HandleUpdate` needs no changes: cells pasted into the new rows arrive in the same `OnUpdate` as the rest. To cap an accidental huge paste, add fewer than `RowsNeeded` — the rest is dropped.
+
 ---
 
 ## How to respond to selection changes

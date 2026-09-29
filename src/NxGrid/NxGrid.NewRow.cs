@@ -32,6 +32,16 @@ public partial class NxGrid<T>
     /// </summary>
     [Parameter] public NxGridNewRowTrigger NewRowTriggers { get; set; } = NxGridNewRowTrigger.Tab;
 
+    /// <summary>
+    /// Fires when a multi-row paste has more clipboard rows than exist from the paste origin down.
+    /// The host appends rows to <see cref="Data"/> and adds the same instances to
+    /// <see cref="NxGridPasteNewRowsArgs{T}.NewRows"/>; the grid pastes the overflow into them in
+    /// clipboard order, in the same <see cref="OnUpdate"/> as the existing rows. Add fewer (or none)
+    /// to drop the rest. Not raised for a single-value fill or a cut-paste. Requires
+    /// <see cref="OnUpdate"/> and at least one editable visible column. See docs/behavior.md.
+    /// </summary>
+    [Parameter] public EventCallback<NxGridPasteNewRowsArgs<T>> OnPasteNewRows { get; set; }
+
     // Held Tab repeats faster than an async host handler completes, so without this guard a
     // single keypress-and-hold would queue several appends. Set for the whole commit → callback
     // → re-pipe → focus sequence, which is why NewRowEnabled tests it.
@@ -44,6 +54,66 @@ public partial class NxGrid<T>
         && SelectionMode != NxGridSelectionMode.None
         && filteredData.Count > 0
         && visibleColumns.Any(IsColumnEditable);
+
+    private bool PasteNewRowsEnabled =>
+        OnPasteNewRows.HasDelegate
+        && OnUpdate.HasDelegate
+        && !newRowInFlight
+        && SelectionMode != NxGridSelectionMode.None
+        && visibleColumns.Any(IsColumnEditable);
+
+    /// <summary>
+    /// Awaits <see cref="OnPasteNewRows"/>, re-pipes, and returns the display index of each paste
+    /// target in clipboard order: the rows from <paramref name="originRow"/> down, then the host's
+    /// new rows. A new row the view hides gets <c>filteredData.Count + i</c>, its index in Hidden.
+    /// </summary>
+    private async Task<(List<int> Targets, List<T> Added, List<T> Hidden)> AppendPasteRowsAsync(
+        int originRow, int originCol, int clipboardRows)
+    {
+        // Held by instance: a sort can move the existing rows once the new ones arrive
+        var existing = filteredData.GetRange(originRow, filteredData.Count - originRow);
+        var args = new NxGridPasteNewRowsArgs<T>
+        {
+            RowsNeeded = clipboardRows - existing.Count,
+            OriginRow  = originRow,
+            OriginCol  = originCol
+        };
+        newRowInFlight = true;
+        try
+        {
+            await OnPasteNewRows.InvokeAsync(args);
+        }
+        finally
+        {
+            newRowInFlight = false;
+        }
+        var added = args.NewRows.ToList();
+
+        if (HasUnseenDataChange)
+        {
+            RepipeData();
+            SanitizeSelectionRanges();
+        }
+
+        // By reference: blank new rows of a record type compare equal to each other
+        var indexOf = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+        for (var i = 0; i < filteredData.Count; i++)
+            if (filteredData[i] is { } row) indexOf.TryAdd(row, i);
+
+        var targets = existing.Select(r => r is not null && indexOf.TryGetValue(r, out var i) ? i : -1).ToList();
+        var hidden = new List<T>();
+        foreach (var row in added)
+        {
+            if (row is not null && indexOf.TryGetValue(row, out var i))
+                targets.Add(i);
+            else
+            {
+                targets.Add(filteredData.Count + hidden.Count);
+                hidden.Add(row);
+            }
+        }
+        return (targets, added, hidden);
+    }
 
     private int FirstEditableColumnIndex
     {

@@ -15,7 +15,7 @@ A high-performance, virtualised data grid component for Blazor.
 - Client-side sort and filter via the column menu
 - Multi-cell rectangular selection with selection math (sum, avg, count)
 - Inline editing — text input, combo-box dropdowns, date picker, multi-line, and math expressions
-- Keyboard-only line-item entry — Tab off the last row to append a new one (`OnNewRow`)
+- Keyboard-only line-item entry — Tab off the last row to append a new one (`OnNewRow`), or paste past it (`OnPasteNewRows`)
 - Checkbox columns — toggle `bool` values with a single click or Space
 - Cut / copy / paste as TSV (Excel-compatible)
 - Row grouping with collapsible groups

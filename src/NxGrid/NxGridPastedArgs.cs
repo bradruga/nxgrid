@@ -38,4 +38,10 @@ public sealed class NxGridPastedArgs<T>
     /// called <see cref="NxGrid{T}.TransformPastedValue"/> with zero deltas. See docs/behavior.md.
     /// </summary>
     public bool WasCut { get; init; }
+
+    /// <summary>
+    /// Rows the host appended through <see cref="NxGrid{T}.OnPasteNewRows"/> for this paste, in
+    /// clipboard order. Empty when the paste fit or no rows were appended.
+    /// </summary>
+    public IReadOnlyList<T> AddedRows { get; init; } = [];
 }

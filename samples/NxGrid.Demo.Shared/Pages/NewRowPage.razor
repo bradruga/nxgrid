@@ -21,7 +21,7 @@
     <NxGrid @ref="grid" T="OrderLine" Data="@lines" Editable="true"
             RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell"
             OnUpdate="@HandleUpdate" OnNewRow="@HandleNewRowAsync"
-            NewRowTriggers="@triggers">
+            OnPasteNewRows="@HandlePasteNewRows" NewRowTriggers="@triggers">
         <NxGridColumn @ref="descriptionColumn" Property="@(x => x.Description)" Title="Description" Width="220" />
         <NxGridColumn Property="@(x => x.Quantity)"    Title="Qty"        Width="70"
                       Alignment="NxGridColumnAlignment.Right" />
@@ -217,6 +217,23 @@
 </div>
 
 <div class="doc-section">
+    <h2>Pasting past the last row</h2>
+    <p>
+        <code>OnPasteNewRows</code> covers the clipboard path. Copy several lines — from Excel, or
+        from this grid — select the last row's <strong>Description</strong> and press
+        <kbd class="doc-kbd">Ctrl</kbd>+<kbd class="doc-kbd">V</kbd>. The grid asks for the rows that
+        do not fit, pastes into them, and reports every cell in one <code>OnUpdate</code>.
+        Without the callback the overflow is dropped.
+    </p>
+    <p class="doc-note">
+        The new rows are written by instance, so a sort or filter that moves them does not matter.
+        Add fewer than <code>RowsNeeded</code> to cap the paste; add none to refuse. Not raised for a
+        single-value fill or a cut-paste.
+    </p>
+    <pre class="doc-code">@pasteCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Conditions</h2>
     <table class="doc-table">
         <thead><tr><th>Case</th><th>Behavior</th></tr></thead>
@@ -303,6 +320,17 @@
         await Task.CompletedTask;
     }
 
+    void HandlePasteNewRows(NxGridPasteNewRowsArgs<OrderLine> args)
+    {
+        for (var i = 0; i < args.RowsNeeded; i++)
+        {
+            var line = new OrderLine();
+            lines.Add(line);
+            args.NewRows.Add(line);
+        }
+        log.Insert(0, $"[{Stamp()}]  OnPasteNewRows  —  appended {args.RowsNeeded}, now {lines.Count} lines");
+    }
+
     async Task AddLineFromToolbar()
     {
         var line = new OrderLine();
@@ -375,6 +403,20 @@ Task HandleNewRowAsync(NxGridNewRowArgs<OrderLine> args)
     }
     lines.Add(new OrderLine());
     return Task.CompletedTask;
+}
+""";
+
+    string pasteCode = """
+<NxGrid ... OnNewRow="@HandleNewRowAsync" OnPasteNewRows="@HandlePasteNewRows">
+
+void HandlePasteNewRows(NxGridPasteNewRowsArgs<OrderLine> args)
+{
+    for (var i = 0; i < args.RowsNeeded; i++)
+    {
+        var line = new OrderLine();
+        lines.Add(line);
+        args.NewRows.Add(line);   // the grid pastes into these, in clipboard order
+    }
 }
 """;
 

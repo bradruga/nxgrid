@@ -155,8 +155,9 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `OnCellPickedWhileEditing` | `EventCallback<NxGridEditCellPickArgs<T>>` | Fires when the user clicks, click-drags, or arrows to a range while edit-pick mode is active. Args carry `StartRow`/`StartColumn`/`EndRow`/`EndColumn` (end equals start for a single cell) and `ReplacesPrevious`, `true` when the pick supersedes the one before it because nothing was typed in between — overwrite that reference rather than appending. Call `SetEditValue` from this handler to write the reference into the edit input. |
 | `TransformPastedValue` | `Func<string, int, int, string>?` | `(rawValue, rowDelta, colDelta)` — lets the host rewrite pasted text before it is committed (e.g. formula adjustment). Both deltas are `0` when the paste completes a cut, since a move does not change what the content refers to. |
 | `OnCopied` | `EventCallback<NxGridCopiedArgs<T>>` | Fires after the selection is written to the clipboard. `args` exposes `MinRow`, `MaxRow`, `MinCol`, `MaxCol` — the bounding box of the copied range. Use to capture side-channel data (e.g. cell styles) alongside the OS clipboard text. |
-| `OnPasted` | `EventCallback<NxGridPastedArgs<T>>` | Fires after a paste completes (after `OnUpdate`). `args` exposes `OriginRow`/`OriginCol` (top-left of the paste destination), `SelectionEndRow`/`SelectionEndCol` (bottom-right of the active selection, for single-cell fill), and `ClipboardRows`/`ClipboardCols` (dimensions of the parsed clipboard), and `WasCut` (`true` when the paste completed a cut and the grid cleared the source). `SelectionEnd*` describe the selection at paste time; by the time `OnPasted` fires, a multi-cell paste has already selected the pasted block. Use alongside `OnCopied` to apply side-channel data (e.g. cell styles) to the paste destination. |
+| `OnPasted` | `EventCallback<NxGridPastedArgs<T>>` | Fires after a paste completes (after `OnUpdate`). `args` exposes `OriginRow`/`OriginCol` (top-left of the paste destination), `SelectionEndRow`/`SelectionEndCol` (bottom-right of the active selection, for single-cell fill), and `ClipboardRows`/`ClipboardCols` (dimensions of the parsed clipboard), `WasCut` (`true` when the paste completed a cut and the grid cleared the source), and `AddedRows` (rows appended through `OnPasteNewRows`, empty otherwise). `SelectionEnd*` describe the selection at paste time; by the time `OnPasted` fires, a multi-cell paste has already selected the pasted block. Use alongside `OnCopied` to apply side-channel data (e.g. cell styles) to the paste destination. |
 | `OnUpdate` | `EventCallback<NxGridUpdateArgs<T>>` | Fires after any edit — single-cell commit, paste, delete, Ctrl+Enter fill, or drag-fill. `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with the full list of cell changes. The host is responsible for applying changes to the model and persisting them. Required for editing to be enabled. |
+| `OnPasteNewRows` | `EventCallback<NxGridPasteNewRowsArgs<T>>` | Fires when a multi-row paste has more clipboard rows than exist from the paste origin down. The host appends `args.RowsNeeded` rows to `Data` and adds the same instances to `args.NewRows`; the grid pastes the overflow into them in clipboard order, in the same `OnUpdate` as the existing rows, then selects the block and scrolls its bottom into view. Adding fewer drops the rest; adding none refuses. Not raised for a single-value fill or a cut-paste. Requires `OnUpdate` and at least one editable visible column. See [Paste appends rows](#paste-appends-rows). |
 | `NewRowTriggers` | `NxGridNewRowTrigger` | Which keystrokes fire `OnNewRow` from the last row. `Tab` (default), `Enter`, `Tab \| Enter`, or `None`. No effect without `OnNewRow`. See [New-row append](#new-row-append). |
 | `EnableDragFill` | `bool` | `true` | Enables the fill handle — a small square at the bottom-right corner of the active selection. Drag it in any direction to fill adjacent editable cells. Auto-disabled when `SelectionMode` is `MultiRow`, `SingleRow`, or `None`. Only visible when exactly one selection range is active and `OnUpdate` is set. |
 
@@ -529,6 +530,33 @@ That is the only cell where Tab changes meaning, and the only behavior it replac
 **Conditions.** The trigger cell does not itself have to be editable — a computed trailing column is a perfectly good place to Tab out of. But the feature is inert unless `OnNewRow` is registered, `OnUpdate` is registered, and at least one visible column is editable. Shift+Tab and Shift+Enter never trigger it. A held Tab appends at most one row per completed sequence — a repeat that arrives while an append is in flight is dropped. If the handler appends nothing (e.g. validation refused), the grid leaves the selection where it is and does not throw. An empty grid has no last row, so nothing fires — seed the first row from a toolbar button or context menu.
 
 **Row-selection modes.** In `MultiRow` / `SingleRow` there is no column cursor, so Tab from any column on the last row triggers the append and the whole new row is selected. `BeginEdit` is ignored.
+
+### Paste appends rows
+
+`OnPasteNewRows` lets a multi-row paste that runs past the last row land in full. Without it the overflow is skipped, as always.
+
+```razor
+<NxGrid T="LineItem" Data="@lines" Editable="true" OnUpdate="@HandleUpdate"
+        OnNewRow="@HandleNewRow" OnPasteNewRows="@HandlePasteNewRows">
+    ...
+</NxGrid>
+
+@code {
+    void HandlePasteNewRows(NxGridPasteNewRowsArgs<LineItem> args)
+    {
+        for (var i = 0; i < args.RowsNeeded; i++)
+        {
+            var line = new LineItem();
+            lines.Add(line);
+            args.NewRows.Add(line);
+        }
+    }
+}
+```
+
+The grid awaits the handler, re-runs `ApplyFilterAndSort()`, and writes the remaining clipboard rows into `args.NewRows` in order — by instance, so it does not matter where a sort puts them or whether a filter hides them. New rows go through the same per-cell checks as existing ones (read-only columns stay blank), and every written cell arrives in **one** `OnUpdate`. `OnPasted` then reports the rows in `AddedRows`. Rows past `RowsNeeded` in `NewRows` stay blank.
+
+Not raised for a single-value fill, a cut-paste (a move only relocates existing cells), or when the handler is already running.
 
 ### Multi-line editing
 
@@ -971,6 +999,14 @@ public sealed class NxGridCellClickArgs<T>
 {
     public T Row { get; init; }
     public NxGridColumn<T> Column { get; init; }
+}
+
+public sealed class NxGridPasteNewRowsArgs<T>
+{
+    public int RowsNeeded { get; init; }           // clipboard rows that did not fit below the origin
+    public int OriginRow { get; init; }            // same as NxGridPastedArgs.OriginRow
+    public int OriginCol { get; init; }
+    public IList<T> NewRows { get; }               // host fills, in clipboard order; fewer drops the rest
 }
 
 public sealed class NxGridNewRowArgs<T>

@@ -360,6 +360,12 @@
                 <td>Fires when the user presses Tab in the last visible column of the last row (or Enter anywhere on the last row, when <code>NewRowTriggers</code> opts in). The host appends a row to <code>Data</code>. Any in-progress edit is committed first; afterwards the grid re-pipes and moves the selection into the new row. Requires <code>OnUpdate</code> and at least one editable column.</td>
                 <td><a href="new-row">New Row on Tab</a></td>
             </tr>
+            <tr>
+                <td>OnPasteNewRows</td>
+                <td>EventCallback&lt;NxGridPasteNewRowsArgs&lt;T&gt;&gt;</td>
+                <td>Fires when a multi-row paste has more clipboard rows than exist from the paste origin down. The host appends <code>RowsNeeded</code> rows to <code>Data</code> and adds them to <code>args.NewRows</code>; the grid pastes the overflow into them in the same <code>OnUpdate</code>. Add fewer to drop the rest. Not raised for a single-value fill or a cut-paste. Requires <code>OnUpdate</code> and at least one editable column.</td>
+                <td><a href="new-row">New Row on Tab</a></td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -466,7 +472,7 @@
                 <td>OnPasted</td>
                 <td>EventCallback&lt;NxGridPastedArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
-                <td>Fires after a paste completes (after <code>OnUpdate</code>). <code>args</code> exposes <code>OriginRow</code>/<code>OriginCol</code> (top-left of the paste destination), <code>SelectionEndRow</code>/<code>SelectionEndCol</code> (for single-cell fill extent), <code>ClipboardRows</code>/<code>ClipboardCols</code> (clipboard dimensions), and <code>WasCut</code> (the paste completed a cut and the grid cleared the source). <code>SelectionEnd*</code> describe the selection at paste time; by the time <code>OnPasted</code> fires, a multi-cell paste has already selected the pasted block. Use alongside <code>OnCopied</code> to apply side-channel data to the paste destination.</td>
+                <td>Fires after a paste completes (after <code>OnUpdate</code>). <code>args</code> exposes <code>OriginRow</code>/<code>OriginCol</code> (top-left of the paste destination), <code>SelectionEndRow</code>/<code>SelectionEndCol</code> (for single-cell fill extent), <code>ClipboardRows</code>/<code>ClipboardCols</code> (clipboard dimensions), <code>WasCut</code> (the paste completed a cut and the grid cleared the source), and <code>AddedRows</code> (rows appended through <code>OnPasteNewRows</code>). <code>SelectionEnd*</code> describe the selection at paste time; by the time <code>OnPasted</code> fires, a multi-cell paste has already selected the pasted block. Use alongside <code>OnCopied</code> to apply side-channel data to the paste destination.</td>
                 <td><a href="clipboard">Clipboard</a></td>
             </tr>
             <tr>

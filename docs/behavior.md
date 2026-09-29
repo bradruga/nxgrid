@@ -203,6 +203,7 @@ The grid re-runs the pipeline itself as soon as it notices the new row count. Th
 | Callback | Re-pipes after the handler |
 |---|---|
 | `OnNewRow` | Yes — then moves the selection into the new row |
+| `OnPasteNewRows` | Yes — then pastes the overflow into the new rows |
 | `OnRowDrop` | Yes |
 | `OnContextMenuItemClicked` | Yes |
 | `OnKeyPressed` | Yes |
@@ -612,9 +613,26 @@ The single value is written to every cell in the current selection. If `Transfor
 
 **Multi-cell paste** (clipboard contains multiple rows or columns):
 
-The paste origin is the top-left corner of the current selection. The clipboard grid is laid over the data starting at that origin. Cells outside the grid bounds are skipped. `TransformPastedValue` is called with the delta from the copy origin to the paste origin (a fixed offset applied to all cells, not per-cell): `(value, pasteOriginRow - copyOrigin.row, pasteOriginCol - copyOrigin.col)`.
+The paste origin is the top-left corner of the current selection. The clipboard grid is laid over the data starting at that origin. Cells outside the grid bounds are skipped — except rows past the last row when `OnPasteNewRows` appends rows for them (see [Paste appends rows](#paste-appends-rows)). `TransformPastedValue` is called with the delta from the copy origin to the paste origin (a fixed offset applied to all cells, not per-cell): `(value, pasteOriginRow - copyOrigin.row, pasteOriginCol - copyOrigin.col)`.
 
-Afterward the pasted block is selected (clamped to the last row and last visible column; whole rows in `MultiRow`, the origin row only in `SingleRow`), replacing any multi-range selection, even if no cell was writable. `OnSelectionChanged` fires once, after `OnUpdate` and before `OnPasted`. The viewport does not scroll and focus does not move. A single-cell paste leaves the selection as it was.
+Afterward the pasted block is selected (clamped to the last row and last visible column; whole rows in `MultiRow`, the origin row only in `SingleRow`), replacing any multi-range selection, even if no cell was writable. `OnSelectionChanged` fires once, after `OnUpdate` and before `OnPasted`. The viewport does not scroll (unless rows were appended) and focus does not move. A single-cell paste leaves the selection as it was.
+
+**Paste appends rows.** When `OnPasteNewRows` is registered, a multi-cell paste with more clipboard rows than exist from the origin down asks the host for the missing rows instead of skipping them. The trailing newline Excel and NxGrid's own copy append does not count as a row. It fires only when all of these hold; otherwise the overflow is skipped as above:
+
+- `OnUpdate` has a delegate, at least one visible column is editable, and `SelectionMode` is not `None`.
+- The paste is not a cut-paste. A move relocates existing cells; it does not create rows.
+- No `OnPasteNewRows` or `OnNewRow` handler is already running.
+
+The sequence:
+
+1. `OnPasteNewRows` is awaited with `RowsNeeded` (the clipboard rows that do not fit), `OriginRow` and `OriginCol`. The host appends rows to `Data` and adds the same instances to `args.NewRows`.
+2. The grid re-runs the filter/sort pipeline.
+3. The clipboard is written through the normal path — `TransformPastedValue` (with the delta from before the append), parsing, the per-cell editable checks — into the rows from the origin down, then into `args.NewRows` in clipboard order. Targets are row instances, so a new row lands its clipboard row wherever a sort places it, and is written even if a filter hides it.
+4. One `OnUpdate` carries the existing and new rows together.
+5. The target rows that sit contiguously below the origin in the current view are selected — the whole block in an unsorted grid — and the bottom of that selection is scrolled into view.
+6. `OnPasted` fires with `AddedRows` set.
+
+Adding fewer rows than `RowsNeeded` pastes what fits and drops the rest; adding none is a refusal and the paste behaves as if the callback were not registered. Rows beyond `RowsNeeded` are appended but stay blank. Columns never grow — clipboard columns past the last visible column are still skipped.
 
 ---
 

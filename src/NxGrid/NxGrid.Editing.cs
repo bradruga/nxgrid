@@ -752,6 +752,13 @@ public partial class NxGrid<T>
         // rowIndex → list of changes, preserving row order
         var rowChanges = new Dictionary<int, List<NxGridCellChange<T>>>();
 
+        // Display index of each multi-cell target row, in clipboard order; -1 = skip. An appended
+        // row the view hides is keyed past the end of the view, into hiddenAdded.
+        List<int> targetRows = [];
+        List<T> addedRows = [];
+        List<T> hiddenAdded = [];
+        T RowAt(int key) => key < filteredData.Count ? filteredData[key] : hiddenAdded[key - filteredData.Count];
+
         if (clipRows.Length == 1 && clipCols.Length == 1)
         {
             // Single copied cell: fill every cell in the selection
@@ -766,7 +773,7 @@ public partial class NxGrid<T>
                     var value = TransformPastedValue != null
                         ? TransformPastedValue(singleValue, isMove ? 0 : tr - copyOrigin.row, isMove ? 0 : tc - copyOrigin.col)
                         : singleValue;
-                    AccumulateChange(rowChanges, tr, tc, value);
+                    AccumulateChange(rowChanges, tr, filteredData[tr], tc, value);
                 }
         }
         else
@@ -775,20 +782,27 @@ public partial class NxGrid<T>
             var rowDelta = isMove ? 0 : originRow - copyOrigin.row;
             var colDelta = isMove ? 0 : originCol - copyOrigin.col;
 
-            for (var r = 0; r < clipRows.Length; r++)
+            // A move relocates existing cells, so it never appends rows
+            if (!isMove && PasteNewRowsEnabled && clipRows.Length > filteredData.Count - originRow)
+                (targetRows, addedRows, hiddenAdded) = await AppendPasteRowsAsync(originRow, originCol, clipRows.Length);
+            else
+                targetRows = Enumerable.Range(originRow, Math.Min(clipRows.Length, filteredData.Count - originRow)).ToList();
+
+            for (var r = 0; r < clipRows.Length && r < targetRows.Count; r++)
             {
+                var targetRow = targetRows[r];
+                if (targetRow < 0) continue;
                 var cells = clipRows[r].TrimEnd('\r').Split('\t');
                 for (var c = 0; c < cells.Length; c++)
                 {
-                    var targetRow = originRow + r;
                     var targetCol = originCol + c;
-                    if (targetRow >= filteredData.Count || targetCol >= visibleColumns.Count) continue;
-                    if (IsCoveredCell(targetRow, targetCol)) continue;   // dropped, not written
+                    if (targetCol >= visibleColumns.Count) continue;
+                    if (targetRow < filteredData.Count && IsCoveredCell(targetRow, targetCol)) continue;   // dropped, not written
                     if (!IsColumnEditable(visibleColumns[targetCol])) continue;
                     var value = TransformPastedValue != null
                         ? TransformPastedValue(cells[c], rowDelta, colDelta)
                         : cells[c];
-                    AccumulateChange(rowChanges, targetRow, targetCol, value);
+                    AccumulateChange(rowChanges, targetRow, RowAt(targetRow), targetCol, value);
                 }
             }
         }
@@ -814,17 +828,23 @@ public partial class NxGrid<T>
         {
             var rowArgs = rowChanges
                 .OrderBy(kvp => kvp.Key)
-                .Select(kvp => new NxGridRowChange<T> { Row = filteredData[kvp.Key], Changes = kvp.Value })
+                .Select(kvp => new NxGridRowChange<T> { Row = RowAt(kvp.Key), Changes = kvp.Value })
                 .ToList();
             if (rowArgs.Count > 0)
                 await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
         }
 
-        // A multi-cell paste selects the pasted block, clamped to the grid; no scroll.
-        if (clipRows.Length > 1 || clipCols.Length > 1)
-            await SelectIndexRange(originRow, originCol,
-                Math.Min(originRow + clipRows.Length - 1, filteredData.Count - 1),
+        // A multi-cell paste selects the target rows that sit contiguously below the origin,
+        // clamped to the grid. No scroll, unless rows were appended for it.
+        if (targetRows is [>= 0 and var top, ..])
+        {
+            var run = 1;
+            while (run < targetRows.Count && targetRows[run] == top + run && top + run < filteredData.Count) run++;
+            await SelectIndexRange(top, originCol, top + run - 1,
                 Math.Min(originCol + clipCols.Length - 1, visibleColumns.Count - 1));
+            if (addedRows.Count > 0)
+                pendingScrollIntoView = (ActiveRange!.EndRow, IsRowSelectionMode ? 0 : ActiveRange.EndCol);
+        }
 
         if (OnPasted.HasDelegate)
             await OnPasted.InvokeAsync(new NxGridPastedArgs<T>
@@ -835,7 +855,8 @@ public partial class NxGrid<T>
                 SelectionEndCol = selEndCol,
                 ClipboardRows   = clipRows.Length,
                 ClipboardCols   = clipCols.Length,
-                WasCut          = isMove
+                WasCut          = isMove,
+                AddedRows       = addedRows
             });
 
         renderToken++;
@@ -847,7 +868,7 @@ public partial class NxGrid<T>
         && rowChanges.TryGetValue(rowIdx, out var list)
         && list.Any(ch => ch.Column == visibleColumns[colIdx]);
 
-    private void AccumulateChange(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int rowIdx, int colIdx, string? newValue)
+    private void AccumulateChange(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int rowIdx, T row, int colIdx, string? newValue)
     {
         if (!rowChanges.TryGetValue(rowIdx, out var list))
         {
@@ -856,8 +877,8 @@ public partial class NxGrid<T>
         }
         var column = visibleColumns[colIdx];
         if (column.ComboBoxSource != null && newValue != null)
-            newValue = column.ComboBoxSource.ResolveId(filteredData[rowIdx]!, newValue);
-        var oldValue = column.EffectiveValueGetter?.Invoke(filteredData[rowIdx]);
+            newValue = column.ComboBoxSource.ResolveId(row!, newValue);
+        var oldValue = column.EffectiveValueGetter?.Invoke(row);
         var (typedValue, applyAction) = column.ParseAndBuildApply(newValue, oldValue);
         list.Add(new NxGridCellChange<T> { Column = column, OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction });
     }
