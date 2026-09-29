@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- With `KeyProperty` set, a selection held while rows are added or removed keeps its columns and anchor instead of turning into one full-width range per row. A block whose rows stay adjacent stays one range, so copy, paste and fill still act on the whole block. A paste that adds rows through `OnPasteNewRows` no longer flashes the whole current row.
+
 ## [0.4.4] - 2026-09-29
 
 ### Added

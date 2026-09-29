@@ -408,7 +408,7 @@ By default NxGrid identifies rows by object reference. When `Data` is replaced w
 
 ### Selection preservation on `Data` replacement
 
-When `KeyProperty` is set and `Data` changes, the grid captures the key values of all currently selected rows before the swap, then restores the selection against the new list by matching on those values. Rows whose key is not found in the new data (deleted rows) are silently dropped from the selection. `OnSelectionChanged` and `SelectedItemsChanged` fire after restoration so the host's bound list is updated to the new references.
+When `KeyProperty` is set and `Data` changes, the grid captures the key values of all currently selected rows before the swap, then restores the selection against the new list by matching on those values. Each range keeps its columns; see [Selection when data changes underneath it](behavior.md#selection-when-data-changes-underneath-it). Rows whose key is not found in the new data (deleted rows) are silently dropped from the selection. `OnSelectionChanged` and `SelectedItemsChanged` fire after restoration so the host's bound list is updated to the new references.
 
 Without `KeyProperty`, behavior is unchanged: a new `Data` reference always leaves the selection pointing at whatever is now at the same row indices.
 

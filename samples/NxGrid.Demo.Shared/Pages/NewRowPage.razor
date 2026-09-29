@@ -18,7 +18,7 @@
         <strong>Description</strong>, ready to type. It does not matter that <strong>Amount</strong>
         is computed and read-only: the trigger is about position, not editability.
     </p>
-    <NxGrid @ref="grid" T="OrderLine" Data="@lines" Editable="true"
+    <NxGrid @ref="grid" T="OrderLine" Data="@lines" Editable="true" KeyProperty="@(x => x.Id)"
             RowGutter="NxGridRowGutter.Numbers" Cursor="@NxGridCursor.Cell"
             OnUpdate="@HandleUpdate" OnNewRow="@HandleNewRowAsync"
             OnPasteNewRows="@HandlePasteNewRows" NewRowTriggers="@triggers">
@@ -254,6 +254,7 @@
 @code {
     class OrderLine
     {
+        public Guid    Id          { get; } = Guid.NewGuid();
         public string  Description { get; set; } = "";
         public int     Quantity    { get; set; }
         public decimal UnitPrice   { get; set; }

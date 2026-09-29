@@ -186,7 +186,7 @@ Dragging across headers (or row numbers) extends the selection only while the dr
 
 Selection is treated as best-effort, not critical state, so changing `Data` (or hiding columns) while a selection is held never throws — even if the new data is shorter than the range that was selected.
 
-- If `KeyProperty` is set, the selection is remapped by key value: rows that still exist stay selected, rows that are gone are dropped.
+- If `KeyProperty` is set, the selection is remapped by key value: rows that still exist stay selected, rows that are gone are dropped. Each range keeps its columns and its anchor corner. Rows that are still adjacent stay one range; a range whose rows were separated (a delete in the middle, a re-sort) splits into one range per adjacent group, and the group holding the anchor becomes the active range.
 - If `KeyProperty` is not set, the selection is clamped to the new bounds — ranges that partially overlap the smaller data set are trimmed to what still exists, and ranges that fall entirely off the end are dropped. If nothing remains selectable, the selection is cleared. When this changes the selection, `OnSelectionChanged` fires with the reconciled selection.
 
 A host page is no longer required to call `ClearSelection()` after refreshing the grid's data to avoid stale-index errors, though doing so is still a valid way to reset selection explicitly.

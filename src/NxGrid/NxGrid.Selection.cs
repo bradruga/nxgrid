@@ -601,33 +601,63 @@ public partial class NxGrid<T>
         selectedRanges = newRanges;
     }
 
-    private HashSet<object?> CaptureSelectedKeys()
+    // Keys run from the range's StartRow (its anchor) toward EndRow; columns keep their direction.
+    private readonly record struct CapturedRange(List<object?> Keys, bool Reversed, int StartCol, int EndCol);
+
+    private List<CapturedRange> CaptureSelectedKeys()
     {
-        var keys = new HashSet<object?>();
+        var captured = new List<CapturedRange>();
         foreach (var range in selectedRanges)
         {
-            var start = Math.Min(range.StartRow, range.EndRow);
-            var end   = Math.Max(range.StartRow, range.EndRow);
-            for (var i = start; i <= end; i++)
+            var step = range.EndRow >= range.StartRow ? 1 : -1;
+            var keys = new List<object?>();
+            for (var i = range.StartRow; i != range.EndRow + step; i += step)
             {
                 if (i >= 0 && i < filteredData.Count)
                     keys.Add(KeyProperty!(filteredData[i]));
             }
+            if (keys.Count > 0)
+                captured.Add(new CapturedRange(keys, step < 0, range.StartCol, range.EndCol));
         }
-        return keys;
+        return captured;
     }
 
-    private void RestoreSelectionByKeys(ICollection<object?> keys)
+    // Rebuilds each captured range from the rows that survived: rows still adjacent form one range,
+    // with the anchor's piece last so the anchor stays in ActiveRange. See docs/behavior.md.
+    private void RestoreSelectionByKeys(List<CapturedRange> captured)
     {
-        var newRanges = new List<NxGridRange>();
+        var indexOf = new Dictionary<object, int>();
         for (var i = 0; i < filteredData.Count; i++)
+            if (KeyProperty!(filteredData[i]) is { } key) indexOf.TryAdd(key, i);
+
+        var lastCol = Math.Max(0, visibleColumns.Count - 1);
+        var newRanges = new List<NxGridRange>();
+        foreach (var range in captured)
         {
-            if (!keys.Contains(KeyProperty!(filteredData[i]))) continue;
-            newRanges.Add(new NxGridRange
+            var rows = range.Keys
+                .Select(k => k is not null && indexOf.TryGetValue(k, out var i) ? i : -1)
+                .Where(i => i >= 0)
+                .ToList();
+            if (rows.Count == 0) continue;
+            var anchorRow = rows[0];
+            rows.Sort();
+
+            NxGridRange? anchorPiece = null;
+            for (var r = 0; r < rows.Count; r++)
             {
-                StartRow = i, EndRow = i,
-                StartCol = 0, EndCol = visibleColumns.Count > 0 ? visibleColumns.Count - 1 : 0
-            });
+                var top = rows[r];
+                while (r + 1 < rows.Count && rows[r + 1] == rows[r] + 1) r++;
+                var piece = new NxGridRange
+                {
+                    StartRow = range.Reversed ? rows[r] : top,
+                    EndRow   = range.Reversed ? top : rows[r],
+                    StartCol = IsRowSelectionMode ? 0 : Math.Min(range.StartCol, lastCol),
+                    EndCol   = IsRowSelectionMode ? lastCol : Math.Min(range.EndCol, lastCol)
+                };
+                if (anchorRow >= top && anchorRow <= rows[r]) anchorPiece = piece;
+                else newRanges.Add(piece);
+            }
+            newRanges.Add(anchorPiece!);
         }
         selectedRanges = newRanges;
     }

@@ -1065,7 +1065,7 @@ public partial class NxGrid<T>
     /// </summary>
     private void RepipeAndReconcileSelection()
     {
-        HashSet<object?>? selectedKeys = null;
+        List<CapturedRange>? selectedKeys = null;
         if (KeyProperty != null && selectedRanges.Count > 0)
             selectedKeys = CaptureSelectedKeys();
 

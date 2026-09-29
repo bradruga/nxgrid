@@ -34,13 +34,15 @@ public class NxGridDataMutationTests : BunitContext
         EventCallback<NxGridContextMenuItemArgs<LineRow>>? onContextMenuItemClicked = null,
         EventCallback<NxGridKeyPressedArgs>? onKeyPressed = null,
         Action<NxGridSelectionArgs<LineRow>>? onSelectionChanged = null,
-        bool withKeyProperty = false)
+        bool withKeyProperty = false,
+        NxGridSelectionMode selectionMode = NxGridSelectionMode.Cell)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         return Render<NxGrid<LineRow>>(p =>
         {
             p.Add(x => x.Data, rows)
              .Add(x => x.Editable, true)
+             .Add(x => x.SelectionMode, selectionMode)
              .Add(x => x.OnUpdate, EventCallback.Factory.Create<NxGridUpdateArgs<LineRow>>(this, _ => { }));
             if (withKeyProperty) p.Add(x => x.KeyProperty, r => (object?)r.Id);
             if (onContextMenuShowing != null) p.Add(x => x.OnContextMenuShowing, onContextMenuShowing);
@@ -235,6 +237,106 @@ public class NxGridDataMutationTests : BunitContext
 
         Assert.That(captured, Is.Not.Null, "SelectRowByKey should not have been a no-op");
         Assert.That(captured!.Ranges[0].StartRow, Is.EqualTo(5));
+    }
+
+    // ── KeyProperty reconcile keeps columns and blocks ─────────────────────────
+
+    private static NxGridColumn<LineRow> Column(IRenderedComponent<NxGrid<LineRow>> cut, int index)
+        => cut.FindComponents<NxGridColumn<LineRow>>()[index].Instance;
+
+    // Selects rows[startRow]/startCol → rows[endRow]/endCol, then runs `mutate` and ForceRerender.
+    private static async Task SelectThenMutate(IRenderedComponent<NxGrid<LineRow>> cut, List<LineRow> rows,
+        int startRow, int startCol, int endRow, int endCol, Action mutate)
+    {
+        await cut.InvokeAsync(() => cut.Instance.SelectRange(
+            rows[startRow], Column(cut, startCol), rows[endRow], Column(cut, endCol)));
+        await cut.InvokeAsync(() =>
+        {
+            mutate();
+            cut.Instance.ForceRerender();
+        });
+    }
+
+    private static (int StartRow, int EndRow, int StartCol, int EndCol) Bounds(NxGridSelectionRange<LineRow> r)
+        => (r.StartRow, r.EndRow, r.StartCol, r.EndCol);
+
+    [Test]
+    public async Task KeyReconcile_SingleCell_HostAppendsRow_SameCellStaysSelected()
+    {
+        var rows = FiveLines();
+        NxGridSelectionArgs<LineRow>? captured = null;
+        var cut = RenderGrid(rows, onSelectionChanged: a => captured = a, withKeyProperty: true);
+
+        await SelectThenMutate(cut, rows, 4, 1, 4, 1, () => rows.Add(new LineRow { Id = 6 }));
+
+        Assert.That(captured!.Ranges.Select(Bounds), Is.EqualTo(new[] { (4, 4, 1, 1) }));
+    }
+
+    [Test]
+    public async Task KeyReconcile_Block_HostInsertsRowAbove_StaysOneRangeMovedDown()
+    {
+        var rows = FiveLines();
+        NxGridSelectionArgs<LineRow>? captured = null;
+        var cut = RenderGrid(rows, onSelectionChanged: a => captured = a, withKeyProperty: true);
+
+        await SelectThenMutate(cut, rows, 1, 1, 3, 1, () => rows.Insert(0, new LineRow { Id = 6 }));
+
+        Assert.That(captured!.Ranges.Select(Bounds), Is.EqualTo(new[] { (2, 4, 1, 1) }));
+    }
+
+    [Test]
+    public async Task KeyReconcile_Block_HostDeletesMiddleRow_RemainingRowsStayOneRange()
+    {
+        var rows = FiveLines();
+        NxGridSelectionArgs<LineRow>? captured = null;
+        var cut = RenderGrid(rows, onSelectionChanged: a => captured = a, withKeyProperty: true);
+
+        await SelectThenMutate(cut, rows, 1, 1, 3, 1, () => rows.RemoveAt(2));
+
+        Assert.That(captured!.Ranges.Select(Bounds), Is.EqualTo(new[] { (1, 2, 1, 1) }));
+    }
+
+    // A row inserted inside the block separates it. The piece holding the anchor (the top row,
+    // where the drag started) is last, so it stays the active range.
+    [Test]
+    public async Task KeyReconcile_Block_HostInsertsRowInside_SplitsWithAnchorPieceActive()
+    {
+        var rows = FiveLines();
+        NxGridSelectionArgs<LineRow>? captured = null;
+        var cut = RenderGrid(rows, onSelectionChanged: a => captured = a, withKeyProperty: true);
+
+        await SelectThenMutate(cut, rows, 1, 1, 3, 1, () => rows.Insert(2, new LineRow { Id = 6 }));
+
+        Assert.That(captured!.Ranges.Select(Bounds), Is.EqualTo(new[] { (3, 4, 1, 1), (1, 1, 1, 1) }));
+    }
+
+    // Selected bottom-up, so the anchor is the bottom row; it must still be after the reconcile.
+    [Test]
+    public async Task KeyReconcile_ReversedBlock_HostInsertsRowAbove_AnchorStaysOnBottomRow()
+    {
+        var rows = FiveLines();
+        var cut = RenderGrid(rows, withKeyProperty: true);
+
+        await SelectThenMutate(cut, rows, 3, 1, 1, 0, () => rows.Insert(0, new LineRow { Id = 6 }));
+
+        var anchorRows = cut.FindAll(".nx-grid-row")
+            .Select((row, i) => (row, i))
+            .Where(x => x.row.QuerySelector(".nx-grid-cell-anchor") != null)
+            .Select(x => x.i);
+        Assert.That(anchorRows, Is.EqualTo(new[] { 4 }));
+    }
+
+    [Test]
+    public async Task KeyReconcile_RowSelectionMode_RangesStillCoverEveryColumn()
+    {
+        var rows = FiveLines();
+        NxGridSelectionArgs<LineRow>? captured = null;
+        var cut = RenderGrid(rows, onSelectionChanged: a => captured = a, withKeyProperty: true,
+            selectionMode: NxGridSelectionMode.MultiRow);
+
+        await SelectThenMutate(cut, rows, 1, 0, 3, 0, () => rows.Insert(0, new LineRow { Id = 6 }));
+
+        Assert.That(captured!.Ranges.Select(Bounds), Is.EqualTo(new[] { (2, 4, 0, 1) }));
     }
 
     [Test]
