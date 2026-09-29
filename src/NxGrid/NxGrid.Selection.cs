@@ -444,6 +444,7 @@ public partial class NxGrid<T>
         var index = visibleColumns.IndexOf(column);
         if (index == -1 || !HasMenuContent(column)) return;
 
+        columnMenuItems = BuildContextMenuItems(NxGridContextMenuTarget.ColumnHeader, default, column);
         menuNeedsPositioning = true;
         openColumn = column;
         StateHasChanged();

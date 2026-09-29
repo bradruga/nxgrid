@@ -3,7 +3,9 @@
 <div class="nx-grid-row" style="@RowStyle" data-row="@RowIndex">
     @if (RowGutter == NxGridRowGutter.DragHandle)
     {
-        <div class="nx-grid-row-start nx-grid-drag-handle-gutter">
+        <div class="nx-grid-row-start nx-grid-drag-handle-gutter"
+             @oncontextmenu="@(args => OnRowGutterContextMenu != null ? OnRowGutterContextMenu(args, RowIndex) : Task.CompletedTask)"
+             @oncontextmenu:preventDefault="@(OnRowGutterContextMenu != null)">
             <span class="nx-grid-drag-handle"
                   @onmousedown="@(args => HandleDragMouseDown(args))"
                   @onmousedown:stopPropagation
@@ -23,7 +25,9 @@
     {
         <div class="nx-grid-row-start @(RowGutter == NxGridRowGutter.Numbers ? "nx-grid-row-number" : "")"
              @onmousedown="@(args => OnRowNumberMouseDown != null ? OnRowNumberMouseDown(args, RowIndex) : Task.CompletedTask)"
-             @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)">
+             @onmouseenter="@(args => OnRowNumberMouseEnter != null ? OnRowNumberMouseEnter(args, RowIndex) : Task.CompletedTask)"
+             @oncontextmenu="@(args => OnRowGutterContextMenu != null ? OnRowGutterContextMenu(args, RowIndex) : Task.CompletedTask)"
+             @oncontextmenu:preventDefault="@(OnRowGutterContextMenu != null)">
             @if (RowGutterTemplate != null)
             {
                 @RowGutterTemplate(Row)
@@ -312,6 +316,7 @@
     [Parameter] public Func<KeyboardEventArgs, Task>? OnEditKeyDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseDown { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowNumberMouseEnter { get; set; }
+    [Parameter] public Func<MouseEventArgs, int, Task>? OnRowGutterContextMenu { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnDragHandleMouseDown { get; set; }
     [Parameter] public bool RowResizable { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnResizeGripMouseDown { get; set; }

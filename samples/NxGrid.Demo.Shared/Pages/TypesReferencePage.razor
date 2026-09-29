@@ -325,12 +325,12 @@ NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id)</pre>
             <tr>
                 <td>NxGridContextMenuArgs&lt;T&gt;</td>
                 <td>OnContextMenuShowing</td>
-                <td><code>Row</code>, <code>Column</code>, <code>Items</code> (append <code>NxGridContextMenuItem</code> here)</td>
+                <td><code>Target</code> (Cell / ColumnHeader / RowGutter), <code>Row</code> (null for a header), <code>Column</code> (null for the gutter), <code>Items</code> (append <code>NxGridContextMenuItem</code> here)</td>
             </tr>
             <tr>
                 <td>NxGridContextMenuItemArgs&lt;T&gt;</td>
                 <td>OnContextMenuItemClicked</td>
-                <td><code>Item</code> (with <code>Id</code> and <code>Label</code>), <code>Row</code>, <code>Column</code></td>
+                <td><code>Item</code> (with <code>Id</code> and <code>Label</code>), <code>Target</code>, <code>Row</code> (null for a header), <code>Column</code> (null for the gutter)</td>
             </tr>
             <tr>
                 <td>NxGridRowDropArgs&lt;T&gt;</td>

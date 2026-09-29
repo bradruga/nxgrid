@@ -20,26 +20,74 @@ public partial class NxGrid<T>
             }];
         }
 
-        contextMenuRow    = row;
-        contextMenuColumn = column;
-        contextMenuX      = args.ClientX;
-        contextMenuY      = args.ClientY;
-
         contextMenuCellEditable = OnUpdate.HasDelegate
             && IsColumnEditable(column)
             && (CellEditableGetter == null || CellEditableGetter(row, column));
 
-        contextMenuItems = [];
-        if (OnContextMenuShowing != null)
+        var items = BuildContextMenuItems(NxGridContextMenuTarget.Cell, row, column);
+        OpenContextMenu(NxGridContextMenuTarget.Cell, row, column, items, args);
+    }
+
+    // Header items ride on the column menu when it opens; when it would not (nothing to show, or
+    // HasColumnMenu is off) they get a plain popup of their own.
+    private void OnColumnHeaderContextMenu(MouseEventArgs args, NxGridColumn<T> column)
+    {
+        if (HasColumnMenu && HasMenuContent(column))
         {
-            var menuArgs = new NxGridContextMenuArgs<T>
-            {
-                Row    = row,
-                Column = column,
-                Items  = contextMenuItems
-            };
-            OnContextMenuShowing(menuArgs);
+            OnColumnButtonClick(column);
+            return;
         }
+
+        var items = BuildContextMenuItems(NxGridContextMenuTarget.ColumnHeader, default, column);
+        if (items.Count == 0) return;
+        OpenContextMenu(NxGridContextMenuTarget.ColumnHeader, default, column, items, args);
+    }
+
+    private async Task OnRowGutterContextMenu(MouseEventArgs args, int rowIndex)
+    {
+        if (rowIndex < 0 || rowIndex >= filteredData.Count) return;
+        var row = filteredData[rowIndex];
+
+        // As a gutter click would, but only when the row is not already inside the selection
+        if (HeaderClickSelects && SelectionMode != NxGridSelectionMode.None
+            && !selectedRanges.Any(r => rowIndex >= Math.Min(r.StartRow, r.EndRow) && rowIndex <= Math.Max(r.StartRow, r.EndRow)))
+        {
+            headerAnchorRow = rowIndex;
+            selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = 0, EndRow = rowIndex, EndCol = visibleColumns.Count - 1 }];
+            await RaiseSelectionChanged();
+        }
+
+        var items = BuildContextMenuItems(NxGridContextMenuTarget.RowGutter, row, null);
+        if (items.Count == 0) { StateHasChanged(); return; }
+        OpenContextMenu(NxGridContextMenuTarget.RowGutter, row, null, items, args);
+    }
+
+    private bool HostMenuOn(NxGridContextMenuTarget target)
+        => OnContextMenuShowing != null && ContextMenuTargets.HasFlag(target);
+
+    private List<NxGridContextMenuItem> BuildContextMenuItems(NxGridContextMenuTarget target, T? row, NxGridColumn<T>? column)
+    {
+        var items = new List<NxGridContextMenuItem>();
+        if (!HostMenuOn(target)) return items;
+        OnContextMenuShowing?.Invoke(new NxGridContextMenuArgs<T>
+        {
+            Target = target,
+            Row    = row,
+            Column = column,
+            Items  = items
+        });
+        return items;
+    }
+
+    private void OpenContextMenu(NxGridContextMenuTarget target, T? row, NxGridColumn<T>? column,
+        List<NxGridContextMenuItem> items, MouseEventArgs args)
+    {
+        contextMenuTarget = target;
+        contextMenuRow    = row;
+        contextMenuColumn = column;
+        contextMenuItems  = items;
+        contextMenuX      = args.ClientX;
+        contextMenuY      = args.ClientY;
 
         // The click point is only a first guess: the menu's own height and width aren't known
         // until it has rendered, so OnAfterRenderAsync measures it and moves it back inside the
@@ -52,22 +100,33 @@ public partial class NxGrid<T>
     private async Task OnCustomContextMenuItemClick(NxGridContextMenuItem item)
     {
         showContextMenu = false;
-        if (contextMenuRow != null && contextMenuColumn != null)
-        {
-            await OnContextMenuItemClicked.InvokeAsync(new NxGridContextMenuItemArgs<T>
-            {
-                Item   = item,
-                Row    = contextMenuRow,
-                Column = contextMenuColumn
-            });
+        await RaiseContextMenuItemClicked(item, contextMenuTarget, contextMenuRow, contextMenuColumn);
+    }
 
-            // A menu item is a natural place to insert or delete rows, and a handler that mutated
-            // Data in place leaves the grid's row indices describing the old list. Re-pipe here —
-            // as the new-row and row-drop paths already do — so the render that follows this
-            // handler is internally consistent, whether or not the host re-rendered itself.
-            if (HasUnseenDataChange)
-                RepipeAndReconcileSelection();
-        }
+    private async Task OnColumnMenuCustomItemClick(NxGridContextMenuItem item)
+    {
+        var column = openColumn;
+        openColumn = null;
+        await RaiseContextMenuItemClicked(item, NxGridContextMenuTarget.ColumnHeader, default, column);
+    }
+
+    private async Task RaiseContextMenuItemClicked(NxGridContextMenuItem item, NxGridContextMenuTarget target,
+        T? row, NxGridColumn<T>? column)
+    {
+        await OnContextMenuItemClicked.InvokeAsync(new NxGridContextMenuItemArgs<T>
+        {
+            Item   = item,
+            Target = target,
+            Row    = row,
+            Column = column
+        });
+
+        // A menu item is a natural place to insert or delete rows, and a handler that mutated
+        // Data in place leaves the grid's row indices describing the old list. Re-pipe here —
+        // as the new-row and row-drop paths already do — so the render that follows this
+        // handler is internally consistent, whether or not the host re-rendered itself.
+        if (HasUnseenDataChange)
+            RepipeAndReconcileSelection();
     }
 
     private async Task OnContextMenuCutClick()

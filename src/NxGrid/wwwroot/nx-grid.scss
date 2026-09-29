@@ -519,6 +519,12 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     background-color: var(--nx-grid-selection-bg);
 }
 
+.nx-grid-menu-item[disabled] {
+    color: var(--nx-grid-muted-fg);
+    cursor: default;
+    pointer-events: none;
+}
+
 .nx-grid-menu-item-icon {
     flex-shrink: 0;
     color: var(--nx-grid-menu-icon);

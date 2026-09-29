@@ -119,7 +119,7 @@ public static class SearchIndex
         // Interaction
         new("Keyboard Navigation",  "keyboard",          Category: "Interaction", Keywords: "arrow tab enter keys shortcut"),
         new("Cut, Copy & Paste",    "clipboard",         Category: "Interaction", Keywords: "clipboard cut copy paste move marquee tsv excel OnCopied OnPasted WasCut TransformPastedValue"),
-        new("Context Menu",         "context-menu",      Category: "Interaction", Keywords: "right-click menu items"),
+        new("Context Menu",         "context-menu",      Category: "Interaction", Keywords: "right-click menu items column header row gutter"),
         new("Tooltips",             "tooltips",          Category: "Interaction", Keywords: "hover tooltip hint"),
         new("Filter & Sort Events", "filter-sort-events",Category: "Interaction", Keywords: "filter sort event callback"),
 

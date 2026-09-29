@@ -10,6 +10,8 @@
     In cell-selection mode a <strong>Focus Cell</strong> checkbox highlights the anchor row and column.
     Use <code>OnContextMenuShowing</code> to append custom items, and <code>OnContextMenuItemClicked</code>
     to handle them. The handler receives the right-clicked row and column along with the item that was selected.
+    The same handler runs for a right-click on a column header or a row gutter cell — see
+    <a href="#header-gutter">Column header and row gutter items</a>.
     The menu keeps itself inside the browser window — it opens upward near the bottom edge and slides left near
     the right edge.
 </p>
@@ -106,6 +108,41 @@
     <pre class="doc-code" style="margin-top:12px">@rowEditCode</pre>
 </div>
 
+<div class="doc-section" id="header-gutter">
+    <h2>Column header and row gutter items</h2>
+    <p class="doc-note">
+        Opt in with <code>ContextMenuTargets="NxGridContextMenuTarget.All"</code> (the default is cells only, so
+        existing handlers never see a header or gutter click). <code>args.Target</code> then tells the handler
+        whether a cell, a column header or a row gutter cell was right-clicked. Right-click a <strong>column header</strong>: the custom items are appended to the column
+        menu (the ▾ button shows them too). The <em>Notes</em> column has sorting, filtering, freezing and hiding
+        turned off, so its column menu never opens and the right-click gets a plain popup instead. Untick
+        <em>Column menu</em> to turn the column menu off for the whole grid (<code>HasColumnMenu="false"</code>): every
+        header right-click then shows the plain popup with only the custom items. Right-click a
+        <strong>row number</strong>: the row is selected first (<code>HeaderClickSelects</code>), then a plain popup
+        with row actions opens. Neither menu carries Copy or Paste.
+    </p>
+    <div class="doc-controls">
+        <span style="font-size:13px;color:#555;">Last action: <strong>@targetLog</strong></span>
+        <label style="font-size:13px;"><input type="checkbox" @bind="targetColumnMenu" /> Column menu</label>
+        <button class="doc-btn doc-btn-secondary" @onclick="ResetTargetLines">Reset</button>
+    </div>
+    <NxGrid T="OrderLine" Data="@targetLines"
+            Editable="true"
+            RowGutter="NxGridRowGutter.Numbers"
+            HeaderClickSelects="true"
+            HasColumnMenu="@targetColumnMenu"
+            OnUpdate="@HandleLineUpdate"
+            @bind-SelectedItems="@selectedTargetLines"
+            ContextMenuTargets="NxGridContextMenuTarget.All"
+            OnContextMenuShowing="@BuildTargetMenu"
+            OnContextMenuItemClicked="@HandleTargetClick">
+        <NxGridColumn Property="@(x => x.Description)" Width="240" />
+        <NxGridColumn Property="@(x => x.Qty)"         Width="80" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Title="Notes" Display="@(_ => "")" Sortable="false" Filterable="false" Freezable="false" Hideable="false" Width="160" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@targetCode</pre>
+</div>
+
 <div class="doc-section">
     <h2>Copy with headers and Paste</h2>
     <p class="doc-note">
@@ -180,7 +217,7 @@
             <tr>
                 <td>OnContextMenuShowing</td>
                 <td>Action&lt;NxGridContextMenuArgs&lt;T&gt;&gt;?</td>
-                <td>Called synchronously just before the context menu opens. Append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code> to add custom items after the built-in items (Copy, Copy with headers, Paste).</td>
+                <td>Called synchronously just before a context menu opens from a cell — and, when <code>ContextMenuTargets</code> includes them, a column header or a row gutter cell (<code>args.Target</code>). Append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code>. Cell items join the built-ins (Copy, Copy with headers, Paste); header items are appended to the column menu, or open a plain popup when it has nothing to show; gutter items open a plain popup.</td>
             </tr>
             <tr>
                 <td>ShowCopyWithHeaders</td>
@@ -188,9 +225,14 @@
                 <td>When <code>true</code> (default), the menu includes a <strong>Copy with headers</strong> item below <strong>Copy</strong>. Set to <code>false</code> to hide it; plain <strong>Copy</strong> and <code>Ctrl+C</code> are unaffected.</td>
             </tr>
             <tr>
+                <td>ContextMenuTargets</td>
+                <td>NxGridContextMenuTarget</td>
+                <td>Where <code>OnContextMenuShowing</code> is called from. Default <code>Cell</code>; add <code>ColumnHeader</code> and/or <code>RowGutter</code> (or <code>All</code>) to opt in to header and gutter menus.</td>
+            </tr>
+            <tr>
                 <td>OnContextMenuItemClicked</td>
                 <td>EventCallback&lt;NxGridContextMenuItemArgs&lt;T&gt;&gt;</td>
-                <td>Fires when the user selects a custom item. Receives the clicked <code>Item</code> plus the <code>Row</code> and <code>Column</code> that were right-clicked.</td>
+                <td>Fires when the user selects a custom item. Receives the clicked <code>Item</code>, the <code>Target</code>, and the <code>Row</code> (null for a header) and <code>Column</code> (null for the gutter) that were right-clicked.</td>
             </tr>
         </tbody>
     </table>
@@ -264,15 +306,15 @@
     {
         basicLog = args.Item.Id switch
         {
-            "view"      => $"View details — {args.Row.FirstName} {args.Row.LastName}",
-            "copy-name" => $"Copied \"{args.Row.FirstName} {args.Row.LastName}\"",
+            "view"      => $"View details — {args.Row!.FirstName} {args.Row!.LastName}",
+            "copy-name" => $"Copied \"{args.Row!.FirstName} {args.Row!.LastName}\"",
             _           => args.Item.Id
         };
     }
 
     void BuildDynamicMenu(NxGridContextMenuArgs<Person> args)
     {
-        if (args.Row.Department == "Finance")
+        if (args.Row!.Department == "Finance")
         {
             args.Items.Add(new NxGridContextMenuItem { Id = "approve", Label = "Approve budget" });
         }
@@ -290,8 +332,8 @@
     {
         dynamicLog = args.Item.Id switch
         {
-            "approve" => $"Approved budget for {args.Row.FirstName} {args.Row.LastName}",
-            "archive" => $"Archived {args.Row.FirstName} {args.Row.LastName}",
+            "approve" => $"Approved budget for {args.Row!.FirstName} {args.Row!.LastName}",
+            "archive" => $"Archived {args.Row!.FirstName} {args.Row!.LastName}",
             _         => args.Item.Id
         };
     }
@@ -302,18 +344,18 @@
         args.Items.Add(new NxGridContextMenuItem { Id = "send-message", Label = "Send message",  Section = NxGridMenuSection.Header, Separator = true });
         args.Items.Add(new NxGridContextMenuItem { Id = "flag",         Label = "Flag row",      Section = NxGridMenuSection.BeforeFocusCell });
         args.Items.Add(new NxGridContextMenuItem { Id = "export",       Label = "Export row",    Section = NxGridMenuSection.Footer });
-        args.Items.Add(new NxGridContextMenuItem { Id = "delete",       Label = "Delete",        Section = NxGridMenuSection.Footer, Separator = true, Disabled = args.Row.Department == "Engineering" });
+        args.Items.Add(new NxGridContextMenuItem { Id = "delete",       Label = "Delete",        Section = NxGridMenuSection.Footer, Separator = true, Disabled = args.Row!.Department == "Engineering" });
     }
 
     void HandleSectionsClick(NxGridContextMenuItemArgs<Person> args)
     {
         sectionsLog = args.Item.Id switch
         {
-            "open"         => $"Opened profile — {args.Row.FirstName} {args.Row.LastName}",
-            "send-message" => $"Message sent to {args.Row.FirstName} {args.Row.LastName}",
-            "flag"         => $"Flagged {args.Row.FirstName} {args.Row.LastName}",
-            "export"       => $"Exported {args.Row.FirstName} {args.Row.LastName}",
-            "delete"       => $"Deleted {args.Row.FirstName} {args.Row.LastName}",
+            "open"         => $"Opened profile — {args.Row!.FirstName} {args.Row!.LastName}",
+            "send-message" => $"Message sent to {args.Row!.FirstName} {args.Row!.LastName}",
+            "flag"         => $"Flagged {args.Row!.FirstName} {args.Row!.LastName}",
+            "export"       => $"Exported {args.Row!.FirstName} {args.Row!.LastName}",
+            "delete"       => $"Deleted {args.Row!.FirstName} {args.Row!.LastName}",
             _              => args.Item.Id
         };
     }
@@ -328,7 +370,7 @@
     }
 
     void HandleWideClick(NxGridContextMenuItemArgs<Person> args)
-        => wideLog = $"{args.Item.Label} — {args.Row.FirstName} {args.Row.LastName}";
+        => wideLog = $"{args.Item.Label} — {args.Row!.FirstName} {args.Row!.LastName}";
 
     class OrderLine
     {
@@ -372,18 +414,104 @@
         if (args.Item.Id == "insert-line")
         {
             // In-place insert: the grid re-pipes after this handler, so nothing else is needed.
-            editableLines.Insert(editableLines.IndexOf(args.Row), new OrderLine { Description = "New line" });
+            editableLines.Insert(editableLines.IndexOf(args.Row!), new OrderLine { Description = "New line" });
             rowEditLog = "inserted a line";
         }
         else if (args.Item.Id == "delete-line")
         {
-            var doomed = selectedLines.Count > 0 ? selectedLines.ToList() : [args.Row];
+            var doomed = selectedLines.Count > 0 ? selectedLines.ToList() : [args.Row!];
             foreach (var line in doomed)
                 editableLines.Remove(line);
             rowEditLog = $"deleted {doomed.Count} line{(doomed.Count == 1 ? "" : "s")}";
         }
         await Task.CompletedTask;
     }
+
+    // ── Column header and row gutter items ────────────────────────────────────
+
+    List<OrderLine> targetLines = NewLines();
+    List<OrderLine> selectedTargetLines = [];
+    string targetLog = "none";
+    bool targetColumnMenu = true;
+
+    void ResetTargetLines() { targetLines = NewLines(); selectedTargetLines = []; targetLog = "none"; }
+
+    void BuildTargetMenu(NxGridContextMenuArgs<OrderLine> args)
+    {
+        switch (args.Target)
+        {
+            case NxGridContextMenuTarget.ColumnHeader:
+                args.Items.Add(new NxGridContextMenuItem { Id = "insert-col", Label = $"Insert column before {args.Column!.EffectiveTitle}" });
+                args.Items.Add(new NxGridContextMenuItem { Id = "delete-col", Label = $"Delete column {args.Column.EffectiveTitle}" });
+                break;
+            case NxGridContextMenuTarget.RowGutter:
+                args.Items.Add(new NxGridContextMenuItem { Id = "insert-row", Label = "Insert line above" });
+                args.Items.Add(new NxGridContextMenuItem
+                {
+                    Id    = "delete-row",
+                    Label = selectedTargetLines.Count > 1 ? $"Delete {selectedTargetLines.Count} lines" : "Delete line"
+                });
+                break;
+            default:
+                args.Items.Add(new NxGridContextMenuItem { Id = "view", Label = "View line" });
+                break;
+        }
+    }
+
+    async Task HandleTargetClick(NxGridContextMenuItemArgs<OrderLine> args)
+    {
+        switch (args.Item.Id)
+        {
+            case "insert-row":
+                targetLines.Insert(targetLines.IndexOf(args.Row!), new OrderLine { Description = "New line" });
+                targetLog = "inserted a line";
+                break;
+            case "delete-row":
+                var doomed = selectedTargetLines.Count > 0 ? selectedTargetLines.ToList() : [args.Row!];
+                foreach (var line in doomed) targetLines.Remove(line);
+                targetLog = $"deleted {doomed.Count} line{(doomed.Count == 1 ? "" : "s")}";
+                break;
+            default:
+                targetLog = $"{args.Item.Label} ({args.Target})";
+                break;
+        }
+        await Task.CompletedTask;
+    }
+
+    string targetCode = """
+<NxGrid T="OrderLine" Data="@lines" RowGutter="NxGridRowGutter.Numbers" HeaderClickSelects="true"
+        ContextMenuTargets="NxGridContextMenuTarget.All"
+        OnContextMenuShowing="@BuildMenu" OnContextMenuItemClicked="@HandleClick">
+    ...
+</NxGrid>
+
+@code {
+    void BuildMenu(NxGridContextMenuArgs<OrderLine> args)
+    {
+        switch (args.Target)
+        {
+            case NxGridContextMenuTarget.ColumnHeader:      // args.Column set, args.Row null
+                args.Items.Add(new NxGridContextMenuItem { Id = "insert-col", Label = $"Insert column before {args.Column!.EffectiveTitle}" });
+                break;
+            case NxGridContextMenuTarget.RowGutter:         // args.Row set, args.Column null
+                args.Items.Add(new NxGridContextMenuItem { Id = "insert-row", Label = "Insert line above" });
+                args.Items.Add(new NxGridContextMenuItem { Id = "delete-row", Label = "Delete line" });
+                break;
+            default:                                        // Cell: both set
+                args.Items.Add(new NxGridContextMenuItem { Id = "view", Label = "View line" });
+                break;
+        }
+    }
+
+    async Task HandleClick(NxGridContextMenuItemArgs<OrderLine> args)
+    {
+        if (args.Item.Id == "insert-row")
+            lines.Insert(lines.IndexOf(args.Row!), new OrderLine());   // the grid re-pipes after this handler
+        else if (args.Item.Id == "delete-row")
+            lines.Remove(args.Row!);
+    }
+}
+""";
 
     void HandleLineUpdate(NxGridUpdateArgs<OrderLine> args)
     {

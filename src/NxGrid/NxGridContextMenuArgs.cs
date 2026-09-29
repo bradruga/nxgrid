@@ -1,18 +1,22 @@
 namespace NxGrid;
 
 /// <summary>
-/// Passed to <see cref="NxGrid{T}.OnContextMenuShowing"/> synchronously just before the context
+/// Passed to <see cref="NxGrid{T}.OnContextMenuShowing"/> synchronously just before a context
 /// menu opens. Append <see cref="NxGridContextMenuItem"/> entries to <see cref="Items"/> to add
-/// custom items. Use <see cref="NxGridContextMenuItem.Section"/> to control placement relative
-/// to the built-in items (Copy, Copy with headers, Paste, Focus Cell).
+/// custom items. For a cell menu, <see cref="NxGridContextMenuItem.Section"/> controls placement
+/// relative to the built-in items (Copy, Copy with headers, Paste, Focus Cell); header and gutter
+/// menus hold host items only and ignore it.
 /// </summary>
 public sealed class NxGridContextMenuArgs<T>
 {
-    /// <summary>The row that was right-clicked.</summary>
-    public required T Row { get; init; }
+    /// <summary>What was right-clicked: a body cell, a column header, or a row gutter cell.</summary>
+    public required NxGridContextMenuTarget Target { get; init; }
 
-    /// <summary>The column that was right-clicked.</summary>
-    public required NxGridColumn<T> Column { get; init; }
+    /// <summary>The row that was right-clicked. <c>null</c> for a column header.</summary>
+    public T? Row { get; init; }
+
+    /// <summary>The column that was right-clicked. <c>null</c> for a row gutter cell.</summary>
+    public NxGridColumn<T>? Column { get; init; }
 
     /// <summary>
     /// The mutable list of context menu items. Append <see cref="NxGridContextMenuItem"/> entries
@@ -65,9 +69,12 @@ public sealed class NxGridContextMenuItemArgs<T>
     /// <summary>The custom menu item that was clicked.</summary>
     public required NxGridContextMenuItem Item { get; init; }
 
-    /// <summary>The row that was right-clicked when the menu opened.</summary>
-    public required T Row { get; init; }
+    /// <summary>What the menu was opened from: a body cell, a column header, or a row gutter cell.</summary>
+    public required NxGridContextMenuTarget Target { get; init; }
 
-    /// <summary>The column that was right-clicked when the menu opened.</summary>
-    public required NxGridColumn<T> Column { get; init; }
+    /// <summary>The row that was right-clicked when the menu opened. <c>null</c> for a column header.</summary>
+    public T? Row { get; init; }
+
+    /// <summary>The column that was right-clicked when the menu opened. <c>null</c> for a row gutter cell.</summary>
+    public NxGridColumn<T>? Column { get; init; }
 }

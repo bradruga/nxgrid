@@ -1057,6 +1057,45 @@ async Task HandleMenuClick(NxGridContextMenuItemArgs<ProjectDto> args)
 
 Adding items is free of positioning concerns: the menu is measured after it renders and kept inside the browser window. It opens upward from the pointer near the bottom edge, slides left near the right edge, and scrolls internally if your items make it taller than the window.
 
+### Column header and row gutter items
+
+The same handler can run for a right-click on a column header or a row gutter cell. Opt in with `ContextMenuTargets` (the default is `Cell` only), then switch on `args.Target`; `Row` is `null` for a header and `Column` is `null` for the gutter. Header items are appended to the column menu (the ▾ button shows them too), or open a plain popup when that menu has nothing else to show. Gutter items always open a plain popup. Neither carries the built-in Copy / Paste items.
+
+```razor
+<NxGrid T="OrderLine" Data="@lines" RowGutter="NxGridRowGutter.Numbers" HeaderClickSelects="true"
+        ContextMenuTargets="NxGridContextMenuTarget.All"
+        OnContextMenuShowing="@BuildMenu" OnContextMenuItemClicked="@HandleMenuClick">
+```
+
+```csharp
+void BuildMenu(NxGridContextMenuArgs<OrderLine> args)
+{
+    switch (args.Target)
+    {
+        case NxGridContextMenuTarget.ColumnHeader:
+            args.Items.Add(new NxGridContextMenuItem { Id = "insert-col", Label = $"Insert column before {args.Column!.EffectiveTitle}" });
+            break;
+        case NxGridContextMenuTarget.RowGutter:
+            args.Items.Add(new NxGridContextMenuItem { Id = "insert-row", Label = "Insert line above" });
+            args.Items.Add(new NxGridContextMenuItem { Id = "delete-row", Label = "Delete line" });
+            break;
+        default:
+            args.Items.Add(new NxGridContextMenuItem { Id = "open", Label = "Open project" });
+            break;
+    }
+}
+
+async Task HandleMenuClick(NxGridContextMenuItemArgs<OrderLine> args)
+{
+    if (args.Item.Id == "insert-row")
+        lines.Insert(lines.IndexOf(args.Row!), new OrderLine());   // the grid re-pipes after this handler
+    else if (args.Item.Id == "delete-row")
+        lines.Remove(args.Row!);
+}
+```
+
+With `HeaderClickSelects` on, a gutter right-click selects the row first unless it is already selected, so a "Delete line(s)" item can act on `SelectedItems` the way the cell menu does.
+
 ### Item placement (Section)
 
 By default, custom items appear below all built-in items. Use the `Section` property to place them elsewhere:

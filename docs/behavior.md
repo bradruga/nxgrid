@@ -814,6 +814,16 @@ Focus Cell               ← when AllowFocusCellMode and Cell selection mode
 
 Section boundaries are automatically separated by a `<hr>` divider whenever both sides are non-empty. `Separator = true` on an individual item adds an extra divider within a section to sub-group items.
 
+### Column header and row gutter menus
+
+`OnContextMenuShowing` can also run for a right-click on a column header and on a row gutter cell (row number, blank, or drag handle). It is opt-in: `ContextMenuTargets` defaults to `Cell`, and the handler is only called for the targets it includes — `ContextMenuTargets="NxGridContextMenuTarget.All"` turns on all three — so a handler written for cells alone never sees a null `Row` or `Column`. `args.Target` says where the click landed — `Cell`, `ColumnHeader` or `RowGutter` — and `Row` is `null` for a header while `Column` is `null` for the gutter. Header and gutter menus contain the host's items only: no Cut, Copy, Paste or Focus Cell, and `Section` is ignored (items render in list order; `Separator` still works).
+
+**Column header.** When the column menu would open for that column — it has sortable, filterable, freezable or hideable content and `HasColumnMenu` is on — the host's items are appended to it, below the freeze / hide / manage group and above the filter panel. The ▾ button shows the same items, so the handler runs for it too. When the column menu has nothing to show, or `HasColumnMenu` is `false`, a header right-click opens a plain popup of the host's items at the pointer. With no items added, a right-click on such a header does nothing.
+
+**Row gutter.** A right-click opens a plain popup of the host's items at the pointer. When `HeaderClickSelects` is on and the row is not already inside the selection, the row is selected first, as a left-click on the gutter would, and `OnSelectionChanged` fires before the handler runs. With no items added, nothing opens. The browser's own menu is suppressed on the gutter whenever `RowGutter` is an enabled target with a handler set.
+
+`OnContextMenuItemClicked` carries the same `Target`, `Row` and `Column` the menu opened with.
+
 **Selection during right-click:** if there is no active selection, the right-clicked cell is selected before the menu opens. If there is already a selection, it is preserved unchanged. `args.Row` and `args.Column` always refer to the cell that was right-clicked, regardless of the selection state.
 
 **`OnContextMenuItemClicked`** fires when the user selects a custom item. It does not fire for the built-in Copy item. The menu closes before the callback fires.

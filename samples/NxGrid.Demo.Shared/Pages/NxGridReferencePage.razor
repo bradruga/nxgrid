@@ -143,6 +143,13 @@
                 <td><a href="context-menu">Context Menu</a></td>
             </tr>
             <tr>
+                <td>ContextMenuTargets</td>
+                <td>NxGridContextMenuTarget</td>
+                <td>Cell</td>
+                <td>Where OnContextMenuShowing is called from. Flags: add ColumnHeader and/or RowGutter (or All) to put host items on the column menu and the row gutter.</td>
+                <td><a href="context-menu">Context Menu</a></td>
+            </tr>
+            <tr>
                 <td>StateKey</td>
                 <td>string?</td>
                 <td>—</td>
@@ -332,13 +339,13 @@
             <tr>
                 <td>OnContextMenuShowing</td>
                 <td>Action&lt;NxGridContextMenuArgs&lt;T&gt;&gt;?</td>
-                <td>Called synchronously before the context menu opens; append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code> to add custom items.</td>
+                <td>Called synchronously before a context menu opens from a cell — and, when <code>ContextMenuTargets</code> includes them, a column header or a row gutter cell (<code>args.Target</code>); append <code>NxGridContextMenuItem</code> entries to <code>args.Items</code>. Header items ride on the column menu; gutter items open a plain popup.</td>
                 <td><a href="context-menu">Context Menu</a></td>
             </tr>
             <tr>
                 <td>OnContextMenuItemClicked</td>
                 <td>EventCallback&lt;NxGridContextMenuItemArgs&lt;T&gt;&gt;</td>
-                <td>Fires when the user selects a custom context menu item.</td>
+                <td>Fires when the user selects a custom context menu item. Carries the <code>Target</code>, <code>Row</code> (null for a header) and <code>Column</code> (null for the gutter).</td>
                 <td><a href="context-menu">Context Menu</a></td>
             </tr>
             <tr>

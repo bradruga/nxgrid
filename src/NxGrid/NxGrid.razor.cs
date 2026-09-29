@@ -153,6 +153,13 @@ public partial class NxGrid<T>
     [Parameter] public bool ShowCopyWithHeaders { get; set; } = true;
 
     /// <summary>
+    /// Where <see cref="OnContextMenuShowing"/> is called from: body cells by default. Add
+    /// <see cref="NxGridContextMenuTarget.ColumnHeader"/> and/or <see cref="NxGridContextMenuTarget.RowGutter"/>
+    /// to put host items on the column menu and the row gutter. See docs/behavior.md, "Context menu".
+    /// </summary>
+    [Parameter] public NxGridContextMenuTarget ContextMenuTargets { get; set; } = NxGridContextMenuTarget.Cell;
+
+    /// <summary>
     /// When set, column widths, sort state, and filter state are saved to <c>localStorage</c>
     /// under this key after every user change and restored on first render.
     /// Use a unique key per grid instance on a page.
@@ -331,9 +338,13 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridCellClickArgs<T>> OnCellDoubleClicked { get; set; }
 
     /// <summary>
-    /// Called synchronously just before the right-click context menu opens. Append
-    /// <see cref="NxGridContextMenuItem"/> entries to <see cref="NxGridContextMenuArgs{T}.Items"/>
-    /// to add custom items after the built-in ones (Copy, Copy with headers, Paste, Focus Cell).
+    /// Called synchronously just before a context menu opens from a body cell, a column header, or
+    /// a row gutter cell (<see cref="NxGridContextMenuArgs{T}.Target"/>). Append
+    /// <see cref="NxGridContextMenuItem"/> entries to <see cref="NxGridContextMenuArgs{T}.Items"/>.
+    /// Cell items join the built-in ones (Copy, Copy with headers, Paste, Focus Cell). Header items
+    /// ride on the column menu when it opens, or get a plain popup when it would not. Gutter items
+    /// get a plain popup. Headers and gutters call the handler only when <see cref="ContextMenuTargets"/>
+    /// includes them. See docs/behavior.md, "Context menu".
     /// </summary>
     [Parameter] public Action<NxGridContextMenuArgs<T>>? OnContextMenuShowing { get; set; }
 
@@ -620,7 +631,9 @@ public partial class NxGrid<T>
     private double contextMenuMaxHeight;
     private T? contextMenuRow;
     private NxGridColumn<T>? contextMenuColumn;
+    private NxGridContextMenuTarget contextMenuTarget;
     private List<NxGridContextMenuItem> contextMenuItems = [];
+    private List<NxGridContextMenuItem> columnMenuItems = [];
 
     /// <summary>
     /// Hands a popup its viewport coordinates as <c>--nx-popup-x/y</c>. The <c>.nx-grid-popup</c>

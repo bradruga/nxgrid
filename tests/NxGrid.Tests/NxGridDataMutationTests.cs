@@ -96,7 +96,7 @@ public class NxGridDataMutationTests : BunitContext
             onContextMenuShowing: args => args.Items.Add(new NxGridContextMenuItem { Id = "delete", Label = "Delete" }),
             onContextMenuItemClicked: EventCallback.Factory.Create<NxGridContextMenuItemArgs<LineRow>>(this, async args =>
             {
-                rows.Remove(args.Row);
+                rows.Remove(args.Row!);
                 rows.RemoveAt(rows.Count - 1);
                 await Task.Yield();
             }),
