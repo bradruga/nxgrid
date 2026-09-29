@@ -25,7 +25,7 @@ A high-performance, virtualised data grid component for Blazor.
 - Full keyboard navigation (Arrow, Tab, Enter, Page Up/Down, Ctrl+Arrow, Home/End) — tabbing into the grid selects the top-left cell, so it is usable without ever touching the mouse
 - Custom cell, header, and row-gutter templates, per-cell styling, cell and header tooltips
 - Merged cells that select, navigate, edit, and copy as one cell, as in Excel
-- Context menu with custom items
+- Context menus on cells, column headers, and the row gutter, with custom items
 - Print filtered/sorted data
 - State persistence via `localStorage` (column widths, sort, filter, frozen and hidden state)
 - Themeable via CSS custom properties — no CSS framework required

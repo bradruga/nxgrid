@@ -884,7 +884,7 @@ Section boundaries are automatically separated by a `<hr>` divider whenever both
 
 `OnContextMenuItemClicked` carries the same `Target`, `Row` and `Column` the menu opened with.
 
-**Selection during right-click:** if there is no active selection, the right-clicked cell is selected before the menu opens. If there is already a selection, it is preserved unchanged. `args.Row` and `args.Column` always refer to the cell that was right-clicked, regardless of the selection state.
+**Selection during right-click:** if there is no active selection, the right-clicked cell is selected before the menu opens. If there is already a selection, it is preserved unchanged. `args.Row` and `args.Column` always refer to the cell that was right-clicked (a span's anchor when that cell is covered — see [Cell spans](#cell-spans)), regardless of the selection state.
 
 **`OnContextMenuItemClicked`** fires when the user selects a custom item. It does not fire for the built-in Copy item. The menu closes before the callback fires.
 

@@ -56,11 +56,16 @@ public partial class NxGrid<T>
         bool Grow(int r, int c)
         {
             if (SpanAt(r, c) is not { } s) return false;
+            // Clamp before comparing: a span reaching past the grid must not count as growth every pass
+            var top    = Math.Max(0, s.Row);
+            var bottom = Math.Min(lastRow, s.EndRow);
+            var left   = Math.Max(0, s.Column);
+            var right  = Math.Min(lastCol, s.EndColumn);
             var grew = false;
-            if (s.Row < minRow)       { minRow = Math.Max(0, s.Row); grew = true; }
-            if (s.EndRow > maxRow)    { maxRow = Math.Min(lastRow, s.EndRow); grew = true; }
-            if (s.Column < minCol)    { minCol = Math.Max(0, s.Column); grew = true; }
-            if (s.EndColumn > maxCol) { maxCol = Math.Min(lastCol, s.EndColumn); grew = true; }
+            if (top < minRow)    { minRow = top; grew = true; }
+            if (bottom > maxRow) { maxRow = bottom; grew = true; }
+            if (left < minCol)   { minCol = left; grew = true; }
+            if (right > maxCol)  { maxCol = right; grew = true; }
             return grew;
         }
 

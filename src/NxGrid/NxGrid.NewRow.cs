@@ -95,8 +95,11 @@ public partial class NxGrid<T>
             SanitizeSelectionRanges();
         }
 
-        // By reference: blank new rows of a record type compare equal to each other
-        var indexOf = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+        // By reference: blank new rows of a record type compare equal to each other. A struct is
+        // boxed afresh on every lookup, so it can only be matched by value.
+        var indexOf = new Dictionary<object, int>(typeof(T).IsValueType
+            ? EqualityComparer<object>.Default
+            : ReferenceEqualityComparer.Instance);
         for (var i = 0; i < filteredData.Count; i++)
             if (filteredData[i] is { } row) indexOf.TryAdd(row, i);
 

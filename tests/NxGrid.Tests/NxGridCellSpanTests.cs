@@ -139,6 +139,18 @@ public class NxGridCellSpanTests : BunitContext
         Assert.That(h.Clicked!.Column.Title, Is.EqualTo("B"));
     }
 
+    // A span the host still reports past the last row or column (a filter hid rows under it)
+    // clamps to the grid instead of growing forever.
+    [Test]
+    public async Task SpanPastGridEdge_ClampsSelection()
+    {
+        var h = RenderSheet(spans: new NxGridCellSpan(2, 4, 3, 5));
+
+        await h.Click(2, 5);
+
+        Assert.That(h.Range, Is.EqualTo((2, 4, 2, 5)));
+    }
+
     [Test]
     public async Task RangeTouchingSpan_GrowsToIncludeIt()
     {

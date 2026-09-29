@@ -15,10 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `NxGridContextMenuArgs.Row` / `Column` and `NxGridContextMenuItemArgs.Row` / `Column` are now nullable: `Row` is `null` for a column header menu and `Column` is `null` for a row gutter menu. With the default `ContextMenuTargets` they are never null at runtime; existing cell-only handlers keep working and may see nullable warnings.
-
 - **Breaking:** `OnKeyPressed` now fires for every key the grid receives (while no cell editor is open), before the grid's own handling, instead of only for keys the grid does not handle. Set the new `NxGridKeyPressedArgs.Handled` to `true` to claim a key and skip the built-in action — for example to give Ctrl+A Excel's block-then-sheet behaviour. Handlers that switch on specific keys are unaffected; a handler that reacted to *any* key it received now needs a key check.
-
+- **Breaking:** `NxGridContextMenuArgs.Row` / `Column` and `NxGridContextMenuItemArgs.Row` / `Column` are now nullable and no longer `required`: `Row` is `null` for a column header menu and `Column` is `null` for a row gutter menu. With the default `ContextMenuTargets` they are never null at runtime; existing cell-only handlers keep working but see nullable warnings, which fail the build under `TreatWarningsAsErrors`.
 - Frozen body cells and the row gutter now stack at `z-index: 2`, and the header row at `3`, so they stay above merged cells. Host CSS that layered its own elements between these may need adjusting.
 
 ## [0.4.3] - 2026-09-24
