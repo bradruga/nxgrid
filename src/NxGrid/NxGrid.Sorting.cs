@@ -31,7 +31,7 @@ public partial class NxGrid<T>
         col.SortState = state;
         UpdateSortHistory(col, state);
         openColumn = null;
-        ApplyFilterAndSort();
+        await ReapplyFilterAndSort();
         StateHasChanged();
         await SaveStateAsync();
         await RaiseSortChanged(col);
@@ -49,7 +49,7 @@ public partial class NxGrid<T>
         foreach (var col in columns)
             col.FilterState = [];
 
-        ApplyFilterAndSort();
+        await ReapplyFilterAndSort();
         StateHasChanged();
         await SaveStateAsync();
         await RaiseFilterChanged(null);
@@ -69,7 +69,7 @@ public partial class NxGrid<T>
         openColumn = null;
         StateHasChanged();
 
-        ApplyFilterAndSort();
+        await ReapplyFilterAndSort();
         await SaveStateAsync();
         await RaiseFilterChanged(col);
     }
@@ -97,7 +97,7 @@ public partial class NxGrid<T>
         }
 
         UpdateSortHistory(column, column.SortState);
-        ApplyFilterAndSort();
+        await ReapplyFilterAndSort();
         await SaveStateAsync();
         await RaiseSortChanged(column);
     }
@@ -121,6 +121,20 @@ public partial class NxGrid<T>
             Direction = column?.SortState ?? 0,
             VisibleItems = filteredData.AsReadOnly(),
         });
+    }
+
+    // Re-runs the pipeline after a sort or filter change and moves the selection with its rows.
+    // The rows are the same objects before and after, so reference identity stands in for
+    // KeyProperty. OnSelectionChanged fires only when a selected row was filtered out — a pure
+    // reorder is silent — and before OnSortChanged / OnFilterChanged. See docs/behavior.md.
+    private async Task ReapplyFilterAndSort()
+    {
+        var identity = KeyProperty ?? (r => r);
+        var captured = selectedRanges.Count > 0 ? CaptureSelectedKeys(identity) : null;
+        ApplyFilterAndSort();
+        if (captured is not { Count: > 0 }) return;
+        if (!RestoreSelectionByKeys(captured, identity))
+            await RaiseSelectionChanged();
     }
 
     private void ApplyFilterAndSort()

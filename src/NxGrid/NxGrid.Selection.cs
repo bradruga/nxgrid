@@ -604,7 +604,7 @@ public partial class NxGrid<T>
     // Keys run from the range's StartRow (its anchor) toward EndRow; columns keep their direction.
     private readonly record struct CapturedRange(List<object?> Keys, bool Reversed, int StartCol, int EndCol);
 
-    private List<CapturedRange> CaptureSelectedKeys()
+    private List<CapturedRange> CaptureSelectedKeys(Func<T, object?> identity)
     {
         var captured = new List<CapturedRange>();
         foreach (var range in selectedRanges)
@@ -614,7 +614,7 @@ public partial class NxGrid<T>
             for (var i = range.StartRow; i != range.EndRow + step; i += step)
             {
                 if (i >= 0 && i < filteredData.Count)
-                    keys.Add(KeyProperty!(filteredData[i]));
+                    keys.Add(identity(filteredData[i]));
             }
             if (keys.Count > 0)
                 captured.Add(new CapturedRange(keys, step < 0, range.StartCol, range.EndCol));
@@ -624,12 +624,14 @@ public partial class NxGrid<T>
 
     // Rebuilds each captured range from the rows that survived: rows still adjacent form one range,
     // with the anchor's piece last so the anchor stays in ActiveRange. See docs/behavior.md.
-    private void RestoreSelectionByKeys(List<CapturedRange> captured)
+    // Returns false when at least one captured row is no longer in the filtered data.
+    private bool RestoreSelectionByKeys(List<CapturedRange> captured, Func<T, object?> identity)
     {
         var indexOf = new Dictionary<object, int>();
         for (var i = 0; i < filteredData.Count; i++)
-            if (KeyProperty!(filteredData[i]) is { } key) indexOf.TryAdd(key, i);
+            if (identity(filteredData[i]) is { } key) indexOf.TryAdd(key, i);
 
+        var allFound = true;
         var lastCol = Math.Max(0, visibleColumns.Count - 1);
         var newRanges = new List<NxGridRange>();
         foreach (var range in captured)
@@ -638,6 +640,7 @@ public partial class NxGrid<T>
                 .Select(k => k is not null && indexOf.TryGetValue(k, out var i) ? i : -1)
                 .Where(i => i >= 0)
                 .ToList();
+            if (rows.Count < range.Keys.Count) allFound = false;
             if (rows.Count == 0) continue;
             var anchorRow = rows[0];
             rows.Sort();
@@ -660,6 +663,7 @@ public partial class NxGrid<T>
             newRanges.Add(anchorPiece!);
         }
         selectedRanges = newRanges;
+        return allFound;
     }
 
     // Returns the range of column indices to resize. If the resized column is part of a full-row

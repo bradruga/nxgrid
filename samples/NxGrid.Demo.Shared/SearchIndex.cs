@@ -79,6 +79,7 @@ public static class SearchIndex
         new("Selection — SingleRow Mode","selection",      Section: "SelectionMode.SingleRow — One Row at a Time",   Category: "Selection"),
         new("Selection — Multi-Range",  "selection",       Section: "Multi-Range Selection (Ctrl+Click)",            Category: "Selection", Keywords: "ctrl click multi"),
         new("Selection — Key Property", "selection",       Section: "Key Property — Stable Selection Across Data Refresh", Category: "Selection", Keywords: "stable identity"),
+        new("Selection — Sort and Filter", "selection",    Section: "Selection Follows Sort and Filter",                  Category: "Selection", Keywords: "sort filter reconcile follows"),
         new("Selection — bind-SelectedItems", "selection", Section: "@bind-SelectedItems — Two-Way Binding",         Category: "Selection", Keywords: "two-way binding"),
         new("Selection — SelectRowByKey", "selection",     Section: "SelectRowByKey — Navigate to a Row by ID",     Category: "Selection", Keywords: "programmatic navigate"),
         new("Selection Math",           "selection-math",  Category: "Selection", Keywords: "sum avg count status bar"),

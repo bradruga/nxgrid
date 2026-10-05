@@ -315,6 +315,51 @@
 </div>
 
 <div class="doc-section">
+    <h2>Selection Follows Sort and Filter</h2>
+    <p class="doc-para">
+        Sorting moves the selected rows to their new positions, and a filter that hides a selected
+        row drops it from the selection. <code>OnSelectionChanged</code> fires only when a row was
+        dropped — a pure reorder is silent — so a selected item bound from the event stays in step
+        with the grid. <code>KeyProperty</code> is not required: the rows are the same objects
+        before and after a sort or filter.
+    </p>
+    <p class="doc-para">
+        Click a row, then sort by any column: the same person stays selected and the event count
+        does not move. Then filter <strong>Department</strong> to exclude that person: the card
+        clears and the event fires once. Clearing the filter does not re-select them.
+    </p>
+    <div class="doc-demo-row">
+        <div class="doc-demo-grid">
+            <NxGrid T="Person" Data="@sortFilterPeople"
+                    SelectionMode="NxGridSelectionMode.SingleRow"
+                    OnSelectionChanged="@OnSortFilterSelectionChanged"
+                    Cursor="NxGridCursor.Pointer"
+                    Style="height:260px">
+                <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+                <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+                <NxGridColumn Property="@(x => x.Age)"        Width="70"  Alignment="NxGridColumnAlignment.Right" />
+                <NxGridColumn Property="@(x => x.Department)" />
+            </NxGrid>
+        </div>
+        <div class="doc-detail-panel">
+            @if (sortFilterPerson != null)
+            {
+                <div class="doc-detail-card">
+                    <div class="doc-detail-name">@sortFilterPerson.FirstName @sortFilterPerson.LastName</div>
+                    <div class="doc-detail-row"><span>ID</span><span>@sortFilterPerson.Id</span></div>
+                    <div class="doc-detail-row"><span>Department</span><span>@sortFilterPerson.Department</span></div>
+                </div>
+            }
+            else
+            {
+                <div class="doc-detail-empty">← Select a row</div>
+            }
+        </div>
+    </div>
+    <div class="doc-output">OnSelectionChanged fired @sortFilterEvents time@(sortFilterEvents == 1 ? "" : "s")</div>
+</div>
+
+<div class="doc-section">
     <h2>SelectRowByKey — Navigate to a Row by ID</h2>
     <p class="doc-para">
         <code>SelectRowByKey(keyValue)</code> selects the row whose <code>KeyProperty</code> value
@@ -481,6 +526,17 @@
         keyPeopleWithKey = SampleData.GetPeopleCopy();
         keyRefreshing = false;
         keyStatusMessage = "Refreshed — check whether each grid preserved its selection.";
+    }
+
+    // Selection follows sort and filter demo
+    List<Person> sortFilterPeople = SampleData.GetPeopleCopy();
+    Person? sortFilterPerson;
+    int sortFilterEvents;
+
+    void OnSortFilterSelectionChanged(NxGridSelectionArgs<Person> args)
+    {
+        sortFilterEvents++;
+        sortFilterPerson = args.Ranges.FirstOrDefault()?.Items.FirstOrDefault();
     }
 
     // SelectRowByKey demo

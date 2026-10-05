@@ -157,7 +157,7 @@ public partial class NxGrid<T>
             }
         }
 
-        ApplyFilterAndSort();
+        await ReapplyFilterAndSort();
         renderToken++;
         StateHasChanged();
     }
@@ -187,7 +187,7 @@ public partial class NxGrid<T>
         }
 
         ComputeFrozenOffsets();
-        ApplyFilterAndSort();
+        await ReapplyFilterAndSort();
 
         if (HasFitContentColumns)
             await RunColumnFitAsync();

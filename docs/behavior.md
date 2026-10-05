@@ -65,6 +65,8 @@ The pipeline re-runs (`ApplyFilterAndSort`) when:
 - Sort or filter state changes via the column menu.
 - `ForceRerender()` is called explicitly.
 
+Every run reconciles the selection against the new row set — see [Selection when data changes underneath it](#selection-when-data-changes-underneath-it) and [Selection across sort and filter](#selection-across-sort-and-filter).
+
 `ForceRerender()` also increments an internal render token to force every row to re-render, which is necessary when cells have been mutated externally without changing `Data.Count`.
 
 **Observing the pipeline result.** The post-filter, post-sort list is readable at any time as `VisibleItems` on the grid (`IReadOnlyList<T>`, in display order), and is also handed to `OnFilterChanged`/`OnSortChanged` as `args.VisibleItems`. Both expose the same snapshot the grid renders from. It reflects the pipeline as of its last run — so after an in-place mutation that could change matching or ordering, call `ForceRerender()` before reading it. When `GroupBy` is set, the list is in group order, and rows in collapsed groups are still included (collapsing only hides them visually).
@@ -112,6 +114,8 @@ The column title shows a pointer cursor only when clicking it can change sort �
 
 A sort icon (↑ or ↓) appears in the column header of the primary sort column only. A filter icon appears when FilterState is non-empty.
 
+A sort never changes which rows are selected — the selection follows its rows to their new positions and `OnSelectionChanged` does not fire. See [Selection across sort and filter](#selection-across-sort-and-filter).
+
 ---
 
 ## Filtering
@@ -127,6 +131,8 @@ Multiple columns can be filtered simultaneously; each filter is applied in colum
 Filters are applied before sort, so the sort operates on the already-filtered dataset.
 
 The column menu's filter panel populates itself from the current `Data` list (not `filteredData`), showing all distinct values. Values are obtained via the same `Property ?? Display` key used for sort/filter.
+
+A filter that hides a selected row drops that row from the selection and fires `OnSelectionChanged`; clearing the filter does not bring it back. See [Selection across sort and filter](#selection-across-sort-and-filter).
 
 ---
 
@@ -190,6 +196,17 @@ Selection is treated as best-effort, not critical state, so changing `Data` (or 
 - If `KeyProperty` is not set, the selection is clamped to the new bounds — ranges that partially overlap the smaller data set are trimmed to what still exists, and ranges that fall entirely off the end are dropped. If nothing remains selectable, the selection is cleared. When this changes the selection, `OnSelectionChanged` fires with the reconciled selection.
 
 A host page is no longer required to call `ClearSelection()` after refreshing the grid's data to avoid stale-index errors, though doing so is still a valid way to reset selection explicitly.
+
+### Selection across sort and filter
+
+A sort or filter change — a title click, the column menu, `ClearAllFilters()`, `ClearSavedState()`, or a saved state restored under `StateKey` — rebuilds the visible rows the same way a `Data` change does, and the selection is remapped onto the new row set before anything else happens. The rows are the same objects before and after, so this works with or without `KeyProperty` (with it, rows are matched by key; without it, by reference).
+
+- Every selected row that is still visible stays selected at its new position, with the same columns. A block whose rows the sort separates splits into one range per adjacent group, and the group holding the anchor stays the active range — the same rules as a `Data` change.
+- A selected row that the filter hides is dropped. If nothing is left, the selection is empty. Clearing the filter later does not re-select it.
+- `OnSelectionChanged` (and `SelectedItemsChanged`) fires once, and only when a row was dropped. A pure reorder is silent — the same items are selected, so a host that binds a selected item from the event sees nothing. It fires before `OnSortChanged` / `OnFilterChanged`, so inside those handlers the grid's selection and `VisibleItems` already agree.
+- Nothing scrolls. Only `SelectRow`, `SelectCell`, `SelectRange`, and `SelectRowByKey` scroll.
+
+Collapsing a group is not a filter: its rows stay in the row set and stay selected. Changing `GroupBy` itself does not re-run the pipeline until `Data` changes or `ForceRerender()` is called.
 
 ### Mutating `Data` in place
 

@@ -1067,13 +1067,13 @@ public partial class NxGrid<T>
     {
         List<CapturedRange>? selectedKeys = null;
         if (KeyProperty != null && selectedRanges.Count > 0)
-            selectedKeys = CaptureSelectedKeys();
+            selectedKeys = CaptureSelectedKeys(KeyProperty);
 
         RepipeData();
 
         if (selectedKeys is { Count: > 0 })
         {
-            RestoreSelectionByKeys(selectedKeys);
+            RestoreSelectionByKeys(selectedKeys, KeyProperty!);
             pendingKeyRestorationChanged = true;
         }
         else if (SanitizeSelectionRanges())
