@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-10-05
+
 ### Fixed
 
 - Sorting or filtering no longer leaves the selection highlight on whatever rows landed at the old positions. The selected rows follow the sort to their new positions (a block the sort separates splits into several ranges, as a `Data` change already did), and a filter that hides a selected row drops it. Works with or without `KeyProperty`. `OnSelectionChanged` and `SelectedItemsChanged` fire only when a row was dropped — never for a pure reorder — and before `OnSortChanged` / `OnFilterChanged`, so a host that binds a selected item from the event stays in step with the grid. Host pages no longer need to re-select or clear by hand from `OnFilterChanged`.
