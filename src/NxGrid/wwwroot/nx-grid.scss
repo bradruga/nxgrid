@@ -159,9 +159,9 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     background-color: var(--nx-grid-row-even-bg);
 }
 
-// Manual mode (a column was resized): columns no longer flex-grow to fill the grid, so the
+// No column flex-grows to fill the grid (all Fixed, or a column was resized), so the
 // row shrinks to its cells and banding ends at the last column instead of the grid edge.
-.nx-grid-manual .nx-grid-row {
+.nx-grid-no-flex .nx-grid-row {
     width: max-content;
 }
 

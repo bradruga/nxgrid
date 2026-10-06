@@ -1002,6 +1002,8 @@ public partial class NxGrid<T>
     private bool IsColumnEditable(NxGridColumn<T> col) => col.Editable ?? Editable;
     private bool IsRowSelectionMode => SelectionMode is NxGridSelectionMode.MultiRow or NxGridSelectionMode.SingleRow;
     private bool HasMultiLineColumns => visibleColumns.Any(c => c.MultiLine);
+    // Flex columns grow to fill the grid; without any, the row shrinks to its cells so banding ends at the last column.
+    private bool HasFlexColumns => !manualMode && visibleColumns.Any(c => c.Sizing == NxGridColumnSizing.Flex && !c.UserWidth.HasValue);
     private bool HasTemplateHeaders => visibleColumns.Any(c => c.HeaderTemplate != null);
     private bool HasFooterRow => visibleColumns.Any(c => c.FooterTemplate != null);
     private bool HasVariableRowHeight => HasMultiLineColumns || RowHeightGetter != null;

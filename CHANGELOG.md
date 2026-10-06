@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Row banding ran past the last column when every column was fixed-width and none had been resized.
+
 ## [0.4.7] - 2026-10-06
 
 ### Changed

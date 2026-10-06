@@ -115,7 +115,7 @@
   background-color: var(--nx-grid-row-even-bg);
 }
 
-.nx-grid-manual .nx-grid-row {
+.nx-grid-no-flex .nx-grid-row {
   width: max-content;
 }
 

@@ -872,6 +872,15 @@ void OnSignalRRowReceived(Person newRow)
 </NxGrid>
 """;
 
+    public static readonly string FixedSizing = """
+// All columns Fixed: no column grows to fill the grid, so rows end at the last column.
+<NxGrid T="Person" Data="@people">
+    <NxGridColumn Property="@(x => x.Id)"         Width="60"  Sizing="NxGridColumnSizing.Fixed" />
+    <NxGridColumn Property="@(x => x.FirstName)"  Width="140" Sizing="NxGridColumnSizing.Fixed" />
+    <NxGridColumn Property="@(x => x.Department)" Width="160" Sizing="NxGridColumnSizing.Fixed" />
+</NxGrid>
+""";
+
     public static readonly string Alignment = """
 <NxGridColumn Property="@(x => x.Name)"
               Alignment="NxGridColumnAlignment.Left" />    // default

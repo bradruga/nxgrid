@@ -165,6 +165,20 @@
     <pre class="doc-code" style="margin-top:12px">@fitColumnsCode</pre>
 </div>
 
+<div class="doc-section">
+    <h2>Fixed Sizing</h2>
+    <p class="doc-note">
+        When every column is <code>Sizing="Fixed"</code>, nothing grows to fill the grid.
+        Columns hold their declared widths, and row banding ends at the last column.
+    </p>
+    <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell" Style="height:260px">
+        <NxGridColumn Property="@(x => x.Id)"         Width="60"  Sizing="NxGridColumnSizing.Fixed" Alignment="NxGridColumnAlignment.Right" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="140" Sizing="NxGridColumnSizing.Fixed" />
+        <NxGridColumn Property="@(x => x.Department)" Width="160" Sizing="NxGridColumnSizing.Fixed" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@fixedSizingCode</pre>
+</div>
+
 @code {
     string GetDeptBadgeStyle(Person p) => p.Department switch
     {
@@ -188,4 +202,5 @@
     string autoSizeCode    = DemoCodeSamples.AutoSize;
     string sortResizeCode  = DemoCodeSamples.SortableResizable;
     string fitColumnsCode  = DemoCodeSamples.FitColumns;
+    string fixedSizingCode = DemoCodeSamples.FixedSizing;
 }
