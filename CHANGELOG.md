@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-10-06
+
 ### Changed
 
 - Row banding ends at the last column instead of running to the grid edge when the columns do not fill the width.
