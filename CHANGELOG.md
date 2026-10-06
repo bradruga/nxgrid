@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The footer row had no bottom edge when the rows didn't fill the grid.
+
 ## [0.4.8] - 2026-10-06
 
 ### Fixed

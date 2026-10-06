@@ -671,6 +671,7 @@ automatically reflect any active filters and sorting.
 ### Notes
 
 - The footer context is `filteredData` — it reflects the currently filtered and sorted rows, not the full `Data` list.
+- When the rows don't fill the grid, the footer sits directly under the last row and draws its own 1px bottom edge. When it is pinned to the bottom, the grid's border is the edge.
 - Frozen columns retain their sticky-left position in the footer row.
 - When `EnableSelectionMath` is also `true`, the status bar floats above the footer row while a selection is active. They do not overlap.
 - Clicking the footer row does not affect the grid's selection state.

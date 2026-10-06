@@ -1425,6 +1425,8 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
     bottom: 0;
     background-color: var(--nx-grid-footer-bg);
     border-top: 2px solid var(--nx-grid-header-border);
+    // Closes a footer that ends above the grid bottom; clipped by the scrollport when pinned
+    box-shadow: 0 1px 0 var(--nx-grid-header-border);
     color: var(--nx-grid-footer-color);
     display: flex;
     font-weight: bold;
