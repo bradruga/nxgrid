@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Row banding ends at the last column instead of running to the grid edge when the columns do not fill the width.
 - The column menu widens to fit the longest value in its filter list, up to 500px. Values longer than that scroll horizontally, and are cut off with an ellipsis only past 2000px.
 
 ## [0.4.6] - 2026-10-05

@@ -1249,7 +1249,10 @@ class NxGrid {
             // When gutter is hidden there is no gutter element, so columns start at nth-child(1).
             const nthOffset = gutterHidden ? 1 : 2;
             const delta = resizeWidth - initialWidths[columnIndex];
-            styleEl.textContent = initialWidths
+            // Rows carry an inline min-width from the pre-drag layout; without this they keep
+            // that width (banding past the last column) until Blazor re-renders on mouseup.
+            const rowRule = `#${safeId} .nx-grid-row{width:max-content!important;min-width:0!important}`;
+            styleEl.textContent = rowRule + initialWidths
                 .map((w, i) => {
                     const shiftLeft = resizedIsFrozen && i > columnIndex && stickyLefts[i] != null;
                     return colRule(

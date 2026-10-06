@@ -115,6 +115,10 @@
   background-color: var(--nx-grid-row-even-bg);
 }
 
+.nx-grid-manual .nx-grid-row {
+  width: max-content;
+}
+
 .nx-grid-row .nx-grid-cell,
 .nx-grid-row .nx-grid-row-start {
   border-bottom: 1px solid var(--nx-grid-border);

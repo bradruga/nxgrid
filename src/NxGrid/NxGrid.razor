@@ -9,7 +9,7 @@
 
 @{ ExpandSelectionToSpans(); /* a selection must never end inside a span, whatever set it */ }
 
-<div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @(HasMultiLineColumns ? "nx-grid-multiline" : "") @(HasVariableRowHeight ? "nx-grid-var-height" : "") @(IsPointMode ? "nx-grid-point-mode" : "") @(HasTemplateHeaders ? "nx-grid-template-header" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px;--nx-grid-gutter-width:@(RowGutterWidth)px;--nx-grid-content-width:@(contentWidth)px"
+<div id="@id" class="nx-grid @(!RowBanding ? "nx-grid-no-banding" : "") @(HasMultiLineColumns ? "nx-grid-multiline" : "") @(HasVariableRowHeight ? "nx-grid-var-height" : "") @(IsPointMode ? "nx-grid-point-mode" : "") @(IsManualMode ? "nx-grid-manual" : "") @(HasTemplateHeaders ? "nx-grid-template-header" : "") @Class" style="@Style;--nx-grid-row-height:@(RowHeight)px;--nx-grid-gutter-width:@(RowGutterWidth)px;--nx-grid-content-width:@(contentWidth)px"
      data-state-key="@StateKey"
      tabindex="0"
      @onkeydown="@OnGridKeyDown">
