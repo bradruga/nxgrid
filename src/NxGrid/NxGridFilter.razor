@@ -51,7 +51,7 @@
         </div>
     }
 
-    <div class="nx-grid-filter-listbox">
+    <div class="nx-grid-filter-listbox" style="width: clamp(250px, calc(@(longestLabel)ch + 40px), 450px)">
         <div class="nx-grid-filter-item">
             <input id="select-all" type="checkbox"
                    checked="@selectAll"
@@ -98,6 +98,7 @@
     private bool selectAll;
     private List<FilterItem> filterItems = [];
     private List<FilterItem> filteredItems = [];
+    private int longestLabel;
     private string? loadedColumnTitle;
     private string? searchText;
 
@@ -135,6 +136,9 @@
                 Selected = Column.FilterState.Count == 0 || Column.FilterState.Select(v => v?.ToString()).Contains(x.Key.Value?.ToString())
             })
             .OrderBy(x => x.Label).ToList();
+
+        // Sizes the value list up front so the menu does not change width as the virtualized rows scroll.
+        longestLabel = filterItems.Count == 0 ? 0 : filterItems.Max(x => x.Label.Length);
 
         selectAll = filterItems.All(x => x.Selected);
 

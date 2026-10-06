@@ -948,6 +948,8 @@ The ▾ button appears on a column only when `HasColumnMenu = true` **and** that
 
 Dividers are drawn only between groups that actually rendered, so a menu never opens with a leading, trailing, or doubled divider. A column configured with `Sortable="false" Filterable="false" Freezable="false" Hideable="false"` — a template-only action column, typically — has no menu and no ▾ button at all.
 
+The menu is 300px wide by default and widens to fit the longest value in the filter list, up to 500px. The width is set from the value text when the menu opens, so it does not change as the virtualized list scrolls. Values that do not fit at 500px scroll horizontally inside the list; a value wider than 2000px is cut off with an ellipsis, and its full text is in the label tooltip.
+
 The menu closes on any entry click and on click-away (`OnColumnMenuLostFocus`), so a menu with no filter panel — and therefore no Cancel button — is still dismissible.
 
 ---

@@ -416,8 +416,11 @@
   }
 }
 
+/* The filter value list sets its own width from its longest value; the menu follows it. */
 .nx-grid-column-menu {
-  width: 300px;
+  width: max-content;
+  min-width: 300px;
+  max-width: 500px;
   background-color: var(--nx-grid-menu-bg);
   border: 1px solid var(--nx-grid-border);
   box-shadow: 0 4px 12px var(--nx-grid-shadow);
@@ -587,7 +590,7 @@
 .nx-grid-filter-listbox {
   border: 1px solid var(--nx-grid-border);
   height: 300px;
-  overflow-y: auto;
+  overflow: auto;
   /* A virtualized value list, so no scroll anchoring — see .nx-grid above. */
   overflow-anchor: none;
   padding: 8px;
@@ -646,8 +649,11 @@
   cursor: pointer;
   font-size: 13px;
   line-height: 1.4;
-  overflow: hidden;
   white-space: nowrap;
+  /* Otherwise overflow:hidden lets flex shrink the label to the row instead of scrolling. */
+  flex-shrink: 0;
+  max-width: 2000px;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 
