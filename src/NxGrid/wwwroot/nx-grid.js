@@ -1240,7 +1240,8 @@ class NxGrid {
         const colRule = (nth, w, left) => {
             const leftRule = left != null ? `;left:${left}px!important` : '';
             return `#${safeId} .nx-grid-header-row .nx-grid-cell:nth-child(${nth}),` +
-                `#${safeId} .nx-grid-row .nx-grid-cell:nth-child(${nth}){` +
+                `#${safeId} .nx-grid-row .nx-grid-cell:nth-child(${nth}),` +
+                `#${safeId} .nx-grid-footer-row .nx-grid-cell:nth-child(${nth}){` +
                 `width:${w}px!important;min-width:${w}px!important;max-width:${w}px!important;flex-grow:0!important${leftRule}}`;
         };
 

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The footer row had no bottom edge when the rows didn't fill the grid.
+- Footer cells now follow a column resize while you drag, instead of snapping into place on release.
 
 ## [0.4.8] - 2026-10-06
 
