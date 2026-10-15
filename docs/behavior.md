@@ -663,7 +663,7 @@ Dragging the resize grip at the right edge of any column header initiates a JS-d
 
 **Selection during the drag.** A resize drag never changes the selection, however far the pointer wanders — over the rows, back onto the header, across the row-number gutter — so the set of columns the resize applies to is fixed at mousedown. Cell and header tooltips stay suppressed for the duration of the drag.
 
-**Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns with `Resizable="true"` are resized to the same new width simultaneously. All other visible columns are still locked at their pre-drag widths.
+**Multi-column resize:** if the resized column is part of a "full column selection" (the selection spans from row 0 to the last row, and the column is within the selected column range), all selected columns with `Resizable="true"` are resized to the same new width simultaneously. All other visible columns are still locked at their pre-drag widths. This applies only in `Cell` selection mode: `SingleRow` and `MultiRow` cannot express a column selection, so there a drag always resizes the dragged column alone, even when every row is selected.
 
 After resize, `OnColumnResized` fires once per *explicitly* resized column (the dragged column, plus any co-selected columns) with `args.ColumnIndex` and `args.NewWidth`. It does not fire for columns that were merely locked.
 

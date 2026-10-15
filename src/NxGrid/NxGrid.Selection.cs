@@ -668,10 +668,13 @@ public partial class NxGrid<T>
 
     // Returns the range of column indices to resize. If the resized column is part of a full-row
     // column selection, returns all selected columns; otherwise just the single column.
+    // Row selection modes cannot express a column selection, so a one-row grid with its row
+    // selected (row 0..0, every column) must not read as "every column selected".
     private IEnumerable<int> GetEntireColumnSelection(int columnIndex)
     {
         var active = ActiveRange;
-        if (active != null
+        if (!IsRowSelectionMode
+            && active != null
             && active.StartRow == 0
             && active.EndRow == filteredData.Count - 1
             && columnIndex >= active.StartCol

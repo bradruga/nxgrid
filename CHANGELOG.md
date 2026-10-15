@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- In `SingleRow` and `MultiRow` selection modes, dragging a column grip with every row selected (for example a grid filtered to one row) resized every column instead of just the dragged one.
+
 ## [0.4.9] - 2026-10-06
 
 ### Fixed

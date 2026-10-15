@@ -681,7 +681,7 @@ automatically reflect any active filters and sorting.
 
 ## Column auto-sizing
 
-Double-click any column's resize grip to auto-size the column to its estimated best fit. When a full-column selection is active and you double-click any selected column's resize grip, all selected columns with `Resizable="true"` and `AutoSizable="true"` are auto-sized simultaneously.
+Double-click any column's resize grip to auto-size the column to its estimated best fit. When a full-column selection is active in `Cell` selection mode and you double-click any selected column's resize grip, all selected columns with `Resizable="true"` and `AutoSizable="true"` are auto-sized simultaneously.
 
 Because NxGrid virtualizes rows, off-screen row content is never in the DOM. Auto-size uses a **character-width prediction model** instead of DOM measurement:
 
