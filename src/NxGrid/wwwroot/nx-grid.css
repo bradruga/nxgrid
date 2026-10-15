@@ -1536,6 +1536,7 @@
 
 .nx-print-btn-cancel {
   background: none;
+  color: inherit;
   border: 1px solid var(--nx-grid-border);
   border-radius: 4px;
   padding: 6px 16px;

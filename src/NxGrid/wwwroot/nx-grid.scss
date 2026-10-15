@@ -1674,6 +1674,7 @@ $nx-grid-readonly-bg:     rgba(128, 128, 128, 0.14) !default;
 
 .nx-print-btn-cancel {
     background: none;
+    color: inherit; // buttons don't inherit color by default; keep the dialog's text color on dark themes
     border: 1px solid var(--nx-grid-border);
     border-radius: 4px;
     padding: 6px 16px;
