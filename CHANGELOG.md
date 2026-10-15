@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-15
+
 ### Fixed
 
 - Columns with a `HeaderTemplate` auto-sized (grip double-click and `FitContent`) to their data alone, clipping the header. The template is now measured.
