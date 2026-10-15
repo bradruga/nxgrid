@@ -763,6 +763,14 @@ public partial class NxGrid<T>
         const int headerFixedOverhead = 20; // 6px left + 6px right + 1px border + 7px buffer for font rendering variation
         const int menuButtonWidth = 28;     // 24px svg + 4px margin-left
         const int iconWidth = 20;           // 16px svg + 4px margin-left, per icon
+
+        // A HeaderTemplate can hold anything, so its header is measured from the DOM rather than
+        // estimated from the title. Skipped on a count mismatch: the header row is mid-render.
+        var headerMinWidths = columnsToResize.Any(i => visibleColumns[i].HeaderTemplate != null)
+            ? await jsInterop.GetHeaderMinWidths()
+            : [];
+        if (headerMinWidths.Length != visibleColumns.Count) headerMinWidths = [];
+
         foreach (var idx in columnsToResize)
         {
             var col = visibleColumns[idx];
@@ -776,12 +784,19 @@ public partial class NxGrid<T>
             }
 
             var dataNeeded = (int)Math.Ceiling(maxDataWidth) + cellPadding;
-            var headerTextWidth = col.HeaderTemplate == null
-                ? EstimateStringWidth(col.EffectiveTitle, _charWidths!.Bold, _boldAvgWidth)
-                : 0;
-            var iconCount = (col.SortState != 0 ? 1 : 0) + (col.FilterState.Count > 0 ? 1 : 0);
-            var headerNeeded = (int)Math.Ceiling(headerTextWidth) + headerFixedOverhead
+            int headerNeeded;
+            if (col.HeaderTemplate != null && headerMinWidths.Length > 0)
+            {
+                // Measured cell width already includes padding, icons and the menu button.
+                headerNeeded = (int)Math.Ceiling(headerMinWidths[idx]);
+            }
+            else
+            {
+                var headerTextWidth = EstimateStringWidth(col.EffectiveTitle, _charWidths!.Bold, _boldAvgWidth);
+                var iconCount = (col.SortState != 0 ? 1 : 0) + (col.FilterState.Count > 0 ? 1 : 0);
+                headerNeeded = (int)Math.Ceiling(headerTextWidth) + headerFixedOverhead
                              + (HasColumnMenu ? menuButtonWidth : 0) + iconCount * iconWidth;
+            }
             var newWidth = Math.Max(dataNeeded, headerNeeded);
 
             if (col.MinWidth.HasValue) newWidth = Math.Max(newWidth, col.MinWidth.Value);

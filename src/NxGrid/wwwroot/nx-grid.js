@@ -1479,8 +1479,9 @@ class NxGrid {
 
         // Clone the header row, strip all inline width constraints, and measure the
         // natural cell widths. The clone is never visible — no layout thrash or flicker.
+        // Appended to the grid itself so it inherits the grid's font and CSS variables.
         const clone = headerRow.cloneNode(true);
-        clone.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;width:max-content;';
+        clone.style.cssText = 'position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;width:max-content;';
 
         for (const cell of clone.querySelectorAll('.nx-grid-cell')) {
             cell.style.width = '';
@@ -1506,7 +1507,7 @@ class NxGrid {
             title.style.textOverflow = 'clip';
         }
 
-        document.body.appendChild(clone);
+        gridElement.appendChild(clone);
         const widths = Array.from(clone.querySelectorAll('.nx-grid-cell'))
             .map(cell => cell.getBoundingClientRect().width);
         clone.remove();

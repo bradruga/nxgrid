@@ -118,6 +118,9 @@ public class NxGridJsInterop<T> : IAsyncDisposable
     public Task<double[]> GetColumnWidths()
         => Guarded(() => jsObject.InvokeAsync<double[]>("getColumnWidths").AsTask(), []);
 
+    public Task<double[]> GetHeaderMinWidths()
+        => Guarded(() => jsObject.InvokeAsync<double[]>("getHeaderMinWidths").AsTask(), []);
+
     public Task<int> GetPageRowCount(int rowHeight)
         => Guarded(() => jsObject.InvokeAsync<int>("getPageRowCount", rowHeight).AsTask(), 10);
 

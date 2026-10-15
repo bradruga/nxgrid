@@ -38,6 +38,13 @@ public partial class NxGrid<T>
             ? filteredData.GetRange(0, FitScanRowLimit)
             : filteredData;
 
+        // A HeaderTemplate can hold anything, so its header is measured from the DOM rather than
+        // estimated from the title. Skipped on a count mismatch: the header row is mid-render.
+        var headerMinWidths = visibleColumns.Any(c => c.HeaderTemplate != null && !c.UserWidth.HasValue && c.EffectiveFitContent)
+            ? await jsInterop.GetHeaderMinWidths()
+            : [];
+        if (headerMinWidths.Length != visibleColumns.Count) headerMinWidths = [];
+
         // Compute natural ideal widths for each fittable column.
         // CSS flex-grow uses these as proportional weights, so no viewport scaling is needed.
         for (var i = 0; i < visibleColumns.Count; i++)
@@ -55,13 +62,20 @@ public partial class NxGrid<T>
 
             var dataNeeded = (int)Math.Ceiling(maxDataWidth) + cellPadding;
 
-            // Measure header using bold canvas widths — avoids DOM clone/overflow layout quirks.
-            var headerTextWidth = col.HeaderTemplate == null
-                ? EstimateStringWidth(col.EffectiveTitle, _charWidths.Bold, _boldAvgWidth)
-                : 0;
-            var iconCount = (col.SortState != 0 ? 1 : 0) + (col.FilterState.Count > 0 ? 1 : 0);
-            var headerNeeded = (int)Math.Ceiling(headerTextWidth) + headerFixedOverhead
+            int headerNeeded;
+            if (col.HeaderTemplate != null && headerMinWidths.Length > 0)
+            {
+                // Measured cell width already includes padding, icons and the menu button.
+                headerNeeded = (int)Math.Ceiling(headerMinWidths[i]);
+            }
+            else
+            {
+                // Plain titles use bold canvas widths — avoids DOM clone/overflow layout quirks.
+                var headerTextWidth = EstimateStringWidth(col.EffectiveTitle, _charWidths.Bold, _boldAvgWidth);
+                var iconCount = (col.SortState != 0 ? 1 : 0) + (col.FilterState.Count > 0 ? 1 : 0);
+                headerNeeded = (int)Math.Ceiling(headerTextWidth) + headerFixedOverhead
                              + (HasColumnMenu ? menuButtonWidth : 0) + iconCount * iconWidth;
+            }
 
             var ideal = Math.Max(dataNeeded, headerNeeded);
 

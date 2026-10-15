@@ -681,7 +681,7 @@ automatically reflect any active filters and sorting.
 
 ## Column auto-sizing
 
-Double-click any column's resize grip to auto-size the column to its estimated best fit. When a full-column selection is active in `Cell` selection mode and you double-click any selected column's resize grip, all selected columns with `Resizable="true"` and `AutoSizable="true"` are auto-sized simultaneously.
+Double-click any column's resize grip to auto-size the column to its estimated best fit. The width is the larger of the widest cell value and the header; a header with a `HeaderTemplate` is measured from its rendered markup, so multi-line titles and icons are never clipped. When a full-column selection is active in `Cell` selection mode and you double-click any selected column's resize grip, all selected columns with `Resizable="true"` and `AutoSizable="true"` are auto-sized simultaneously.
 
 Because NxGrid virtualizes rows, off-screen row content is never in the DOM. Auto-size uses a **character-width prediction model** instead of DOM measurement:
 
@@ -709,7 +709,7 @@ Set `AutoSizable="false"` on a column to disable double-click auto-size. Drag re
 
 ## Column fit
 
-`FitContent` is an enum (`NxGridFitContent`) that controls whether a column automatically measures its widest data value to determine its width. The default value is `Auto`, which infers the right behavior from the other sizing parameters — meaning most columns need no explicit `FitContent` attribute at all.
+`FitContent` is an enum (`NxGridFitContent`) that controls whether a column automatically measures its widest data value to determine its width. The fitted width is never narrower than the header: a plain `Title` is estimated from font metrics, and a `HeaderTemplate` is measured from its rendered markup. The default value is `Auto`, which infers the right behavior from the other sizing parameters — meaning most columns need no explicit `FitContent` attribute at all.
 
 ### Effective behavior by configuration
 
