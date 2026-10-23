@@ -154,7 +154,8 @@
     {
         selectAll = (bool?)args.Value == true;
 
-        foreach (var item in filterItems)
+        // Only the values the search is showing; the hidden ones keep their ticks
+        foreach (var item in filteredItems)
         {
             item.Selected = selectAll;
         }
@@ -165,7 +166,7 @@
     private void OnItemChanged(FilterItem item, ChangeEventArgs args)
     {
         item.Selected = (bool?)args.Value == true;
-        selectAll = filterItems.All(x => x.Selected);
+        selectAll = filteredItems.All(x => x.Selected);
         StateHasChanged();
     }
 
@@ -224,14 +225,6 @@
     private void LiveUpdateSearch()
     {
         ApplySearchFilter();
-
-        foreach (var item in filteredItems)
-        {
-            item.Selected = true;
-        }
-
-        selectAll = true;
-
         StateHasChanged();
     }
 
@@ -262,7 +255,7 @@
                                          (dateThru == null || (DateTime?)x.Key <= dateThru)).ToList();
         }
 
-        selectAll = filterItems.All(x => x.Selected);
+        selectAll = filteredItems.All(x => x.Selected);
     }
 
     private static DateTime? ParseDateText(string? s, bool start)

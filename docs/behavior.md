@@ -952,6 +952,8 @@ The menu is 300px wide by default and widens to fit the longest value in the fil
 
 The menu closes on any entry click, on click-away (`OnColumnMenuLostFocus`) and on Escape (including from the search box), so a menu with no filter panel — and therefore no Cancel button — is still dismissible. "Clear Filter From *column*" appears only while that column has a filter.
 
+**Search and (Select All).** The search box narrows the value list; it never changes which values are ticked. (Select All) ticks or unticks only the values the search is showing, and reflects only those, so values hidden by the search keep their state and are still there when the search is cleared. OK applies the ticked values of the visible list.
+
 ---
 
 ## Column menu positioning
