@@ -22,7 +22,14 @@ public partial class NxGrid<T>
 
     private async Task OnGridKeyDown(KeyboardEventArgs args)
     {
-        if (isEditing) return; // input's @onkeydown:stopPropagation handles this
+        if (isEditing)
+        {
+            // The editor stops propagation of its own keys, so a printable key that still reaches
+            // the grid was typed before the editor took focus. Append it rather than drop it.
+            if (IsPrintableKey(args))
+                OnEditInputChange(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = editValue + args.Key });
+            return;
+        }
 
         // Browser autofill and password managers dispatch synthetic keydown events with no
         // `key` property, which deserializes to a null Key. Nothing here can act on those.
