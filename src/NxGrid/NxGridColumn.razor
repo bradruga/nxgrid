@@ -730,6 +730,13 @@
             return (null, null);
         }
 
+        // On a Nullable column an emptied editor clears the cell, as Delete does
+        if (Nullable && isNullable && string.IsNullOrWhiteSpace(rawValue))
+        {
+            var s = compiledPropertySetter;
+            return (null, row => s(row, null));
+        }
+
         if (MathExpression)
             rawValue = TryEvaluateMath(rawValue) ?? rawValue;
 

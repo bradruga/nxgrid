@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Escape closes the column menu, column chooser, context menu and print dialog.
+- Emptying the editor on a nullable column now clears the value; only Delete did before.
 
 ## [0.5.0] - 2026-10-15
 

@@ -336,7 +336,7 @@ async Task ConfirmEdit(NxGridEditingArgs<ContractLineDto> args)
 
 ### Handling null / empty input
 
-When `Nullable = true` on a column and the user deletes the cell, `NewValue` is `null`. When the user types an empty string, `NewValue` is `""` for string columns. In `OnUpdate`, inspect `change.NewValue` directly if you need custom null handling rather than using `Apply`.
+When `Nullable = true` on a column and the user deletes the cell, `NewValue` is `null`. When the user types an empty string, `NewValue` is `""` for string columns and `null` for nullable value types. In `OnUpdate`, inspect `change.NewValue` directly if you need custom null handling rather than using `Apply`.
 
 ### Combo-box columns
 
@@ -1329,7 +1329,7 @@ Set `DatePicker="true"` on an editable column whose `Property` points to a `Date
 
 ### Nullable dates
 
-Set `Nullable="true"` to allow the cell to be cleared. When the user deletes the value and commits, `NewValue` is `null`.
+Set `Nullable="true"` to allow the cell to be cleared. When the user presses Delete, or empties the editor and commits, `NewValue` is `null`.
 
 ```razor
 <NxGridColumn Property="@(x => x.CompletedDate)" Width="160"
