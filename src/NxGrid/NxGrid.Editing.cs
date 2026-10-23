@@ -176,13 +176,13 @@ public partial class NxGrid<T>
         else if (moveKey == KeyTab)
         {
             newCol = StepOverSpan(row, col, 0, 1).Col;
-            if (newCol >= visibleColumns.Count) { newCol = 0; newRow = Math.Clamp(row + 1, 0, filteredData.Count - 1); }
+            if (newCol >= visibleColumns.Count) { newCol = 0; newRow = NearestVisibleRow(Math.Clamp(row + 1, 0, filteredData.Count - 1), 1); }
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol }];
         }
         else if (moveKey == KeyShiftTab)
         {
             newCol = StepOverSpan(row, col, 0, -1).Col;
-            if (newCol < 0) { newCol = visibleColumns.Count - 1; newRow = row - 1; if (newRow < 0) newRow = filteredData.Count - 1; }
+            if (newCol < 0) { newCol = visibleColumns.Count - 1; newRow = row - 1; if (newRow < 0) newRow = filteredData.Count - 1; newRow = WrapToVisibleRow(newRow, -1); }
             selectedRanges = [new NxGridRange { StartRow = newRow, StartCol = newCol, EndRow = newRow, EndCol = newCol }];
         }
         else if (moveKey == KeyArrowUp)

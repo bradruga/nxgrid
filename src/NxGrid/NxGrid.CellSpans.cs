@@ -33,7 +33,17 @@ public partial class NxGrid<T>
             if (dRow > 0) row = s.EndRow; else if (dRow < 0) row = s.Row;
             if (dCol > 0) col = s.EndColumn; else if (dCol < 0) col = s.Column;
         }
-        return (row + dRow, col + dCol);
+        return (SkipCollapsedRows(row, dRow), col + dCol);
+    }
+
+    // A vertical step lands on the next row that is not inside a collapsed group; with none
+    // left in that direction the step is a no-op, so the selection never vanishes into a group.
+    private int SkipCollapsedRows(int row, int dRow)
+    {
+        var target = row + dRow;
+        if (dRow == 0 || collapsedGroupValues.Count == 0) return target;
+        while (target >= 0 && target < filteredData.Count && IsRowInCollapsedGroup(target)) target += dRow;
+        return target < 0 || target >= filteredData.Count ? row : target;
     }
 
     private void ExpandSelectionToSpans()

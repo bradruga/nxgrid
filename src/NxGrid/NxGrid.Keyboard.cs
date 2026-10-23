@@ -195,8 +195,8 @@ public partial class NxGrid<T>
         // A plain step treats a span as one cell: it leaves from the span's far edge
         switch (args.Key)
         {
-            case KeyArrowUp:    newEndRow = args.CtrlKey ? FindEdgeRow(newEndRow, newEndCol, -1) : StepOverSpan(newEndRow, newEndCol, -1, 0).Row; break;
-            case KeyArrowDown:  newEndRow = args.CtrlKey ? FindEdgeRow(newEndRow, newEndCol,  1) : StepOverSpan(newEndRow, newEndCol,  1, 0).Row; break;
+            case KeyArrowUp:    newEndRow = args.CtrlKey ? NearestVisibleRow(FindEdgeRow(newEndRow, newEndCol, -1), -1) : StepOverSpan(newEndRow, newEndCol, -1, 0).Row; break;
+            case KeyArrowDown:  newEndRow = args.CtrlKey ? NearestVisibleRow(FindEdgeRow(newEndRow, newEndCol,  1),  1) : StepOverSpan(newEndRow, newEndCol,  1, 0).Row; break;
             case KeyArrowLeft:  newEndCol = args.CtrlKey ? FindEdgeCol(newEndRow, newEndCol, -1) : StepOverSpan(newEndRow, newEndCol, 0, -1).Col; break;
             case KeyArrowRight: newEndCol = args.CtrlKey ? FindEdgeCol(newEndRow, newEndCol,  1) : StepOverSpan(newEndRow, newEndCol, 0,  1).Col; break;
         }
@@ -244,7 +244,7 @@ public partial class NxGrid<T>
 
         if (SelectionMode == NxGridSelectionMode.MultiRow || SelectionMode == NxGridSelectionMode.SingleRow)
         {
-            newEndRow = args.Key == KeyHome ? 0 : filteredData.Count - 1;
+            newEndRow = args.Key == KeyHome ? NearestVisibleRow(0, 1) : NearestVisibleRow(filteredData.Count - 1, -1);
             var effectiveShift = args.ShiftKey && SelectionMode != NxGridSelectionMode.SingleRow;
             if (!effectiveShift)
             {
@@ -269,11 +269,11 @@ public partial class NxGrid<T>
         {
             case KeyHome:
                 newEndCol = 0;
-                if (args.CtrlKey) newEndRow = 0;
+                if (args.CtrlKey) newEndRow = NearestVisibleRow(0, 1);
                 break;
             case KeyEnd:
                 newEndCol = visibleColumns.Count - 1;
-                if (args.CtrlKey) newEndRow = filteredData.Count - 1;
+                if (args.CtrlKey) newEndRow = NearestVisibleRow(filteredData.Count - 1, -1);
                 break;
         }
 
@@ -310,8 +310,9 @@ public partial class NxGrid<T>
         var newEndRow = effectiveShift ? active.EndRow : active.StartRow;
         var newEndCol = effectiveShift ? active.EndCol : active.StartCol;
 
-        newEndRow += args.Key == KeyPageDown ? pageSize : -pageSize;
-        newEndRow = Math.Clamp(newEndRow, 0, filteredData.Count - 1);
+        var pageDir = args.Key == KeyPageDown ? 1 : -1;
+        newEndRow += pageDir * pageSize;
+        newEndRow = NearestVisibleRow(Math.Clamp(newEndRow, 0, filteredData.Count - 1), pageDir);
 
         if (!effectiveShift)
         {
@@ -359,7 +360,7 @@ public partial class NxGrid<T>
 
         if (SelectionMode == NxGridSelectionMode.MultiRow || SelectionMode == NxGridSelectionMode.SingleRow)
         {
-            row = Math.Clamp(row + (args.ShiftKey ? -1 : 1), 0, filteredData.Count - 1);
+            row = Math.Clamp(SkipCollapsedRows(row, args.ShiftKey ? -1 : 1), 0, filteredData.Count - 1);
             selectedRanges = [new NxGridRange { StartRow = row, StartCol = 0, EndRow = row, EndCol = visibleColumns.Count - 1 }];
             StateHasChanged();
             await RaiseSelectionChanged();
@@ -370,12 +371,12 @@ public partial class NxGrid<T>
         if (!args.ShiftKey)
         {
             col = StepOverSpan(row, col, 0, 1).Col;
-            if (col >= visibleColumns.Count) { col = 0; row++; if (row >= filteredData.Count) row = 0; }
+            if (col >= visibleColumns.Count) { col = 0; row++; if (row >= filteredData.Count) row = 0; row = WrapToVisibleRow(row, 1); }
         }
         else
         {
             col = StepOverSpan(row, col, 0, -1).Col;
-            if (col < 0) { col = visibleColumns.Count - 1; row--; if (row < 0) row = filteredData.Count - 1; }
+            if (col < 0) { col = visibleColumns.Count - 1; row--; if (row < 0) row = filteredData.Count - 1; row = WrapToVisibleRow(row, -1); }
         }
 
         selectedRanges = [new NxGridRange { StartRow = row, StartCol = col, EndRow = row, EndCol = col }];

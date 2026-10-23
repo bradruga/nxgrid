@@ -206,7 +206,7 @@ A sort or filter change — a title click, the column menu, `ClearAllFilters()`,
 - `OnSelectionChanged` (and `SelectedItemsChanged`) fires once, and only when a row was dropped. A pure reorder is silent — the same items are selected, so a host that binds a selected item from the event sees nothing. It fires before `OnSortChanged` / `OnFilterChanged`, so inside those handlers the grid's selection and `VisibleItems` already agree.
 - Nothing scrolls. Only `SelectRow`, `SelectCell`, `SelectRange`, and `SelectRowByKey` scroll.
 
-Collapsing a group is not a filter: its rows stay in the row set and stay selected. Changing `GroupBy` itself does not re-run the pipeline until `Data` changes or `ForceRerender()` is called.
+Collapsing a group is not a filter: its rows stay in the row set and stay selected. Keyboard navigation does not enter a collapsed group, though. An arrow, Enter or row-mode Tab step lands on the next visible row, and stays put when there is none in that direction. Tab's wrap to the next or previous row skips collapsed rows, wrapping past the end if it has to. A jump (Ctrl+Arrow, Ctrl+Home/End, Page Up/Down, Home/End in the row-selection modes) that lands inside a collapsed group moves to the nearest visible row, looking in the jump's direction first. Changing `GroupBy` itself does not re-run the pipeline until `Data` changes or `ForceRerender()` is called.
 
 ### Mutating `Data` in place
 

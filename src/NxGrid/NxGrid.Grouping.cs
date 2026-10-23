@@ -43,6 +43,28 @@ public partial class NxGrid<T>
         rowIndices = Enumerable.Range(0, filteredData.Count).ToList();
     }
 
+    private bool IsRowInCollapsedGroup(int row) =>
+        IsGrouped && collapsedGroupValues.Count > 0
+        && groups.Any(g => row >= g.StartIndex && row < g.StartIndex + g.Count && collapsedGroupValues.Contains(g.Value));
+
+    // A jump target (Ctrl+Home, PageDown, …) inside a collapsed group moves to the nearest visible
+    // row, looking in the jump's direction first; with no visible row at all it stays put.
+    private int NearestVisibleRow(int row, int dir)
+    {
+        if (!IsRowInCollapsedGroup(row)) return row;
+        for (var r = row + dir; r >= 0 && r < filteredData.Count; r += dir) if (!IsRowInCollapsedGroup(r)) return r;
+        for (var r = row - dir; r >= 0 && r < filteredData.Count; r -= dir) if (!IsRowInCollapsedGroup(r)) return r;
+        return row;
+    }
+
+    // Tab's row wrap: keeps stepping in dir, wrapping past either end, until it reaches a visible row.
+    private int WrapToVisibleRow(int row, int dir)
+    {
+        for (var i = 0; i < filteredData.Count && IsRowInCollapsedGroup(row); i++)
+            row = (row + dir + filteredData.Count) % filteredData.Count;
+        return row;
+    }
+
     private void ToggleGroup(object? value)
     {
         if (!GroupsCollapsible) return;
