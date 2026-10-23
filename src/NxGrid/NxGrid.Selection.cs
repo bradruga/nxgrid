@@ -18,6 +18,7 @@ public partial class NxGrid<T>
     private int clickDownRow = -1;
     private int clickDownCol = -1;
     private bool clickWasDragged;
+    private (int Row, int Col)? ctrlDeselectCell;
 
     /// <summary>
     /// Ends any in-progress header / row-number drag selection. Called from every mouse press that
@@ -60,6 +61,7 @@ public partial class NxGrid<T>
         clickDownRow = rowIndex;
         clickDownCol = colIndex;
         clickWasDragged = false;
+        ctrlDeselectCell = null;
 
         // Formula ref-pick mode: clicking another cell starts a pick range; the event fires on mouseup
         // with the full range so click-and-drag produces a multi-cell reference (e.g. "A1:A4").
@@ -143,24 +145,17 @@ public partial class NxGrid<T>
         }
         else if (ctrlHeld)
         {
-            // Ctrl+click: check if we're clicking a cell that's the sole member of an existing range
-            var existingIdx = selectedRanges.FindIndex(r =>
-                r.StartRow == rowIndex && r.EndRow == rowIndex &&
-                r.StartCol == colIndex && r.EndCol == colIndex);
-            if (existingIdx >= 0)
+            // The press always anchors a new range, so a Ctrl+drag starts where the user pressed.
+            // On a selected cell, a release without a drag turns it into a deselect (OnCellMouseUp).
+            if (selectedRanges.Any(r => r.IsCellInRange(rowIndex, colIndex)))
+                ctrlDeselectCell = (rowIndex, colIndex);
+            selectedRanges.Add(new NxGridRange
             {
-                selectedRanges.RemoveAt(existingIdx);
-            }
-            else
-            {
-                selectedRanges.Add(new NxGridRange
-                {
-                    StartRow = rowIndex,
-                    StartCol = colIndex,
-                    EndRow = rowIndex,
-                    EndCol = colIndex
-                });
-            }
+                StartRow = rowIndex,
+                StartCol = colIndex,
+                EndRow = rowIndex,
+                EndCol = colIndex
+            });
         }
         else
         {
@@ -396,6 +391,41 @@ public partial class NxGrid<T>
         }
     }
 
+    // Ctrl+click on a selected cell: drops the range the press added, then replaces the range the
+    // cell sits in with the up-to-four rectangles around it (rows above, below, cells left, right).
+    // When that range was the active one, the piece holding its anchor stays active, anchored there.
+    private void DeselectCell(int row, int col)
+    {
+        selectedRanges.RemoveAt(selectedRanges.Count - 1);
+        var hitIdx = selectedRanges.FindLastIndex(r => r.IsCellInRange(row, col));
+        if (hitIdx < 0) return;
+
+        var hit = selectedRanges[hitIdx];
+        var wasActive = hitIdx == selectedRanges.Count - 1;
+        var top = Math.Min(hit.StartRow, hit.EndRow); var bottom = Math.Max(hit.StartRow, hit.EndRow);
+        var left = Math.Min(hit.StartCol, hit.EndCol); var right = Math.Max(hit.StartCol, hit.EndCol);
+        var pieces = new List<NxGridRange>();
+        if (row > top)    pieces.Add(new NxGridRange { StartRow = top,     StartCol = left,    EndRow = row - 1, EndCol = right });
+        if (row < bottom) pieces.Add(new NxGridRange { StartRow = row + 1, StartCol = left,    EndRow = bottom,  EndCol = right });
+        if (col > left)   pieces.Add(new NxGridRange { StartRow = row,     StartCol = left,    EndRow = row,     EndCol = col - 1 });
+        if (col < right)  pieces.Add(new NxGridRange { StartRow = row,     StartCol = col + 1, EndRow = row,     EndCol = right });
+
+        var anchorPiece = wasActive ? pieces.FirstOrDefault(p => p.IsCellInRange(hit.StartRow, hit.StartCol)) : null;
+        if (anchorPiece != null)
+        {
+            // Orient the piece so its Start corner is the old anchor, then make it the active range
+            var pTop = Math.Min(anchorPiece.StartRow, anchorPiece.EndRow); var pBottom = Math.Max(anchorPiece.StartRow, anchorPiece.EndRow);
+            var pLeft = Math.Min(anchorPiece.StartCol, anchorPiece.EndCol); var pRight = Math.Max(anchorPiece.StartCol, anchorPiece.EndCol);
+            anchorPiece.StartRow = hit.StartRow; anchorPiece.EndRow = hit.StartRow == pTop ? pBottom : pTop;
+            anchorPiece.StartCol = hit.StartCol; anchorPiece.EndCol = hit.StartCol == pLeft ? pRight : pLeft;
+            pieces.Remove(anchorPiece);
+            pieces.Add(anchorPiece);
+        }
+
+        selectedRanges.RemoveAt(hitIdx);
+        selectedRanges.InsertRange(hitIdx, pieces);
+    }
+
     private async Task OnCellMouseUp(T row, NxGridColumn<T> column)
     {
         if (isPickDragging)
@@ -416,6 +446,17 @@ public partial class NxGrid<T>
         }
 
         leftMouseDown = false;
+
+        if (ctrlDeselectCell is { } deselect)
+        {
+            ctrlDeselectCell = null;
+            if (!clickWasDragged)
+            {
+                DeselectCell(deselect.Row, deselect.Col);
+                ExpandSelectionToSpans();
+                await RaiseSelectionChanged();
+            }
+        }
 
         if (!clickWasDragged && OnCellClicked.HasDelegate && clickDownRow >= 0)
         {

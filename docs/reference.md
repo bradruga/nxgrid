@@ -336,7 +336,7 @@ Selection is one or more rectangular ranges. Hold **Ctrl** (⌘ on Mac) while cl
 | Ctrl/⌘ + drag | Extend the newly anchored range by dragging |
 | Ctrl/⌘ + Shift + click | Extend the most recent range to the clicked cell (same as Shift+click, but other ranges are preserved) |
 
-Ctrl+clicking a cell that is the sole member of a single-cell range removes that range.
+Ctrl+clicking a cell that is already selected deselects it: a single-cell range is removed, and a larger range is split into the rectangles around the cell. If the split range was the active one, the piece holding its anchor stays active and keeps that anchor. Ctrl+dragging from a selected cell still starts a new range.
 
 Arrow keys, Tab, Enter, and Ctrl+A always collapse to a single range. Editing (F2, typing) also starts from the most recent range's anchor cell, with all other ranges cleared.
 
