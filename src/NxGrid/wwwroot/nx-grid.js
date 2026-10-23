@@ -1238,6 +1238,11 @@ class NxGrid {
         const headerCells = headerRow.querySelectorAll('.nx-grid-cell');
         if (columnIndex < 0 || columnIndex >= headerCells.length) return [];
 
+        // Reached one interop round-trip after the grip's mousedown; a fast click (or a
+        // double-click's presses) can have released by now, and the mouseup below would
+        // never come — leaving the grip active and the next mousemove resizing the column.
+        if (!this._leftButtonDown) return [];
+
         // Snapshot every column's rendered pixel width before the drag starts
         const initialWidths = Array.from(headerCells).map(c => c.getBoundingClientRect().width);
         let currentWidth = initialWidths[columnIndex];
