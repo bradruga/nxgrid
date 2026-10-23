@@ -950,7 +950,7 @@ Dividers are drawn only between groups that actually rendered, so a menu never o
 
 The menu is 300px wide by default and widens to fit the longest value in the filter list, up to 500px. The width is set from the value text when the menu opens, so it does not change as the virtualized list scrolls. Values that do not fit at 500px scroll horizontally inside the list; a value wider than 2000px is cut off with an ellipsis, and its full text is in the label tooltip.
 
-The menu closes on any entry click, on click-away (`OnColumnMenuLostFocus`) and on Escape (including from the search box), so a menu with no filter panel — and therefore no Cancel button — is still dismissible.
+The menu closes on any entry click, on click-away (`OnColumnMenuLostFocus`) and on Escape (including from the search box), so a menu with no filter panel — and therefore no Cancel button — is still dismissible. "Clear Filter From *column*" appears only while that column has a filter.
 
 ---
 
