@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Emptying the editor on a nullable column now clears the value; only Delete did before.
 - Keyboard navigation (arrows, Enter, Tab, Ctrl+Arrow, Ctrl+Home/End, Page Up/Down) no longer moves the selection into a collapsed group.
 - A very fast click or double-click on a column resize grip could leave the resize armed, so the next mouse move resized the column.
+- Typing a character on a checkbox cell opened a text editor.
 - "Clear Filter From" only appears in the column menu when that column has a filter.
 - Docs: `Frozen` now describes columns staying in place rather than moving to the left.
 

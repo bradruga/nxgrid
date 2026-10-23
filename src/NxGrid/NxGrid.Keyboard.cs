@@ -148,8 +148,8 @@ public partial class NxGrid<T>
                 }
             }
 
-            // Printable character → start editing with that character pre-filled
-            if (IsPrintableKey(args) && ActiveRange != null)
+            // Printable character → start editing with that character pre-filled (a checkbox has no text to edit)
+            if (IsPrintableKey(args) && ActiveRange != null && !visibleColumns[activeCol].IsCheckboxColumn)
             {
                 await StartEditing(activeRow, activeCol, initialChar: args.Key);
                 return;

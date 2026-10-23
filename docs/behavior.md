@@ -319,7 +319,7 @@ When `ShowReadOnlyStyling` is `true` (the default) and the grid has an `OnUpdate
 | Double-click | Existing cell value (cursor at end) |
 | Any printable character | That character only (existing value replaced) |
 
-Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctrl+C does not open the editor.
+Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctrl+C does not open the editor. A `CheckBox` column never opens one from a printable key.
 
 ### Committing an edit
 
