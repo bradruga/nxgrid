@@ -77,6 +77,18 @@ public partial class NxGrid<T>
         if (result != null)
             await ApplyDragFill(minRow, maxRow, minCol, maxCol, result.Direction, result.FillCount);
 
+        // The selection grows to cover the filled cells, so a Ctrl+C or Delete that follows acts on the block
+        if (result is { FillCount: > 0 })
+        {
+            var n = result.FillCount;
+            if (result.Direction == "down")  maxRow = Math.Min(maxRow + n, filteredData.Count - 1);
+            if (result.Direction == "up")    minRow = Math.Max(minRow - n, 0);
+            if (result.Direction == "right") maxCol = Math.Min(maxCol + n, visibleColumns.Count - 1);
+            if (result.Direction == "left")  minCol = Math.Max(minCol - n, 0);
+            selectedRanges = [new NxGridRange { StartRow = minRow, StartCol = minCol, EndRow = maxRow, EndCol = maxCol }];
+            await RaiseSelectionChanged();
+        }
+
         renderToken++;
         _fillHandleUpdatePending = true;
         StateHasChanged();

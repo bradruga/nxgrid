@@ -786,7 +786,7 @@ The grid asks the getter about every cell it renders, so it can place a covered 
 - Only a span's anchor is ever edited. F2, typing, Space on a checkbox and double-click act on the span, and the editor covers the whole span box. `BeginEditAsync` on a covered cell does nothing, and `CellEditableGetter` and `OnEditBlocked` are not consulted for it.
 - Delete, Ctrl+Enter and a checkbox toggle across the selection skip covered cells, as they skip read-only cells, and report only anchors in `OnUpdate`.
 - **Paste** starts at the span's anchor when the selection's top-left is covered. Clipboard cells that land on covered cells are dropped, not written and not reported. A single-value paste writes each anchor in the selection once. Pasting a cut clears only the source anchors.
-- **Drag-fill** writes to anchors and skips covered cells. The fill handle of a selection ending in a span sits at the span's bottom-right corner. Filling across spans of a different shape is not prevented; reject the resulting `OnUpdate` if you want Excel's "merged cells must be the same size" rule.
+- **Drag-fill** writes to anchors and skips covered cells. After any fill the selection grows to cover the source and the filled cells. The fill handle of a selection ending in a span sits at the span's bottom-right corner. Filling across spans of a different shape is not prevented; reject the resulting `OnUpdate` if you want Excel's "merged cells must be the same size" rule.
 
 ### Clipboard
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- After a drag fill the selection covers the source and the filled cells.
+
 ### Fixed
 
 - Escape closes the column menu, column chooser, context menu and print dialog.
