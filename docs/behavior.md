@@ -909,7 +909,7 @@ Section boundaries are automatically separated by a `<hr>` divider whenever both
 
 **Separators** (`Separator = true` on an item) render a `<hr>` divider above that item within its section.
 
-The menu is positioned with `position:fixed` at the mouse coordinates, offset by the containing block when the grid sits inside a dialog or other transformed ancestor (see [Popups inside dialogs and transformed containers](#popups-inside-dialogs-and-transformed-containers)). It closes when it loses focus (via a JS callback).
+The menu is positioned with `position:fixed` at the mouse coordinates, offset by the containing block when the grid sits inside a dialog or other transformed ancestor (see [Popups inside dialogs and transformed containers](#popups-inside-dialogs-and-transformed-containers)). It closes when it loses focus (via a JS callback) and on Escape. Escape closes the topmost open popup — print dialog, column chooser, context menu, then column menu — wherever focus is. That Escape stops there, so a host dialog the grid sits in stays open, and when focus was inside the popup it returns to the grid.
 
 **Staying inside the window.** The mouse coordinates are only the starting point: the menu is measured once it is in the DOM and moved back inside the window when it would spill out, through the same `_placeBelow` routine every other popup uses — the anchor is just the click point rather than an element, and being zero-height makes "below" and "above" the same line. Right-clicking near the bottom opens the menu *upward*, with its bottom edge at the pointer instead of its top — the same flip a combo dropdown does. Right-clicking near the right edge slides the menu left until it fits; it does not flip to open leftward, so it still starts at the pointer whenever there is room. A menu taller than the window is capped by `.nx-grid-popup`'s `max-height` and scrolls internally. Like every measured popup it renders with `visibility:hidden` for the frame that inserts it (see [Measured before shown](#measured-before-shown)), so it never flashes at the raw click point before landing.
 
@@ -950,7 +950,7 @@ Dividers are drawn only between groups that actually rendered, so a menu never o
 
 The menu is 300px wide by default and widens to fit the longest value in the filter list, up to 500px. The width is set from the value text when the menu opens, so it does not change as the virtualized list scrolls. Values that do not fit at 500px scroll horizontally inside the list; a value wider than 2000px is cut off with an ellipsis, and its full text is in the label tooltip.
 
-The menu closes on any entry click and on click-away (`OnColumnMenuLostFocus`), so a menu with no filter panel — and therefore no Cancel button — is still dismissible.
+The menu closes on any entry click, on click-away (`OnColumnMenuLostFocus`) and on Escape (including from the search box), so a menu with no filter panel — and therefore no Cancel button — is still dismissible.
 
 ---
 

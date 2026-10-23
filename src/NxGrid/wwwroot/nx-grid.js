@@ -165,6 +165,25 @@ class NxGrid {
         };
         document.addEventListener('keydown', this._gridKeyHandler, true);
 
+        // Escape closes whichever popup this grid has open, wherever focus is. Capturing, so the
+        // menu's search box (which stops propagation of its keys) cannot hide it.
+        this._escapeHandler = (event) => {
+            if (event.key !== 'Escape') return;
+            const gridElement = document.getElementById(this.id);
+            if (!gridElement) return;
+            const popup = gridElement.querySelector('.nx-grid-column-menu, .nx-grid-chooser-panel, .nx-grid-context-menu, .nx-print-dialog');
+            if (!popup) return;
+            // The grid's popup takes this Escape; a host dialog behind it must not close too.
+            event.preventDefault();
+            event.stopPropagation();
+            // Closing removes whatever had focus inside the popup (the filter search box), which
+            // would drop focus to <body> and cut the grid off from the keyboard.
+            const refocus = popup.contains(document.activeElement);
+            this.dotNetObjectReference.invokeMethodAsync('OnEscapePressed')
+                .then(() => { if (refocus) this.focusGrid(); });
+        };
+        document.addEventListener('keydown', this._escapeHandler, true);
+
         // Live left-button state. dragSelect is reached one interop round-trip after the
         // Blazor mousedown handler runs, so on a fast click the real mouseup can already
         // have fired by then — dragSelect uses this to detect that and skip installing
@@ -1137,6 +1156,10 @@ class NxGrid {
         if (this._gridKeyHandler) {
             document.removeEventListener('keydown', this._gridKeyHandler, true);
             this._gridKeyHandler = null;
+        }
+        if (this._escapeHandler) {
+            document.removeEventListener('keydown', this._escapeHandler, true);
+            this._escapeHandler = null;
         }
         if (this._buttonDownHandler) {
             document.removeEventListener('mousedown', this._buttonDownHandler, true);

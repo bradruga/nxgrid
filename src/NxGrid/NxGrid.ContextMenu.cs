@@ -256,6 +256,18 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
+    /// <summary>Called by JavaScript when Escape is pressed while a popup is open. Closes the topmost one.</summary>
+    [JSInvokable]
+    public void OnEscapePressed()
+    {
+        if (printDialogOpen) printDialogOpen = false;
+        else if (showColumnChooser) showColumnChooser = false;
+        else if (showContextMenu) showContextMenu = false;
+        else if (openColumn != null) openColumn = null;
+        else return;
+        StateHasChanged();
+    }
+
     /// <summary>Called by JavaScript during a drag on the color picker gradient area.</summary>
     [JSInvokable]
     public void OnColorPickerGradientMove(double x, double y)
