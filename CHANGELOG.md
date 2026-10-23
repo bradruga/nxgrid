@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keyboard navigation (arrows, Enter, Tab, Ctrl+Arrow, Ctrl+Home/End, Page Up/Down) no longer moves the selection into a collapsed group.
 - A very fast click or double-click on a column resize grip could leave the resize armed, so the next mouse move resized the column.
 - "Clear Filter From" only appears in the column menu when that column has a filter.
+- Docs: `Frozen` now describes columns staying in place rather than moving to the left.
 
 ## [0.5.0] - 2026-10-15
 
