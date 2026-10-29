@@ -138,7 +138,9 @@ public partial class NxGrid<T>
                     string.Equals(i.Text, editValue, StringComparison.OrdinalIgnoreCase));
                 if (match != null)
                     valueToCommit = match.Id ?? editValue;
-                else if (!column.ComboBoxAllowCustom)
+                // An enum or bool list (no ComboBoxSource) also takes text that parses: a member name, a number, true, 0
+                else if (!column.ComboBoxAllowCustom
+                         && (column.ComboBoxSource != null || column.ParseAndBuildApply(editValue).apply == null))
                 {
                     await CancelEdit();
                     return;
@@ -954,8 +956,8 @@ public partial class NxGrid<T>
             rowChanges[rowIdx] = list;
         }
         var column = visibleColumns[colIdx];
-        if (column.ComboBoxSource != null && newValue != null)
-            newValue = column.ComboBoxSource.ResolveId(row!, newValue);
+        if (column.EffectiveComboSource != null && newValue != null)
+            newValue = column.EffectiveComboSource.ResolveId(row!, newValue);
         var oldValue = column.EffectiveValueGetter?.Invoke(row);
         var (typedValue, applyAction) = column.ParseAndBuildApply(newValue, oldValue);
         list.Add(new NxGridCellChange<T> { Column = column, OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction });

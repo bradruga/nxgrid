@@ -450,7 +450,16 @@
     public bool IsLastFrozen { get; set; }
 
     /// <summary><c>true</c> when <see cref="ComboBoxSource"/> is set.</summary>
-    public bool IsComboColumn => ComboBoxSource != null;
+    public bool IsComboColumn => EffectiveComboSource != null;
+
+    /// <summary>
+    /// <see cref="ComboBoxSource"/>, or for an enum property without one, a list of its members.
+    /// See docs/behavior.md, "Enum columns".
+    /// </summary>
+    public NxGridComboSource? EffectiveComboSource => ComboBoxSource
+        ?? (Nullable && propertyType != null && System.Nullable.GetUnderlyingType(propertyType) != null
+            ? enumComboSourceWithBlank
+            : enumComboSource);
 
     /// <summary><c>true</c> when <see cref="CheckBox"/> is set.</summary>
     public bool IsCheckboxColumn => CheckBox;
@@ -512,6 +521,9 @@
 
     private Func<T, object?>? compiledPropertyGetter;
     private Func<T, object?>? enumDisplayGetter;
+    // Generated for a non-[Flags] enum property; the "WithBlank" one leads with a blank option for Nullable
+    private NxGridComboSource? enumComboSource;
+    private NxGridComboSource? enumComboSourceWithBlank;
     private Func<T, object?>? formatGetter;
     private Func<T, object?>? comboDisplayGetter;
     private Action<T, object?>? compiledPropertySetter;
@@ -590,6 +602,7 @@
         {
             compiledPropertyGetter = null;
             enumDisplayGetter = null;
+            enumComboSource = enumComboSourceWithBlank = null;
             compiledPropertySetter = null;
             propertyType = null;
             displayName = null;
@@ -607,6 +620,7 @@
             // Not a simple member access — read-only (getter only, no setter)
             compiledPropertyGetter = Property.Compile();
             enumDisplayGetter = null;
+            enumComboSource = enumComboSourceWithBlank = null;
             compiledPropertySetter = null;
             propertyType = null;
             displayName = null;
@@ -625,10 +639,22 @@
         {
             var baseGetter = compiledPropertyGetter;
             enumDisplayGetter = row => GetEnumDisplayName(baseGetter(row));
+
+            if (enumType.IsDefined(typeof(FlagsAttribute), false))
+                enumComboSource = enumComboSourceWithBlank = null;
+            else
+            {
+                var members = enumType.GetFields(BindingFlags.Public | BindingFlags.Static)
+                    .Select(f => (Id: f.Name, Text: f.GetCustomAttribute<DisplayAttribute>()?.GetName() ?? f.Name))
+                    .ToList();
+                enumComboSource = NxGridComboSource.FixedList(members, m => m.Id, m => m.Text);
+                enumComboSourceWithBlank = NxGridComboSource.FixedList(members.Prepend((Id: "", Text: "")), m => m.Id, m => m.Text);
+            }
         }
         else
         {
             enumDisplayGetter = null;
+            enumComboSource = enumComboSourceWithBlank = null;
         }
 
         var canWrite = member.Member is PropertyInfo pi ? pi.CanWrite : member.Member is FieldInfo;
@@ -728,6 +754,28 @@
         return attr?.GetName() ?? memberName;
     }
 
+    // Member name, defined numeric value, or [Display(Name)] label, ignoring case
+    private static bool TryParseEnum(Type enumType, string text, out object? value)
+    {
+        text = text.Trim();
+        foreach (var field in enumType.GetFields(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (string.Equals(field.Name, text, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(field.GetCustomAttribute<DisplayAttribute>()?.GetName(), text, StringComparison.OrdinalIgnoreCase))
+            {
+                value = field.GetValue(null);
+                return true;
+            }
+        }
+        if (long.TryParse(text, out var n))
+        {
+            value = Enum.ToObject(enumType, n);
+            if (Enum.IsDefined(enumType, value)) return true;
+        }
+        value = null;
+        return false;
+    }
+
     // Parses rawValue to the property's CLR type and returns a pre-bound apply action.
     // Returns (rawValue, null) when Property is not set or parsing fails — Apply is a no-op.
     // existingValue is the cell's current value; used to preserve the date when parsing time shorthands.
@@ -808,6 +856,9 @@
                 { typed = new TimeOnly(hm.Value.hours, hm.Value.minutes); parsed = true; }
             }
         }
+
+        else if (underlying.IsEnum && TryParseEnum(underlying, rawValue, out var ev))
+        { typed = ev; parsed = true; }
 
         if (!parsed) return (rawValue, null);
 

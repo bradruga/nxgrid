@@ -98,6 +98,7 @@ public static class SearchIndex
         new("Combo Box",            "combo-box",        Category: "Editing", Keywords: "dropdown select combobox list"),
         new("Combo Box — Search Text", "combo-box",     Section: "Search Text (Filter by Description)", Category: "Editing", Keywords: "searchtext description filter secondary match"),
         new("Combo Box — Large Option Lists", "combo-box", Section: "Large Option Lists", Category: "Editing", Keywords: "virtualize virtualization slow performance thousands ComboBoxVirtualizeThreshold ComboBoxItemHeight row height"),
+        new("Combo Box — Enum Columns", "combo-box", Section: "Enum Columns", Category: "Editing", Keywords: "enum dropdown edit parse Display Name member"),
         new("Combo Box — Free-Text Entry", "combo-box", Section: "Free-Text Entry", Category: "Editing", Keywords: "custom free text new value suggestions not in list ComboBoxAllowCustom"),
         new("Number Formatting",    "number-format",    Category: "Editing", Keywords: "format currency decimal number thousands"),
         new("Date Picker",          "date-picker",      Category: "Editing", Keywords: "calendar date datetime"),

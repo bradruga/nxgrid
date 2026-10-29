@@ -819,6 +819,21 @@ void OnSignalRRowReceived(Person newRow)
 }
 """;
 
+    public static readonly string ComboBoxEnum = """
+// An enum property edits through a dropdown of its members — no ComboBoxSource needed.
+// Labels come from [Display(Name)]; typed or pasted text matches a label, name or number.
+<NxGridColumn Property="@(x => x.MemberType)" />
+
+public enum MemberType
+{
+    Unset,
+    [Display(Name = "Double Tee")]   DoubleTee,
+    [Display(Name = "Inverted Tee")] InvertedTee,
+    Wall,
+    Column,
+}
+""";
+
     public static readonly string ComboBoxAllowCustom = """
 // The list suggests; the user can still type a value that isn't in it.
 // Enter commits the typed text unless an option is highlighted or matches its Text exactly.
