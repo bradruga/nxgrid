@@ -174,6 +174,20 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string OnUpdating = """
+// One handler guards every change: editors opening, paste, cut-paste, Delete,
+// Ctrl+Enter, drag-fill and checkbox toggles. Awaited, so it can call a lock service.
+<NxGrid T="Person" Data="@people" Editable="true"
+        OnUpdating="@TakeLock" OnUpdate="@HandleUpdate">
+    ...
+</NxGrid>
+
+@code {
+    async Task TakeLock(NxGridUpdatingArgs<Person> args) =>
+        args.Cancel = !await LockService.TryBeginEditAsync();   // refused: nothing changes
+}
+""";
+
     public static readonly string CloseEditorBeforeUpdate = """
 // The editor closes before OnUpdate runs, so the confirm isn't drawn over a live text box.
 // The cell keeps its old value until the handler applies the change.

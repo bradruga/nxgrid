@@ -74,11 +74,10 @@ public partial class NxGrid<T>
 
         var result = await jsInterop.DragFill(minRow, maxRow, minCol, maxCol, RowHeight, filteredData.Count);
 
-        if (result != null)
-            await ApplyDragFill(minRow, maxRow, minCol, maxCol, result.Direction, result.FillCount);
+        var refused = result != null && !await ApplyDragFill(minRow, maxRow, minCol, maxCol, result.Direction, result.FillCount);
 
         // The selection grows to cover the filled cells, so a Ctrl+C or Delete that follows acts on the block
-        if (result is { FillCount: > 0 })
+        if (!refused && result is { FillCount: > 0 })
         {
             var n = result.FillCount;
             if (result.Direction == "down")  maxRow = Math.Min(maxRow + n, filteredData.Count - 1);
@@ -94,9 +93,10 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
-    private async Task ApplyDragFill(int minRow, int maxRow, int minCol, int maxCol, string direction, int fillCount)
+    // False when OnUpdating refused the fill
+    private async Task<bool> ApplyDragFill(int minRow, int maxRow, int minCol, int maxCol, string direction, int fillCount)
     {
-        if (fillCount <= 0 || !OnUpdate.HasDelegate) return;
+        if (fillCount <= 0 || !OnUpdate.HasDelegate) return true;
 
         var rowChanges = new Dictionary<int, List<NxGridCellChange<T>>>();
 
@@ -169,6 +169,8 @@ public partial class NxGrid<T>
             }
         }
 
+        if (!await RaiseUpdating(NxGridUpdateKind.DragFill, rowChanges, i => filteredData[i])) return false;
+
         if (rowChanges.Count > 0)
         {
             var rowArgs = rowChanges
@@ -177,6 +179,7 @@ public partial class NxGrid<T>
                 .ToList();
             await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
         }
+        return true;
     }
 
     // Prefer the typed value from EffectiveValueGetter. Fall back to the display value from

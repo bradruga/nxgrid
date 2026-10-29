@@ -401,6 +401,13 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridEditingArgs<T>> OnEditing { get; set; }
 
     /// <summary>
+    /// Fires before any operation that would raise <see cref="OnUpdate"/> — an editor opening, paste,
+    /// cut-paste, Delete, Ctrl+Enter, drag-fill or checkbox toggle. Set
+    /// <see cref="NxGridUpdatingArgs{T}.Cancel"/> to <c>true</c> to stop it. See docs/behavior.md, "OnUpdating".
+    /// </summary>
+    [Parameter] public EventCallback<NxGridUpdatingArgs<T>> OnUpdating { get; set; }
+
+    /// <summary>
     /// Fires when the user directly tries to edit a cell blocked by <see cref="CellEditableGetter"/>.
     /// Not fired for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells.
     /// </summary>

@@ -107,6 +107,28 @@
 </div>
 
 <div class="doc-section">
+    <h2>OnUpdating — One Check Before Every Change</h2>
+    <p class="doc-note">
+        <code>OnUpdating</code> fires before every change — an editor opening, paste, cut-paste,
+        <kbd class="doc-kbd">Delete</kbd>, <kbd class="doc-kbd">Ctrl</kbd>+<kbd class="doc-kbd">Enter</kbd>,
+        drag-fill — so a page that must take an edit lock checks in one place. Here the lock is a
+        checkbox: clear it and every kind of change is refused before anything is written.
+    </p>
+    <div class="doc-controls">
+        <label style="font-size:13px;"><input type="checkbox" @bind="lockAvailable" /> Edit lock available</label>
+        <span style="font-size:13px;color:#555;">Last check: <strong>@updatingLog</strong></span>
+    </div>
+    <NxGrid T="Person" Data="@lockPeople" OnUpdate="@HandleUpdate" OnUpdating="@HandleUpdating"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.Age)" Width="80" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@onUpdatingCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>CellEditableGetter — Per-Cell Editability</h2>
     <p class="doc-note">Finance rows are locked. Cells still render normally but cannot be edited — pressing <kbd class="doc-kbd">F2</kbd> or typing fires <code>OnEditBlocked</code> and shows a message below.</p>
     <div class="doc-controls">
@@ -187,6 +209,11 @@
                 <td>Fires just before a cell enters edit mode (after all editability checks pass). Set <code>args.Cancel = true</code> to prevent the editor from opening.</td>
             </tr>
             <tr>
+                <td>OnUpdating</td>
+                <td>EventCallback&lt;NxGridUpdatingArgs&lt;T&gt;&gt;</td>
+                <td>Fires once before every operation that would raise <code>OnUpdate</code> — editing, paste, cut-paste, Delete, Ctrl+Enter, drag-fill, checkbox toggle — with its <code>Kind</code>, <code>Rows</code> and <code>Columns</code>. Set <code>args.Cancel = true</code> to stop it.</td>
+            </tr>
+            <tr>
                 <td>OnEditBlocked</td>
                 <td>EventCallback&lt;NxGridEditBlockedArgs&lt;T&gt;&gt;</td>
                 <td>Fires when a user directly tries to edit a cell blocked by <code>CellEditableGetter</code>. Provides the row and column that were blocked.</td>
@@ -255,6 +282,16 @@
         commitSaveLog = string.Join(", ", commitPeople.Take(3).Select(p => $"{p.FirstName} {p.LastName} ({p.Age})")) + ", …";
     }
 
+    List<Person> lockPeople = SampleData.GetPeopleCopy();
+    bool lockAvailable = true;
+    string updatingLog = "none yet";
+
+    void HandleUpdating(NxGridUpdatingArgs<Person> args)
+    {
+        args.Cancel = !lockAvailable;
+        updatingLog = $"{args.Kind}, {args.Rows.Count} row(s) — {(args.Cancel ? "refused" : "allowed")}";
+    }
+
     List<Person> confirmPeople = SampleData.GetPeopleCopy();
     TaskCompletionSource<bool>? pendingConfirm;
     string confirmPrompt = "";
@@ -289,6 +326,7 @@
     string ctrlEnterFillCode        = DemoCodeSamples.CtrlEnterFill;
     string commitEditCode           = DemoCodeSamples.CommitEditAsyncCode;
     string closeEditorCode          = DemoCodeSamples.CloseEditorBeforeUpdate;
+    string onUpdatingCode           = DemoCodeSamples.OnUpdating;
     string cellEditableGetterCode   = DemoCodeSamples.CellEditableGetter;
     string readOnlyStylingCode      = DemoCodeSamples.ReadOnlyStyling;
     string doubleClickCode          = DemoCodeSamples.DoubleClick;

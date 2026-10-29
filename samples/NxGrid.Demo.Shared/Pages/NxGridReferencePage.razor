@@ -420,6 +420,13 @@
                 <td><a href="editing">Editing</a></td>
             </tr>
             <tr>
+                <td>OnUpdating</td>
+                <td>EventCallback&lt;NxGridUpdatingArgs&lt;T&gt;&gt;</td>
+                <td>—</td>
+                <td>Fires once before any operation that would raise <code>OnUpdate</code> — an editor opening, paste, cut-paste, Delete, Ctrl+Enter, drag-fill or checkbox toggle. Awaited; set <code>args.Cancel = true</code> to stop the operation.</td>
+                <td><a href="editing">Editing</a></td>
+            </tr>
+            <tr>
                 <td>OnEditBlocked</td>
                 <td>EventCallback&lt;NxGridEditBlockedArgs&lt;T&gt;&gt;</td>
                 <td>—</td>

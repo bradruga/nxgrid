@@ -148,6 +148,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | `CellEditableGetter` | `Func<T, NxGridColumn<T>, bool>?` | Grid-level per-cell editability guard. When supplied, cells where this returns `false` cannot enter edit mode regardless of column-level `Editable`. Evaluated after column editability. Direct edit attempts (F2, typing, double-click) on a blocked cell fire `OnEditBlocked`; bulk operations (paste, delete, Ctrl+Enter) silently skip blocked cells. |
 | `ShowReadOnlyStyling` | `bool` | `true` by default. Tints cells that cannot be edited — because their column isn't editable, or `CellEditableGetter` blocks them — with the `--nx-grid-readonly-bg` CSS variable, so users can tell which cells accept input without trial-and-error. Applied as a `background-image` overlay, so it composites naturally on top of row striping, custom `CellStyle` backgrounds are left alone (a cell's own background always takes precedence over the tint), and it blends correctly with the selection color when a readonly cell is selected. Skipped entirely when `OnUpdate` has no delegate, since no cell is editable then. |
 | `OnEditing` | `EventCallback<NxGridEditingArgs<T>>` | Fires just before a cell enters edit mode (after all editability checks pass). Set `args.Cancel = true` to prevent the editor from opening. |
+| `OnUpdating` | `EventCallback<NxGridUpdatingArgs<T>>` | Fires once before any operation that would raise `OnUpdate` — an editor opening, paste, cut-paste, Delete, Ctrl+Enter, drag-fill or checkbox toggle — with the operation's `Kind`, `Rows` and `Columns`. Awaited, so the host can take a lock or show a dialog. `args.Cancel = true` stops the operation: no editor opens, no `OnUpdate` fires, and the selection and clipboard are left alone. Not raised when the operation would change nothing. See [OnUpdating](behavior.md#onupdating). |
 | `OnEditBlocked` | `EventCallback<NxGridEditBlockedArgs<T>>` | Fires when a user directly tries to edit a cell blocked by `CellEditableGetter`. Receives `args.Row` and `args.Column`. Does **not** fire for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells. |
 | `OnEditValueChanged` | `EventCallback<NxGridEditValueChangedArgs<T>>` | Fires when the in-cell edit value changes — once when a cell first enters edit mode (initial value) and again on every subsequent keystroke. |
 | `OnEditCancelled` | `EventCallback<NxGridEditCancelledArgs<T>>` | Fires when the user cancels an in-progress cell edit (e.g. Escape). |
@@ -965,6 +966,14 @@ public sealed class NxGridEditingArgs<T>
     public T Row { get; init; }
     public NxGridColumn<T> Column { get; init; }
     public bool Cancel { get; set; }  // set to true to prevent the editor from opening
+}
+
+public sealed class NxGridUpdatingArgs<T>
+{
+    public NxGridUpdateKind Kind { get; init; }              // Edit, Paste, Cut, Clear, Fill, DragFill, CheckBox
+    public IReadOnlyList<T> Rows { get; init; }              // rows that would change; existing rows only when a paste appends
+    public IReadOnlyList<NxGridColumn<T>> Columns { get; init; }  // distinct columns that would change
+    public bool Cancel { get; set; }  // set to true to stop the operation
 }
 
 public sealed class NxGridKeyPressedArgs

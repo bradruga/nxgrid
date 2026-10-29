@@ -32,6 +32,8 @@ public partial class NxGrid<T>
             if (editingArgs.Cancel) return;
         }
 
+        if (!await RaiseUpdating(NxGridUpdateKind.Edit, [filteredData[row]], [column])) return;
+
         // Combo columns pre-populate the input with the display value so the inline filter
         // starts from the text the user sees. All other columns use the raw property value
         // so that formatted Display strings (e.g. "25 yrs") don't leak into the edit input.
@@ -330,6 +332,8 @@ public partial class NxGrid<T>
 
             if (rowChanges.Count > 0)
             {
+                // Refused: the editor stays open, so Enter can still commit just this cell
+                if (!await RaiseUpdating(NxGridUpdateKind.Fill, rowChanges, i => filteredData[i])) return;
                 var rowArgs = rowChanges
                     .OrderBy(kvp => kvp.Key)
                     .Select(kvp => new NxGridRowChange<T> { Row = filteredData[kvp.Key], Changes = kvp.Value })
@@ -709,6 +713,8 @@ public partial class NxGrid<T>
             }
         }
 
+        if (!await RaiseUpdating(NxGridUpdateKind.Clear, rowChanges, i => filteredData[i])) return;
+
         if (OnUpdate.HasDelegate && rowChanges.Count > 0)
         {
             var rowArgs = rowChanges
@@ -799,6 +805,7 @@ public partial class NxGrid<T>
         List<int> targetRows = [];
         List<T> addedRows = [];
         List<T> hiddenAdded = [];
+        var askedBeforeAppend = false;
         T RowAt(int key) => key < filteredData.Count ? filteredData[key] : hiddenAdded[key - filteredData.Count];
 
         if (clipRows.Length == 1 && clipCols.Length == 1)
@@ -826,7 +833,15 @@ public partial class NxGrid<T>
 
             // A move relocates existing cells, so it never appends rows
             if (!isMove && PasteNewRowsEnabled && clipRows.Length > filteredData.Count - originRow)
+            {
+                // Asked before the append so a refused paste adds no rows; Rows can only list existing ones
+                if (!await RaiseUpdating(NxGridUpdateKind.Paste,
+                        filteredData.GetRange(originRow, filteredData.Count - originRow),
+                        visibleColumns.Skip(originCol).Take(clipCols.Length).Where(IsColumnEditable).ToList()))
+                    return;
+                askedBeforeAppend = true;
                 (targetRows, addedRows, hiddenAdded) = await AppendPasteRowsAsync(originRow, originCol, clipRows.Length);
+            }
             else
                 targetRows = Enumerable.Range(originRow, Math.Min(clipRows.Length, filteredData.Count - originRow)).ToList();
 
@@ -864,6 +879,9 @@ public partial class NxGrid<T>
                     AccumulateClear(rowChanges, sr, sc);
                 }
         }
+        // Refused before ClearCutMark, so a refused cut-paste can still be pasted later
+        if (!askedBeforeAppend && !await RaiseUpdating(isMove ? NxGridUpdateKind.Cut : NxGridUpdateKind.Paste, rowChanges, RowAt))
+            return;
         ClearCutMark();   // any paste ends the pending cut, foreign content included
 
         if (OnUpdate.HasDelegate)
@@ -903,6 +921,24 @@ public partial class NxGrid<T>
 
         renderToken++;
         StateHasChanged();
+    }
+
+    /// <summary>Raises <see cref="OnUpdating"/>; <c>true</c> when the operation may go ahead.</summary>
+    private async Task<bool> RaiseUpdating(NxGridUpdateKind kind, IReadOnlyList<T> rows, IReadOnlyList<NxGridColumn<T>> columns)
+    {
+        if (!OnUpdating.HasDelegate) return true;
+        var args = new NxGridUpdatingArgs<T> { Kind = kind, Rows = rows, Columns = columns };
+        await OnUpdating.InvokeAsync(args);
+        return !args.Cancel;
+    }
+
+    // Bulk operations: the rows and columns of the changes already built. Nothing to change raises nothing.
+    private Task<bool> RaiseUpdating(NxGridUpdateKind kind, Dictionary<int, List<NxGridCellChange<T>>> rowChanges, Func<int, T> rowAt)
+    {
+        if (!OnUpdating.HasDelegate || rowChanges.Count == 0) return Task.FromResult(true);
+        return RaiseUpdating(kind,
+            rowChanges.Keys.Order().Select(rowAt).ToList(),
+            rowChanges.Values.SelectMany(l => l).Select(ch => ch.Column).Distinct().ToList());
     }
 
     private bool HasChange(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int rowIdx, int colIdx) =>
@@ -951,7 +987,13 @@ public partial class NxGrid<T>
 
         var rowChanges = BuildCheckboxChanges(row, col, newBool);
         if (rowChanges.Count > 0)
+        {
+            if (!await RaiseUpdating(NxGridUpdateKind.CheckBox,
+                    rowChanges.Select(r => r.Row).ToList(),
+                    rowChanges.SelectMany(r => r.Changes).Select(ch => ch.Column).Distinct().ToList()))
+                return;
             await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowChanges });
+        }
 
         renderToken++;
         StateHasChanged();

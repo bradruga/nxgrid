@@ -134,6 +134,42 @@
         </tbody>
     </table>
 
+    <h3 style="margin-top:20px">NxGridUpdateKind</h3>
+    <p class="doc-note">Reported by <code>NxGridUpdatingArgs.Kind</code> from <code>OnUpdating</code>. <a href="editing">Editing</a></p>
+    <table class="doc-table">
+        <thead><tr><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>Edit</td>
+                <td>An editor is about to open (F2, double-click, typing, <code>BeginEditAsync</code>). The commit does not raise it again.</td>
+            </tr>
+            <tr>
+                <td>Paste</td>
+                <td>A paste. When it appends rows, raised before <code>OnPasteNewRows</code>, with only the existing rows in <code>Rows</code>.</td>
+            </tr>
+            <tr>
+                <td>Cut</td>
+                <td>The paste that completes a cut — raised once for the whole move. Ctrl+X alone changes nothing.</td>
+            </tr>
+            <tr>
+                <td>Clear</td>
+                <td>Delete clearing the selection.</td>
+            </tr>
+            <tr>
+                <td>Fill</td>
+                <td>Ctrl+Enter writing the editor's value to the selection. Refused, the editor stays open.</td>
+            </tr>
+            <tr>
+                <td>DragFill</td>
+                <td>A drag of the fill handle. Refused, the selection does not grow.</td>
+            </tr>
+            <tr>
+                <td>CheckBox</td>
+                <td>A checkbox toggle (click or Space), after <code>OnEditing</code>.</td>
+            </tr>
+        </tbody>
+    </table>
+
     <h3 style="margin-top:20px">NxGridColumnAlignment</h3>
     <p class="doc-note">Passed to <code>Alignment</code> on <code>NxGridColumn</code>. <a href="columns">Columns</a></p>
     <table class="doc-table">
@@ -321,6 +357,11 @@ NxGridComboSource.VariableList((MyRow r) => lookup[r.Key], id)</pre>
                 <td>NxGridEditingArgs&lt;T&gt;</td>
                 <td>OnEditing</td>
                 <td><code>Row</code>, <code>Column</code>, <code>Cancel</code> (set to true to prevent editor opening)</td>
+            </tr>
+            <tr>
+                <td>NxGridUpdatingArgs&lt;T&gt;</td>
+                <td>OnUpdating</td>
+                <td><code>Kind</code>, <code>Rows</code>, <code>Columns</code>, <code>Cancel</code> (set to true to stop the operation)</td>
             </tr>
             <tr>
                 <td>NxGridEditBlockedArgs&lt;T&gt;</td>

@@ -60,7 +60,7 @@ public static class SearchIndex
         new("NxGrid — Tooltips",              "reference/nxgrid",        Section: "Tooltips", Category: "Reference", Keywords: "CellTooltip TooltipTemplate"),
         new("NxGrid — Events",                "reference/nxgrid",        Section: "Events",  Category: "Reference", Keywords: "OnSelectionChanged OnCellClicked OnFilterChanged OnSortChanged OnKeyPressed OnUpdate OnRowDrop OnNewRow OnCopied OnPasted"),
         new("NxGrid — Styling",               "reference/nxgrid",        Section: "Styling", Category: "Reference", Keywords: "CellStyle style css"),
-        new("NxGrid — Editing Parameters",    "reference/nxgrid",        Section: "Editing", Category: "Reference", Keywords: "Editable CellEditableGetter OnEditing OnUpdate CloseEditorBeforeUpdate EnableDragFill NewRowTriggers"),
+        new("NxGrid — Editing Parameters",    "reference/nxgrid",        Section: "Editing", Category: "Reference", Keywords: "Editable CellEditableGetter OnEditing OnUpdating OnUpdate CloseEditorBeforeUpdate EnableDragFill NewRowTriggers"),
         new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey SelectCell SelectRange BeginEditAsync ClearSavedState SetColumnHidden SetEditValue CommitEditAsync CancelEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
 
         // Reference — NxGridColumn
@@ -70,7 +70,7 @@ public static class SearchIndex
         new("NxGridColumn — Data Binding",         "reference/nxgrid-column", Section: "Data binding", Category: "Reference", Keywords: "Property Getter Setter ValueGetter Display CopyGetter"),
 
         // Reference — Types
-        new("Types Reference",   "reference/types", Category: "Reference", Keywords: "enums NxGridSelectionMode NxGridComboItem NxGridCellChange NxGridUpdateArgs NxGridNewRowArgs NxGridNewRowTrigger event args"),
+        new("Types Reference",   "reference/types", Category: "Reference", Keywords: "enums NxGridSelectionMode NxGridComboItem NxGridCellChange NxGridUpdateArgs NxGridNewRowArgs NxGridNewRowTrigger NxGridUpdatingArgs NxGridUpdateKind event args"),
 
         // Selection
         new("Selection",                "selection",       Category: "Selection", Keywords: "click select range"),
@@ -86,6 +86,7 @@ public static class SearchIndex
 
         // Editing
         new("Editing",              "editing",          Category: "Editing", Keywords: "edit inline update"),
+        new("Editing — OnUpdating", "editing", Section: "OnUpdating — One Check Before Every Change", Category: "Editing", Keywords: "edit lock guard cancel paste delete fill before update NxGridUpdateKind"),
         new("Editing — CloseEditorBeforeUpdate", "editing", Section: "CloseEditorBeforeUpdate — Confirm From OnUpdate", Category: "Editing", Keywords: "confirm dialog prompt OnUpdate editor still open close before update"),
         new("Editing — CommitEditAsync", "editing",     Section: "CommitEditAsync — Save While Editing", Category: "Editing", Keywords: "commit pending edit save flush programmatic EndEditAsync"),
         new("New Row on Tab",       "new-row",          Category: "Editing", Keywords: "OnNewRow append add line insert row tab enter NewRowTriggers data entry line item SelectCell BeginEditAsync"),

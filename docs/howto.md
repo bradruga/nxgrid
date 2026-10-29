@@ -334,6 +334,22 @@ async Task ConfirmEdit(NxGridEditingArgs<ContractLineDto> args)
 }
 ```
 
+### Guarding every change with one check (edit lock)
+
+`OnEditing` only covers editors opening; paste, Delete, Ctrl+Enter, drag-fill and checkbox toggles go straight to `OnUpdate`. `OnUpdating` fires before all of them, so a page that must take a lock before its first change needs one handler:
+
+```razor
+<NxGrid T="PieceDto" Data="@pieces" Editable="true"
+        OnUpdating="@TakeLock" OnUpdate="@HandleUpdate" />
+```
+
+```csharp
+async Task TakeLock(NxGridUpdatingArgs<PieceDto> args) =>
+    args.Cancel = !await lockService.TryBeginEditAsync();
+```
+
+`args.Kind`, `args.Rows` and `args.Columns` say what is about to change, if the check depends on it.
+
 ### Handling null / empty input
 
 When `Nullable = true` on a column and the user deletes the cell, `NewValue` is `null`. When the user types an empty string, `NewValue` is `""` for string columns and `null` for nullable value types. In `OnUpdate`, inspect `change.NewValue` directly if you need custom null handling rather than using `Apply`.
