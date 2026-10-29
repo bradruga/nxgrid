@@ -13,6 +13,7 @@ public partial class NxGrid<T>
     private async Task StartEditing(int row, int col, string? initialChar, bool initiatedByF2 = false)
     {
         if (SelectionMode == NxGridSelectionMode.None) return;
+        if (commitInFlight != null) return;   // no new editor until the host's OnUpdate returns
         if (IsCoveredCell(row, col)) return;   // only a span's anchor opens an editor
         var column = visibleColumns[col];
         if (!IsColumnEditable(column) || !OnUpdate.HasDelegate) return;
@@ -147,16 +148,32 @@ public partial class NxGrid<T>
         {
             var oldValue = column.EffectiveValueGetter?.Invoke(rowData);
             var (typedValue, applyAction) = column.ParseAndBuildApply(valueToCommit, oldValue);
-            await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T>
+            var update = new NxGridUpdateArgs<T>
             {
                 Rows = [new NxGridRowChange<T>
                 {
                     Row = rowData,
                     Changes = [new NxGridCellChange<T> { Column = column, OldValue = oldValue, NewValue = typedValue, ApplyAction = applyAction }]
                 }]
-            });
+            };
+            if (CloseEditorBeforeUpdate)
+            {
+                // The cell shows its old value until the host applies the change
+                await CloseCommittedEditor(row, col, moveKey, refocusGrid);
+                await Task.Yield();   // send the closed editor to the browser before host code runs
+                await OnUpdate.InvokeAsync(update);
+                renderToken++;
+                StateHasChanged();
+                return;
+            }
+            await OnUpdate.InvokeAsync(update);
         }
 
+        await CloseCommittedEditor(row, col, moveKey, refocusGrid);
+    }
+
+    private async Task CloseCommittedEditor(int row, int col, string? moveKey, bool refocusGrid)
+    {
         ClearEditState();
 
         // Compute the post-commit selection before rendering so that editing-end
@@ -317,6 +334,27 @@ public partial class NxGrid<T>
                     .OrderBy(kvp => kvp.Key)
                     .Select(kvp => new NxGridRowChange<T> { Row = filteredData[kvp.Key], Changes = kvp.Value })
                     .ToList();
+                if (CloseEditorBeforeUpdate)
+                {
+                    ClearEditState();
+                    renderToken++;
+                    StateHasChanged();
+
+                    // Set before the first await so no editor opens until OnUpdate returns
+                    commitInFlight = FocusThenUpdate();
+                    try { await commitInFlight; }
+                    finally { commitInFlight = null; }
+                    renderToken++;
+                    StateHasChanged();
+                    return;
+
+                    async Task FocusThenUpdate()
+                    {
+                        if (jsInterop != null) await jsInterop.FocusGrid();
+                        await Task.Yield();   // send the closed editor to the browser before host code runs
+                        await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
+                    }
+                }
                 await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
             }
         }

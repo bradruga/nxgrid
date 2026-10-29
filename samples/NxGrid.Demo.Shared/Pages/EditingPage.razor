@@ -73,6 +73,40 @@
 </div>
 
 <div class="doc-section">
+    <h2>CloseEditorBeforeUpdate — Confirm From OnUpdate</h2>
+    <p class="doc-note">
+        An <code>OnUpdate</code> handler that asks the user to confirm would normally show its prompt
+        over a still-open editor, so the edit looks uncommitted. Set
+        <code>CloseEditorBeforeUpdate="true"</code> and the editor closes first; the cell shows its old
+        value until the handler applies the change.
+    </p>
+    <p class="doc-note" style="margin-top:4px">
+        Try: change an Age and press <kbd class="doc-kbd">Enter</kbd>. Answer <strong>Yes</strong> to
+        apply it or <strong>No</strong> to keep the old value.
+    </p>
+    <NxGrid T="Person" Data="@confirmPeople" OnUpdate="@HandleConfirmUpdate" CloseEditorBeforeUpdate="true"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)"  Width="140" />
+        <NxGridColumn Property="@(x => x.Age)" Width="80" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <div class="doc-controls" style="margin-top:8px">
+        @if (pendingConfirm != null)
+        {
+            <span style="font-size:13px;color:#555;">@confirmPrompt</span>
+            <button class="doc-btn" @onclick="() => pendingConfirm.TrySetResult(true)">Yes</button>
+            <button class="doc-btn" @onclick="() => pendingConfirm.TrySetResult(false)">No</button>
+        }
+        else
+        {
+            <span style="font-size:13px;color:#555;">Last answer: <strong>@confirmLog</strong></span>
+        }
+    </div>
+    <pre class="doc-code" style="margin-top:12px">@closeEditorCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>CellEditableGetter — Per-Cell Editability</h2>
     <p class="doc-note">Finance rows are locked. Cells still render normally but cannot be edited — pressing <kbd class="doc-kbd">F2</kbd> or typing fires <code>OnEditBlocked</code> and shows a message below.</p>
     <div class="doc-controls">
@@ -221,6 +255,28 @@
         commitSaveLog = string.Join(", ", commitPeople.Take(3).Select(p => $"{p.FirstName} {p.LastName} ({p.Age})")) + ", …";
     }
 
+    List<Person> confirmPeople = SampleData.GetPeopleCopy();
+    TaskCompletionSource<bool>? pendingConfirm;
+    string confirmPrompt = "";
+    string confirmLog = "none yet";
+
+    async Task HandleConfirmUpdate(NxGridUpdateArgs<Person> args)
+    {
+        var change = args.Rows[0].Changes[0];
+        confirmPrompt = $"Change {change.Column.EffectiveTitle} from {change.OldValue} to {change.NewValue}?";
+        pendingConfirm = new TaskCompletionSource<bool>();
+        StateHasChanged();
+
+        var yes = await pendingConfirm.Task;
+        pendingConfirm = null;
+        confirmLog = yes ? "Yes — applied" : "No — kept the old value";
+        if (!yes) return;
+
+        foreach (var rowArgs in args.Rows)
+            foreach (var c in rowArgs.Changes)
+                c.Apply(rowArgs.Row);
+    }
+
     async Task HandleFillUpdate(NxGridUpdateArgs<Person> args)
     {
         foreach (var rowArgs in args.Rows)
@@ -232,6 +288,7 @@
     string basicEditCode            = DemoCodeSamples.BasicEdit;
     string ctrlEnterFillCode        = DemoCodeSamples.CtrlEnterFill;
     string commitEditCode           = DemoCodeSamples.CommitEditAsyncCode;
+    string closeEditorCode          = DemoCodeSamples.CloseEditorBeforeUpdate;
     string cellEditableGetterCode   = DemoCodeSamples.CellEditableGetter;
     string readOnlyStylingCode      = DemoCodeSamples.ReadOnlyStyling;
     string doubleClickCode          = DemoCodeSamples.DoubleClick;

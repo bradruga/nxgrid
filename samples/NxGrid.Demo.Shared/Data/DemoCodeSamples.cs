@@ -174,6 +174,25 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string CloseEditorBeforeUpdate = """
+// The editor closes before OnUpdate runs, so the confirm isn't drawn over a live text box.
+// The cell keeps its old value until the handler applies the change.
+<NxGrid T="Person" Data="@people" Editable="true"
+        OnUpdate="@HandleUpdate" CloseEditorBeforeUpdate="true">
+    ...
+</NxGrid>
+
+@code {
+    async Task HandleUpdate(NxGridUpdateArgs<Person> args)
+    {
+        if (!await Dialogs.ConfirmAsync("Apply this change?")) return;   // old value stays
+        foreach (var row in args.Rows)
+            foreach (var change in row.Changes)
+                change.Apply(row.Row);
+    }
+}
+""";
+
     public static readonly string CommitEditAsyncCode = """
 // CommitEditAsync() commits any in-progress cell edit through the normal
 // pipeline without moving the selection, and completes only after OnUpdate

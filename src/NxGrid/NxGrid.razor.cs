@@ -459,6 +459,13 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridUpdateArgs<T>> OnUpdate { get; set; }
 
     /// <summary>
+    /// When <c>true</c>, a committed editor closes before <see cref="OnUpdate"/> is awaited, so a dialog
+    /// shown from <c>OnUpdate</c> doesn't sit over a live editor. See docs/behavior.md, "Closing before OnUpdate".
+    /// Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool CloseEditorBeforeUpdate { get; set; }
+
+    /// <summary>
     /// Enables the fill handle — a small square at the bottom-right corner of the active selection.
     /// Drag it in any direction to fill adjacent editable cells. Numeric cells increment by 1 per
     /// step (or detect a series); dates increment by one calendar day; all other types copy.

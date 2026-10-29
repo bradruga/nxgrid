@@ -334,7 +334,7 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 | Focus leaves the grid | No navigation; the edit commits without returning focus to the grid |
 | `CommitEditAsync()` | No navigation; the selection anchor stays on the edited cell |
 
-**Programmatic commit.** `CommitEditAsync()` commits any in-progress edit through the same pipeline as a keyboard commit (math expression evaluation, `Format`/`TryParse` parsing, `OnUpdate`) for every editor type — plain input, textarea, combo box (committed exactly as Enter with a closed dropdown: an exact `Text`/selected-item match commits its `Id`, otherwise the edit cancels), and date picker (calendar closes). It is a no-op when no editor is open, and when a commit is already in flight (e.g. one triggered by focus loss) it awaits that commit instead of starting a second one, so `OnUpdate` fires exactly once per edit. The returned task completes only after `OnUpdate` has finished — call it first in a Save handler that lives outside the grid, then read the model.
+**Programmatic commit.** `CommitEditAsync()` commits any in-progress edit through the same pipeline as a keyboard commit (math expression evaluation, `Format`/`TryParse` parsing, `OnUpdate`) for every editor type — plain input, textarea, combo box (committed exactly as Enter with a closed dropdown: an exact `Text`/selected-item match commits its `Id`, otherwise the edit cancels, or commits the typed text with `ComboBoxAllowCustom`), and date picker (calendar closes). It is a no-op when no editor is open, and when a commit is already in flight (e.g. one triggered by focus loss) it awaits that commit instead of starting a second one, so `OnUpdate` fires exactly once per edit. The returned task completes only after `OnUpdate` has finished — call it first in a Save handler that lives outside the grid, then read the model.
 
 **Enter mode and edit mode.** Every edit is in one of Excel's two modes, which decide what the arrow keys do:
 
@@ -344,6 +344,16 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 **F2 while editing toggles between the two.** Type `12`, press F2, and the arrows move the caret; press F2 again and they commit and move. Toggling also ends any live pick (see below).
 
 On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. When `MathExpression = true` on the column, the raw input string is evaluated as an arithmetic expression before type-parsing runs (see [Math expression evaluation](#math-expression-evaluation)). `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with a `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
+
+#### Closing before OnUpdate
+
+By default the editor stays open while `OnUpdate` is awaited, showing the value being committed. A handler that asks the user to confirm therefore draws its prompt over a live editor, and the edit looks uncommitted until the prompt is answered. Set `CloseEditorBeforeUpdate="true"` on the grid to reverse the order for typed commits and Ctrl+Enter fills:
+
+1. The editor closes, the selection moves as the commit key dictates, and focus returns to the grid — so Enter and the arrows work once the prompt is gone.
+2. `OnUpdate` is awaited. The cell shows its **old** value meanwhile; if the handler declines to apply the change, that is where it stays.
+3. The grid re-renders, showing whatever the handler applied.
+
+While `OnUpdate` is pending no new editor opens: typing, F2 and double-click are ignored. `CommitEditAsync()` still completes only after `OnUpdate` has finished. With the editor closed first, `OnSelectionChanged` for the post-commit move fires before `OnUpdate` rather than after it.
 
 ### Edit-pick mode and keyboard pointing
 

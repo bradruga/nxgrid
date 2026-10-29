@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `ComboBoxAllowCustom` on `NxGridColumn` lets a combo commit typed text that isn't in its list; the list becomes suggestions.
+- `CloseEditorBeforeUpdate` on `NxGrid` closes the editor before `OnUpdate` runs, so a confirm shown from `OnUpdate` isn't drawn over a live editor.
 
 ### Changed
 

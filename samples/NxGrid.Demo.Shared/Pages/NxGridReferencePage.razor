@@ -483,6 +483,13 @@
                 <td><a href="editing">Editing</a><br /><a href="batch-update">Batch Update</a></td>
             </tr>
             <tr>
+                <td>CloseEditorBeforeUpdate</td>
+                <td>bool</td>
+                <td>false</td>
+                <td>Closes the editor before <code>OnUpdate</code> is awaited on a typed commit or Ctrl+Enter fill, so a confirm shown from <code>OnUpdate</code> isn't drawn over a live editor. The cell shows its old value until the handler applies the change.</td>
+                <td><a href="editing">Editing</a></td>
+            </tr>
+            <tr>
                 <td>NewRowTriggers</td>
                 <td>NxGridNewRowTrigger</td>
                 <td>Tab</td>
