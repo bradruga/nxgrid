@@ -786,6 +786,14 @@ void OnSignalRRowReceived(Person newRow)
 }
 """;
 
+    public static readonly string ComboBoxAllowCustom = """
+// The list suggests; the user can still type a value that isn't in it.
+// Enter commits the typed text unless an option is highlighted or matches its Text exactly.
+<NxGridColumn Property="@(x => x.PieceMark)"
+              ComboBoxAllowCustom="true"
+              ComboBoxSource="@(NxGridComboSource.FixedList(PieceMarks))" />
+""";
+
     public static readonly string OnUpdate = """
 // OnUpdate fires once per operation — one call even for a paste across many rows.
 // Property captures the member expression for display, sort/filter, and typed Apply().

@@ -66,7 +66,7 @@ public static class SearchIndex
         // Reference — NxGridColumn
         new("NxGridColumn Reference",              "reference/nxgrid-column", Category: "Reference", Keywords: "column api parameters"),
         new("NxGridColumn — Display Parameters",   "reference/nxgrid-column", Section: "Display",   Category: "Reference", Keywords: "Title Width MinWidth MaxWidth Alignment Frozen Hidden Template CheckBox HeaderTemplate"),
-        new("NxGridColumn — Editing Parameters",   "reference/nxgrid-column", Section: "Editing",   Category: "Reference", Keywords: "Nullable MathExpression MultiLine ComboBoxSource ComboBoxVirtualizeThreshold ComboBoxItemHeight DatePicker Format"),
+        new("NxGridColumn — Editing Parameters",   "reference/nxgrid-column", Section: "Editing",   Category: "Reference", Keywords: "Nullable MathExpression MultiLine ComboBoxSource ComboBoxAllowCustom ComboBoxVirtualizeThreshold ComboBoxItemHeight DatePicker Format"),
         new("NxGridColumn — Data Binding",         "reference/nxgrid-column", Section: "Data binding", Category: "Reference", Keywords: "Property Getter Setter ValueGetter Display CopyGetter"),
 
         // Reference — Types
@@ -96,6 +96,7 @@ public static class SearchIndex
         new("Combo Box",            "combo-box",        Category: "Editing", Keywords: "dropdown select combobox list"),
         new("Combo Box — Search Text", "combo-box",     Section: "Search Text (Filter by Description)", Category: "Editing", Keywords: "searchtext description filter secondary match"),
         new("Combo Box — Large Option Lists", "combo-box", Section: "Large Option Lists", Category: "Editing", Keywords: "virtualize virtualization slow performance thousands ComboBoxVirtualizeThreshold ComboBoxItemHeight row height"),
+        new("Combo Box — Free-Text Entry", "combo-box", Section: "Free-Text Entry", Category: "Editing", Keywords: "custom free text new value suggestions not in list ComboBoxAllowCustom"),
         new("Number Formatting",    "number-format",    Category: "Editing", Keywords: "format currency decimal number thousands"),
         new("Date Picker",          "date-picker",      Category: "Editing", Keywords: "calendar date datetime"),
         new("Color Picker",         "color-picker",     Category: "Editing", Keywords: "color colour rgb"),

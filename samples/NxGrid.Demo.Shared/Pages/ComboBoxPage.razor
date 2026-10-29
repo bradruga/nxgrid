@@ -209,6 +209,25 @@
 </div>
 
 <div class="doc-section">
+    <h2>Free-Text Entry</h2>
+    <p class="doc-note">
+        Set <code>ComboBoxAllowCustom="true"</code> when the list is a set of suggestions rather than
+        the only allowed values. Typing filters the list as usual, but nothing is highlighted until you
+        arrow to it, so Enter commits exactly what you typed — <code>W005</code> here, or <code>W00</code>
+        even though <code>W001</code> matches. Arrow down to pick a suggestion; arrow up past the first
+        one to get back to your own text.
+    </p>
+    <NxGrid T="PieceRow" Data="@pieceRows" OnUpdate="@HandlePieceUpdate"
+            Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.PieceMark)" Width="140"
+                      ComboBoxAllowCustom="true"
+                      ComboBoxSource="@(NxGridComboSource.FixedList(PieceMarks))" />
+        <NxGridColumn Property="@(x => x.Qty)" Width="80" Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@allowCustomCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Parameters</h2>
     <table class="doc-table">
         <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
@@ -233,6 +252,16 @@
                 <td>ComboBoxItemTemplate</td>
                 <td>RenderFragment&lt;NxGridComboItem&gt;?</td>
                 <td>Custom markup for each dropdown item. Replaces the plain <code>Text</code> string. The committed <code>Id</code> is unchanged.</td>
+            </tr>
+            <tr>
+                <td>ComboBoxAllowCustom</td>
+                <td>bool</td>
+                <td>
+                    When <code>true</code>, typed text that matches no option is committed as typed instead
+                    of being discarded, and partial matches are not auto-highlighted. Text that equals an
+                    option's <code>Text</code> still commits that option's <code>Id</code>. Defaults to
+                    <code>false</code>.
+                </td>
             </tr>
             <tr>
                 <td>ComboBoxMinWidth</td>
@@ -491,6 +520,30 @@
         await Task.CompletedTask;
     }
 
+    static readonly string[] PieceMarks = ["W001", "W002", "W003", "C101", "C102", "B201"];
+
+    class PieceRow
+    {
+        public string PieceMark { get; set; } = "";
+        public int    Qty       { get; set; }
+    }
+
+    List<PieceRow> pieceRows =
+    [
+        new() { PieceMark = "W001", Qty = 4 },
+        new() { PieceMark = "W002", Qty = 2 },
+        new() { PieceMark = "C101", Qty = 6 },
+        new() { PieceMark = "W004", Qty = 1 },
+    ];
+
+    async Task HandlePieceUpdate(NxGridUpdateArgs<PieceRow> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+        await Task.CompletedTask;
+    }
+
     async Task HandleStringUpdate(NxGridUpdateArgs<Person> args)
     {
         foreach (var rowArgs in args.Rows)
@@ -523,4 +576,5 @@
     string minWidthCode          = DemoCodeSamples.ComboBoxMinWidth;
     string largeListCode         = DemoCodeSamples.ComboBoxLargeList;
     string perRowCode            = DemoCodeSamples.ComboBoxPerRow;
+    string allowCustomCode       = DemoCodeSamples.ComboBoxAllowCustom;
 }

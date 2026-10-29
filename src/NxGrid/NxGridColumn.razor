@@ -302,6 +302,12 @@
     [Parameter] public RenderFragment<NxGridComboItem>? ComboBoxItemTemplate { get; set; }
 
     /// <summary>
+    /// When <c>true</c>, typed text that matches no option is committed as the raw value instead of
+    /// being discarded. See docs/behavior.md, "Free-text entry". Default: <c>false</c>.
+    /// </summary>
+    [Parameter] public bool ComboBoxAllowCustom { get; set; }
+
+    /// <summary>
     /// Minimum width in pixels for the combo-box dropdown, independent of the column's own width —
     /// so a narrow column can still list long option text (or a wide
     /// <see cref="ComboBoxItemTemplate"/>) without widening the grid. The popup opens at

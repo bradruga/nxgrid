@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ComboBoxAllowCustom` on `NxGridColumn` lets a combo commit typed text that isn't in its list; the list becomes suggestions.
+
 ### Changed
 
 - Ctrl+click on a selected cell deselects it, splitting its range around the cell.

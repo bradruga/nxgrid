@@ -340,7 +340,15 @@ When `Nullable = true` on a column and the user deletes the cell, `NewValue` is 
 
 ### Combo-box columns
 
-For columns with `ComboBoxSource`, the committed value is always one of the values returned by the items function (or whatever the user typed if they did not select from the list).
+For columns with `ComboBoxSource`, the committed value is always one of the values returned by the items function; typed text that matches no option is discarded.
+
+To let users type a value that isn't in the list — the list suggests existing piece marks, but a new one must still be enterable — set `ComboBoxAllowCustom="true"`. Enter then commits the typed text unless the user arrows to a suggestion:
+
+```razor
+<NxGridColumn Property="@(x => x.PieceMark)"
+    ComboBoxAllowCustom="true"
+    ComboBoxSource="@(NxGridComboSource.FixedList(existingPieceMarks))" />
+```
 
 ```razor
 <NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate">

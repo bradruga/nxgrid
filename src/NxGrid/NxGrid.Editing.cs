@@ -135,7 +135,7 @@ public partial class NxGrid<T>
                     string.Equals(i.Text, editValue, StringComparison.OrdinalIgnoreCase));
                 if (match != null)
                     valueToCommit = match.Id ?? editValue;
-                else
+                else if (!column.ComboBoxAllowCustom)
                 {
                     await CancelEdit();
                     return;
@@ -470,7 +470,9 @@ public partial class NxGrid<T>
                     NavigateCalendar(-7);
                 else if (isComboColumn && isComboOpen)
                 {
-                    comboHighlightIndex = Math.Max(comboHighlightIndex - 1, 0);
+                    // A free-text column can arrow back past the first option to the typed text
+                    var floor = visibleColumns[editCol].ComboBoxAllowCustom ? -1 : 0;
+                    comboHighlightIndex = Math.Max(comboHighlightIndex - 1, floor);
                     comboScrollPending = true;
                     StateHasChanged();
                 }
@@ -624,8 +626,9 @@ public partial class NxGrid<T>
 
     /// <summary>
     /// The option a freshly filtered dropdown highlights: an exact <c>Text</c>/<c>Id</c> match,
-    /// otherwise the first match. <c>-1</c> while the edit value is empty, where no option is
-    /// implied — Enter on a cleared cell cancels rather than committing an arbitrary option.
+    /// otherwise the first match (none on a <c>ComboBoxAllowCustom</c> column, so Enter keeps the
+    /// typed text). <c>-1</c> while the edit value is empty, where no option is
+    /// implied — Enter on a cleared cell never commits an arbitrary option.
     /// </summary>
     private int DefaultComboHighlight()
     {
@@ -633,7 +636,8 @@ public partial class NxGrid<T>
         var exactIndex = comboFilteredOptions.FindIndex(
             o => string.Equals(o.Text, editValue, StringComparison.OrdinalIgnoreCase)
               || string.Equals(o.Id,   editValue, StringComparison.OrdinalIgnoreCase));
-        return exactIndex >= 0 ? exactIndex : 0;
+        if (exactIndex >= 0) return exactIndex;
+        return visibleColumns[editCol].ComboBoxAllowCustom ? -1 : 0;
     }
 
     private async Task OnComboItemMouseDown(int optionIndex)

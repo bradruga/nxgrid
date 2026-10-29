@@ -518,7 +518,7 @@ If the measurement never arrives (the JS module failed to load), the rows are le
 | Key | Behavior |
 |---|---|
 | Down Arrow | Moves highlight down (clamps at last item) — from the auto-highlighted first match, one press reaches the second |
-| Up Arrow | Moves highlight up (clamps at index 0) |
+| Up Arrow | Moves highlight up (clamps at index 0; with `ComboBoxAllowCustom`, continues to no highlight) |
 | Enter | Selects the highlighted item, then commits; commits the current text if nothing is highlighted |
 | Tab | Same as Enter |
 | Escape | Closes dropdown, stays in edit mode; a second Escape then cancels the edit |
@@ -528,6 +528,17 @@ If the measurement never arrives (the JS module failed to load), the rows are le
 Moving the highlight scrolls it into view. In a virtualized list the highlighted row may not be in the DOM at all, so its offset is computed from the pinned row height rather than measured; assigning the dropdown's `scrollTop` then makes `<Virtualize>` render the window containing it.
 
 **Mouse:** clicking a dropdown item commits that value immediately. The mousedown event is preventDefault'd to prevent the input from losing focus before the click is processed.
+
+### Free-text entry
+
+By default a combo commits only values from its list. Set `ComboBoxAllowCustom="true"` when the list is a set of suggestions and the user must also be able to enter a new value:
+
+- **No highlight on a partial match.** The list still filters as the user types, but only an exact `Text`/`Id` match is highlighted. Typing `W00` with `W001` listed and pressing Enter commits `W00`.
+- **Arrow to pick.** Down Arrow highlights a suggestion; Up Arrow from the first option returns to no highlight, so Enter commits the typed text again.
+- **Commit.** Enter or Tab commits the highlighted option if there is one. Otherwise text equal to an option's `Text` commits that option's `Id` (typing "Yes" into a Key/Value list still stores the key), and any other text — including an empty editor — is committed as typed and parsed like a paste. An empty editor on a `Nullable` column clears the cell. `CommitEditAsync()` follows the same rule.
+- **Display.** A fixed-list cell whose value matches no `Id` shows the raw value, so a custom entry appears as typed.
+
+The setting is per column and applies to `FixedList` and `VariableList` sources alike.
 
 ---
 
