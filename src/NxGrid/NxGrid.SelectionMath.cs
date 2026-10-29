@@ -28,7 +28,7 @@ public partial class NxGrid<T>
                     if (!visited.Add((r, c))) continue;
                     if (IsCoveredCell(r, c)) continue;
                     count++;
-                    var val = visibleColumns[c].EffectiveValueGetter?.Invoke(filteredData[r]);
+                    var val = visibleColumns[c].EffectiveSortGetter?.Invoke(filteredData[r]);
                     if (val != null && TryConvertToDouble(val, out var d))
                     {
                         sum += d;

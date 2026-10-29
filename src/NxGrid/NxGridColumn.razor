@@ -45,6 +45,13 @@
     [Parameter] public Func<T, object?>? CopyGetter { get; set; }
 
     /// <summary>
+    /// Value to sort, filter and sum on instead of <see cref="Property"/> — for a text property whose
+    /// order isn't its text's (e.g. feet-and-inches over a numeric inches field). Editing still uses
+    /// <see cref="Property"/>. See docs/behavior.md, "Sort key".
+    /// </summary>
+    [Parameter] public Func<T, object?>? SortValue { get; set; }
+
+    /// <summary>
     /// Makes this column editable. When not set, falls back to the grid-level
     /// <see cref="NxGrid{T}.Editable"/>. Requires <see cref="NxGrid{T}.OnUpdate"/> on the grid.
     /// </summary>
@@ -479,17 +486,23 @@
     public Func<T, object?>? EffectiveValueGetter => compiledPropertyGetter ?? Display;
 
     /// <summary>
-    /// Whether the user can sort by this column: <see cref="Sortable"/> is <c>true</c> and the
-    /// column has an <see cref="EffectiveValueGetter"/> to sort on.
+    /// The value sort, filter and the selection status bar use: <see cref="SortValue"/>, then
+    /// <see cref="EffectiveValueGetter"/>.
     /// </summary>
-    public bool CanSort => Sortable && EffectiveValueGetter != null;
+    public Func<T, object?>? EffectiveSortGetter => SortValue ?? EffectiveValueGetter;
+
+    /// <summary>
+    /// Whether the user can sort by this column: <see cref="Sortable"/> is <c>true</c> and the
+    /// column has an <see cref="EffectiveSortGetter"/> to sort on.
+    /// </summary>
+    public bool CanSort => Sortable && EffectiveSortGetter != null;
 
     /// <summary>
     /// Whether the user can filter this column: <see cref="Filterable"/> is <c>true</c> and the
-    /// column has an <see cref="EffectiveValueGetter"/> to build the value list from. Without one
+    /// column has an <see cref="EffectiveSortGetter"/> to build the value list from. Without one
     /// every row groups to <c>null</c>, so the list would hold a single "(Blanks)" entry.
     /// </summary>
-    public bool CanFilter => Filterable && EffectiveValueGetter != null;
+    public bool CanFilter => Filterable && EffectiveSortGetter != null;
 
     /// <summary>
     /// Resolved column header title following the fallback chain:
@@ -922,7 +935,7 @@
 
     public object? GetNormalizedValue(T item)
     {
-        var getter = EffectiveValueGetter;
+        var getter = EffectiveSortGetter;
         return getter == null ? null : NormalizeObject(getter(item));
     }
 

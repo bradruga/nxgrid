@@ -68,6 +68,25 @@
 </div>
 
 <div class="doc-section">
+    <h2>SortValue — Edit Text, Sort by Number</h2>
+    <p class="doc-note">
+        The opposite split to <code>Display</code>: <code>Property</code> is the feet-and-inches text the
+        user sees and edits (its setter parses it back to inches), and <code>SortValue</code> is the
+        number to sort on. Sort the Length column — <code>9'-0"</code> comes before <code>10'-0"</code> —
+        then press <kbd class="doc-kbd">F2</kbd> on a cell: the editor opens on the text. Type
+        <code>12'-3"</code>, <code>8'</code> or <code>40</code> (inches).
+    </p>
+    <NxGrid T="PieceLength" Data="@pieceLengths" OnUpdate="@HandlePieceLengthUpdate"
+            Cursor="@NxGridCursor.Cell" Editable="true">
+        <NxGridColumn Property="@(x => x.Mark)" Width="100" Editable="false" />
+        <NxGridColumn Title="Length" Property="@(x => x.LengthText)" SortValue="@(x => x.Length)" Width="120" />
+        <NxGridColumn Title="Inches" Property="@(x => x.Length)" Width="90" Editable="false"
+                      Alignment="NxGridColumnAlignment.Right" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@sortValueCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>Width, MinWidth, MaxWidth</h2>
     <p class="doc-note">Drag any column resize grip to see the constraints in action. The Id column is fixed at 50px; the Name column can grow freely.</p>
     <NxGrid T="Person" Data="@SampleData.People.ToList()" Cursor="@NxGridCursor.Cell">
@@ -190,6 +209,47 @@
         _             => "background:#f3f4f6;color:#374151;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;"
     };
 
+    class PieceLength
+    {
+        public string Mark   { get; set; } = "";
+        public double Length { get; set; }   // inches
+
+        public string LengthText
+        {
+            get => $"{(int)(Length / 12)}'-{Length % 12:0.##}\"";
+            set { if (TryParseFeetInches(value, out var inches)) Length = inches; }
+        }
+
+        // 10'-6", 10', 6" or plain inches
+        static bool TryParseFeetInches(string? text, out double inches)
+        {
+            inches = 0;
+            var m = System.Text.RegularExpressions.Regex.Match(text?.Trim() ?? "",
+                @"^(?:(\d+(?:\.\d+)?)')?\s*-?\s*(?:(\d+(?:\.\d+)?)""?)?$");
+            if (!m.Success || (!m.Groups[1].Success && !m.Groups[2].Success)) return false;
+            var feet = m.Groups[1].Success ? double.Parse(m.Groups[1].Value) : 0;
+            var rest = m.Groups[2].Success ? double.Parse(m.Groups[2].Value) : 0;
+            inches = feet * 12 + rest;
+            return true;
+        }
+    }
+
+    List<PieceLength> pieceLengths =
+    [
+        new() { Mark = "W001", Length = 126 },
+        new() { Mark = "W002", Length = 108 },
+        new() { Mark = "W003", Length = 144 },
+        new() { Mark = "C101", Length = 30 },
+        new() { Mark = "C102", Length = 222 },
+    ];
+
+    void HandlePieceLengthUpdate(NxGridUpdateArgs<PieceLength> args)
+    {
+        foreach (var rowArgs in args.Rows)
+            foreach (var change in rowArgs.Changes)
+                change.Apply(rowArgs.Row);
+    }
+
     List<Person> autoSizeData = SampleData.GeneratePeople(500);
     List<Person> fitData = SampleData.GeneratePeople(500);
     NxGrid<Person>? fitGrid;
@@ -199,6 +259,7 @@
     string alignmentCode   = DemoCodeSamples.Alignment;
     string templateCode    = DemoCodeSamples.Template;
     string valueGetterCode = DemoCodeSamples.FormattedDisplay;
+    string sortValueCode   = DemoCodeSamples.SortValue;
     string autoSizeCode    = DemoCodeSamples.AutoSize;
     string sortResizeCode  = DemoCodeSamples.SortableResizable;
     string fitColumnsCode  = DemoCodeSamples.FitColumns;

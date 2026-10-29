@@ -100,7 +100,15 @@ When the grid has no `ChildContent` (no `<NxGridColumn>` children declared), it 
 
 **Null/empty values sort to the bottom** regardless of ascending or descending direction. The sort predicate pushes rows where the cell value is null or whitespace-only to the end before applying the primary comparison. This blank-pushing applies at every level of the sort stack.
 
-**Sort key:** `Property` is the primary sort key. If `Property` is not set but `Display` is, `Display` is used as the sort key. If neither is set, the column cannot be sorted.
+**Sort key:** `SortValue` when the column sets it, otherwise `Property`, otherwise `Display`. If none is set, the column cannot be sorted. The same value drives filtering and the selection status bar's sum and average.
+
+`SortValue` is for a column whose edited text doesn't sort in its own order. `Property` stays the text the user sees, edits and pastes; `SortValue` supplies the order:
+
+```razor
+<NxGridColumn Property="@(x => x.LengthText)" SortValue="@(x => x.Length)" />
+```
+
+`10'-6"` displays, copies and opens in the editor as text, and the text is written back through `LengthText`'s setter; sorting compares `Length`, so `9'-0"` comes before `10'-0"`. Compare `Display`, which is the opposite split — `Property` is the number that sorts and is edited, `Display` only changes what the cell shows.
 
 **Per-column opt-out:** `Sortable="false"` makes a column unsortable by the user. The header title stops responding to clicks and the column menu omits Sort Ascending / Sort Descending / Clear Sort. The same applies to a column with no sort key. A sort saved under `StateKey` for a column that is no longer sortable is ignored on restore.
 

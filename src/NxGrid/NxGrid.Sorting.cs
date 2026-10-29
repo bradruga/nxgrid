@@ -169,13 +169,13 @@ public partial class NxGrid<T>
         // Only include history entries that are still active with a getter and non-zero state.
         // Last entry = primary sort (most recently clicked); earlier entries = tiebreakers.
         var active = sortHistory
-            .Where(c => ActiveColumns.Contains(c) && c.SortState != 0 && c.EffectiveValueGetter != null)
+            .Where(c => ActiveColumns.Contains(c) && c.SortState != 0 && c.EffectiveSortGetter != null)
             .ToList();
 
         if (active.Count == 0) return items;
 
         var primary = active[^1];
-        var primaryGetter = primary.EffectiveValueGetter!;
+        var primaryGetter = primary.EffectiveSortGetter!;
 
         IOrderedEnumerable<T> ordered = primary.SortState == 1
             ? items.OrderBy(x => string.IsNullOrWhiteSpace(primaryGetter(x)?.ToString())).ThenBy(primaryGetter)
@@ -184,7 +184,7 @@ public partial class NxGrid<T>
         for (var i = active.Count - 2; i >= 0; i--)
         {
             var col = active[i];
-            var getter = col.EffectiveValueGetter!;
+            var getter = col.EffectiveSortGetter!;
             ordered = col.SortState == 1
                 ? ordered.ThenBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString())).ThenBy(getter)
                 : ordered.ThenBy(x => string.IsNullOrWhiteSpace(getter(x)?.ToString())).ThenByDescending(getter);

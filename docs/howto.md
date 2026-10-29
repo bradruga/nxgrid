@@ -350,6 +350,16 @@ async Task TakeLock(NxGridUpdatingArgs<PieceDto> args) =>
 
 `args.Kind`, `args.Rows` and `args.Columns` say what is about to change, if the check depends on it.
 
+### Editing text that sorts by a number
+
+A dimension stored as inches but shown and typed as feet and inches (`10'-6"`) should edit the text and sort by the number. Bind `Property` to the text — its setter does the parsing — and give the number to `SortValue`:
+
+```razor
+<NxGridColumn Title="Length" Property="@(x => x.LengthText)" SortValue="@(x => x.Length)" />
+```
+
+F2, paste, Ctrl+Enter and copy all use the text; sort, filter and the status bar use `Length`. `Display` is the wrong tool here: with `Property = Length` and `Display = LengthText`, the editor opens on the raw `126`.
+
 ### Handling null / empty input
 
 When `Nullable = true` on a column and the user deletes the cell, `NewValue` is `null`. When the user types an empty string, `NewValue` is `""` for string columns and `null` for nullable value types. In `OnUpdate`, inspect `change.NewValue` directly if you need custom null handling rather than using `Apply`.

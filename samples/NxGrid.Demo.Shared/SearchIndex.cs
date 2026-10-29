@@ -67,7 +67,7 @@ public static class SearchIndex
         new("NxGridColumn Reference",              "reference/nxgrid-column", Category: "Reference", Keywords: "column api parameters"),
         new("NxGridColumn — Display Parameters",   "reference/nxgrid-column", Section: "Display",   Category: "Reference", Keywords: "Title Width MinWidth MaxWidth Alignment Frozen Hidden Template CheckBox HeaderTemplate"),
         new("NxGridColumn — Editing Parameters",   "reference/nxgrid-column", Section: "Editing",   Category: "Reference", Keywords: "Nullable MathExpression MultiLine ComboBoxSource ComboBoxAllowCustom ComboBoxVirtualizeThreshold ComboBoxItemHeight DatePicker Format"),
-        new("NxGridColumn — Data Binding",         "reference/nxgrid-column", Section: "Data binding", Category: "Reference", Keywords: "Property Getter Setter ValueGetter Display CopyGetter"),
+        new("NxGridColumn — Data Binding",         "reference/nxgrid-column", Section: "Data binding", Category: "Reference", Keywords: "Property Getter Setter ValueGetter Display CopyGetter SortValue"),
 
         // Reference — Types
         new("Types Reference",   "reference/types", Category: "Reference", Keywords: "enums NxGridSelectionMode NxGridComboItem NxGridCellChange NxGridUpdateArgs NxGridNewRowArgs NxGridNewRowTrigger NxGridUpdatingArgs NxGridUpdateKind event args"),
@@ -108,6 +108,7 @@ public static class SearchIndex
 
         // Columns
         new("Columns",              "columns",           Category: "Columns", Keywords: "column configuration setup sortable resizable filterable"),
+        new("Columns — SortValue", "columns", Section: "SortValue — Edit Text, Sort by Number", Category: "Columns", Keywords: "sort key sort by number feet inches dimension edit text SortValue"),
         new("Frozen Columns",       "frozen-columns",    Category: "Columns", Keywords: "freeze pin sticky left"),
         new("Hidden Columns",       "hidden-columns",    Category: "Columns", Keywords: "hide show column visibility"),
         new("Visible Columns",      "visible-columns",   Category: "Columns", Keywords: "show column chooser"),

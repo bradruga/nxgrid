@@ -951,6 +951,12 @@ void OnSignalRRowReceived(Person newRow)
               Display="@(x => x.Age + " yrs")" /> // displayed as "32 yrs"
 """;
 
+    public static readonly string SortValue = """
+<NxGridColumn Title="Length"
+              Property="@(x => x.LengthText)"   // shown, copied, edited: 10'-6" (setter parses)
+              SortValue="@(x => x.Length)" />   // sorted, filtered, summed: 126 (inches)
+""";
+
     public static readonly string HeaderTemplateCheckbox = """
 <NxGridColumn Title="Billable" Display="@(x => x.IsBillable ? "✓" : "–")">
     <HeaderTemplate>
