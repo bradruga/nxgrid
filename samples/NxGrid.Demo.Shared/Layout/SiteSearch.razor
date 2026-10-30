@@ -49,7 +49,6 @@
     bool isOpen;
     int activeIndex;
     bool isMac;
-    string? pendingSection;
     List<SearchItem> results = [];
 
     protected override void OnInitialized()
@@ -65,15 +64,6 @@
             isMac = await module.InvokeAsync<bool>("isMacOs");
             await module.InvokeVoidAsync("registerSearchShortcut");
             StateHasChanged();
-        }
-
-        if (pendingSection != null)
-        {
-            var section = pendingSection;
-            pendingSection = null;
-            await Task.Delay(200);
-            if (module != null)
-                await module.InvokeVoidAsync("scrollToHeading", section);
         }
     }
 
@@ -137,7 +127,8 @@
             }
             else
             {
-                pendingSection = item.Section;
+                if (module != null)
+                    await module.InvokeVoidAsync("scrollToHeadingAfterNavigation", item.Route, item.Section);
                 Nav.NavigateTo(item.Route);
             }
         }
