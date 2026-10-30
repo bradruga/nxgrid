@@ -453,13 +453,14 @@
     public bool IsComboColumn => EffectiveComboSource != null;
 
     /// <summary>
-    /// <see cref="ComboBoxSource"/>, or for an enum property without one, a list of its members.
-    /// See docs/behavior.md, "Enum columns".
+    /// <see cref="ComboBoxSource"/>, or for an enum or bool property without one, a list of its values.
+    /// See docs/behavior.md, "Enum columns" and "Bool columns".
     /// </summary>
     public NxGridComboSource? EffectiveComboSource => ComboBoxSource
-        ?? (Nullable && propertyType != null && System.Nullable.GetUnderlyingType(propertyType) != null
-            ? enumComboSourceWithBlank
-            : enumComboSource);
+        ?? (CheckBox ? null
+            : Nullable && propertyType != null && System.Nullable.GetUnderlyingType(propertyType) != null
+                ? generatedComboSourceWithBlank
+                : generatedComboSource);
 
     /// <summary><c>true</c> when <see cref="CheckBox"/> is set.</summary>
     public bool IsCheckboxColumn => CheckBox;
@@ -479,7 +480,7 @@
     /// an enum wrapper, the <see cref="Format"/> formatter, or the compiled <see cref="Property"/> getter.
     /// Used for rendering, filter labels, column fit measurement, and clipboard copy fallback.
     /// </summary>
-    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (comboDisplayGetter ?? enumDisplayGetter ?? formatGetter ?? compiledPropertyGetter);
+    public Func<T, object?>? EffectiveGetter => Display != null ? Display : (comboDisplayGetter ?? generatedDisplayGetter ?? formatGetter ?? compiledPropertyGetter);
 
     /// <summary>
     /// The effective copy getter: <see cref="CopyGetter"/> takes priority, then
@@ -520,10 +521,11 @@
     public string EffectiveTitle => Title ?? displayName ?? inferredName ?? "";
 
     private Func<T, object?>? compiledPropertyGetter;
-    private Func<T, object?>? enumDisplayGetter;
-    // Generated for a non-[Flags] enum property; the "WithBlank" one leads with a blank option for Nullable
-    private NxGridComboSource? enumComboSource;
-    private NxGridComboSource? enumComboSourceWithBlank;
+    // Enum display names, or Yes / No for bool
+    private Func<T, object?>? generatedDisplayGetter;
+    // Generated for a bool or non-[Flags] enum property; the "WithBlank" one leads with a blank option for Nullable
+    private NxGridComboSource? generatedComboSource;
+    private NxGridComboSource? generatedComboSourceWithBlank;
     private Func<T, object?>? formatGetter;
     private Func<T, object?>? comboDisplayGetter;
     private Action<T, object?>? compiledPropertySetter;
@@ -601,8 +603,8 @@
         if (Property == null)
         {
             compiledPropertyGetter = null;
-            enumDisplayGetter = null;
-            enumComboSource = enumComboSourceWithBlank = null;
+            generatedDisplayGetter = null;
+            generatedComboSource = generatedComboSourceWithBlank = null;
             compiledPropertySetter = null;
             propertyType = null;
             displayName = null;
@@ -619,8 +621,8 @@
         {
             // Not a simple member access — read-only (getter only, no setter)
             compiledPropertyGetter = Property.Compile();
-            enumDisplayGetter = null;
-            enumComboSource = enumComboSourceWithBlank = null;
+            generatedDisplayGetter = null;
+            generatedComboSource = generatedComboSourceWithBlank = null;
             compiledPropertySetter = null;
             propertyType = null;
             displayName = null;
@@ -638,23 +640,30 @@
         if (enumType.IsEnum)
         {
             var baseGetter = compiledPropertyGetter;
-            enumDisplayGetter = row => GetEnumDisplayName(baseGetter(row));
+            generatedDisplayGetter = row => GetEnumDisplayName(baseGetter(row));
 
             if (enumType.IsDefined(typeof(FlagsAttribute), false))
-                enumComboSource = enumComboSourceWithBlank = null;
+                generatedComboSource = generatedComboSourceWithBlank = null;
             else
             {
                 var members = enumType.GetFields(BindingFlags.Public | BindingFlags.Static)
                     .Select(f => (Id: f.Name, Text: f.GetCustomAttribute<DisplayAttribute>()?.GetName() ?? f.Name))
                     .ToList();
-                enumComboSource = NxGridComboSource.FixedList(members, m => m.Id, m => m.Text);
-                enumComboSourceWithBlank = NxGridComboSource.FixedList(members.Prepend((Id: "", Text: "")), m => m.Id, m => m.Text);
+                generatedComboSource = NxGridComboSource.FixedList(members, m => m.Id, m => m.Text);
+                generatedComboSourceWithBlank = NxGridComboSource.FixedList(members.Prepend((Id: "", Text: "")), m => m.Id, m => m.Text);
             }
+        }
+        else if (enumType == typeof(bool))
+        {
+            var baseGetter = compiledPropertyGetter;
+            generatedDisplayGetter = row => baseGetter(row) is bool v ? (v ? "Yes" : "No") : null;
+            generatedComboSource = NxGridComboSource.FixedList("Yes", "No");
+            generatedComboSourceWithBlank = NxGridComboSource.FixedList("", "Yes", "No");
         }
         else
         {
-            enumDisplayGetter = null;
-            enumComboSource = enumComboSourceWithBlank = null;
+            generatedDisplayGetter = null;
+            generatedComboSource = generatedComboSourceWithBlank = null;
         }
 
         var canWrite = member.Member is PropertyInfo pi ? pi.CanWrite : member.Member is FieldInfo;
@@ -754,6 +763,16 @@
         return attr?.GetName() ?? memberName;
     }
 
+    // true / false, 1 / 0, or text starting with y / n, ignoring case
+    private static bool TryParseBool(string text, out bool value)
+    {
+        text = text.Trim();
+        if (bool.TryParse(text, out value)) return true;
+        if (text == "1" || text.StartsWith("y", StringComparison.OrdinalIgnoreCase)) { value = true; return true; }
+        if (text == "0" || text.StartsWith("n", StringComparison.OrdinalIgnoreCase)) { value = false; return true; }
+        return false;
+    }
+
     // Member name, defined numeric value, or [Display(Name)] label, ignoring case
     private static bool TryParseEnum(Type enumType, string text, out object? value)
     {
@@ -819,7 +838,7 @@
         else if (underlying == typeof(double)   && double.TryParse(rawValue,  out var dbl))  { typed = dbl; parsed = true; }
         else if (underlying == typeof(float)    && float.TryParse(rawValue,   out var flt))  { typed = flt; parsed = true; }
         else if (underlying == typeof(decimal)  && decimal.TryParse(rawValue, out var dec))  { typed = dec; parsed = true; }
-        else if (underlying == typeof(bool)     && bool.TryParse(rawValue,    out var b))    { typed = b; parsed = true; }
+        else if (underlying == typeof(bool)     && TryParseBool(rawValue,     out var b))    { typed = b; parsed = true; }
         else if (underlying == typeof(DateTime))
         {
             if (!string.IsNullOrEmpty(Format) &&

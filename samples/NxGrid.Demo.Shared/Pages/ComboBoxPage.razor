@@ -228,17 +228,19 @@
 </div>
 
 <div class="doc-section">
-    <h2>Enum Columns</h2>
+    <h2>Enum and Bool Columns</h2>
     <p class="doc-note">
         An enum property needs no <code>ComboBoxSource</code>: the dropdown lists its members in
         declaration order, labelled by <code>[Display(Name)]</code>. Type or paste a label in any case
         (<code>double tee</code>), the member name (<code>DoubleTee</code>) or its number. Pass a
-        <code>ComboBoxSource</code> to order or filter the members yourself.
+        <code>ComboBoxSource</code> to order or filter the members yourself. A bool property shows
+        and edits <code>Yes</code> / <code>No</code>; type <code>y</code> or <code>n</code>.
     </p>
     <NxGrid T="MemberRow" Data="@memberRows" OnUpdate="@HandleMemberUpdate"
             Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
         <NxGridColumn Property="@(x => x.PieceMark)" Width="100" Editable="false" />
         <NxGridColumn Property="@(x => x.MemberType)" Title="Member Type" Width="160" />
+        <NxGridColumn Property="@(x => x.Released)" Width="100" />
     </NxGrid>
     <pre class="doc-code" style="margin-top:12px">@enumColumnCode</pre>
 </div>
@@ -549,12 +551,13 @@
     {
         public string     PieceMark  { get; set; } = "";
         public MemberType MemberType { get; set; }
+        public bool       Released   { get; set; }
     }
 
     List<MemberRow> memberRows =
     [
-        new() { PieceMark = "DT101", MemberType = MemberType.DoubleTee },
-        new() { PieceMark = "IT201", MemberType = MemberType.InvertedTee },
+        new() { PieceMark = "DT101", MemberType = MemberType.DoubleTee, Released = true },
+        new() { PieceMark = "IT201", MemberType = MemberType.InvertedTee, Released = true },
         new() { PieceMark = "W001",  MemberType = MemberType.Wall },
         new() { PieceMark = "C101",  MemberType = MemberType.Column },
     ];

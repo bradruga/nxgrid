@@ -297,7 +297,7 @@
         }
         else if (col.IsCheckboxColumn)
         {
-            var boolValue = col.EffectiveGetter?.Invoke(Row) is true;
+            var boolValue = col.EffectiveValueGetter?.Invoke(Row) is true;
             var colEditable = col.Editable ?? GridEditable;
             var isBlocked = CellEditableGetter != null && !CellEditableGetter(Row, col);
             var wrapCls = "nx-grid-checkbox-wrap"

@@ -583,6 +583,16 @@ Typed, pasted, filled and Ctrl+Enter text is parsed to the enum, ignoring case: 
 - **`[Flags]` enums** get no dropdown.
 - **An explicit `ComboBoxSource` wins** — use one to order or filter the members. With an `Id` of the member name or numeric value, its commits parse the same way.
 
+### Bool columns
+
+A `bool` or `bool?` column shows `Yes` / `No` (blank for `null`) in cells, copied text, filter labels and column fit, and edits through a `Yes` / `No` combo box. On a `bool?` column with `Nullable="true"` the list starts with a blank option that clears the cell.
+
+Typed, pasted, filled and Ctrl+Enter text parses to the bool, ignoring case: text starting with `y` or `n`, `true` / `false`, or `1` / `0`. Anything else (`maybe`) reaches `OnUpdate` as the raw string with a no-op `Apply`, so the cell keeps its value. Copied `Yes` / `No` therefore pastes back.
+
+- **`CheckBox="true"`** keeps the checkbox and gets no dropdown; its copied text and filter labels are `Yes` / `No`.
+- **An explicit `Display` or `ComboBoxSource` wins.**
+- **Delete** does nothing on a `bool` column and clears a `bool?` column.
+
 ---
 
 ## Date picker

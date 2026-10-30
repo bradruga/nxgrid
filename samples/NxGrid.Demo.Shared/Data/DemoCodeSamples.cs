@@ -824,6 +824,9 @@ void OnSignalRRowReceived(Person newRow)
 // Labels come from [Display(Name)]; typed or pasted text matches a label, name or number.
 <NxGridColumn Property="@(x => x.MemberType)" />
 
+// A bool property shows and edits Yes / No; typed or pasted y / n parses.
+<NxGridColumn Property="@(x => x.Released)" />
+
 public enum MemberType
 {
     Unset,

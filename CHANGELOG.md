@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Bool columns show `Yes` / `No` instead of `True` / `False` — in cells, copied text and filter labels — and edit through a Yes / No dropdown. Typed or pasted text starting with `y` or `n`, or `1` / `0`, now parses.
 - Ctrl+click on a selected cell deselects it, splitting its range around the cell.
 - After a drag fill the selection covers the source and the filled cells.
 - The filter panel's search no longer changes which values are ticked; (Select All) acts on the values the search is showing.
