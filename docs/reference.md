@@ -263,7 +263,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | Parameter | Type | Notes |
 |---|---|---|
 | `Property` | `Expression<Func<T, object?>>?` | Captures a member expression (e.g. `x => x.Age`). Used for display, sort/filter, and as the target for `change.Apply(row)`. When the member has a setter, `Apply` writes the correctly-parsed value back to the model. Get-only properties and read-only computed expressions are fully supported for display, sort, and filter — they are simply not editable (the column behaves as read-only regardless of the `Editable` setting). |
-| `Display` | `Func<T, object?>?` | Display value override. Takes priority over `Property` for rendering. Use when you need formatted output (e.g. `x => x.Age + " yrs"`). `Property` is still used for sort/filter when `Display` is set. Clipboard copy falls back to this when `CopyGetter` is not set. When not set and the property type is an enum, the grid automatically applies `[Display(Name)]` attribute values for rendering (see [Enum display names](#enum-display-names)); a `bool` / `bool?` property renders `Yes` / `No` (see [Bool columns](behavior.md#bool-columns)). |
+| `Display` | `Func<T, object?>?` | Display value override. Takes priority over `Property` for rendering. Use when you need formatted output (e.g. `x => x.Age + " yrs"`). `Property` is still used for sort/filter when `Display` is set. Clipboard copy falls back to this when `CopyGetter` is not set. When not set and the property type is an enum, the grid automatically applies `[Display(Name)]` or `[Description]` attribute values for rendering (see [Enum display names](#enum-display-names)); a `bool` / `bool?` property renders `Yes` / `No` (see [Bool columns](behavior.md#bool-columns)). |
 | `CopyGetter` | `Func<T, object?>?` | Override for the value placed on the clipboard during copy. Takes priority over `Display` and `Property` for copy only. Use when the rendered display value differs from what should be pasted (e.g. copy a raw formula string while displaying the evaluated result). |
 | `SortValue` | `Func<T, object?>?` | Value to sort, filter and sum on (the selection status bar) instead of `Property`. Display, copy, editing and paste still use `Property`. Use when the edited text doesn't sort in its own order — e.g. `Property="@(x => x.LengthText)"` (feet and inches, whose setter parses) with `SortValue="@(x => x.Length)"` (inches), so `9'-0"` sorts before `10'-0"` and F2 opens on the text. The filter list groups by this value and labels each entry with the displayed text. See [Sort key](behavior.md#sorting). |
 | `Editable` | `bool?` | Makes the column editable. When not set, falls back to the grid-level `Editable`. Requires `OnUpdate` on the grid. |
@@ -779,7 +779,7 @@ Call `FitColumnsAsync()` on the grid reference to re-fit at any time:
 
 ## Enum display names
 
-When a column's `Property` points to an `enum` type (or nullable enum), the grid automatically reads `[Display(Name = "...")]` attributes on enum members and uses them for all display purposes: cell rendering, filter checkbox labels, column fit measurement, and clipboard copy. No column configuration is needed.
+When a column's `Property` points to an `enum` type (or nullable enum), the grid automatically reads `[Display(Name = "...")]` attributes on enum members, else `[Description("...")]`, and uses them for all display purposes: cell rendering, filter checkbox labels, column fit measurement, and clipboard copy. No column configuration is needed.
 
 ```csharp
 public enum Priority
@@ -796,7 +796,7 @@ public enum Priority
 
 With the above, a cell containing `Priority.InProgress` renders as `"In Progress"`, the filter panel shows `"In Progress"` as the checkbox label, and the column auto-sizes to fit `"High Priority"` (the widest display name).
 
-Enum members without a `[Display]` attribute fall back to `ToString()` (e.g. `Priority.Low` → `"Low"`).
+Enum members with neither attribute fall back to `ToString()` (e.g. `Priority.Low` → `"Low"`). With both, `[Display(Name)]` wins. Labels are read once per enum type.
 
 Sort order and filter state are based on the raw enum value, not the display name, so sort order matches the enum's declared member order and persisted filter state remains stable across display name changes.
 

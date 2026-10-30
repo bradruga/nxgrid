@@ -98,7 +98,7 @@ public static class SearchIndex
         new("Combo Box",            "combo-box",        Category: "Editing", Keywords: "dropdown select combobox list"),
         new("Combo Box — Search Text", "combo-box",     Section: "Search Text (Filter by Description)", Category: "Editing", Keywords: "searchtext description filter secondary match"),
         new("Combo Box — Large Option Lists", "combo-box", Section: "Large Option Lists", Category: "Editing", Keywords: "virtualize virtualization slow performance thousands ComboBoxVirtualizeThreshold ComboBoxItemHeight row height"),
-        new("Combo Box — Enum and Bool Columns", "combo-box", Section: "Enum and Bool Columns", Category: "Editing", Keywords: "enum bool dropdown edit parse Display Name member yes no"),
+        new("Combo Box — Enum and Bool Columns", "combo-box", Section: "Enum and Bool Columns", Category: "Editing", Keywords: "enum bool dropdown edit parse Display Name Description member yes no"),
         new("Combo Box — Free-Text Entry", "combo-box", Section: "Free-Text Entry", Category: "Editing", Keywords: "custom free text new value suggestions not in list ComboBoxAllowCustom"),
         new("Number Formatting",    "number-format",    Category: "Editing", Keywords: "format currency decimal number thousands"),
         new("Number Formatting — [DisplayFormat]", "number-format", Section: "[DisplayFormat] on the Model", Category: "Editing", Keywords: "DisplayFormat DataFormatString attribute data annotations format model"),

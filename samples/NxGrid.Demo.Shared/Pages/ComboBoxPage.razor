@@ -231,7 +231,7 @@
     <h2>Enum and Bool Columns</h2>
     <p class="doc-note">
         An enum property needs no <code>ComboBoxSource</code>: the dropdown lists its members in
-        declaration order, labelled by <code>[Display(Name)]</code>. Type or paste a label in any case
+        declaration order, labelled by <code>[Display(Name)]</code> or <code>[Description]</code>. Type or paste a label in any case
         (<code>double tee</code>), the member name (<code>DoubleTee</code>) or its number. Pass a
         <code>ComboBoxSource</code> to order or filter the members yourself. A bool property shows
         and edits <code>Yes</code> / <code>No</code>; type <code>y</code> or <code>n</code>.
@@ -542,7 +542,7 @@
     {
         Unset,
         [System.ComponentModel.DataAnnotations.Display(Name = "Double Tee")] DoubleTee,
-        [System.ComponentModel.DataAnnotations.Display(Name = "Inverted Tee")] InvertedTee,
+        [System.ComponentModel.Description("Inverted Tee")] InvertedTee,
         Wall,
         Column,
     }

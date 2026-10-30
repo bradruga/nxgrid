@@ -576,9 +576,9 @@ The setting is per column and applies to `FixedList` and `VariableList` sources 
 
 ### Enum columns
 
-A column whose `Property` is an enum (or nullable enum) edits through a combo box without a `ComboBoxSource`. The grid builds one from the enum: every member in declaration order, `Id` the member name, `Text` its `[Display(Name)]` or, without one, the member name. On a nullable enum column with `Nullable="true"` the list starts with a blank option that clears the cell.
+A column whose `Property` is an enum (or nullable enum) edits through a combo box without a `ComboBoxSource`. The grid builds one from the enum: every member in declaration order, `Id` the member name, `Text` its `[Display(Name)]`, else its `[Description]`, else the member name. On a nullable enum column with `Nullable="true"` the list starts with a blank option that clears the cell.
 
-Typed, pasted, filled and Ctrl+Enter text is parsed to the enum, ignoring case: the member name (`DoubleTee`), its `[Display(Name)]` (`Double Tee`), or a defined numeric value (`1`). Text that is none of these reaches `OnUpdate` as the raw string with a no-op `Apply`, as an unparseable number or date does, so the cell keeps its value.
+Typed, pasted, filled and Ctrl+Enter text is parsed to the enum, ignoring case: the member name (`DoubleTee`), its label from `[Display(Name)]` or `[Description]` (`Double Tee`), or a defined numeric value (`1`). Text that is none of these reaches `OnUpdate` as the raw string with a no-op `Apply`, as an unparseable number or date does, so the cell keeps its value.
 
 - **`[Flags]` enums** get no dropdown.
 - **An explicit `ComboBoxSource` wins** — use one to order or filter the members. With an `Id` of the member name or numeric value, its commits parse the same way.

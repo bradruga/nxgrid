@@ -821,7 +821,7 @@ void OnSignalRRowReceived(Person newRow)
 
     public static readonly string ComboBoxEnum = """
 // An enum property edits through a dropdown of its members — no ComboBoxSource needed.
-// Labels come from [Display(Name)]; typed or pasted text matches a label, name or number.
+// Labels come from [Display(Name)], else [Description]; typed or pasted text matches a label, name or number.
 <NxGridColumn Property="@(x => x.MemberType)" />
 
 // A bool property shows and edits Yes / No; typed or pasted y / n parses.
@@ -831,7 +831,7 @@ public enum MemberType
 {
     Unset,
     [Display(Name = "Double Tee")]   DoubleTee,
-    [Display(Name = "Inverted Tee")] InvertedTee,
+    [Description("Inverted Tee")]    InvertedTee,
     Wall,
     Column,
 }

@@ -671,8 +671,9 @@
                 generatedComboSource = generatedComboSourceWithBlank = null;
             else
             {
+                var labels = GetEnumLabels(enumType);
                 var members = enumType.GetFields(BindingFlags.Public | BindingFlags.Static)
-                    .Select(f => (Id: f.Name, Text: f.GetCustomAttribute<DisplayAttribute>()?.GetName() ?? f.Name))
+                    .Select(f => (Id: f.Name, Text: labels[f.Name]))
                     .ToList();
                 generatedComboSource = NxGridComboSource.FixedList(members, m => m.Id, m => m.Text);
                 generatedComboSourceWithBlank = NxGridComboSource.FixedList(members.Prepend((Id: "", Text: "")), m => m.Id, m => m.Text);
@@ -770,9 +771,9 @@
     }
 
     /// <summary>
-    /// Returns the <see cref="DisplayAttribute.Name"/> for an enum value when the attribute is
-    /// present; otherwise returns <c>value.ToString()</c>. Returns <c>null</c> when
-    /// <paramref name="value"/> is <c>null</c>. Supports nullable enums.
+    /// Returns the label for an enum value: <see cref="DisplayAttribute.Name"/>, else
+    /// <see cref="System.ComponentModel.DescriptionAttribute.Description"/>, else <c>value.ToString()</c>.
+    /// Returns <c>null</c> when <paramref name="value"/> is <c>null</c>. Supports nullable enums.
     /// </summary>
     internal static string? GetEnumDisplayName(object? value)
     {
@@ -782,11 +783,17 @@
         if (!enumType.IsEnum) return value.ToString();
         var memberName = value.ToString();
         if (memberName == null) return null;
-        var members = enumType.GetMember(memberName);
-        if (members.Length == 0) return memberName;
-        var attr = members[0].GetCustomAttribute<DisplayAttribute>();
-        return attr?.GetName() ?? memberName;
+        return GetEnumLabels(enumType).TryGetValue(memberName, out var label) ? label : memberName;
     }
+
+    // Member name → label, built once per enum type
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Dictionary<string, string>> enumLabels = new();
+
+    private static Dictionary<string, string> GetEnumLabels(Type enumType) => enumLabels.GetOrAdd(enumType, t =>
+        t.GetFields(BindingFlags.Public | BindingFlags.Static).ToDictionary(f => f.Name, f =>
+            f.GetCustomAttribute<DisplayAttribute>()?.GetName()
+            ?? f.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description
+            ?? f.Name));
 
     // true / false, 1 / 0, or text starting with y / n, ignoring case
     private static bool TryParseBool(string text, out bool value)
@@ -798,14 +805,15 @@
         return false;
     }
 
-    // Member name, defined numeric value, or [Display(Name)] label, ignoring case
+    // Member name, defined numeric value, or label ([Display(Name)] / [Description]), ignoring case
     private static bool TryParseEnum(Type enumType, string text, out object? value)
     {
         text = text.Trim();
+        var labels = GetEnumLabels(enumType);
         foreach (var field in enumType.GetFields(BindingFlags.Public | BindingFlags.Static))
         {
             if (string.Equals(field.Name, text, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(field.GetCustomAttribute<DisplayAttribute>()?.GetName(), text, StringComparison.OrdinalIgnoreCase))
+                || string.Equals(labels[field.Name], text, StringComparison.OrdinalIgnoreCase))
             {
                 value = field.GetValue(null);
                 return true;
