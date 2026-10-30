@@ -317,7 +317,7 @@ Columns self-register with their parent grid on initialization and deregister on
 | `ComboBoxVirtualizeThreshold` | `int` | Option count at which the dropdown renders through `<Virtualize>`, building only the rows in view — so open time no longer tracks option count and a 20,000-option list opens as fast as a five-option one. Set to `0` to always virtualize, or `int.MaxValue` to never. Default: `200`. A virtualized list scrolls by row index, so all of its rows are pinned to one uniform height (see `ComboBoxItemHeight`); when a `ComboBoxItemTemplate`'s rows must keep genuinely different heights, raise this above the option count so the list keeps rendering in full. No effect without `ComboBoxSource`. |
 | `ComboBoxItemHeight` | `int?` | Uniform row height in pixels for a virtualized dropdown. When `null` the height is measured from the rendered rows the first time the dropdown opens, so a taller `ComboBoxItemTemplate` does not have to declare its height. A template whose rows differ in height (a subtitle on some items only) is pinned to the tallest measured row: shorter rows are padded, not clipped, and the measurement only ever grows. Set this explicitly to skip the measuring render, or to pin a height the measurement cannot discover — a tall variant that never appears in the measured batch. No effect on lists below `ComboBoxVirtualizeThreshold`, which are never virtualized. |
 | `DatePicker` | `bool` | `false` | When `true` and the column is editable, the inline editor renders a free-text input alongside a calendar button that opens a month-view popup. The user can type a date directly or click a day to commit. `Property` should resolve to `DateTime` or `DateTime?`. |
-| `Format` | `string?` | — | Standard or custom .NET format string (e.g. `"MM/dd/yyyy"`, `"#,0.00"`) applied to any property type that implements `IFormattable` — numbers as well as `DateTime`/`DateTime?` and `TimeOnly`/`TimeOnly?`. Governs cell display, editor pre-population on F2/double-click (so the input always starts from the same formatted text the cell shows), and — for `DateTime`/`TimeOnly` columns — the first parse attempt on commit before falling back to `TryParse` and then the built-in time shorthand parser. When `DatePicker="true"` and `Format` is not set, the thread's current culture short-date pattern is used as a display fallback; other columns with no `Format` use the type's default `ToString()`. |
+| `Format` | `string?` | — | Standard or custom .NET format string (e.g. `"MM/dd/yyyy"`, `"#,0.00"`) applied to any property type that implements `IFormattable` — numbers as well as `DateTime`/`DateTime?` and `TimeOnly`/`TimeOnly?`. Governs cell display, editor pre-population on F2/double-click (so the input always starts from the same formatted text the cell shows), and — for `DateTime`/`TimeOnly` columns — the first parse attempt on commit before falling back to `TryParse` and then the built-in time shorthand parser. When not set, the property's `[DisplayFormat]` is used (see [DisplayFormat](#displayformat)). When `DatePicker="true"` and neither is set, the thread's current culture short-date pattern is used as a display fallback; other columns use the type's default `ToString()`. |
 
 ### Runtime state
 
@@ -803,6 +803,27 @@ Sort order and filter state are based on the raw enum value, not the display nam
 Setting an explicit `Display` parameter on the column takes full priority over automatic enum display name resolution.
 
 **Editing.** An editable enum column gets a combo box of its members, labelled the same way, without a `ComboBoxSource`; typed and pasted text is parsed from the member name, the display name or a defined numeric value, ignoring case. `[Flags]` enums get no dropdown, and an explicit `ComboBoxSource` replaces the generated one — use it to order or filter the members. See [Enum columns](behavior.md#enum-columns).
+
+---
+
+## DisplayFormat
+
+When a column's `Format` is not set and its `Property` member has `[DisplayFormat(DataFormatString = "...")]`, the grid uses the attribute. For a nested path (`x => x.Piece.Weight`) the attribute is read from the last member.
+
+```csharp
+[DisplayFormat(DataFormatString = "{0:#,0.00}")]
+public double Weight { get; set; }
+
+[DisplayFormat(DataFormatString = "{0} lb")]
+public int Load { get; set; }
+```
+
+- **A lone `{0:...}`** (`{0:#,0.00}`, `{0:MM/dd/yy}`) becomes the column's format exactly as if `Format="#,0.00"` were set: cell display, copy, editor pre-fill, drag-fill and date/time parsing all use it. `Weight` shows `76,800.00` and F2 opens on `76,800.00`.
+- **Anything else** (`{0} lb`, `{0:N1} ft`) is applied with `string.Format` for display only; the editor opens on the unformatted value. `Load` shows `5 lb` and F2 opens on `5`.
+- **An explicit `Format`** replaces the attribute, and `Display` replaces both.
+- **Auto-columns** apply the attribute's `DataFormatString` to their display.
+
+`ApplyFormatInEditMode` and `NullDisplayText` are not read; `null` shows blank.
 
 ---
 

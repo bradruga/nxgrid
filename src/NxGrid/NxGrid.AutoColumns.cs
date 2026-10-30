@@ -31,11 +31,15 @@ public partial class NxGrid<T>
                 var underlying = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
                 var title = prop.GetCustomAttribute<DisplayAttribute>()?.GetName()
                             ?? NxGridColumn<T>.SplitPascalCase(prop.Name);
+                var dataFormat = prop.GetCustomAttribute<DisplayFormatAttribute>()?.DataFormatString;
 #pragma warning disable BL0005
                 var col = new NxGridColumn<T>
                 {
                     Title     = title,
-                    Display   = row => prop.GetValue(row),
+                    Display   = dataFormat == null
+                                    ? row => prop.GetValue(row)
+                                    : row => prop.GetValue(row) is { } v ? string.Format(System.Globalization.CultureInfo.CurrentCulture, dataFormat, v) : null,
+                    SortValue = dataFormat == null ? null : row => prop.GetValue(row),
                     Width     = 150,
                     Alignment = IsNumeric(underlying)
                                     ? NxGridColumnAlignment.Right

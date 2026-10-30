@@ -520,6 +520,12 @@
     /// </summary>
     public string EffectiveTitle => Title ?? displayName ?? inferredName ?? "";
 
+    /// <summary>
+    /// <see cref="Format"/>, else the format inside the property's <c>[DisplayFormat]</c> (<c>{0:#,0.00}</c> → <c>#,0.00</c>).
+    /// See docs/reference.md, "DisplayFormat".
+    /// </summary>
+    public string? EffectiveFormat => Format ?? attributeFormat;
+
     private Func<T, object?>? compiledPropertyGetter;
     // Enum display names, or Yes / No for bool
     private Func<T, object?>? generatedDisplayGetter;
@@ -532,6 +538,9 @@
     private Type? propertyType;
     private string? displayName;
     private string? inferredName;
+    // From [DisplayFormat]: a lone {0:...} becomes attributeFormat; anything else is a display-only string.Format pattern
+    private string? attributeFormat;
+    private string? attributeCompositeFormat;
     private Expression<Func<T, object?>>? _lastBuiltProperty;
     private bool _lastVisible = true;
 
@@ -575,10 +584,10 @@
 
     private void RebuildFormatGetter()
     {
-        if (compiledPropertyGetter != null && !string.IsNullOrEmpty(Format))
+        if (compiledPropertyGetter != null && !string.IsNullOrEmpty(EffectiveFormat))
         {
             var baseGetter = compiledPropertyGetter;
-            var fmt = Format;
+            var fmt = EffectiveFormat;
             formatGetter = row =>
             {
                 var val = baseGetter(row);
@@ -586,6 +595,15 @@
                     ? formattable.ToString(fmt, System.Globalization.CultureInfo.CurrentCulture)
                     : val;
             };
+            return;
+        }
+        if (compiledPropertyGetter != null && Format == null && attributeCompositeFormat != null)
+        {
+            var baseGetter = compiledPropertyGetter;
+            var fmt = attributeCompositeFormat;
+            formatGetter = row => baseGetter(row) is { } val
+                ? string.Format(System.Globalization.CultureInfo.CurrentCulture, fmt, val)
+                : null;
             return;
         }
         formatGetter = null;
@@ -609,6 +627,7 @@
             propertyType = null;
             displayName = null;
             inferredName = null;
+            attributeFormat = attributeCompositeFormat = null;
             return;
         }
 
@@ -627,6 +646,7 @@
             propertyType = null;
             displayName = null;
             inferredName = null;
+            attributeFormat = attributeCompositeFormat = null;
             return;
         }
 
@@ -634,6 +654,11 @@
         compiledPropertyGetter = Property.Compile();
         inferredName = SplitPascalCase(member.Member.Name);
         displayName = member.Member.GetCustomAttribute<DisplayAttribute>()?.GetName();
+
+        var dataFormat = member.Member.GetCustomAttribute<DisplayFormatAttribute>()?.DataFormatString;
+        var isLoneFormat = dataFormat != null && dataFormat.StartsWith("{0:") && dataFormat.IndexOfAny(['{', '}'], 1) == dataFormat.Length - 1;
+        attributeFormat = isLoneFormat ? dataFormat![3..^1] : null;
+        attributeCompositeFormat = isLoneFormat || dataFormat == "{0}" ? null : dataFormat;
 
         // Cache an enum-display wrapper when the property type is an enum (or nullable enum).
         var enumType = System.Nullable.GetUnderlyingType(propertyType) ?? propertyType;
@@ -841,8 +866,8 @@
         else if (underlying == typeof(bool)     && TryParseBool(rawValue,     out var b))    { typed = b; parsed = true; }
         else if (underlying == typeof(DateTime))
         {
-            if (!string.IsNullOrEmpty(Format) &&
-                DateTime.TryParseExact(rawValue, Format,
+            if (!string.IsNullOrEmpty(EffectiveFormat) &&
+                DateTime.TryParseExact(rawValue, EffectiveFormat,
                     System.Globalization.CultureInfo.CurrentCulture,
                     System.Globalization.DateTimeStyles.None, out var dtFmt))
             { typed = dtFmt; parsed = true; }
@@ -861,8 +886,8 @@
         }
         else if (underlying == typeof(TimeOnly))
         {
-            if (!string.IsNullOrEmpty(Format) &&
-                TimeOnly.TryParseExact(rawValue, Format,
+            if (!string.IsNullOrEmpty(EffectiveFormat) &&
+                TimeOnly.TryParseExact(rawValue, EffectiveFormat,
                     System.Globalization.CultureInfo.CurrentCulture,
                     System.Globalization.DateTimeStyles.None, out var toFmt))
             { typed = toFmt; parsed = true; }
@@ -992,7 +1017,7 @@
     public string? FormatDateValue(object? value)
     {
         if (value is not DateTime dt) return null;
-        var fmt = Format ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+        var fmt = EffectiveFormat ?? System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
         return dt.ToString(fmt);
     }
 

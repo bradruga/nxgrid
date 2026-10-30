@@ -319,7 +319,7 @@
                 <td>Format</td>
                 <td>string?</td>
                 <td>—</td>
-                <td>Standard or custom .NET format string (e.g. <code>"MM/dd/yyyy"</code>, <code>"#,0.00"</code>) applied to any <code>IFormattable</code> property — numbers as well as <code>DateTime</code>/<code>DateTime?</code> and <code>TimeOnly</code>/<code>TimeOnly?</code>. Governs cell display and editor pre-population on F2/double-click; for date/time columns it's also the first parse attempt on commit before falling back to <code>TryParse</code> and then the built-in time shorthand parser. When <code>DatePicker="true"</code> and unset, falls back to the thread's short-date culture pattern.</td>
+                <td>Standard or custom .NET format string (e.g. <code>"MM/dd/yyyy"</code>, <code>"#,0.00"</code>) applied to any <code>IFormattable</code> property — numbers as well as <code>DateTime</code>/<code>DateTime?</code> and <code>TimeOnly</code>/<code>TimeOnly?</code>. Governs cell display and editor pre-population on F2/double-click; for date/time columns it's also the first parse attempt on commit before falling back to <code>TryParse</code> and then the built-in time shorthand parser. When unset, the property's <code>[DisplayFormat]</code> is used; with neither and <code>DatePicker="true"</code>, falls back to the thread's short-date culture pattern.</td>
                 <td><a href="number-format">Number Formatting</a>, <a href="date-picker">Date Picker</a>, <a href="time-entry">Time Entry</a>, <a href="trading-desk">Trading Desk</a></td>
             </tr>
         </tbody>

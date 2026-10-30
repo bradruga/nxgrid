@@ -301,9 +301,9 @@ public partial class NxGrid<T>
         var oldValue = col.EffectiveValueGetter?.Invoke(filteredData[rowIdx]);
 
         string? stringValue;
-        if (!string.IsNullOrEmpty(col.Format) && fillValue is IFormattable formattable)
+        if (!string.IsNullOrEmpty(col.EffectiveFormat) && fillValue is IFormattable formattable)
         {
-            stringValue = formattable.ToString(col.Format, System.Globalization.CultureInfo.CurrentCulture);
+            stringValue = formattable.ToString(col.EffectiveFormat, System.Globalization.CultureInfo.CurrentCulture);
         }
         else if (fillValue is DateTime dt)
         {

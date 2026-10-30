@@ -1583,6 +1583,18 @@ private async Task OnPrintClick()
 }
 """;
 
+    public static readonly string NumberFormatDisplayFormat = """
+// No Format on the columns: each reads the property's [DisplayFormat].
+<NxGridColumn Property="@(x => x.Weight)" />   // shows and edits 76,800.00
+<NxGridColumn Property="@(x => x.Load)" />     // shows 5,000 lb, edits 5000
+
+[DisplayFormat(DataFormatString = "{0:#,0.00}")]   // lone {0:...}: same as Format="#,0.00"
+public double Weight { get; set; }
+
+[DisplayFormat(DataFormatString = "{0:#,0} lb")]   // anything else: display only
+public int Load { get; set; }
+""";
+
     public static readonly string NumberFormatComparison = """
 // Before Format existed, the only way to format a number for display was a
 // separate Display lambda — but Display is display-only, so the editor

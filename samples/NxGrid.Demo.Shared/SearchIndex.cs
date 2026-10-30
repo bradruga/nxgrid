@@ -101,6 +101,7 @@ public static class SearchIndex
         new("Combo Box — Enum and Bool Columns", "combo-box", Section: "Enum and Bool Columns", Category: "Editing", Keywords: "enum bool dropdown edit parse Display Name member yes no"),
         new("Combo Box — Free-Text Entry", "combo-box", Section: "Free-Text Entry", Category: "Editing", Keywords: "custom free text new value suggestions not in list ComboBoxAllowCustom"),
         new("Number Formatting",    "number-format",    Category: "Editing", Keywords: "format currency decimal number thousands"),
+        new("Number Formatting — [DisplayFormat]", "number-format", Section: "[DisplayFormat] on the Model", Category: "Editing", Keywords: "DisplayFormat DataFormatString attribute data annotations format model"),
         new("Date Picker",          "date-picker",      Category: "Editing", Keywords: "calendar date datetime"),
         new("Color Picker",         "color-picker",     Category: "Editing", Keywords: "color colour rgb"),
         new("Time Entry",           "time-entry",       Category: "Editing", Keywords: "time hours minutes"),

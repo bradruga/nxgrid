@@ -40,9 +40,9 @@ public partial class NxGrid<T>
         var getter = column.IsComboColumn ? column.EffectiveGetter : column.EffectiveValueGetter;
         var rawValue = getter != null ? getter(filteredData[row]) : null;
         string currentText;
-        if (!string.IsNullOrEmpty(column.Format) && rawValue is IFormattable formattable)
+        if (!string.IsNullOrEmpty(column.EffectiveFormat) && rawValue is IFormattable formattable)
         {
-            currentText = formattable.ToString(column.Format, System.Globalization.CultureInfo.CurrentCulture);
+            currentText = formattable.ToString(column.EffectiveFormat, System.Globalization.CultureInfo.CurrentCulture);
         }
         else if (rawValue is DateTime dt)
         {
