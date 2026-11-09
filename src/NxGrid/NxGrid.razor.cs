@@ -860,6 +860,31 @@ public partial class NxGrid<T>
     }
 
     /// <summary>
+    /// Scrolls the grid to its first row without changing the selection or the horizontal scroll.
+    /// The scroll runs after the next render, as with <see cref="ScrollToEnd"/>.
+    /// </summary>
+    public async Task ScrollToTop()
+    {
+        while (jsInterop == null) await Task.Delay(20);
+        pendingScrollIntoView = (0, -1);   // column -1 leaves the horizontal scroll alone
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Scrolls <paramref name="row"/> into view, by as little as needed, without changing the selection or
+    /// the horizontal scroll. The row is resolved as <see cref="SelectRow"/> resolves it. No-op when it is
+    /// not in the filtered data.
+    /// </summary>
+    public async Task ScrollToRow(T row)
+    {
+        while (jsInterop == null) await Task.Delay(20);
+        var rowIndex = FindRowIndex(row);
+        if (rowIndex < 0) return;
+        pendingScrollIntoView = (rowIndex, -1);
+        StateHasChanged();
+    }
+
+    /// <summary>
     /// Programmatically selects <paramref name="row"/> and scrolls it into view.
     /// When <see cref="KeyProperty"/> is set and the reference is not found, falls back to
     /// key-value matching in the current filtered data.

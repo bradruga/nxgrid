@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ScrollToTop()` and `ScrollToRow(row)` on `NxGrid` scroll without changing the selection.
 - `SelectRows(rows)` on `NxGrid` selects many rows at once, adjacent or not, fires `OnSelectionChanged` once, and scrolls the first into view.
 
 ### Fixed

@@ -1015,7 +1015,7 @@ The JS module (`nx-grid.js`) is lazily imported on first render. Several behavio
 - Mac platform detection (`isMac`; affects whether Ctrl or Meta is the modifier key)
 - Select-on-tab-focus (the keyboard-vs-mouse focus distinction is made in JS)
 
-`ScrollToEnd()` polls with a 20 ms delay until JS interop is initialized, then scrolls to the last row.
+`ScrollToEnd()`, `ScrollToTop()` and `ScrollToRow()` poll with a 20 ms delay until JS interop is initialized, then scroll.
 
 All other JS-dependent operations are no-ops if `jsInterop` is null, and silently succeed once it is ready.
 

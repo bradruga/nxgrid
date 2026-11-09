@@ -13,6 +13,8 @@
     <h2>Virtualized Grid — @bigData.Count.ToString("N0") Rows</h2>
     <div class="doc-controls">
         <button class="doc-btn" @onclick="ScrollToEndAsync">ScrollToEnd()</button>
+        <button class="doc-btn" @onclick="@(() => bigGrid.ScrollToTop())">ScrollToTop()</button>
+        <button class="doc-btn" @onclick="@(() => bigGrid.ScrollToRow(bigData[2500]))">ScrollToRow(#2501)</button>
         <button class="doc-btn doc-btn-secondary" @onclick="AddRow">Add row + ForceRerender()</button>
         <span style="font-size:13px;color:#555;">Total rows: <strong>@bigData.Count.ToString("N0")</strong></span>
     </div>
@@ -29,7 +31,8 @@
 </div>
 
 <div class="doc-section">
-    <h2>ScrollToEnd()</h2>
+    <h2>ScrollToEnd(), ScrollToTop(), ScrollToRow()</h2>
+    <p class="doc-note">All three scroll without changing the selection. <code>ScrollToRow</code> scrolls just far enough to show the row.</p>
     <pre class="doc-code">@scrollCode</pre>
 </div>
 

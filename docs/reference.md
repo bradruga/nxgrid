@@ -174,6 +174,8 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 ```csharp
 void  ForceRerender()                              // re-run filter/sort, reconcile the selection, and force a re-render after any external mutation of Data
 Task  ScrollToEnd()                                // scroll to the last row; accounts for rows appended to Data in place
+Task  ScrollToTop()                                // scroll to the first row; selection and horizontal scroll are left alone
+Task  ScrollToRow(T row)                           // scroll the row into view by as little as needed; selection and horizontal scroll are left alone; rows resolve as in SelectRow; no-op when the row is filtered out
 Task  SelectRow(T row)                             // programmatically select a row and scroll it into view; when KeyProperty is set, falls back to key-value match if reference is not found; re-pipes to find a row just added to Data
 Task  SelectRows(IEnumerable<T> rows)              // replace the selection with these rows as whole-row ranges (adjacent rows merged), fire OnSelectionChanged once, scroll the topmost into view; rows resolve as in SelectRow; none found clears the selection
 Task  SelectRowByKey(object? keyValue)             // select and scroll to the first row whose KeyProperty value equals keyValue; logs a warning and is a no-op when KeyProperty is not set or no match is found

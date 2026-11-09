@@ -597,6 +597,10 @@ public static class DemoCodeSamples
     {
         await grid.ScrollToEnd();   // scrolls to the last row
     }
+
+    // None of these change the selection
+    Task JumpToTop() => grid.ScrollToTop();
+    Task ShowRow(Person p) => grid.ScrollToRow(p);
 }
 """;
 

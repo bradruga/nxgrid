@@ -913,15 +913,19 @@ pipeline before giving up, so `lines.Add(line); await grid.SelectRow(line);` wor
 
 In `MultiRow`/`SingleRow` mode the whole row is selected and the column argument is ignored. To open the editor on that cell instead of just selecting it, use `BeginEditAsync(row, column)` — it runs the same editability checks as a double-click and no-ops silently if any of them block.
 
-### Scroll to the last row
+### Scroll without selecting
 
-`ScrollToEnd()` scrolls to the bottom of the grid without changing the selection.
+`ScrollToEnd()`, `ScrollToTop()` and `ScrollToRow(row)` scroll without changing the selection.
 
 ```csharp
-await grid.ScrollToEnd();
+await grid.ScrollToEnd();          // the last row
+await grid.ScrollToTop();          // the first row, e.g. after inserting a new line at the top
+await grid.ScrollToRow(savedLine); // just far enough to show that row, e.g. after a reload
 ```
 
-This is safe to call immediately after adding a row — it waits internally for JS interop to be ready if the grid was just rendered.
+`ScrollToRow` finds the row as `SelectRow` does, falling back to `KeyProperty`, and does nothing when the row is filtered out. `ScrollToTop` and `ScrollToRow` leave the horizontal scroll where it is.
+
+These are safe to call immediately after adding a row — they wait internally for JS interop to be ready if the grid was just rendered, and scroll after the next render.
 
 ---
 

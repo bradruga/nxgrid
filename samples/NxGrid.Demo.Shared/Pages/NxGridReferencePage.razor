@@ -545,6 +545,16 @@
                 <td><a href="large-data">Large Data</a></td>
             </tr>
             <tr>
+                <td>Task ScrollToTop()</td>
+                <td>Scrolls to the first row without changing the selection or the horizontal scroll.</td>
+                <td><a href="large-data">Large Data</a></td>
+            </tr>
+            <tr>
+                <td>Task ScrollToRow(T row)</td>
+                <td>Scrolls the row into view by as little as needed, without changing the selection or the horizontal scroll. Falls back to <code>KeyProperty</code>; no-op when the row is filtered out.</td>
+                <td><a href="large-data">Large Data</a></td>
+            </tr>
+            <tr>
                 <td>Task SelectRow(T row)</td>
                 <td>Programmatically selects a row (all columns), fires <code>OnSelectionChanged</code>, and scrolls it into view. No-op if the row is filtered out.</td>
                 <td><a href="selection">Selection</a></td>
