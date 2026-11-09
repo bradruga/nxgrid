@@ -550,6 +550,11 @@
                 <td><a href="selection">Selection</a></td>
             </tr>
             <tr>
+                <td>Task SelectRows(IEnumerable&lt;T&gt; rows)</td>
+                <td>Selects every listed row as whole-row ranges (adjacent rows merged), fires <code>OnSelectionChanged</code> once, and scrolls the topmost into view. Rows not found are skipped; none found clears the selection.</td>
+                <td><a href="selection">Selection</a></td>
+            </tr>
+            <tr>
                 <td>Task SelectRowByKey(object? keyValue)</td>
                 <td>Selects the first row in the current filtered data whose <code>KeyProperty</code> value equals <code>keyValue</code> and scrolls it into view. Logs a warning and is a no-op when <code>KeyProperty</code> is not set or no match is found.</td>
                 <td><a href="selection">Selection</a></td>

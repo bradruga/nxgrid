@@ -392,6 +392,32 @@
 </div>
 
 <div class="doc-section">
+    <h2>SelectRows — Select Many Rows at Once</h2>
+    <p class="doc-para">
+        <code>SelectRows(rows)</code> selects every listed row, adjacent or not, fires
+        <code>OnSelectionChanged</code> once, and scrolls the topmost into view. Adjacent rows merge
+        into one range. Sort by Department to see them merge.
+    </p>
+    <div class="doc-controls">
+        @foreach (var dept in selectRowsDepartments)
+        {
+            <button class="doc-btn" @onclick="@(() => SelectDepartment(dept))">@dept</button>
+        }
+        <button class="doc-btn" @onclick="@(() => selectRowsGrid.SelectRows([]))">None</button>
+    </div>
+    <NxGrid T="Person" @ref="selectRowsGrid" Data="@selectRowsPeople"
+            OnSelectionChanged="@OnSelectRowsChanged"
+            Style="height:300px">
+        <NxGridColumn Property="@(x => x.Id)"         Width="60" MaxWidth="60" />
+        <NxGridColumn Property="@(x => x.FirstName)"  Width="130" />
+        <NxGridColumn Property="@(x => x.LastName)"   Width="130" />
+        <NxGridColumn Property="@(x => x.Department)" />
+    </NxGrid>
+    <div class="doc-output">@selectRowsLog</div>
+    <pre class="doc-code" style="margin-top:24px">@selectRowsCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>OnSelectionChanged</h2>
     <pre class="doc-code">@selectionCode</pre>
 </div>
@@ -550,6 +576,19 @@
         await keyNavGrid.SelectRowByKey(jumpToId);
     }
 
+    // SelectRows demo
+    NxGrid<Person> selectRowsGrid = null!;
+    List<Person> selectRowsPeople = SampleData.GeneratePeople(500);
+    string[] selectRowsDepartments = ["Engineering", "Finance", "HR", "Legal"];
+    string selectRowsLog = "Click a department";
+
+    Task SelectDepartment(string dept) =>
+        selectRowsGrid.SelectRows(selectRowsPeople.Where(p => p.Department == dept));
+
+    void OnSelectRowsChanged(NxGridSelectionArgs<Person> args) =>
+        selectRowsLog = $"OnSelectionChanged: {args.Ranges.Sum(r => r.Items.Count)} rows in {args.Ranges.Count} ranges";
+
+    string selectRowsCode             = DemoCodeSamples.SelectRowsCode;
     string keyPropertySaveRefreshCode = DemoCodeSamples.KeyPropertySaveRefresh;
     string selectRowByKeyCode         = DemoCodeSamples.SelectRowByKeyCode;
 

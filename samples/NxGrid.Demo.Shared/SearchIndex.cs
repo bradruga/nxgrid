@@ -61,7 +61,7 @@ public static class SearchIndex
         new("NxGrid — Events",                "reference/nxgrid",        Section: "Events",  Category: "Reference", Keywords: "OnSelectionChanged OnCellClicked OnFilterChanged OnSortChanged OnKeyPressed OnUpdate OnRowDrop OnNewRow OnCopied OnPasted"),
         new("NxGrid — Styling",               "reference/nxgrid",        Section: "Styling", Category: "Reference", Keywords: "CellStyle style css"),
         new("NxGrid — Editing Parameters",    "reference/nxgrid",        Section: "Editing", Category: "Reference", Keywords: "Editable CellEditableGetter OnEditing OnUpdating OnUpdate CloseEditorBeforeUpdate EnableDragFill NewRowTriggers"),
-        new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRowByKey SelectCell SelectRange BeginEditAsync ClearSavedState SetColumnHidden SetEditValue CommitEditAsync CancelEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
+        new("NxGrid — Public Methods",        "reference/nxgrid",        Section: "Methods", Category: "Reference", Keywords: "ForceRerender ScrollToEnd SelectRow SelectRows SelectRowByKey SelectCell SelectRange BeginEditAsync ClearSavedState SetColumnHidden SetEditValue CommitEditAsync CancelEditAsync ResetColumnWidths PrintAsync FitColumnsAsync"),
 
         // Reference — NxGridColumn
         new("NxGridColumn Reference",              "reference/nxgrid-column", Category: "Reference", Keywords: "column api parameters"),
@@ -82,6 +82,7 @@ public static class SearchIndex
         new("Selection — Sort and Filter", "selection",    Section: "Selection Follows Sort and Filter",                  Category: "Selection", Keywords: "sort filter reconcile follows"),
         new("Selection — bind-SelectedItems", "selection", Section: "@bind-SelectedItems — Two-Way Binding",         Category: "Selection", Keywords: "two-way binding"),
         new("Selection — SelectRowByKey", "selection",     Section: "SelectRowByKey — Navigate to a Row by ID",     Category: "Selection", Keywords: "programmatic navigate"),
+        new("Selection — SelectRows",   "selection",       Section: "SelectRows — Select Many Rows at Once",        Category: "Selection", Keywords: "programmatic several multiple rows scroll"),
         new("Selection Math",           "selection-math",  Category: "Selection", Keywords: "sum avg count status bar"),
 
         // Editing

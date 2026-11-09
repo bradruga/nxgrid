@@ -175,6 +175,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 void  ForceRerender()                              // re-run filter/sort, reconcile the selection, and force a re-render after any external mutation of Data
 Task  ScrollToEnd()                                // scroll to the last row; accounts for rows appended to Data in place
 Task  SelectRow(T row)                             // programmatically select a row and scroll it into view; when KeyProperty is set, falls back to key-value match if reference is not found; re-pipes to find a row just added to Data
+Task  SelectRows(IEnumerable<T> rows)              // replace the selection with these rows as whole-row ranges (adjacent rows merged), fire OnSelectionChanged once, scroll the topmost into view; rows resolve as in SelectRow; none found clears the selection
 Task  SelectRowByKey(object? keyValue)             // select and scroll to the first row whose KeyProperty value equals keyValue; logs a warning and is a no-op when KeyProperty is not set or no match is found
 Task  SelectCell(T row, NxGridColumn<T> column)    // select a single cell and scroll it into view; selects the whole row in the row-selection modes; no-op when the row is not in the filtered data or the column is hidden
 Task  SelectRange(T startRow, NxGridColumn<T> startColumn, T endRow, NxGridColumn<T> endColumn)  // select the rectangle between two cells and scroll the end cell into view; rows resolve as in SelectCell; whole rows in the row-selection modes; focus is left where it is; no-op when either row is absent or either column is hidden
@@ -426,7 +427,7 @@ When `KeyProperty` is set and `SelectRow(row)` cannot find the row by reference 
 
 ### Selecting a row that was just added
 
-`SelectRow`, `SelectRowByKey`, `SelectCell`, and `BeginEditAsync` all resolve rows against the grid's filtered snapshot, which is rebuilt when the grid observes a `Data` change. If the lookup fails and `Data` has changed since the last pipeline run, they re-run the pipeline and look again rather than no-oping — so a host can add a row and place the cursor on it in one block:
+`SelectRow`, `SelectRows`, `SelectRowByKey`, `SelectCell`, and `BeginEditAsync` all resolve rows against the grid's filtered snapshot, which is rebuilt when the grid observes a `Data` change. If the lookup fails and `Data` has changed since the last pipeline run, they re-run the pipeline and look again rather than no-oping — so a host can add a row and place the cursor on it in one block:
 
 ```csharp
 lines.Insert(index, newLine);
@@ -434,6 +435,16 @@ await grid!.SelectCell(newLine, itemColumn!);   // no StateHasChanged()/Task.Yie
 ```
 
 The selection moves exactly once, with no intermediate frame showing the previous selection over the new row set. A row that is genuinely not there — filtered out, or never added — is still a silent no-op.
+
+### `SelectRows(IEnumerable<T> rows)`
+
+Selects many rows at once, adjacent or not — for example, the rows behind an item clicked in a panel next to the grid. Unlike assigning `@bind-SelectedItems`, it scrolls to the selection and fires `OnSelectionChanged`.
+
+```csharp
+await grid!.SelectRows(pieces.Where(p => p.RunId == run.Id));
+```
+
+See [Selecting several rows](behavior.md#selecting-several-rows).
 
 ### `SelectRowByKey(object? keyValue)`
 

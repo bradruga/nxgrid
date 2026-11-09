@@ -1551,6 +1551,19 @@ private async Task OnPrintClick()
 }
 """;
 
+    public static readonly string SelectRowsCode = """
+// SelectRows selects many rows at once — e.g. the pieces behind a run clicked in a schedule.
+// Adjacent rows merge into one range; OnSelectionChanged fires once; the topmost row scrolls into view.
+<NxGrid T="Person" @ref="grid" Data="@people" OnSelectionChanged="@OnSelectionChanged">
+    ...
+</NxGrid>
+
+@code {
+    Task SelectDepartment(string dept) =>
+        grid!.SelectRows(people.Where(p => p.Department == dept));
+}
+""";
+
     public static readonly string DatePickerCustomFormat = """
 // Format controls display, editor pre-population, and commit parsing.
 // The grid tries TryParseExact first, then falls back to DateTime.TryParse.

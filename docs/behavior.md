@@ -194,7 +194,22 @@ Dragging across headers (or row numbers) extends the selection only while the dr
 
 `SelectRow(T row)` finds the row in `filteredData`, selects it spanning all columns (like a row-number click), scrolls it into view, and fires `OnSelectionChanged`. If the row is not present in `filteredData` (e.g. filtered out), the call is a no-op.
 
-`SelectCell`, `SelectRowByKey`, and `BeginEditAsync` resolve their row the same way. When the lookup fails **and** `Data` has changed since the last pipeline run, all four re-run `ApplyFilterAndSort()` and look again before giving up — so a row the host just added to `Data` is found without an intervening render, and an insert-then-select block moves the selection exactly once instead of painting the old selection over the new row set first. The scroll that follows is deferred until after that render, so the target row is in the DOM when the grid measures it.
+`SelectRows`, `SelectCell`, `SelectRowByKey`, and `BeginEditAsync` resolve their rows the same way. When a lookup fails **and** `Data` has changed since the last pipeline run, all five re-run `ApplyFilterAndSort()` and look again before giving up — so a row the host just added to `Data` is found without an intervening render, and an insert-then-select block moves the selection exactly once instead of painting the old selection over the new row set first. The scroll that follows is deferred until after that render, so the target row is in the DOM when the grid measures it.
+
+#### Selecting several rows
+
+`SelectRows(IEnumerable<T> rows)` replaces the selection with every listed row that is in `filteredData`:
+
+- Each row is selected across all columns, in every selection mode. Adjacent rows merge into one range, so three consecutive rows are one range and three scattered rows are three.
+- The topmost selected row is the anchor, and its range is the active range — where the keyboard picks up. `OnSelectionChanged` lists that range last, as it does for the active range everywhere.
+- `SingleRow` keeps only the topmost row.
+- Rows not found by reference fall back to `KeyProperty`, then are skipped. Listing a row twice selects it once.
+- When no listed row is found, or the list is empty, the selection is cleared.
+- `OnSelectionChanged` and `SelectedItemsChanged` fire once, and the topmost selected row is scrolled into view.
+- The filtered data is indexed once per call, so a list of thousands of rows costs no more than a few lookups each.
+- No-op when `SelectionMode` is `None`.
+
+Assigning `@bind-SelectedItems` from the host selects the same rows, but neither scrolls nor fires `OnSelectionChanged`.
 
 ### Selection when data changes underneath it
 
@@ -212,7 +227,7 @@ A sort or filter change — a title click, the column menu, `ClearAllFilters()`,
 - Every selected row that is still visible stays selected at its new position, with the same columns. A block whose rows the sort separates splits into one range per adjacent group, and the group holding the anchor stays the active range — the same rules as a `Data` change.
 - A selected row that the filter hides is dropped. If nothing is left, the selection is empty. Clearing the filter later does not re-select it.
 - `OnSelectionChanged` (and `SelectedItemsChanged`) fires once, and only when a row was dropped. A pure reorder is silent — the same items are selected, so a host that binds a selected item from the event sees nothing. It fires before `OnSortChanged` / `OnFilterChanged`, so inside those handlers the grid's selection and `VisibleItems` already agree.
-- Nothing scrolls. Only `SelectRow`, `SelectCell`, `SelectRange`, and `SelectRowByKey` scroll.
+- Nothing scrolls. Only `SelectRow`, `SelectRows`, `SelectCell`, `SelectRange`, and `SelectRowByKey` scroll.
 
 Collapsing a group is not a filter: its rows stay in the row set and stay selected. Keyboard navigation does not enter a collapsed group, though. An arrow, Enter or row-mode Tab step lands on the next visible row, and stays put when there is none in that direction. Tab's wrap to the next or previous row skips collapsed rows, wrapping past the end if it has to. A jump (Ctrl+Arrow, Ctrl+Home/End, Page Up/Down, Home/End in the row-selection modes) that lands inside a collapsed group moves to the nearest visible row, looking in the jump's direction first. Changing `GroupBy` itself does not re-run the pipeline until `Data` changes or `ForceRerender()` is called.
 

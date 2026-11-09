@@ -884,6 +884,48 @@ public partial class NxGrid<T>
     }
 
     /// <summary>
+    /// Replaces the selection with every row of <paramref name="rows"/> that is in the filtered data, as
+    /// whole-row ranges with adjacent rows merged, fires <see cref="OnSelectionChanged"/> once, and scrolls
+    /// the topmost selected row into view. Rows are resolved as <see cref="SelectRow"/> resolves them;
+    /// rows still not found are skipped, and when none is found the selection is cleared.
+    /// See docs/behavior.md, "Selecting several rows".
+    /// </summary>
+    public async Task SelectRows(IEnumerable<T> rows)
+    {
+        if (SelectionMode == NxGridSelectionMode.None) return;
+        var wanted = rows.ToList();
+        var (indices, allFound) = LookupRowIndices(wanted);
+        if (!allFound && HasUnseenDataChange)
+        {
+            RepipeData();
+            SanitizeSelectionRanges();
+            (indices, _) = LookupRowIndices(wanted);
+        }
+        if (SelectionMode == NxGridSelectionMode.SingleRow && indices.Count > 1) indices = [indices[0]];
+
+        var lastCol = Math.Max(0, visibleColumns.Count - 1);
+        var newRanges = new List<NxGridRange>();
+        for (var n = 0; n < indices.Count; n++)
+        {
+            var top = indices[n];
+            while (n + 1 < indices.Count && indices[n + 1] == indices[n] + 1) n++;
+            newRanges.Add(new NxGridRange { StartRow = top, StartCol = 0, EndRow = indices[n], EndCol = lastCol });
+        }
+        // The topmost range holds the anchor, and the active range is the last entry
+        if (newRanges.Count > 1)
+        {
+            newRanges.Add(newRanges[0]);
+            newRanges.RemoveAt(0);
+        }
+
+        selectedRanges = newRanges;
+        // Queued before the render so the scroll runs after it, whoever the caller is
+        if (indices.Count > 0) pendingScrollIntoView = (indices[0], 0);
+        StateHasChanged();
+        await RaiseSelectionChanged();
+    }
+
+    /// <summary>
     /// Programmatically selects the single cell at <paramref name="row"/> × <paramref name="column"/>
     /// and scrolls it into view, replacing any existing selection. Fires
     /// <see cref="OnSelectionChanged"/>. In the row-selection modes the whole row is selected instead
@@ -977,6 +1019,37 @@ public partial class NxGrid<T>
             rowIndex = filteredData.FindIndex(r => Equals(KeyProperty(r), key));
         }
         return rowIndex;
+    }
+
+    // LookupRowIndex for many rows: the filtered data is indexed once, so a long list costs no search per row.
+    // Returns the distinct indices found, ascending, and whether every row was found.
+    private (List<int> Indices, bool AllFound) LookupRowIndices(List<T> rows)
+    {
+        var byRow = new Dictionary<object, int>();
+        for (var i = 0; i < filteredData.Count; i++)
+            if (filteredData[i] is { } r) byRow.TryAdd(r, i);
+
+        Dictionary<object, int>? byKey = null;
+        var found = new HashSet<int>();
+        var allFound = true;
+        foreach (var row in rows)
+        {
+            if (row is not null && byRow.TryGetValue(row, out var index)) { found.Add(index); continue; }
+            if (row is not null && KeyProperty != null)
+            {
+                if (byKey == null)
+                {
+                    byKey = new Dictionary<object, int>();
+                    for (var i = 0; i < filteredData.Count; i++)
+                        if (KeyProperty(filteredData[i]) is { } k) byKey.TryAdd(k, i);
+                }
+                if (KeyProperty(row) is { } key && byKey.TryGetValue(key, out index)) { found.Add(index); continue; }
+            }
+            allFound = false;
+        }
+        var indices = found.ToList();
+        indices.Sort();
+        return (indices, allFound);
     }
 
     // Same re-pipe-and-retry as FindRowIndex, for the key-value lookup SelectRowByKey performs.
