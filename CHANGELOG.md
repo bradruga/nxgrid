@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Removing, reordering or hiding rows or columns under an open editor no longer crashes the circuit or commits the edit to the wrong cell: the editor follows its row and column, or closes if they're gone.
+
 ## [0.5.1] - 2026-10-30
 
 ### Added

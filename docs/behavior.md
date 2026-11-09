@@ -369,6 +369,8 @@ Modifier keys (Ctrl, Alt, Meta) suppress the printable-character trigger, so Ctr
 
 On commit, `OnUpdate` is called with an `NxGridUpdateArgs<T>`. When `MathExpression = true` on the column, the raw input string is evaluated as an arithmetic expression before type-parsing runs (see [Math expression evaluation](#math-expression-evaluation)). `args.Rows` contains one `NxGridRowChange<T>` per affected row, each with a `Changes` list of `NxGridCellChange<T>`. The `NewValue` on each change is already parsed to the property's CLR type when `Property` points to a supported type; `Apply(T row)` writes it back. The host is responsible for persisting. After `OnUpdate` returns, focus returns to the grid container.
 
+**Data or columns changing under an open editor.** If the host changes `Data`, a sort or filter re-runs, or columns are shown or hidden while an editor is open, the editor follows its row (by reference, then `KeyProperty`) and its column, and the typed value commits to them. If the row is gone — removed or filtered out — or the column is hidden or removed, the editor closes and the typed value is discarded; neither `OnUpdate` nor `OnEditCancelled` fires.
+
 #### Closing before OnUpdate
 
 By default the editor stays open while `OnUpdate` is awaited, showing the value being committed. A handler that asks the user to confirm therefore draws its prompt over a live editor, and the edit looks uncommitted until the prompt is answered. Set `CloseEditorBeforeUpdate="true"` on the grid to reverse the order for typed commits and Ctrl+Enter fills:

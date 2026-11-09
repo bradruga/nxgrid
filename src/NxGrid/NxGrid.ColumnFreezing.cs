@@ -10,7 +10,15 @@ public partial class NxGrid<T>
     {
         var gutterWidth = RowGutter == NxGridRowGutter.Hidden ? 0 : RowGutterWidth;
 
+        var editedColumn = isEditing ? visibleColumns[editCol] : null;
         visibleColumns = ActiveColumns.Where(c => c.Visible && !c.IsHidden).ToList();
+        // The open editor addresses its column by index: follow it, or close the editor if it's gone
+        if (editedColumn != null)
+        {
+            var index = visibleColumns.IndexOf(editedColumn);
+            if (index >= 0) editCol = index;
+            else ClearEditState();
+        }
 
         // Left-to-right pass: left offsets accumulate from the gutter outward.
         var leftAccum = gutterWidth;

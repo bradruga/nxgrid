@@ -143,6 +143,7 @@ public partial class NxGrid<T>
         ClearCutMark();   // row indices are about to change under the marquee
 
         var data = Data;
+        var editedRow = isEditing ? filteredData[editRow] : default;
 
         foreach (var column in ActiveColumns)
             data = column.FilterData(data);
@@ -150,6 +151,7 @@ public partial class NxGrid<T>
         if (GroupBy != null)
         {
             BuildGroupedData(data);
+            RemapEditRow(editedRow);
             return;
         }
 
@@ -162,6 +164,16 @@ public partial class NxGrid<T>
         // produce their own list, so the copy only happens on the pass-through path.
         filteredData = ReferenceEquals(sorted, Data) ? [.. sorted] : sorted;
         rowIndices = Enumerable.Range(0, filteredData.Count).ToList();
+        RemapEditRow(editedRow);
+    }
+
+    // The open editor addresses its row by index: follow the row to its new index, or close the editor if it's gone.
+    private void RemapEditRow(T? row)
+    {
+        if (!isEditing) return;
+        var index = LookupRowIndex(row!);
+        if (index >= 0) editRow = index;
+        else ClearEditState();
     }
 
     private List<T> ApplySortToList(List<T> items)
