@@ -430,7 +430,7 @@
                 <td>OnEditBlocked</td>
                 <td>EventCallback&lt;NxGridEditBlockedArgs&lt;T&gt;&gt;</td>
                 <td>—</td>
-                <td>Fires when a user directly tries to edit a cell blocked by <code>CellEditableGetter</code>. Does not fire for bulk operations.</td>
+                <td>Fires when a user directly tries to edit a cell in a read-only column or one blocked by <code>CellEditableGetter</code>; <code>args.Reason</code> says which. Does not fire for bulk operations or <code>BeginEditAsync</code>.</td>
                 <td><a href="editing">Editing</a></td>
             </tr>
             <tr>

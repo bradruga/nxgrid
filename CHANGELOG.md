@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `OnEditBlocked` also fires when the user types in, presses F2 on, double-clicks or toggles a checkbox in a read-only column. New `args.Reason` says whether the column is read-only or `CellEditableGetter` refused the cell. A double-click on a read-only column still goes to `OnCellDoubleClicked` when that has a handler.
+- `BeginEditAsync` no longer raises `OnEditBlocked`; it is a silent no-op on a blocked cell, as documented.
+
 ## [0.5.2] - 2026-11-09
 
 ### Fixed

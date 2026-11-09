@@ -506,6 +506,96 @@ public class NxGridKeyboardTests : BunitContext
 
         Assert.That(blocked, Is.Not.Null, "OnEditBlocked should have fired");
         Assert.That(blocked!.Row, Is.SameAs(rows[0]));
+        Assert.That(blocked.Reason, Is.EqualTo(NxGridEditBlockedReason.CellEditableGetter));
+    }
+
+    // Name is read-only; the clipboard holds "Pasted"
+    private IRenderedComponent<NxGrid<EditRow>> RenderReadOnlyColumnGrid(List<EditRow> rows, List<NxGridEditBlockedArgs<EditRow>> blocked,
+        bool hasOnUpdate = true, Action<NxGridCellClickArgs<EditRow>>? onDoubleClick = null)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Setup<string>("readFromClipboard", _ => true).SetResult("Pasted");
+        return Render<NxGrid<EditRow>>(p =>
+        {
+            p.Add(x => x.Data, rows)
+             .Add(x => x.Editable, true)
+             .Add(x => x.OnEditBlocked,
+                 EventCallback.Factory.Create<NxGridEditBlockedArgs<EditRow>>(this, args => blocked.Add(args)))
+             .AddChildContent<NxGridColumn<EditRow>>(col => col
+                 .Add(x => x.Property, (Expression<Func<EditRow, object?>>)(r => r.Name))
+                 .Add(x => x.Editable, (bool?)false));
+            if (hasOnUpdate)
+                p.Add(x => x.OnUpdate, EventCallback.Factory.Create<NxGridUpdateArgs<EditRow>>(this, _ => { }));
+            if (onDoubleClick != null)
+                p.Add(x => x.OnCellDoubleClicked, EventCallback.Factory.Create(this, onDoubleClick));
+        });
+    }
+
+    [Test]
+    public async Task OnEditBlocked_TypingInReadOnlyColumn_FiresColumnReadOnly()
+    {
+        var rows = new List<EditRow> { new() { Name = "Alice" } };
+        var blocked = new List<NxGridEditBlockedArgs<EditRow>>();
+        var cut = RenderReadOnlyColumnGrid(rows, blocked);
+
+        await ClickCell(cut, 0);
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "Z" });
+
+        Assert.That(blocked, Has.Count.EqualTo(1));
+        Assert.That(blocked[0].Row, Is.SameAs(rows[0]));
+        Assert.That(blocked[0].Reason, Is.EqualTo(NxGridEditBlockedReason.ColumnReadOnly));
+        Assert.That(cut.FindAll(".nx-grid-edit-input"), Is.Empty);
+    }
+
+    [Test]
+    public async Task OnEditBlocked_PasteOverReadOnlyColumn_FiresNothing()
+    {
+        var rows = new List<EditRow> { new() { Name = "Alice" } };
+        var blocked = new List<NxGridEditBlockedArgs<EditRow>>();
+        var cut = RenderReadOnlyColumnGrid(rows, blocked);
+
+        await ClickCell(cut, 0);
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "v", CtrlKey = true });
+
+        Assert.That(blocked, Is.Empty);
+        Assert.That(rows[0].Name, Is.EqualTo("Alice"));
+    }
+
+    [Test]
+    public async Task OnEditBlocked_WithoutOnUpdate_FiresNothing()
+    {
+        var blocked = new List<NxGridEditBlockedArgs<EditRow>>();
+        var cut = RenderReadOnlyColumnGrid([new() { Name = "Alice" }], blocked, hasOnUpdate: false);
+
+        await ClickCell(cut, 0);
+        await cut.Find(".nx-grid").TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "F2" });
+
+        Assert.That(blocked, Is.Empty);
+    }
+
+    [Test]
+    public async Task OnEditBlocked_DoubleClickReadOnlyColumn_GoesToOnCellDoubleClickedWhenHandled()
+    {
+        var blocked = new List<NxGridEditBlockedArgs<EditRow>>();
+        NxGridCellClickArgs<EditRow>? clicked = null;
+        var cut = RenderReadOnlyColumnGrid([new() { Name = "Alice" }], blocked, onDoubleClick: args => clicked = args);
+
+        await cut.Find(".nx-grid-row .nx-grid-cell").TriggerEventAsync("ondblclick", new EventArgs());
+
+        Assert.That(clicked, Is.Not.Null);
+        Assert.That(blocked, Is.Empty);
+    }
+
+    [Test]
+    public async Task OnEditBlocked_DoubleClickReadOnlyColumn_FiresWhenNoDoubleClickHandler()
+    {
+        var blocked = new List<NxGridEditBlockedArgs<EditRow>>();
+        var cut = RenderReadOnlyColumnGrid([new() { Name = "Alice" }], blocked);
+
+        await cut.Find(".nx-grid-row .nx-grid-cell").TriggerEventAsync("ondblclick", new EventArgs());
+
+        Assert.That(blocked, Has.Count.EqualTo(1));
+        Assert.That(blocked[0].Reason, Is.EqualTo(NxGridEditBlockedReason.ColumnReadOnly));
     }
 
     // ── OnCellDoubleClicked ───────────────────────────────────────────────────

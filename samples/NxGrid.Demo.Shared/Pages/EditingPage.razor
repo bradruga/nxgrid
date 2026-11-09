@@ -130,7 +130,7 @@
 
 <div class="doc-section">
     <h2>CellEditableGetter — Per-Cell Editability</h2>
-    <p class="doc-note">Finance rows are locked. Cells still render normally but cannot be edited — pressing <kbd class="doc-kbd">F2</kbd> or typing fires <code>OnEditBlocked</code> and shows a message below.</p>
+    <p class="doc-note">Finance rows are locked. Cells still render normally but cannot be edited — pressing <kbd class="doc-kbd">F2</kbd> or typing fires <code>OnEditBlocked</code> and shows a message below. The read-only Id column fires it too, with <code>Reason</code> <code>ColumnReadOnly</code>.</p>
     <div class="doc-controls">
         <span style="font-size:13px;color:#555;">Edit blocked: <strong>@cellEditBlockedLog</strong></span>
     </div>
@@ -216,7 +216,7 @@
             <tr>
                 <td>OnEditBlocked</td>
                 <td>EventCallback&lt;NxGridEditBlockedArgs&lt;T&gt;&gt;</td>
-                <td>Fires when a user directly tries to edit a cell blocked by <code>CellEditableGetter</code>. Provides the row and column that were blocked.</td>
+                <td>Fires when a user directly tries to edit a cell in a read-only column or one blocked by <code>CellEditableGetter</code>. Provides the row, the column and the <code>Reason</code>.</td>
             </tr>
             <tr>
                 <td>ComboBoxSource</td>
@@ -254,7 +254,7 @@
 
     void OnEditBlocked(NxGridEditBlockedArgs<Person> args)
     {
-        cellEditBlockedLog = $"{args.Row.FirstName} {args.Row.LastName} — {args.Column.EffectiveTitle}";
+        cellEditBlockedLog = $"{args.Row.FirstName} {args.Row.LastName} — {args.Column.EffectiveTitle} ({args.Reason})";
     }
 
     async Task HandleUpdate(NxGridUpdateArgs<Person> args)

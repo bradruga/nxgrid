@@ -10,18 +10,19 @@ public partial class NxGrid<T>
     private const string KeyShiftEnter = "ShiftEnter";
     private const string KeyShiftTab   = "ShiftTab";
 
-    private async Task StartEditing(int row, int col, string? initialChar, bool initiatedByF2 = false)
+    // raiseBlocked: false for programmatic opens (BeginEditAsync, new row), which stay silent
+    private async Task StartEditing(int row, int col, string? initialChar, bool initiatedByF2 = false, bool raiseBlocked = true)
     {
         if (SelectionMode == NxGridSelectionMode.None) return;
         if (commitInFlight != null) return;   // no new editor until the host's OnUpdate returns
         if (IsCoveredCell(row, col)) return;   // only a span's anchor opens an editor
         var column = visibleColumns[col];
-        if (!IsColumnEditable(column) || !OnUpdate.HasDelegate) return;
+        if (!OnUpdate.HasDelegate) return;
 
-        if (CellEditableGetter != null && !CellEditableGetter(filteredData[row], column))
+        var blockedReason = EditBlockedReason(filteredData[row], column);
+        if (blockedReason != null)
         {
-            if (OnEditBlocked.HasDelegate)
-                await OnEditBlocked.InvokeAsync(new NxGridEditBlockedArgs<T> { Row = filteredData[row], Column = column });
+            if (raiseBlocked) await RaiseEditBlocked(filteredData[row], column, blockedReason.Value);
             return;
         }
 
@@ -966,14 +967,14 @@ public partial class NxGrid<T>
     private async Task OnCheckboxToggleCell(int row, int col)
     {
         var column = visibleColumns[col];
-        if (!IsColumnEditable(column) || !OnUpdate.HasDelegate) return;
+        if (!OnUpdate.HasDelegate) return;
 
         var rowData = filteredData[row];
 
-        if (CellEditableGetter != null && !CellEditableGetter(rowData, column))
+        var blockedReason = EditBlockedReason(rowData, column);
+        if (blockedReason != null)
         {
-            if (OnEditBlocked.HasDelegate)
-                await OnEditBlocked.InvokeAsync(new NxGridEditBlockedArgs<T> { Row = rowData, Column = column });
+            await RaiseEditBlocked(rowData, column, blockedReason.Value);
             return;
         }
 
@@ -1047,14 +1048,24 @@ public partial class NxGrid<T>
     {
         (row, column) = ResolveSpanAnchor(row, column);
         if (column.IsCheckboxColumn) return;
-        if (!IsColumnEditable(column))
+        // A read-only column's double-click goes to OnCellDoubleClicked when handled, else to OnEditBlocked
+        if (!IsColumnEditable(column) && OnCellDoubleClicked.HasDelegate)
         {
-            if (OnCellDoubleClicked.HasDelegate)
-                await OnCellDoubleClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = row, Column = column });
+            await OnCellDoubleClicked.InvokeAsync(new NxGridCellClickArgs<T> { Row = row, Column = column });
             return;
         }
         var rowIndex = filteredData.IndexOf(row);
         var colIndex = visibleColumns.IndexOf(column);
         await StartEditing(rowIndex, colIndex, initialChar: null);
     }
+
+    private NxGridEditBlockedReason? EditBlockedReason(T row, NxGridColumn<T> column) =>
+        !IsColumnEditable(column) ? NxGridEditBlockedReason.ColumnReadOnly
+        : CellEditableGetter != null && !CellEditableGetter(row, column) ? NxGridEditBlockedReason.CellEditableGetter
+        : null;
+
+    private Task RaiseEditBlocked(T row, NxGridColumn<T> column, NxGridEditBlockedReason reason) =>
+        OnEditBlocked.HasDelegate
+            ? OnEditBlocked.InvokeAsync(new NxGridEditBlockedArgs<T> { Row = row, Column = column, Reason = reason })
+            : Task.CompletedTask;
 }

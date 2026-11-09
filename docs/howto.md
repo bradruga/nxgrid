@@ -310,6 +310,15 @@ Use `CellEditableGetter` on the grid to make editing conditional per cell. The f
 }
 ```
 
+`OnEditBlocked` also fires for columns that are read-only through `Editable="false"`, so one handler can point the user elsewhere for both. `args.Reason` tells them apart:
+
+```csharp
+void OnBlocked(NxGridEditBlockedArgs<Person> args) =>
+    message = args.Reason == NxGridEditBlockedReason.ColumnReadOnly
+        ? $"{args.Column.EffectiveTitle} is edited on the Details tab"
+        : $"{args.Row.Name} is inactive";
+```
+
 To guard a specific column only, inspect the column in the delegate:
 
 ```csharp

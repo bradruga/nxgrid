@@ -235,10 +235,12 @@ public static class DemoCodeSamples
     public static readonly string CellEditableGetter = """
 // CellEditableGetter is a grid-level guard evaluated for every edit attempt.
 // Return false to block a cell — fires OnEditBlocked for direct edits (F2 / typing / double-click).
+// Read-only columns (Editable="false") fire it too, with Reason = ColumnReadOnly.
 // Bulk operations (paste, delete, Ctrl+Enter) silently skip blocked cells.
 <NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate"
         CellEditableGetter="@((row, col) => row.Department != "Finance")"
         OnEditBlocked="@OnBlocked">
+    <NxGridColumn Property="@(x => x.Id)"         Editable="false" />
     <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
     <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
     <NxGridColumn Property="@(x => x.Department)" Width="140" />
@@ -247,7 +249,9 @@ public static class DemoCodeSamples
 @code {
     void OnBlocked(NxGridEditBlockedArgs<Person> args)
     {
-        notification.Show($"{args.Row.FirstName} ({args.Column.EffectiveTitle}) cannot be edited.");
+        notification.Show(args.Reason == NxGridEditBlockedReason.ColumnReadOnly
+            ? $"{args.Column.EffectiveTitle} cannot be edited."
+            : $"{args.Row.FirstName} is in Finance and cannot be edited.");
     }
 }
 """;

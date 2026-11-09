@@ -332,7 +332,7 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridCellClickArgs<T>> OnCellClicked { get; set; }
 
     /// <summary>
-    /// Fires on double-click for columns that are <b>not</b> editable.
+    /// Fires on double-click for columns that are <b>not</b> editable, in place of <see cref="OnEditBlocked"/>.
     /// Editable columns open the inline editor on double-click instead.
     /// </summary>
     [Parameter] public EventCallback<NxGridCellClickArgs<T>> OnCellDoubleClicked { get; set; }
@@ -408,8 +408,10 @@ public partial class NxGrid<T>
     [Parameter] public EventCallback<NxGridUpdatingArgs<T>> OnUpdating { get; set; }
 
     /// <summary>
-    /// Fires when the user directly tries to edit a cell blocked by <see cref="CellEditableGetter"/>.
-    /// Not fired for bulk operations (paste, delete, Ctrl+Enter) — those silently skip blocked cells.
+    /// Fires when the user directly tries to edit (typing, F2, double-click, checkbox toggle) a cell in a
+    /// read-only column or one blocked by <see cref="CellEditableGetter"/>; <see cref="NxGridEditBlockedArgs{T}.Reason"/>
+    /// says which. Not fired without <see cref="OnUpdate"/>, for bulk operations, or for <see cref="BeginEditAsync"/>.
+    /// See docs/behavior.md, "Editability".
     /// </summary>
     [Parameter] public EventCallback<NxGridEditBlockedArgs<T>> OnEditBlocked { get; set; }
 
@@ -808,7 +810,7 @@ public partial class NxGrid<T>
 
         selectedRanges = [new NxGridRange { StartRow = rowIndex, StartCol = colIndex, EndRow = rowIndex, EndCol = colIndex }];
         await RaiseSelectionChanged();
-        await StartEditing(rowIndex, colIndex, initialChar: null);
+        await StartEditing(rowIndex, colIndex, initialChar: null, raiseBlocked: false);
     }
 
     /// <summary>

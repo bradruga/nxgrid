@@ -305,15 +305,20 @@ Delete with Ctrl/⌘ held is intentionally *not* handled internally (plain Delet
 
 ## Editing
 
-A column is editable when `Editable` is set (either at the column level or via the grid-level `Editable` parameter), the grid has an `OnUpdate` handler, and `Property` points to a member with a setter. Columns whose `Property` is get-only are always read-only regardless of `Editable`.
+A column is editable when `Editable` is set (either at the column level or via the grid-level `Editable` parameter) and the grid has an `OnUpdate` handler. A get-only `Property` does not make a column read-only: the editor opens and `OnUpdate` receives the change, but `NxGridCellChange.Apply` is a no-op, so the host applies it. Set `Editable="false"` on columns the user must not edit.
 
-**Editability evaluation order for a direct edit attempt (F2, typing, double-click):**
+### Editability
 
-1. Column `Editable` (or grid-level `Editable`) must be `true` and `OnUpdate` must be registered.
-2. `CellEditableGetter(row, column)` — if supplied and returns `false`, the edit is blocked and `OnEditBlocked` fires.
-3. `OnEditing` — fires if all prior checks passed. If `args.Cancel` is set to `true`, the edit is cancelled silently.
+**Evaluation order for a direct edit attempt (F2, typing, double-click, checkbox click or Space):**
 
-For bulk operations (paste, delete, Ctrl+Enter), `CellEditableGetter` is evaluated but `OnEditing` and `OnEditBlocked` are not — blocked cells are silently skipped.
+1. `OnUpdate` must be registered. Without it nothing is editable and nothing is raised.
+2. Column `Editable` (or grid-level `Editable`) must be `true`, else the edit is blocked and `OnEditBlocked` fires with `Reason = ColumnReadOnly`.
+3. `CellEditableGetter(row, column)` — if supplied and returns `false`, the edit is blocked and `OnEditBlocked` fires with `Reason = CellEditableGetter`.
+4. `OnEditing` — fires if all prior checks passed. If `args.Cancel` is set to `true`, the edit is cancelled silently.
+
+`OnEditBlocked` fires once per attempt, so typing into a blocked cell raises it on every keystroke; debounce in the host if needed. Double-clicking a read-only column raises `OnCellDoubleClicked` instead when that has a handler, and `OnEditBlocked` only when it doesn't. `BeginEditAsync` and new-row `BeginEdit` are silent no-ops on a blocked cell.
+
+For bulk operations (paste, delete, Ctrl+Enter, drag-fill), editability is evaluated but `OnEditing` and `OnEditBlocked` are not — blocked cells are silently skipped.
 
 ### OnUpdating
 

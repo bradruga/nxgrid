@@ -237,7 +237,7 @@ public partial class NxGrid<T>
         pendingScrollIntoView = (targetRow, IsRowSelectionMode ? 0 : targetCol);
 
         if (args.BeginEdit && !IsRowSelectionMode)
-            await StartEditing(targetRow, targetCol, initialChar: null);
+            await StartEditing(targetRow, targetCol, initialChar: null, raiseBlocked: false);
         else if (jsInterop != null)
             await jsInterop.FocusGrid();
     }
