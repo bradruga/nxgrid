@@ -614,6 +614,14 @@ void OnSignalRRowReceived(Person newRow)
 }
 
 // ForceRerender() is synchronous — no await needed.
+
+// Redraw() re-renders every row without re-sorting or re-filtering, so no row moves.
+// Use it when values or CellEditableGetter/CellStyle results change in place.
+void OnLockChanged(bool locked)
+{
+    lockExisting = locked;
+    grid.Redraw();
+}
 """;
 
     public static readonly string StatePersistence = """

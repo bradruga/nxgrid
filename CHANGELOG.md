@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Redraw()` on `NxGrid` re-renders every row without re-sorting or re-filtering, so edited rows stay where they are.
 - `ScrollToTop()` and `ScrollToRow(row)` on `NxGrid` scroll without changing the selection.
 - `SelectRows(rows)` on `NxGrid` selects many rows at once, adjacent or not, fires `OnSelectionChanged` once, and scrolls the first into view.
 
 ### Fixed
 
+- Committing a single cell re-renders every row after `OnUpdate`, as paste, Delete and fill already did, so values the handler changes in other rows show without a `ForceRerender()`.
 - A nested `Property` path (`x => x.Piece.ControlNumber`) shows a blank cell instead of throwing when a link in it is `null`; writing to such a cell does nothing.
 
 ### Changed

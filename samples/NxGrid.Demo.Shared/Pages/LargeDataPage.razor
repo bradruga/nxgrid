@@ -37,10 +37,11 @@
 </div>
 
 <div class="doc-section">
-    <h2>ForceRerender()</h2>
+    <h2>ForceRerender() and Redraw()</h2>
     <p class="doc-note">
         Use <code>ForceRerender()</code> after mutating the <code>Data</code> list from outside Blazor's
         normal parameter-update path — for example, after receiving new rows via SignalR or a background task.
+        Use <code>Redraw()</code> to show changed values without re-sorting, so no row moves.
     </p>
     <pre class="doc-code">@forceRerenderCode</pre>
 </div>

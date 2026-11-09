@@ -170,6 +170,26 @@ grid.ForceRerender();
 set, and forces every visible row to re-render. It is safe to call at any time and for any kind of
 mutation — it is the one call that covers all three cases above.
 
+### Case 4: showing new values without moving rows
+
+`ForceRerender()` re-sorts, so with a sort active an edited row can jump away, and a filter can hide it.
+To show new values and leave every row where it is, call `Redraw()`. It re-renders every row and the
+footer, and does not re-run filter or sort — like a spreadsheet, a row that no longer matches the
+filter stays visible until the next pipeline run. `VisibleItems` still reflects the last pipeline run.
+
+```csharp
+// The "Lock existing" switch changes what CellEditableGetter returns, but no data
+void OnLockChanged(bool locked)
+{
+    lockExisting = locked;
+    grid.Redraw();
+}
+```
+
+Inside `OnUpdate` there is nothing to call: after every `OnUpdate` the grid re-renders all rows,
+so a change the handler spreads to other rows (every piece sharing the edited mark, say) shows
+without moving anything. Call `ForceRerender()` there only if you want the rows re-sorted.
+
 ### Reference
 
 ```razor

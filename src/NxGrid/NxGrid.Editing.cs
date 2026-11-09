@@ -172,6 +172,7 @@ public partial class NxGrid<T>
                 return;
             }
             await OnUpdate.InvokeAsync(update);
+            renderToken++;   // the host may have changed other rows too
         }
 
         await CloseCommittedEditor(row, col, moveKey, refocusGrid);

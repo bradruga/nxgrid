@@ -736,7 +736,7 @@ public partial class NxGrid<T>
     /// (never mutated) on the next filter, sort, or <see cref="Data"/> change. Call
     /// <c>ToList()</c> if you need a copy that survives those. Mutating <see cref="Data"/>
     /// elements in place does not re-run the filter — call <see cref="ForceRerender"/> first when
-    /// a mutation could change which rows match or how they sort.
+    /// a mutation could change which rows match or how they sort. <see cref="Redraw"/> leaves it unchanged.
     /// </para>
     /// </summary>
     public IReadOnlyList<T> VisibleItems => filteredData.AsReadOnly();
@@ -752,6 +752,18 @@ public partial class NxGrid<T>
     public void ForceRerender()
     {
         RepipeAndReconcileSelection();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Re-renders every row without re-running filter or sort, so no row moves or disappears. Use after
+    /// changing values in place, or state that templates, <see cref="CellStyle"/> or
+    /// <see cref="CellEditableGetter"/> read. <see cref="VisibleItems"/> is unchanged. See docs/howto.md,
+    /// "How to refresh the grid when data changes".
+    /// </summary>
+    public void Redraw()
+    {
+        renderToken++;
         StateHasChanged();
     }
 

@@ -173,6 +173,7 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 
 ```csharp
 void  ForceRerender()                              // re-run filter/sort, reconcile the selection, and force a re-render after any external mutation of Data
+void  Redraw()                                     // re-render every row and the footer without re-running filter/sort; rows stay where they are and VisibleItems is unchanged
 Task  ScrollToEnd()                                // scroll to the last row; accounts for rows appended to Data in place
 Task  ScrollToTop()                                // scroll to the first row; selection and horizontal scroll are left alone
 Task  ScrollToRow(T row)                           // scroll the row into view by as little as needed; selection and horizontal scroll are left alone; rows resolve as in SelectRow; no-op when the row is filtered out
