@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `SelectRows(rows)` on `NxGrid` selects many rows at once, adjacent or not, fires `OnSelectionChanged` once, and scrolls the first into view.
 
+### Fixed
+
+- A nested `Property` path (`x => x.Piece.ControlNumber`) shows a blank cell instead of throwing when a link in it is `null`; writing to such a cell does nothing.
+
 ### Changed
 
 - `OnEditBlocked` also fires when the user types in, presses F2 on, double-clicks or toggles a checkbox in a read-only column. New `args.Reason` says whether the column is read-only or `CellEditableGetter` refused the cell. A double-click on a read-only column still goes to `OnCellDoubleClicked` when that has a handler.

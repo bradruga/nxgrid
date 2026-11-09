@@ -19,7 +19,7 @@
                 <td>Property</td>
                 <td>Expression&lt;Func&lt;T, object?&gt;&gt;?</td>
                 <td>—</td>
-                <td>Member expression (e.g. <code>x =&gt; x.Age</code>). Used for display, sort/filter, and as the target for <code>change.Apply(row)</code>. Get-only properties are supported for display/sort but are not editable.</td>
+                <td>Member expression (e.g. <code>x =&gt; x.Age</code>). Used for display, sort/filter, and as the target for <code>change.Apply(row)</code>. Get-only properties are supported for display/sort; <code>Apply</code> is a no-op for them. A nested path (<code>x =&gt; x.Piece.ControlNumber</code>) is null-safe: a <code>null</code> link shows a blank cell.</td>
                 <td><a href="columns">Columns</a></td>
             </tr>
             <tr>

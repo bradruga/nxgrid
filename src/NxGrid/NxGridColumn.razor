@@ -651,7 +651,13 @@
         }
 
         propertyType = member.Type;
-        compiledPropertyGetter = Property.Compile();
+        var rowParam = Property.Parameters[0];
+        var nullGuard = NullGuard(member, rowParam);
+        compiledPropertyGetter = nullGuard == null
+            ? Property.Compile()
+            : Expression.Lambda<Func<T, object?>>(
+                Expression.Condition(nullGuard, Expression.Convert(member, typeof(object)), Expression.Constant(null)),
+                rowParam).Compile();
         inferredName = SplitPascalCase(member.Member.Name);
         displayName = member.Member.GetCustomAttribute<DisplayAttribute>()?.GetName();
 
@@ -695,9 +701,9 @@
         var canWrite = member.Member is PropertyInfo pi ? pi.CanWrite : member.Member is FieldInfo;
         if (canWrite)
         {
-            var rowParam = Property.Parameters[0];
             var valueParam = Expression.Parameter(typeof(object), "value");
-            var assignment = Expression.Assign(member, Expression.Convert(valueParam, propertyType));
+            Expression assignment = Expression.Assign(member, Expression.Convert(valueParam, propertyType));
+            if (nullGuard != null) assignment = Expression.IfThen(nullGuard, assignment);
             compiledPropertySetter = Expression.Lambda<Action<T, object?>>(
                 assignment, rowParam, valueParam).Compile();
         }
@@ -705,6 +711,25 @@
         {
             compiledPropertySetter = null;
         }
+    }
+
+    // x.A.B.C → x.A != null && x.A.B != null, testing only the links that can be null. Null when there
+    // are none, or the chain isn't rooted in the row (a call, a cast, a captured variable).
+    private static Expression? NullGuard(MemberExpression member, ParameterExpression rowParam)
+    {
+        var links = new List<Expression>();
+        for (var e = member.Expression; e != rowParam; e = ((MemberExpression)e).Expression)
+        {
+            if (e is not MemberExpression link) return null;
+            if (!link.Type.IsValueType || System.Nullable.GetUnderlyingType(link.Type) != null) links.Add(link);
+        }
+        if (links.Count == 0) return null;
+        links.Reverse();
+        return links
+            .Select(link => link.Type.IsValueType
+                ? Expression.NotEqual(link, Expression.Constant(null, link.Type))
+                : Expression.ReferenceNotEqual(link, Expression.Constant(null, link.Type)))
+            .Aggregate(Expression.AndAlso);
     }
 
     private static string? TryEvaluateMath(string expression)
