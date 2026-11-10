@@ -353,21 +353,40 @@ public partial class NxGrid<T>
         if (!OnSelectionChanged.HasDelegate && !SelectedItemsChanged.HasDelegate)
             return;
 
-        var selectionArgs = new NxGridSelectionArgs<T>();
+        var selectionArgs = new NxGridSelectionArgs<T> { Ranges = BuildSelectionRanges() };
+
+        await OnSelectionChanged.InvokeAsync(selectionArgs);
+
+        if (SelectedItemsChanged.HasDelegate)
+        {
+            var items = selectionArgs.Ranges.SelectMany(r => r.Items).Distinct().ToList();
+            lastRaisedSelectedItems = items;
+            await SelectedItemsChanged.InvokeAsync(items);
+        }
+    }
+
+    // Resolves selectedRanges to rows and columns. Skips a range left out of bounds by a data or
+    // column change that RaiseSelectionChanged has not sanitized yet, so SelectedRanges never throws.
+    private List<NxGridSelectionRange<T>> BuildSelectionRanges()
+    {
+        var result = new List<NxGridSelectionRange<T>>(selectedRanges.Count);
 
         foreach (var range in selectedRanges)
         {
-            var selectionRange = new NxGridSelectionRange<T>();
-
             var startRow = Math.Min(range.StartRow, range.EndRow);
             var endRow = Math.Max(range.StartRow, range.EndRow);
+            var startCol = Math.Min(range.StartCol, range.EndCol);
+            var endCol = Math.Max(range.StartCol, range.EndCol);
+            if (startRow < 0 || startCol < 0 || endRow >= filteredData.Count || endCol >= visibleColumns.Count)
+                continue;
+
+            var selectionRange = new NxGridSelectionRange<T>();
+
             for (var i = startRow; i <= endRow; i++)
             {
                 selectionRange.Items.Add(filteredData[i]);
             }
 
-            var startCol = Math.Min(range.StartCol, range.EndCol);
-            var endCol = Math.Max(range.StartCol, range.EndCol);
             for (var i = startCol; i <= endCol; i++)
             {
                 selectionRange.Columns.Add(visibleColumns[i]);
@@ -378,17 +397,10 @@ public partial class NxGrid<T>
             selectionRange.EndRow = endRow;
             selectionRange.EndCol = endCol;
 
-            selectionArgs.Ranges.Add(selectionRange);
+            result.Add(selectionRange);
         }
 
-        await OnSelectionChanged.InvokeAsync(selectionArgs);
-
-        if (SelectedItemsChanged.HasDelegate)
-        {
-            var items = selectionArgs.Ranges.SelectMany(r => r.Items).Distinct().ToList();
-            lastRaisedSelectedItems = items;
-            await SelectedItemsChanged.InvokeAsync(items);
-        }
+        return result;
     }
 
     // Ctrl+click on a selected cell: drops the range the press added, then replaces the range the

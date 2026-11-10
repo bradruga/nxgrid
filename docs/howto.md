@@ -10,6 +10,7 @@ Answers to common implementation questions. For the full parameter reference see
 - [How to persist column state across page loads](#how-to-persist-column-state-across-page-loads)
 - [How to refresh the grid when data changes](#how-to-refresh-the-grid-when-data-changes)
 - [How to read the rows the user is currently seeing](#how-to-read-the-rows-the-user-is-currently-seeing)
+- [How to build your own print or PDF export](#how-to-build-your-own-print-or-pdf-export)
 - [How inline editing works](#how-inline-editing-works)
 - [How to add a new row when the user tabs off the last one](#how-to-add-a-new-row-when-the-user-tabs-off-the-last-one)
 - [How to respond to selection changes](#how-to-respond-to-selection-changes)
@@ -275,6 +276,37 @@ var frozen = grid!.VisibleItems.ToList();
 ```
 
 When `GroupBy` is set, rows come back in group order, sorted within each group. Rows in a collapsed group are still included — collapsing hides them visually but does not remove them from the grid's row set.
+
+---
+
+## How to build your own print or PDF export
+
+`PrintAsync()` covers "print everything" and "print selection" at the browser's default page. For page size, orientation, scale-to-fit or a PDF, build your own preview from what the grid already shows:
+
+```csharp
+async Task OpenPrintPreview()
+{
+    var columns = grid!.VisibleColumns;                 // display order, hidden columns omitted
+    var widths  = await grid.GetColumnWidthsAsync();    // on-screen px, same order
+    var ranges  = grid.SelectedRanges;                  // current selection
+
+    var selectionOnly = printSelectionOnly && ranges.Count > 0;
+    var printColumns  = selectionOnly ? ranges.SelectMany(r => r.Columns).Distinct().ToList() : columns.ToList();
+    var printRows     = selectionOnly ? ranges.SelectMany(r => r.Items).Distinct().ToList() : grid.VisibleItems.ToList();
+
+    foreach (var col in printColumns)
+    {
+        var i     = columns.IndexOf(col);
+        var width = widths.Length > 0 ? widths[i] : col.UserWidth ?? col.Width ?? 100;
+        // header: col.EffectiveTitle; cell text: col.EffectiveGetter?.Invoke(row)?.ToString()
+        // cell colors: call your own CellStyle function
+    }
+}
+```
+
+- `GetColumnWidthsAsync()` returns `[]` before the first render or with `ShowHeader="false"`; fall back to `UserWidth ?? Width`.
+- In the row-selection modes each range spans every visible column.
+- See [Reading the columns and selection](reference.md#reading-the-columns-and-selection).
 
 ---
 

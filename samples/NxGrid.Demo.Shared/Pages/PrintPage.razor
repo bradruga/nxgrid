@@ -51,6 +51,32 @@
     <pre class="doc-code">@dynamicTitleCode</pre>
 </div>
 
+<div class="doc-section">
+    <h2>Build your own print</h2>
+    <p class="doc-note">
+        For a custom preview or PDF, read <code>VisibleColumns</code>, <code>GetColumnWidthsAsync()</code>
+        and <code>SelectedRanges</code> alongside <code>VisibleItems</code>. Hide or drag-resize a column
+        in the grid above, select a range, then click <strong>Read layout</strong>.
+    </p>
+    <div class="doc-controls">
+        <button class="doc-btn" @onclick="ReadLayout">Read layout</button>
+    </div>
+    @if (layout != null)
+    {
+        <table class="doc-table">
+            <thead><tr><th>Column</th><th>Width (px)</th><th>Selected</th></tr></thead>
+            <tbody>
+                @foreach (var (title, width, selected) in layout)
+                {
+                    <tr><td>@title</td><td>@width</td><td>@(selected ? "✓" : "")</td></tr>
+                }
+            </tbody>
+        </table>
+        <p class="doc-note">@selectedRowCount selected row(s) across @selectedRangeCount range(s).</p>
+    }
+    <pre class="doc-code">@customLayoutCode</pre>
+</div>
+
 @code {
     List<Person> people = SampleData.GeneratePeople(40);
     NxGrid<Person>? grid;
@@ -83,4 +109,23 @@
 
     string basicCode = DemoCodeSamples.PrintBasic;
     string dynamicTitleCode = DemoCodeSamples.PrintDynamicTitle;
+    string customLayoutCode = DemoCodeSamples.PrintCustomLayout;
+
+    List<(string Title, string Width, bool Selected)>? layout;
+    int selectedRowCount;
+    int selectedRangeCount;
+
+    async Task ReadLayout()
+    {
+        var columns = grid!.VisibleColumns;
+        var widths = await grid.GetColumnWidthsAsync();
+        var ranges = grid.SelectedRanges;
+        var selectedColumns = ranges.SelectMany(r => r.Columns).ToHashSet();
+
+        layout = columns
+            .Select((c, i) => (c.EffectiveTitle, widths.Length > 0 ? widths[i].ToString("0") : "—", selectedColumns.Contains(c)))
+            .ToList();
+        selectedRowCount = ranges.SelectMany(r => r.Items).Distinct().Count();
+        selectedRangeCount = ranges.Count;
+    }
 }

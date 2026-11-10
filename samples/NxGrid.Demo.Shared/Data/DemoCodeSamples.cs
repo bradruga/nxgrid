@@ -1430,6 +1430,24 @@ private async Task OnPrintClick()
 }
 """;
 
+    public static readonly string PrintCustomLayout = """
+// Everything a custom print preview needs, read on demand through @ref.
+private async Task ReadLayout()
+{
+    var columns = grid!.VisibleColumns;               // display order, hidden columns omitted
+    var widths  = await grid.GetColumnWidthsAsync();  // px, same order; [] before first render
+    var ranges  = grid.SelectedRanges;                // same shape as OnSelectionChanged's args.Ranges
+
+    var printColumns = ranges.Count > 0
+        ? ranges.SelectMany(r => r.Columns).Distinct().ToList()
+        : columns.ToList();
+    var printRows = ranges.Count > 0
+        ? ranges.SelectMany(r => r.Items).Distinct().ToList()
+        : grid.VisibleItems.ToList();
+    // ... lay out a PDF at widths[columns.IndexOf(col)] per column
+}
+""";
+
     public static readonly string MathExpression = """
 // MathExpression="true" evaluates arithmetic before passing to OnUpdate.
 // Applies to typed commits and paste. Falls back to the raw string on failure.

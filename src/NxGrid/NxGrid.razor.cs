@@ -741,6 +741,19 @@ public partial class NxGrid<T>
     /// </summary>
     public IReadOnlyList<T> VisibleItems => filteredData.AsReadOnly();
 
+    /// <summary>
+    /// The columns the grid renders, in display order: <see cref="NxGridColumn{T}.Visible"/> and not
+    /// hidden by the user. Indexes match <see cref="NxGridSelectionRange{T}.StartCol"/>. See docs/reference.md,
+    /// "Reading the columns and selection".
+    /// </summary>
+    public IReadOnlyList<NxGridColumn<T>> VisibleColumns => visibleColumns.AsReadOnly();
+
+    /// <summary>
+    /// The current selection, built the same way as <see cref="OnSelectionChanged"/>'s <c>Ranges</c>;
+    /// empty when nothing is selected. A new list on every read.
+    /// </summary>
+    public IReadOnlyList<NxGridSelectionRange<T>> SelectedRanges => BuildSelectionRanges();
+
     // ── Public methods ────────────────────────────────────────────────────────
 
     /// <summary>
@@ -765,6 +778,17 @@ public partial class NxGrid<T>
     {
         renderToken++;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Rendered width in px of each <see cref="VisibleColumns"/> entry, same order, measured from the
+    /// header cells. Empty before the first render, with <see cref="ShowHeader"/> off, or mid-render.
+    /// </summary>
+    public async Task<double[]> GetColumnWidthsAsync()
+    {
+        if (jsInterop == null) return [];
+        var widths = await jsInterop.GetColumnWidths();
+        return widths.Length == visibleColumns.Count ? widths : [];
     }
 
     /// <summary>

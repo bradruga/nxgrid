@@ -168,6 +168,8 @@ This is equivalent to `OnSelectionChanged="@(args => selectedPeople = args.Range
 | Property | Type | Notes |
 |---|---|---|
 | `VisibleItems` | `IReadOnlyList<T>` | The grid's rows in display order — all column filters and the active sort already applied, and ordered by group when `GroupBy` is set. The same snapshot `OnFilterChanged`/`OnSortChanged` hand out, but readable at any time through a `@ref`. See [Reading the visible rows](#reading-the-visible-rows). |
+| `VisibleColumns` | `IReadOnlyList<NxGridColumn<T>>` | The columns the grid renders, in display order: `Visible` and not hidden by the user. Index *i* is the column `StartCol`/`EndCol` and `GetColumnWidthsAsync()` refer to. See [Reading the columns and selection](#reading-the-columns-and-selection). |
+| `SelectedRanges` | `IReadOnlyList<NxGridSelectionRange<T>>` | The current selection, built the same way as `OnSelectionChanged`'s `args.Ranges` (rows, columns and normalized indexes). Empty when nothing is selected. A new list on every read. |
 
 ### Public methods
 
@@ -193,6 +195,7 @@ Task  CancelEditAsync()                            // discard any in-progress ce
 Task  ResetColumnWidths()                          // clear all user-dragged widths, restoring every column to its declared Width parameter; also resets manualMode so flex columns resume auto-sizing; re-measures FitContent columns
 Task  PrintAsync(string? title = null)             // open the print dialog; title renders as an <h1> above the table in the print output
 Task  FitColumnsAsync()                            // re-measure and apply FitWidth for all columns whose effective FitContent is true; skips columns the user has manually resized
+Task<double[]> GetColumnWidthsAsync()              // rendered width in px of each VisibleColumns entry, same order, measured from the header; [] before first render or with ShowHeader off
 ```
 
 `PrintAsync` opens a modal dialog showing the current filtered/sorted data as a plain table with a live preview. The dialog offers two options:
@@ -255,6 +258,31 @@ person.Department = "Sales";   // may no longer match the active Department filt
 grid.ForceRerender();
 var rows = grid.VisibleItems;  // now accurate
 ```
+
+---
+
+## Reading the columns and selection
+
+`VisibleColumns`, `GetColumnWidthsAsync()` and `SelectedRanges` give a host what it needs to lay out its own print, PDF or export the way the grid looks on screen, without an `@ref` on every column or a cached copy of `OnSelectionChanged`:
+
+```csharp
+var columns = grid.VisibleColumns;                    // display order, hidden columns omitted
+var widths  = await grid.GetColumnWidthsAsync();      // px, same order; [] before first render
+var ranges  = grid.SelectedRanges;                    // same shape as OnSelectionChanged's args.Ranges
+var rows    = ranges.Count > 0 ? ranges.SelectMany(r => r.Items).Distinct().ToList() : grid.VisibleItems;
+
+for (var i = 0; i < columns.Count; i++)
+{
+    var width = widths.Length > 0 ? widths[i] : columns[i].UserWidth ?? columns[i].Width ?? 100;
+    var text  = columns[i].EffectiveGetter?.Invoke(rows[0])?.ToString();  // what the cell shows
+}
+```
+
+| | |
+|---|---|
+| `VisibleColumns` | Excludes columns with `Visible="false"` and columns hidden from the column menu or `SetColumnHidden`. Same order as the header. Replaced (never mutated) when the column layout changes — read it when you need it. |
+| `GetColumnWidthsAsync()` | Measures the header cells, so flex, fit-content and dragged widths all come back as drawn. Returns `[]` before the first render, when `ShowHeader` is `false`, or if the header is mid-render (count doesn't match `VisibleColumns`). |
+| `SelectedRanges` | In `MultiRow`/`SingleRow` modes each range spans every visible column, as the event's do. Hidden-column changes clear the selection, so `Columns` never names a hidden column. A range left out of bounds by a data change not yet reconciled is omitted. |
 
 ---
 
