@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-10
+
 ### Added
 
 - Ctrl/⌘+D fills down, as in Excel: each selected column's top cell is copied into the rest of the selection, or the cell above into a single selected row. One `OnUpdate`; `OnUpdating` reports the new `NxGridUpdateKind.FillDown`.
