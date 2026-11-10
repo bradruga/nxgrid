@@ -735,11 +735,11 @@ Because NxGrid virtualizes rows, off-screen row content is never in the DOM. Aut
 
 1. **Font measurement (once, at first use):** on the first auto-size operation the grid reads the computed `font` of the grid element and uses the browser Canvas `measureText` API to build a lookup table of pixel widths for printable ASCII characters and common extended Latin symbols. The table is cached for the lifetime of the grid instance.
 
-2. **Data width estimation:** the grid iterates every row in the current **filtered dataset** and estimates the rendered pixel width of each cell's display string by summing character widths from the lookup table. Characters absent from the table fall back to the average lowercase character width. The maximum across all rows is taken.
+2. **Data width estimation:** the grid iterates every row in the current **filtered dataset** and estimates the rendered pixel width of each cell's display string by summing character widths from the lookup table. A value containing newlines (e.g. a `MultiLine` column) is measured by its widest line. Characters absent from the table fall back to the average lowercase character width. The maximum across all rows is taken.
 
-3. **Header consideration:** the column header is always in the DOM. The grid clones the header row (invisible, no layout impact), strips all inline width constraints, and reads each cell's natural layout width. This gives the exact minimum width needed to display the header text plus any visible sort/filter icons and the menu button — no estimation required.
+3. **Header consideration:** a plain `Title` is estimated the same way using bold character widths, plus 20 px of header padding, 28 px for the menu button (when `HasColumnMenu` is on) and 20 px per visible sort/filter icon. A `HeaderTemplate` header is measured from the DOM instead: the grid clones the header row (invisible, no layout impact), strips inline width constraints, and reads the cell's natural width, which already includes padding, icons and the menu button.
 
-4. **Padding:** 12 px is added to the winning estimate to account for cell horizontal padding.
+4. **Padding:** 20 px is added to the data estimate for cell padding, border and a small rendering buffer. The column gets the larger of the data and header widths.
 
 5. **Constraints:** the result is clamped to `MinWidth`/`MaxWidth` before being applied.
 
@@ -774,7 +774,7 @@ Override the inference with `FitContent="Always"` (always measure) or `FitConten
 
 For each column whose effective `FitContent` is `true`:
 
-1. **Content width:** the grid estimates the maximum data width across the current filtered dataset (up to 1 000 rows) using a character-width prediction model. 20 px of cell padding is added.
+1. **Content width:** the grid estimates the maximum data width across the current filtered dataset (up to 1 000 rows) using a character-width prediction model (see [Column auto-sizing](#column-auto-sizing)); a multi-line value counts its widest line. 20 px of cell padding is added.
 
 2. **Header width:** the minimum width required by the column header is measured from the DOM.
 

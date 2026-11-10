@@ -87,4 +87,25 @@ public class NxGridAutoSizeTests : BunitContext
         var expected = Math.Max(5 * 8 + CellPadding, 4 * 9 + HeaderFixedOverhead + MenuButtonWidth);
         Assert.That(captured!.NewWidth, Is.EqualTo(expected));
     }
+
+    [Test]
+    public async Task GripDoubleClick_MultiLine_MeasuresWidestLine()
+    {
+        NxGridColumnResizedArgs? captured = null;
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Setup<NxCharWidths?>("measureCharWidths", _ => true).SetResult(CharWidths());
+        JSInterop.Setup<double[]>("getColumnWidths", _ => true).SetResult([100]);
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new() { Name = "Concrete Knock Outs for Windows\r\n(2) 8'W x31'H\n(2) 4'W" }])
+            .Add(x => x.OnColumnResized, EventCallback.Factory.Create<NxGridColumnResizedArgs>(this, a => captured = a))
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Property, (Expression<Func<Row, object?>>)(r => r.Name))
+                .Add(x => x.Title, "Name")
+                .Add(x => x.MultiLine, true)));
+
+        await cut.Find(".nx-grid-resize-grip").TriggerEventAsync("ondblclick", new MouseEventArgs());
+
+        // Widest line is 31 chars; the \r and the other lines don't count.
+        Assert.That(captured!.NewWidth, Is.EqualTo(31 * 8 + CellPadding));
+    }
 }

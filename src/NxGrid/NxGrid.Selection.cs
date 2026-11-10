@@ -901,9 +901,14 @@ public partial class NxGrid<T>
     private static double EstimateStringWidth(string? s, Dictionary<string, double> widths, double avgWidth)
     {
         if (s is null or { Length: 0 }) return 0;
-        double total = 0;
+        // Widest line: cells render with white-space pre/pre-wrap, so each newline starts a new line.
+        double max = 0, line = 0;
         foreach (var ch in s)
-            total += widths.TryGetValue(ch.ToString(), out var w) ? w : avgWidth;
-        return total;
+        {
+            if (ch == '\n') { max = Math.Max(max, line); line = 0; continue; }
+            if (ch == '\r') continue;
+            line += widths.TryGetValue(ch.ToString(), out var w) ? w : avgWidth;
+        }
+        return Math.Max(max, line);
     }
 }

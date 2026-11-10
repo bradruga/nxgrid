@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Double-click auto-size and `FitContent` size a `MultiLine` column to its widest line instead of all its lines laid end to end.
+
 ## [0.5.4] - 2026-11-10
 
 ### Added
