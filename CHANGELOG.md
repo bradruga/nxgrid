@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-11-10
+
 ### Added
 
 - `VisibleColumns`, `SelectedRanges` and `GetColumnWidthsAsync()` on `NxGrid` expose the rendered columns, the current selection and each column's on-screen width, for building a custom print or export.
