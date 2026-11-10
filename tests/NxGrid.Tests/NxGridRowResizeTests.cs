@@ -88,13 +88,11 @@ public class NxGridRowResizeTests : BunitContext
     [Test]
     public async Task GripDrag_FiresOnRowResized_WithHeightFromJs()
     {
-        JSInterop.Setup<int?>("resizeRow", _ => true).SetResult(44);
         NxGridRowResizedArgs<Row>? captured = null;
         var rows = Rows();
         var cut = RenderGrid(rows, onResized: a => captured = a);
 
-        await cut.FindAll(".nx-grid-row-resize-grip")[1]
-            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ClientY = 100 });
+        await cut.InvokeAsync(() => cut.Instance.OnRowResizeEnd(1, 1, 44));
 
         Assert.That(captured, Is.Not.Null);
         Assert.That(captured!.Row, Is.SameAs(rows[1]));
@@ -105,13 +103,11 @@ public class NxGridRowResizeTests : BunitContext
     [Test]
     public async Task GripDrag_InsideFullRowSelection_FiresForEverySelectedRow()
     {
-        JSInterop.Setup<int?>("resizeRow", _ => true).SetResult(50);
         var captured = new List<NxGridRowResizedArgs<Row>>();
         var cut = RenderGrid(Rows(), onResized: captured.Add);
 
         await cut.Find(".nx-grid").TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "a", CtrlKey = true });
-        await cut.FindAll(".nx-grid-row-resize-grip")[1]
-            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ClientY = 100 });
+        await cut.InvokeAsync(() => cut.Instance.OnRowResizeEnd(1, 1, 50));
 
         Assert.That(captured.Select(a => a.RowIndex), Is.EqualTo(new[] { 0, 1, 2 }));
         Assert.That(captured.All(a => a.NewHeight == 50), Is.True);
@@ -120,15 +116,13 @@ public class NxGridRowResizeTests : BunitContext
     [Test]
     public async Task GripDrag_OutsideSelection_FiresForGrippedRowOnly()
     {
-        JSInterop.Setup<int?>("resizeRow", _ => true).SetResult(50);
         var captured = new List<NxGridRowResizedArgs<Row>>();
         var cut = RenderGrid(Rows(), onResized: captured.Add);
 
         await cut.Find(".nx-grid").TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "a", CtrlKey = true });
         // Shrink the selection to a single cell so the grip's row is no longer part of a full-row selection
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[0].TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
-        await cut.FindAll(".nx-grid-row-resize-grip")[2]
-            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ClientY = 100 });
+        await cut.InvokeAsync(() => cut.Instance.OnRowResizeEnd(1, 2, 50));
 
         Assert.That(captured.Select(a => a.RowIndex), Is.EqualTo(new[] { 2 }));
     }
@@ -136,12 +130,10 @@ public class NxGridRowResizeTests : BunitContext
     [Test]
     public async Task GripClick_WithoutDrag_FiresNothing()
     {
-        JSInterop.Setup<int?>("resizeRow", _ => true).SetResult(null);
         var fired = false;
         var cut = RenderGrid(Rows(), onResized: _ => fired = true);
 
-        await cut.FindAll(".nx-grid-row-resize-grip")[0]
-            .TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
+        await cut.InvokeAsync(() => cut.Instance.OnRowResizeEnd(0, 0, null));
 
         Assert.That(fired, Is.False);
     }

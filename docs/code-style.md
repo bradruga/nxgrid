@@ -240,7 +240,7 @@ CSS.escape(id)                         // escape dynamic IDs in selectors
 Long drag gestures use `async/await` with a `Promise` that resolves on `mouseup`:
 
 ```javascript
-async resizeColumn(...) {
+async dragFill(...) {
     await new Promise((resolve) => {
         const onMouseUp = () => { ...; resolve(); };
         document.addEventListener('mouseup', onMouseUp, { once: true });

@@ -632,7 +632,7 @@ public partial class NxGrid<T>
     internal bool IsManualMode => manualMode;
 
     private int renderToken;
-    private bool pendingResizeCleanup;
+    private int pendingResizeCleanup;   // highest finished resize drag whose JS preview waits on this render; 0 = none
     private int? pendingEditCursorPos;
     // A scroll target that must wait for the render batch it was queued alongside: measuring the
     // scroll container before the row exists in the DOM would scroll against stale geometry.
@@ -1330,10 +1330,11 @@ public partial class NxGrid<T>
             StateHasChanged();
         }
 
-        if (pendingResizeCleanup && jsInterop != null)
+        if (pendingResizeCleanup > 0 && jsInterop != null)
         {
-            pendingResizeCleanup = false;
-            await jsInterop.CleanupResizeStyle();
+            var dragId = pendingResizeCleanup;
+            pendingResizeCleanup = 0;
+            await jsInterop.CleanupResizeStyle(dragId);
         }
 
         if (pendingEditCursorPos.HasValue && jsInterop != null)

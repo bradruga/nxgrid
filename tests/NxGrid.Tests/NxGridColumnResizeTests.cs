@@ -33,6 +33,10 @@ public class NxGridColumnResizeTests : BunitContext
                 .Add(x => x.Property, (Expression<Func<Row, object?>>)(r => r.City))));
     }
 
+    // nx-grid.js reports a released drag with every column's post-drag width; the grid applies [columnIndex].
+    private static Task Release(IRenderedComponent<NxGrid<Row>> cut, int columnIndex)
+        => cut.InvokeAsync(() => cut.Instance.OnColumnResizeEnd(1, columnIndex, [175, 175]));
+
     [Test]
     public async Task GripDrag_SingleRowMode_OneRowSelected_ResizesDraggedColumnOnly()
     {
@@ -41,7 +45,7 @@ public class NxGridColumnResizeTests : BunitContext
 
         // Selecting the only row spans row 0..0 and every column, the same shape as a column selection.
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[0].TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
-        await cut.FindAll(".nx-grid-resize-grip")[0].TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ClientX = 100 });
+        await Release(cut, 0);
 
         Assert.That(captured.Select(a => a.ColumnIndex), Is.EqualTo(new[] { 0 }));
     }
@@ -54,7 +58,7 @@ public class NxGridColumnResizeTests : BunitContext
 
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[0].TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0 });
         await cut.FindAll(".nx-grid-row .nx-grid-cell")[2].TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ShiftKey = true });
-        await cut.FindAll(".nx-grid-resize-grip")[1].TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ClientX = 100 });
+        await Release(cut, 1);
 
         Assert.That(captured.Select(a => a.ColumnIndex), Is.EqualTo(new[] { 1 }));
     }
@@ -66,9 +70,21 @@ public class NxGridColumnResizeTests : BunitContext
         var cut = RenderGrid([new() { Name = "Alice" }], NxGridSelectionMode.Cell, captured.Add);
 
         await cut.Find(".nx-grid").TriggerEventAsync("onkeydown", new KeyboardEventArgs { Key = "a", CtrlKey = true });
-        await cut.FindAll(".nx-grid-resize-grip")[0].TriggerEventAsync("onmousedown", new MouseEventArgs { Button = 0, ClientX = 100 });
+        await Release(cut, 0);
 
         Assert.That(captured.Select(a => a.ColumnIndex), Is.EqualTo(new[] { 0, 1 }));
         Assert.That(captured.All(a => a.NewWidth == 175), Is.True);
+    }
+
+    [Test]
+    public async Task GripRelease_RemovesThatDragsPreview_AfterRender()
+    {
+        var cut = RenderGrid([new() { Name = "Alice" }], NxGridSelectionMode.Cell, _ => { });
+
+        await cut.InvokeAsync(() => cut.Instance.OnColumnResizeEnd(7, 0, [175, 175]));
+
+        // Only previews up to this drag's id go; a later drag's preview must survive this render.
+        // Last(): the fixture's JSInterop log also holds earlier tests' calls.
+        Assert.That(JSInterop.Invocations["cleanupResizeStyle"].Last().Arguments[0], Is.EqualTo(7));
     }
 }

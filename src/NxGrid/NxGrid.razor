@@ -89,8 +89,7 @@
 
                 @if (column.Resizable)
                 {
-                    <div class="nx-grid-resize-grip"
-                         @onmousedown="@(args => OnResizeGripMouseDown(args, column))"
+                    <div class="nx-grid-resize-grip" data-min-width="@column.MinWidth" data-max-width="@column.MaxWidth"
                          @onmousedown:stopPropagation
                          onmousedown:preventDefault
                          @ondblclick="@(() => OnResizeGripDoubleClick(column))"
@@ -841,7 +840,6 @@
         OnRowGutterContextMenu="@(HostMenuOn(NxGridContextMenuTarget.RowGutter) ? OnRowGutterContextMenu : null)"
         OnDragHandleMouseDown="@OnDragHandleMouseDown"
         RowResizable="@OnRowResized.HasDelegate"
-        OnResizeGripMouseDown="@OnRowResizeGripMouseDown"
         OnResizeGripDoubleClick="@OnRowResizeGripDoubleClick"
         OnComboButtonClick="@OnComboButtonClick"
         OnDatePickerButtonClick="@OnDatePickerButtonClick"

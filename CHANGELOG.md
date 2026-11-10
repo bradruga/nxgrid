@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Double-click auto-size and `FitContent` size a `MultiLine` column to its widest line instead of all its lines laid end to end.
+- Column and row resize drags no longer snap back, ignore a drag, or move the wrong way on a slow Blazor Server connection when drags follow each other quickly.
 
 ## [0.5.4] - 2026-11-10
 

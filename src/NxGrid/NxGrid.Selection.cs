@@ -738,54 +738,58 @@ public partial class NxGrid<T>
         return [columnIndex];
     }
 
-    private async Task OnResizeGripMouseDown(MouseEventArgs args, NxGridColumn<T> column)
+    /// <summary>Called by JavaScript when a column or row grip drag starts. <see cref="OnColumnResizeEnd"/> / <see cref="OnRowResizeEnd"/> follow on release.</summary>
+    [JSInvokable]
+    public void OnResizeStart()
     {
-        if (args.Button != MouseButtonLeft) return; // Only respond to left mouse button
-
         DismissTooltip();
         EndHeaderGutterDrag();
-
         isResizing = true;
-        var columnIndex = visibleColumns.IndexOf(column);
-        var allWidths = await jsInterop!.ResizeColumn(columnIndex, args.ClientX, column.MinWidth, column.MaxWidth, RowGutter == NxGridRowGutter.Hidden);
+    }
+
+    /// <summary>Called by JavaScript when a column grip drag is released. <paramref name="allWidths"/> is <c>null</c> for a click without a drag.</summary>
+    [JSInvokable]
+    public async Task OnColumnResizeEnd(int dragId, int columnIndex, double[]? allWidths)
+    {
         isResizing = false;
-
-        if (allWidths is { Length: > 0 })
+        if (allWidths == null || columnIndex < 0 || columnIndex >= visibleColumns.Count || columnIndex >= allWidths.Length)
         {
-            var newWidth = (int)allWidths[columnIndex];
-            if (newWidth <= 0) return;
-
-            // Apply the new width to the dragged column (and any multi-selected columns),
-            // clamping each to its own MinWidth/MaxWidth constraints
-            var columnsToResize = GetEntireColumnSelection(columnIndex)
-                .Where(i => visibleColumns[i].Resizable)
-                .ToHashSet();
-            foreach (var idx in columnsToResize)
-            {
-                var col = visibleColumns[idx];
-                var w = newWidth;
-                if (col.MinWidth.HasValue) w = Math.Max(w, col.MinWidth.Value);
-                if (col.MaxWidth.HasValue) w = Math.Min(w, col.MaxWidth.Value);
-                col.UserWidth = w;
-                if (OnColumnResized.HasDelegate)
-                    await OnColumnResized.InvokeAsync(new NxGridColumnResizedArgs { ColumnIndex = idx, NewWidth = w });
-            }
-
-            // Freeze all other visible columns at their pre-drag rendered widths
-            for (var i = 0; i < visibleColumns.Count && i < allWidths.Length; i++)
-            {
-                if (!columnsToResize.Contains(i))
-                    visibleColumns[i].UserWidth = (int)allWidths[i];
-            }
-
-            manualMode = true;
-            pendingResizeCleanup = true;
-            _fillHandleUpdatePending = true;
-            ComputeFrozenOffsets();
-            renderToken++;
-            StateHasChanged();
-            await SaveStateAsync();
+            if (dragId > 0 && jsInterop != null) await jsInterop.CleanupResizeStyle(dragId);
+            return;
         }
+
+        var newWidth = (int)allWidths[columnIndex];
+
+        // Apply the new width to the dragged column (and any multi-selected columns),
+        // clamping each to its own MinWidth/MaxWidth constraints
+        var columnsToResize = GetEntireColumnSelection(columnIndex)
+            .Where(i => visibleColumns[i].Resizable)
+            .ToHashSet();
+        foreach (var idx in columnsToResize)
+        {
+            var col = visibleColumns[idx];
+            var w = newWidth;
+            if (col.MinWidth.HasValue) w = Math.Max(w, col.MinWidth.Value);
+            if (col.MaxWidth.HasValue) w = Math.Min(w, col.MaxWidth.Value);
+            col.UserWidth = w;
+            if (OnColumnResized.HasDelegate)
+                await OnColumnResized.InvokeAsync(new NxGridColumnResizedArgs { ColumnIndex = idx, NewWidth = w });
+        }
+
+        // Freeze all other visible columns at their pre-drag rendered widths
+        for (var i = 0; i < visibleColumns.Count && i < allWidths.Length; i++)
+        {
+            if (!columnsToResize.Contains(i))
+                visibleColumns[i].UserWidth = (int)allWidths[i];
+        }
+
+        manualMode = true;
+        pendingResizeCleanup = Math.Max(pendingResizeCleanup, dragId);
+        _fillHandleUpdatePending = true;
+        ComputeFrozenOffsets();
+        renderToken++;
+        StateHasChanged();
+        await SaveStateAsync();
     }
 
     private async Task OnResizeGripDoubleClick(NxGridColumn<T> column)
@@ -872,7 +876,7 @@ public partial class NxGrid<T>
     {
         openColumn = null;
         await ResetColumnWidths();
-        pendingResizeCleanup = true;
+        pendingResizeCleanup = int.MaxValue;
         await SaveStateAsync();
     }
 

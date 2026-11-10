@@ -211,6 +211,19 @@ class NxGrid {
         document.addEventListener('mousedown', this._buttonDownHandler, true);
         document.addEventListener('mouseup',   this._buttonUpHandler,   true);
 
+        // Resize grips are dragged here from the real press, not from a Blazor handler a server
+        // round trip later — a late call would start from a stale press. C# hears once, on release.
+        this._resizeSeq = 0;
+        this._resizeStyles = [];   // finished previews, each kept until the render of its own drag
+        this._gripDownHandler = (event) => {
+            if (event.button !== 0 || !(event.target instanceof Element)) return;
+            const grip = event.target.closest('.nx-grid-resize-grip, .nx-grid-row-resize-grip');
+            if (!grip || grip.closest('.nx-grid')?.id !== this.id) return;
+            if (grip.classList.contains('nx-grid-resize-grip')) this._resizeColumn(grip, event.clientX);
+            else this._resizeRow(grip, event.clientY);
+        };
+        document.addEventListener('mousedown', this._gripDownHandler, true);
+
         // Lost focus event for column menu and context menu
         this._menuClickHandler = (event) => {
             const gridElement = document.getElementById(this.id);
@@ -1167,6 +1180,12 @@ class NxGrid {
             this._buttonDownHandler = null;
             this._buttonUpHandler = null;
         }
+        if (this._gripDownHandler) {
+            document.removeEventListener('mousedown', this._gripDownHandler, true);
+            this._gripDownHandler = null;
+            this._endResizeDrag?.();
+            this.cleanupResizeStyle(Infinity);
+        }
         if (this._colorPickerMouseDown) {
             const gridElement = document.getElementById(this.id);
             const gradient = gridElement && gridElement.querySelector('.nx-grid-colorpicker-gradient');
@@ -1228,20 +1247,49 @@ class NxGrid {
         }
     }
 
-    async resizeColumn(columnIndex, startMouseX, minWidth, maxWidth, gutterHidden){
-        const gridElement = document.getElementById(this.id);
-        if (!gridElement) return [];
+    // Runs one grip drag: active-grip styling, cursor, and move/up listeners. onMove gets each
+    // mousemove; onEnd runs once on release. A press that arrives while a drag is still open (its
+    // mouseup was lost, e.g. released outside the window) ends that drag first. A drag still open
+    // at dispose just drops its preview — there is no .NET side left to tell.
+    _runResizeDrag(grip, styleEl, activeClass, cursor, onMove, onEnd) {
+        this._endResizeDrag?.();
+        // Sent from here, not a Blazor handler, so .NET always hears the matching release
+        this.dotNetObjectReference.invokeMethodAsync('OnResizeStart');
+        grip.classList.add(activeClass);
+        document.body.style.cursor = cursor;
+        document.body.style.userSelect = 'none';
+        const finish = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', finish, true);
+            this._endResizeDrag = null;
+            grip.classList.remove(activeClass);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            if (this._gripDownHandler) onEnd(); else styleEl.remove();
+        };
+        this._endResizeDrag = finish;
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', finish, true);
+    }
 
-        const headerRow = gridElement.querySelector('.nx-grid-header-row');
-        if (!headerRow) return [];
+    // Keeps a finished drag's preview until C# has rendered its result, then
+    // cleanupResizeStyle(id) removes it. Returns the id C# passes back.
+    _keepResizeStyle(styleEl) {
+        const id = ++this._resizeSeq;
+        this._resizeStyles.push({ id, el: styleEl });
+        return id;
+    }
+
+    _resizeColumn(grip, startMouseX) {
+        const gridElement = document.getElementById(this.id);
+        const headerRow = gridElement?.querySelector('.nx-grid-header-row');
+        if (!headerRow) return;
 
         const headerCells = headerRow.querySelectorAll('.nx-grid-cell');
-        if (columnIndex < 0 || columnIndex >= headerCells.length) return [];
-
-        // Reached one interop round-trip after the grip's mousedown; a fast click (or a
-        // double-click's presses) can have released by now, and the mouseup below would
-        // never come — leaving the grip active and the next mousemove resizing the column.
-        if (!this._leftButtonDown) return [];
+        const columnIndex = Array.prototype.indexOf.call(headerCells, grip.closest('.nx-grid-cell'));
+        if (columnIndex < 0) return;
+        // Column cells sit after the gutter (when there is one) in every row
+        const nthOffset = Array.prototype.indexOf.call(headerRow.children, headerCells[0]) + 1;
 
         // Snapshot every column's rendered pixel width before the drag starts
         const initialWidths = Array.from(headerCells).map(c => c.getBoundingClientRect().width);
@@ -1274,9 +1322,6 @@ class NxGrid {
         };
 
         const updateStyles = (resizeWidth) => {
-            // When gutter is visible it is first child, so columns start at nth-child(2).
-            // When gutter is hidden there is no gutter element, so columns start at nth-child(1).
-            const nthOffset = gutterHidden ? 1 : 2;
             const delta = resizeWidth - initialWidths[columnIndex];
             // Rows carry an inline min-width from the pre-drag layout; without this they keep
             // that width (banding past the last column) until Blazor re-renders on mouseup.
@@ -1293,59 +1338,37 @@ class NxGrid {
         };
         updateStyles(currentWidth);
 
-        const effectiveMin = minWidth ?? 20;
-        const effectiveMax = maxWidth ?? Infinity;
-        const mouseMoveHandler = (event) => {
+        const effectiveMin = grip.dataset.minWidth ? Number(grip.dataset.minWidth) : 20;
+        const effectiveMax = grip.dataset.maxWidth ? Number(grip.dataset.maxWidth) : Infinity;
+        const onMove = (event) => {
             const delta = event.clientX - startMouseX;
             currentWidth = Math.min(effectiveMax, Math.max(effectiveMin, initialWidths[columnIndex] + delta));
             updateStyles(currentWidth);
             this._repositionFillHandle();
             this._layoutSpans();
         };
-        document.addEventListener('mousemove', mouseMoveHandler);
 
-        const grip = headerCells[columnIndex].querySelector('.nx-grid-resize-grip');
-        if (grip) grip.classList.add('nx-grid-resize-grip-active');
-        document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none';
-
-        await new Promise((resolve) => {
-            const mouseUpHandler = () => {
-                document.removeEventListener('mousemove', mouseMoveHandler);
-                document.removeEventListener('mouseup', mouseUpHandler);
-                resolve();
-            };
-            document.addEventListener('mouseup', mouseUpHandler);
+        this._runResizeDrag(grip, styleEl, 'nx-grid-resize-grip-active', 'col-resize', onMove, () => {
+            // A click without a drag (or a double-click's presses) changes nothing
+            if (Math.abs(currentWidth - initialWidths[columnIndex]) < 2) {
+                styleEl.remove();
+                this.dotNetObjectReference.invokeMethodAsync('OnColumnResizeEnd', 0, columnIndex, null);
+                return;
+            }
+            // Initial widths for untouched columns, the final width for the resized one
+            const widths = initialWidths.map((w, i) => i === columnIndex ? currentWidth : w);
+            this.dotNetObjectReference.invokeMethodAsync('OnColumnResizeEnd', this._keepResizeStyle(styleEl), columnIndex, widths);
         });
-
-        if (grip) grip.classList.remove('nx-grid-resize-grip-active');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-
-        // If the mouse barely moved (click without drag, or double-click's first pass),
-        // clean up immediately and return empty — signal no state change to C#.
-        if (Math.abs(currentWidth - initialWidths[columnIndex]) < 2) {
-            styleEl.remove();
-            return [];
-        }
-
-        // Keep styleEl alive — Blazor hasn't re-rendered yet. C# will call
-        // cleanupResizeStyle() from OnAfterRenderAsync once the new widths are in the DOM.
-        this._resizeStyleEl = styleEl;
-
-        // Return all widths: initial for untouched columns, final for the resized one
-        return initialWidths.map((w, i) => i === columnIndex ? currentWidth : w);
     }
 
     // Drags a row's bottom edge. The preview is a <style> rule on the row's data-row attribute,
     // kept until cleanupResizeStyle() runs after Blazor has rendered the host's height. Only the
     // gripped row previews; co-selected rows are sized by C# on release, as with columns.
-    // Resolves to the final height, or null for a click without a drag.
-    async resizeRow(rowIndex, startMouseY, minHeight) {
-        const gridElement = document.getElementById(this.id);
-        if (!gridElement) return null;
-        const row = gridElement.querySelector(`.nx-grid-row[data-row="${rowIndex}"]`);
-        if (!row) return null;
+    _resizeRow(grip, startMouseY) {
+        const row = grip.closest('.nx-grid-row');
+        if (!row) return;
+        const rowIndex = Number(row.dataset.row);
+        const minHeight = 16;   // NxGrid.RowResizing.cs MinRowHeightPx
 
         const initialHeight = row.getBoundingClientRect().height;
         let currentHeight = initialHeight;
@@ -1357,46 +1380,31 @@ class NxGrid {
             styleEl.textContent = `#${safeId} .nx-grid-row[data-row="${rowIndex}"]{height:${h}px!important;min-height:${h}px!important}`;
         };
 
-        const grip = row.querySelector('.nx-grid-row-resize-grip');
-        if (grip) grip.classList.add('nx-grid-row-resize-grip-active');
-        document.body.style.cursor = 'row-resize';
-        document.body.style.userSelect = 'none';
-
-        const mouseMoveHandler = (event) => {
+        const onMove = (event) => {
             currentHeight = Math.max(minHeight, initialHeight + event.clientY - startMouseY);
             updateStyle(currentHeight);
             this._repositionFillHandle();
             this._layoutSpans();
         };
-        document.addEventListener('mousemove', mouseMoveHandler);
 
-        await new Promise((resolve) => {
-            const mouseUpHandler = () => {
-                document.removeEventListener('mousemove', mouseMoveHandler);
-                document.removeEventListener('mouseup', mouseUpHandler);
-                resolve();
-            };
-            document.addEventListener('mouseup', mouseUpHandler);
+        this._runResizeDrag(grip, styleEl, 'nx-grid-row-resize-grip-active', 'row-resize', onMove, () => {
+            if (Math.abs(currentHeight - initialHeight) < 2) {
+                styleEl.remove();
+                this.dotNetObjectReference.invokeMethodAsync('OnRowResizeEnd', 0, rowIndex, null);
+                return;
+            }
+            this.dotNetObjectReference.invokeMethodAsync('OnRowResizeEnd', this._keepResizeStyle(styleEl), rowIndex, Math.round(currentHeight));
         });
-
-        if (grip) grip.classList.remove('nx-grid-row-resize-grip-active');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-
-        if (Math.abs(currentHeight - initialHeight) < 2) {
-            styleEl.remove();
-            return null;
-        }
-
-        this._resizeStyleEl = styleEl;
-        return Math.round(currentHeight);
     }
 
-    cleanupResizeStyle() {
-        if (this._resizeStyleEl) {
-            this._resizeStyleEl.remove();
-            this._resizeStyleEl = null;
-        }
+    // Removes the previews of every drag up to and including dragId. Ids grow with each drag,
+    // so a render that lands late for an earlier drag never removes a later drag's preview.
+    cleanupResizeStyle(dragId) {
+        this._resizeStyles = this._resizeStyles.filter(s => {
+            if (s.id > dragId) return true;
+            s.el.remove();
+            return false;
+        });
     }
 
     // Sizes every rendered span box to the columns and rows it spans. The geometry lives in a

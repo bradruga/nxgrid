@@ -4,8 +4,8 @@ using NUnit.Framework;
 
 namespace NxGrid.Playwright;
 
-// A click or double-click on a resize grip never leaves a drag armed. The mouseup can land before the
-// JS drag starts listening; nx-grid.js then skips the drag. See docs/behavior.md, "Column resize".
+// A click or double-click on a resize grip never leaves a drag armed: nx-grid.js starts and ends the
+// drag on the real press and release. See docs/behavior.md, "Column resize".
 [TestFixtureSource(typeof(TestConfig), nameof(TestConfig.AppUrls))]
 public class ColumnResizeGripTests : PageTest
 {

@@ -39,7 +39,6 @@
             @if (RowResizable)
             {
                 <div class="nx-grid-row-resize-grip"
-                     @onmousedown="@(args => OnResizeGripMouseDown != null ? OnResizeGripMouseDown(args, RowIndex) : Task.CompletedTask)"
                      @onmousedown:stopPropagation
                      @ondblclick="@(() => OnResizeGripDoubleClick != null ? OnResizeGripDoubleClick(RowIndex) : Task.CompletedTask)"
                      @ondblclick:stopPropagation></div>
@@ -146,7 +145,6 @@
     [Parameter] public Func<MouseEventArgs, int, Task>? OnRowGutterContextMenu { get; set; }
     [Parameter] public Func<MouseEventArgs, int, Task>? OnDragHandleMouseDown { get; set; }
     [Parameter] public bool RowResizable { get; set; }
-    [Parameter] public Func<MouseEventArgs, int, Task>? OnResizeGripMouseDown { get; set; }
     [Parameter] public Func<int, Task>? OnResizeGripDoubleClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnComboButtonClick { get; set; }
     [Parameter] public Func<int, int, Task>? OnDatePickerButtonClick { get; set; }

@@ -1017,12 +1017,27 @@ public class NxGridRenderTests : BunitContext
         // Start resizing the second column, then sweep back over its header with the button still
         // held. That is not a header drag, so it must not extend the old anchor into a column
         // selection (which would also make the resize apply to every selected column).
-        cut.FindAll(".nx-grid-header-row .nx-grid-resize-grip")[1].MouseDown(new MouseEventArgs { Button = 0 });
+        cut.InvokeAsync(cut.Instance.OnResizeStart);   // nx-grid.js sends this on the grip press
         cut.FindAll(".nx-grid-header-row .nx-grid-cell")[1].MouseEnter(new MouseEventArgs { Buttons = 1 });
 
         Assert.That(captured!.Ranges, Has.Count.EqualTo(1));
         Assert.That(captured.Ranges[0].Columns, Has.Count.EqualTo(1), "resize drag hijacked the selection");
         Assert.That(captured.Ranges[0].Items, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task HeaderMouseDown_AfterResizeClickWithoutDrag_SelectsColumn()
+    {
+        NxGridSelectionArgs<Row>? captured = null;
+        var cut = RenderHeaderSelectGrid(a => captured = a);
+
+        // A grip click with no movement: start and a null release, as nx-grid.js sends them.
+        await cut.InvokeAsync(cut.Instance.OnResizeStart);
+        await cut.InvokeAsync(() => cut.Instance.OnColumnResizeEnd(0, 1, null));
+        cut.FindAll(".nx-grid-header-row .nx-grid-cell")[1].MouseDown(new MouseEventArgs { Button = 0 });
+
+        Assert.That(captured!.Ranges[0].Columns, Has.Count.EqualTo(1));
+        Assert.That(captured.Ranges[0].Items, Has.Count.EqualTo(2), "header click still blocked after the resize ended");
     }
 
     [Test]

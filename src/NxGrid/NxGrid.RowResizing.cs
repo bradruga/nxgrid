@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace NxGrid;
 
@@ -7,21 +7,19 @@ public partial class NxGrid<T>
     // Below this a row can no longer be grabbed to size it back up.
     private const int MinRowHeightPx = 16;
 
-    private async Task OnRowResizeGripMouseDown(MouseEventArgs args, int rowIndex)
+    /// <summary>Called by JavaScript when a row grip drag is released. <paramref name="newHeight"/> is <c>null</c> for a click without a drag.</summary>
+    [JSInvokable]
+    public async Task OnRowResizeEnd(int dragId, int rowIndex, int? newHeight)
     {
-        if (args.Button != MouseButtonLeft || jsInterop == null) return;
-
-        DismissTooltip();
-        EndHeaderGutterDrag();
-
-        // Only the gripped row previews live; co-selected rows take the height on release, as columns do
-        isResizing = true;
-        var newHeight = await jsInterop.ResizeRow(rowIndex, args.ClientY, MinRowHeightPx);
         isResizing = false;
+        if (newHeight == null || rowIndex < 0 || rowIndex >= filteredData.Count)
+        {
+            if (dragId > 0 && jsInterop != null) await jsInterop.CleanupResizeStyle(dragId);
+            return;
+        }
 
-        if (newHeight == null || rowIndex >= filteredData.Count) return;   // click without drag
-
-        pendingResizeCleanup = true;   // the JS preview rule stays until the host's height is rendered
+        // Only the gripped row previewed live; co-selected rows take the height on release, as columns do
+        pendingResizeCleanup = Math.Max(pendingResizeCleanup, dragId);   // the preview stays until the host's height is rendered
         _fillHandleUpdatePending = true;
         await RaiseRowResized(GetEntireRowSelection(rowIndex), newHeight);
     }
