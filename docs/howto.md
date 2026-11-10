@@ -365,7 +365,7 @@ async Task ConfirmEdit(NxGridEditingArgs<ContractLineDto> args)
 
 ### Guarding every change with one check (edit lock)
 
-`OnEditing` only covers editors opening; paste, Delete, Ctrl+Enter, drag-fill and checkbox toggles go straight to `OnUpdate`. `OnUpdating` fires before all of them, so a page that must take a lock before its first change needs one handler:
+`OnEditing` only covers editors opening; paste, Delete, Ctrl+Enter, Ctrl+D, drag-fill and checkbox toggles go straight to `OnUpdate`. `OnUpdating` fires before all of them, so a page that must take a lock before its first change needs one handler:
 
 ```razor
 <NxGrid T="PieceDto" Data="@pieces" Editable="true"

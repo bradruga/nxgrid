@@ -21,6 +21,9 @@ public enum NxGridUpdateKind
     /// <summary>A drag of the fill handle.</summary>
     DragFill,
 
+    /// <summary>Ctrl+D copying each selected column's top cell down the selection.</summary>
+    FillDown,
+
     /// <summary>A checkbox toggle (click or Space).</summary>
     CheckBox,
 }

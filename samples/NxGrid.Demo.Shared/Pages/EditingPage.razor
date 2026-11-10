@@ -46,6 +46,25 @@
 </div>
 
 <div class="doc-section">
+    <h2>Ctrl+D — Fill Down</h2>
+    <p class="doc-note">
+        Without an editor open, <kbd class="doc-kbd">Ctrl+D</kbd> (<kbd class="doc-kbd">⌘+D</kbd> on a Mac) copies each
+        selected column's top cell into the rest of the selection, as in Excel. With one row selected it copies the row
+        above. Values are copied, not extended as a series; read-only and blocked cells are skipped, and one
+        <code>OnUpdate</code> fires with every changed row.
+    </p>
+    <p class="doc-note" style="margin-top:4px">Try: select rows 1–6 across First and Department, then press <kbd class="doc-kbd">Ctrl+D</kbd>. Or select one cell and press it to copy the cell above.</p>
+    <NxGrid T="Person" Data="@fillDownPeople" OnUpdate="@HandleFillUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers" Editable="true">
+        <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.FirstName)" Width="140" />
+        <NxGridColumn Property="@(x => x.LastName)" Width="140" />
+        <NxGridColumn Property="@(x => x.Department)"
+                      ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing", "Sales"))" />
+    </NxGrid>
+    <pre class="doc-code" style="margin-top:12px">@fillDownCode</pre>
+</div>
+
+<div class="doc-section">
     <h2>CommitEditAsync — Save While Editing</h2>
     <p class="doc-note">
         A Save button outside the grid can run while a cell editor is still open — the user typed a
@@ -240,6 +259,7 @@
 @code {
     List<Person> editPeople = SampleData.GetPeopleCopy();
     List<Person> fillPeople = SampleData.GetPeopleCopy();
+    List<Person> fillDownPeople = SampleData.GetPeopleCopy();
     List<Person> commitPeople = SampleData.GetPeopleCopy();
     NxGrid<Person>? commitGrid;
     string commitSaveLog = "nothing yet";
@@ -324,6 +344,7 @@
 
     string basicEditCode            = DemoCodeSamples.BasicEdit;
     string ctrlEnterFillCode        = DemoCodeSamples.CtrlEnterFill;
+    string fillDownCode             = DemoCodeSamples.FillDown;
     string commitEditCode           = DemoCodeSamples.CommitEditAsyncCode;
     string closeEditorCode          = DemoCodeSamples.CloseEditorBeforeUpdate;
     string onUpdatingCode           = DemoCodeSamples.OnUpdating;

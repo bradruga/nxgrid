@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Ctrl/⌘+D fills down, as in Excel: each selected column's top cell is copied into the rest of the selection, or the cell above into a single selected row. One `OnUpdate`; `OnUpdating` reports the new `NxGridUpdateKind.FillDown`.
 - `Redraw()` on `NxGrid` re-renders every row without re-sorting or re-filtering, so edited rows stay where they are.
 - `ScrollToTop()` and `ScrollToRow(row)` on `NxGrid` scroll without changing the selection.
 - `SelectRows(rows)` on `NxGrid` selects many rows at once, adjacent or not, fires `OnSelectionChanged` once, and scrolls the first into view.

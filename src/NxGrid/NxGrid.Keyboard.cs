@@ -19,6 +19,7 @@ public partial class NxGrid<T>
     private const string KeyTab        = "Tab";
     private const string KeyEnter      = "Enter";
     private const string KeySelectAll  = "a";
+    private const string KeyFillDown   = "d";
 
     private async Task OnGridKeyDown(KeyboardEventArgs args)
     {
@@ -76,6 +77,12 @@ public partial class NxGrid<T>
             if (ModifierPressed(args) && string.Equals(args.Key, KeyCut, StringComparison.OrdinalIgnoreCase) && OnUpdate.HasDelegate)
             {
                 await CopySelectionToClipboard(isCut: true);
+                return;
+            }
+
+            if (ModifierPressed(args) && string.Equals(args.Key, KeyFillDown, StringComparison.OrdinalIgnoreCase) && OnUpdate.HasDelegate)
+            {
+                await FillDownSelection();
                 return;
             }
 

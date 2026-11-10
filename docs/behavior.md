@@ -284,6 +284,7 @@ If there is no active selection when a navigation key is pressed, a selection is
 | Ctrl/⌘ + End | Jump to last cell |
 | Shift + Home/End/Ctrl+Home/End | Extend selection to that target |
 | Ctrl/⌘ + A | Select all cells (all rows and columns) |
+| Ctrl/⌘ + D | Fill down — see [Fill down](#fill-down) |
 | Page Up / Page Down | Move by the visible page height in rows; column unchanged |
 | Tab | Move right; wraps to column 0 of the next row at the last column; wraps from last row back to first row. **Exception:** in the last visible column of the last row with `OnNewRow` registered, appends a row instead of wrapping — see [New-row append](#new-row-append). |
 | Shift+Tab | Move left; wraps to last column of the previous row at column 0; wraps from first row back to last row. Never triggers `OnNewRow`. |
@@ -333,7 +334,7 @@ A column is editable when `Editable` is set (either at the column level or via t
 
 `OnEditBlocked` fires once per attempt, so typing into a blocked cell raises it on every keystroke; debounce in the host if needed. Double-clicking a read-only column raises `OnCellDoubleClicked` instead when that has a handler, and `OnEditBlocked` only when it doesn't. `BeginEditAsync` and new-row `BeginEdit` are silent no-ops on a blocked cell.
 
-For bulk operations (paste, delete, Ctrl+Enter, drag-fill), editability is evaluated but `OnEditing` and `OnEditBlocked` are not — blocked cells are silently skipped.
+For bulk operations (paste, delete, Ctrl+Enter, Ctrl+D, drag-fill), editability is evaluated but `OnEditing` and `OnEditBlocked` are not — blocked cells are silently skipped.
 
 ### OnUpdating
 
@@ -347,6 +348,7 @@ For bulk operations (paste, delete, Ctrl+Enter, drag-fill), editability is evalu
 | `Clear` | Delete, after the cells to clear are worked out. | Nothing is cleared. |
 | `Fill` | Ctrl+Enter, after the cells to fill are worked out. | The editor stays open; Enter still commits just its own cell. |
 | `DragFill` | When the fill handle is released. | Nothing is filled and the selection doesn't grow. |
+| `FillDown` | Ctrl/⌘+D, after the cells to fill are worked out. | Nothing is filled. |
 | `CheckBox` | On a toggle, after `OnEditing`. | The value stays. |
 
 `Rows` lists the rows that would change and `Columns` the distinct columns, both in display order. A paste that would append rows through `OnPasteNewRows` is the one exception: `OnUpdating` is raised **before** the append, so a refused paste adds no rows, and `Rows` can only list the existing rows from the paste origin down. An operation that would change nothing (every target cell read-only, say) raises neither event.
@@ -502,6 +504,7 @@ When `MathExpression = true` on an editable column, the commit sequence has an e
 
 - Single-cell typed commit (Enter, Tab, click away)
 - Ctrl+Enter fill (applying one value to many cells)
+- Ctrl/⌘+D fill down — after `TransformPastedValue` runs, as for paste
 - Paste via `Ctrl/⌘+V` — after `TransformPastedValue` runs (i.e. `TransformPastedValue` receives the raw pasted text; math evaluation runs on its output)
 
 Plain numbers pass through transparently: `"24"` evaluates to `"24"` and is then parsed as `int` `24`.
@@ -672,6 +675,21 @@ When a date picker column cell is the selection anchor and is editable (but not 
 **Commit:**
 
 When a date is committed (by clicking a day or pressing Enter on the highlighted date), the formatted date string is written into `editValue`, the calendar closes, and the commit flow runs exactly as if the user had typed that value. `OnUpdate` is called with `NewValue` as a parsed `DateTime`.
+
+---
+
+## Fill down
+
+Ctrl/⌘+D copies each selected column's top cell down into the rest of that column's selection, as in Excel. With a single row selected, each cell copies the cell above it instead; on the first row that does nothing. It needs an `OnUpdate` handler; without one the key only reaches `OnKeyPressed`.
+
+- Values are copied, never extended as a series — use the fill handle for that ([Drag to fill](reference.md#drag-to-fill)).
+- The source is the cell's copy text (`CopyGetter ?? Display ?? Property`) written through the paste pipeline: `TransformPastedValue` receives `(text, targetRow - sourceRow, 0)`, combo text resolves to its `Id`, and the column parses it.
+- Read-only columns and cells blocked by `CellEditableGetter` are skipped silently, as are cells covered by a span; a column whose source cell is covered is left alone.
+- Each range of a multi-range selection fills on its own.
+- `OnUpdating` fires once with `Kind = FillDown`, then one `OnUpdate` with every changed row. The selection doesn't move.
+- An `OnKeyPressed` handler that sets `args.Handled = true` for the key suppresses the fill.
+
+Ctrl+Enter is the way to write one value into every selected cell.
 
 ---
 
@@ -870,7 +888,7 @@ The grid asks the getter about every cell it renders, so it can place a covered 
 ### Editing
 
 - Only a span's anchor is ever edited. F2, typing, Space on a checkbox and double-click act on the span, and the editor covers the whole span box. `BeginEditAsync` on a covered cell does nothing, and `CellEditableGetter` and `OnEditBlocked` are not consulted for it.
-- Delete, Ctrl+Enter and a checkbox toggle across the selection skip covered cells, as they skip read-only cells, and report only anchors in `OnUpdate`.
+- Delete, Ctrl+Enter, Ctrl+D and a checkbox toggle across the selection skip covered cells, as they skip read-only cells, and report only anchors in `OnUpdate`.
 - **Paste** starts at the span's anchor when the selection's top-left is covered. Clipboard cells that land on covered cells are dropped, not written and not reported. A single-value paste writes each anchor in the selection once. Pasting a cut clears only the source anchors.
 - **Drag-fill** writes to anchors and skips covered cells. After any fill the selection grows to cover the source and the filled cells. The fill handle of a selection ending in a span sits at the span's bottom-right corner. Filling across spans of a different shape is not prevented; reject the resulting `OnUpdate` if you want Excel's "merged cells must be the same size" rule.
 

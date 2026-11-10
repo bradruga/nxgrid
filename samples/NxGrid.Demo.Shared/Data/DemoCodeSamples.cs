@@ -174,9 +174,21 @@ public static class DemoCodeSamples
 }
 """;
 
+    public static readonly string FillDown = """
+// Ctrl+D (⌘+D) is built in: no parameter, just an OnUpdate handler.
+// Each selected column's top cell is copied down the selection; one selected
+// row copies the row above. OnUpdating sees Kind = NxGridUpdateKind.FillDown.
+// To turn it off, claim the key: set args.Handled = true in OnKeyPressed.
+<NxGrid T="Person" Data="@people" OnUpdate="@HandleUpdate" Editable="true">
+    <NxGridColumn Property="@(x => x.FirstName)" />
+    <NxGridColumn Property="@(x => x.Department)"
+                  ComboBoxSource="@(NxGridComboSource.FixedList("Engineering", "Finance", "HR", "Marketing"))" />
+</NxGrid>
+""";
+
     public static readonly string OnUpdating = """
 // One handler guards every change: editors opening, paste, cut-paste, Delete,
-// Ctrl+Enter, drag-fill and checkbox toggles. Awaited, so it can call a lock service.
+// Ctrl+Enter, Ctrl+D, drag-fill and checkbox toggles. Awaited, so it can call a lock service.
 <NxGrid T="Person" Data="@people" Editable="true"
         OnUpdating="@TakeLock" OnUpdate="@HandleUpdate">
     ...

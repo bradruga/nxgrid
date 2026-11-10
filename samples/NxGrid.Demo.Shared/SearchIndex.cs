@@ -87,6 +87,7 @@ public static class SearchIndex
 
         // Editing
         new("Editing",              "editing",          Category: "Editing", Keywords: "edit inline update"),
+        new("Editing — Fill Down", "editing",     Section: "Ctrl+D — Fill Down", Category: "Editing", Keywords: "ctrl+d fill down copy above excel"),
         new("Editing — OnUpdating", "editing", Section: "OnUpdating — One Check Before Every Change", Category: "Editing", Keywords: "edit lock guard cancel paste delete fill before update NxGridUpdateKind"),
         new("Editing — CloseEditorBeforeUpdate", "editing", Section: "CloseEditorBeforeUpdate — Confirm From OnUpdate", Category: "Editing", Keywords: "confirm dialog prompt OnUpdate editor still open close before update"),
         new("Editing — CommitEditAsync", "editing",     Section: "CommitEditAsync — Save While Editing", Category: "Editing", Keywords: "commit pending edit save flush programmatic EndEditAsync"),

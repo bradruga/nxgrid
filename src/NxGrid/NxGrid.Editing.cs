@@ -732,6 +732,52 @@ public partial class NxGrid<T>
         StateHasChanged();
     }
 
+    // Ctrl+D (Excel): each column's top cell copied down its range; a one-row range copies the row above. See behavior.md#fill-down.
+    private async Task FillDownSelection()
+    {
+        var rowChanges = new Dictionary<int, List<NxGridCellChange<T>>>();
+        var visitedCells = new HashSet<(int, int)>();
+
+        foreach (var range in selectedRanges)
+        {
+            var minRow = Math.Min(range.StartRow, range.EndRow);
+            var maxRow = Math.Min(Math.Max(range.StartRow, range.EndRow), filteredData.Count - 1);
+            var minCol = Math.Min(range.StartCol, range.EndCol);
+            var maxCol = Math.Min(Math.Max(range.StartCol, range.EndCol), visibleColumns.Count - 1);
+            var sourceRow = minRow == maxRow ? minRow - 1 : minRow;
+            if (sourceRow < 0 || maxRow < minRow) continue;
+
+            for (var c = minCol; c <= maxCol; c++)
+            {
+                var column = visibleColumns[c];
+                if (!IsColumnEditable(column) || column.EffectiveCopyGetter is not { } getter) continue;
+                if (IsCoveredCell(sourceRow, c)) continue;
+                var text = getter(filteredData[sourceRow])?.ToString() ?? "";
+
+                for (var r = sourceRow + 1; r <= maxRow; r++)
+                {
+                    if (!visitedCells.Add((r, c))) continue;
+                    if (IsCoveredCell(r, c)) continue;
+                    if (CellEditableGetter != null && !CellEditableGetter(filteredData[r], column)) continue;
+                    var value = TransformPastedValue != null ? TransformPastedValue(text, r - sourceRow, 0) : text;
+                    AccumulateChange(rowChanges, r, filteredData[r], c, value);
+                }
+            }
+        }
+
+        if (rowChanges.Count == 0) return;
+        if (!await RaiseUpdating(NxGridUpdateKind.FillDown, rowChanges, i => filteredData[i])) return;
+
+        var rowArgs = rowChanges
+            .OrderBy(kvp => kvp.Key)
+            .Select(kvp => new NxGridRowChange<T> { Row = filteredData[kvp.Key], Changes = kvp.Value })
+            .ToList();
+        await OnUpdate.InvokeAsync(new NxGridUpdateArgs<T> { Rows = rowArgs });
+
+        renderToken++;
+        StateHasChanged();
+    }
+
     // Resets one cell to its column default (Delete-key semantics); skips non-editable and covered cells.
     private void AccumulateClear(Dictionary<int, List<NxGridCellChange<T>>> rowChanges, int r, int c)
     {
