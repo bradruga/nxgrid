@@ -856,6 +856,8 @@ When a cell is selected, the selection highlight is applied by blending rather t
 
 This means a custom cell background will visually mix with the selection highlight rather than being hidden by it, and the blend colour automatically tracks the active theme.
 
+**Frozen columns.** A frozen cell keeps an opaque `background-color: inherit` so columns scrolling under it never show through. A `CellStyle` background that is semi-transparent, or any `var()` background (its transparency can't be known in advance), is drawn as a `background-image` layer on top of that opaque base instead of replacing it. When such a `var()` cell is selected, a half-strength selection layer goes over it, which looks the same as the 50/50 blend above.
+
 ---
 
 ## Cell spans

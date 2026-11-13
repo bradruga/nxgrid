@@ -54,9 +54,18 @@ public partial class NxGrid<T>
         // Frozen columns need an opaque background to block content scrolling behind them.
         // If the effective background-color is semi-transparent (last declaration wins in CSS),
         // convert it to a background-image overlay so background-color:inherit stays opaque.
+        // A var() color can't be checked for transparency here, so it is always drawn as a layer.
+        string? frozenVarLayer = null;
         if (isFrozen)
         {
-            if (!CssVarNameRegex.IsMatch(baseStyle) &&
+            var lastBg = BgColorRemoveRegex.Matches(baseStyle).LastOrDefault()?.Value;
+            var lastBgValue = lastBg?[(lastBg.IndexOf(':') + 1)..].TrimEnd(';').Trim();
+            if (lastBgValue != null && lastBgValue.StartsWith("var(", StringComparison.OrdinalIgnoreCase))
+            {
+                frozenVarLayer = $"linear-gradient({lastBgValue},{lastBgValue})";
+                baseStyle = RemoveBgColorFromStyle(baseStyle) + $"background-color:inherit;background-image:{frozenVarLayer};";
+            }
+            else if (!CssVarNameRegex.IsMatch(baseStyle) &&
                 TryExtractLastHexBgColor(baseStyle, out var frozenHex) &&
                 IsPartiallyTransparent(frozenHex!))
             {
@@ -74,6 +83,14 @@ public partial class NxGrid<T>
         }
 
         if (!selected) return baseStyle;
+
+        // A half-strength selection layer over a solid var() color gives the same 50/50 blend as below.
+        if (frozenVarLayer != null)
+        {
+            if (!TryParseHex(selectionColor, out var fs)) return baseStyle;
+            return BgImageRemoveRegex.Replace(baseStyle, "").Trim() +
+                $"background-image:linear-gradient(rgba({fs.r},{fs.g},{fs.b},0.5),rgba({fs.r},{fs.g},{fs.b},0.5)),{frozenVarLayer};";
+        }
 
         // CSS variable backgrounds must be checked before TryExtractHexBgColor — the named-color
         // branch of that regex matches "var" as a word, producing an incorrect blend.

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `ShowReadOnlyStyling` tints read-only cells in frozen columns too; before, frozen columns never showed the tint.
 - A frozen `Sizing="Fixed"` column without a `Width` no longer leaves a gap before the next frozen column once its content width is measured.
+- A frozen cell whose `CellStyle` background is a see-through `var()` color no longer lets scrolled columns show through it.
 
 ## [0.5.5] - 2026-11-10
 

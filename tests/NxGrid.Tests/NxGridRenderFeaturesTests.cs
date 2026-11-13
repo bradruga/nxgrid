@@ -753,4 +753,35 @@ public class NxGridRenderFeaturesTests : BunitContext
         Assert.That(styles, Has.None.Contain("position:sticky"));
         Assert.That(styles, Has.All.Contain(ReadOnlyTint));
     }
+
+    // ── Frozen cells with a var() CellStyle background ────────────────────────
+
+    [Test]
+    public async Task FrozenCell_VarBackground_IsLayeredOverOpaqueBase()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new Row("Alice", 1), new Row("Bob", 2)])
+            .Add(x => x.CellStyle, (_, _) => new NxGridCellStyle { Style = "background-color:var(--x)" })
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)
+                .Add(x => x.Width, 100)
+                .Add(x => x.Frozen, true))
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Count.ToString())));
+
+        var style = cut.Find(".nx-grid-row .nx-grid-cell").GetAttribute("style")!;
+        Assert.That(style, Does.Contain("background-color:inherit;background-image:linear-gradient(var(--x),var(--x))"));
+        Assert.That(style, Does.Not.Contain("background-color:var("));
+
+        // A single clicked cell is only the anchor; select two so the second gets the selection fill.
+        await cut.FindAll(".nx-grid-row")[0].QuerySelector(".nx-grid-cell")!.TriggerEventAsync("onmousedown", new Microsoft.AspNetCore.Components.Web.MouseEventArgs { Button = 0 });
+        await cut.FindAll(".nx-grid-row")[1].QuerySelector(".nx-grid-cell")!.TriggerEventAsync("onmousedown", new Microsoft.AspNetCore.Components.Web.MouseEventArgs { Button = 0, ShiftKey = true });
+        var selected = cut.FindAll(".nx-grid-row")[1].QuerySelector(".nx-grid-cell")!.GetAttribute("style")!;
+        Assert.That(selected, Does.Contain("background-color:inherit"));
+        Assert.That(selected, Does.Contain(",0.5)),linear-gradient(var(--x),var(--x))"));
+
+        // The unfrozen cell keeps its var() background-color as before.
+        Assert.That(cut.FindAll(".nx-grid-row .nx-grid-cell")[1].GetAttribute("style"), Does.Contain("background-color:var(--x)"));
+    }
 }
