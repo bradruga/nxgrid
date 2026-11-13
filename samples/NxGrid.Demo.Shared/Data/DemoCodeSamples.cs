@@ -275,7 +275,7 @@ public static class DemoCodeSamples
 <NxGrid T="Person" Data="@people" Editable="true" OnUpdate="@HandleUpdate"
         ShowReadOnlyStyling="false"
         CellEditableGetter="@((row, col) => row.Department != "Finance")">
-    <NxGridColumn Property="@(x => x.Id)" Editable="false" />
+    <NxGridColumn Property="@(x => x.Id)" Editable="false" Frozen="true" />
     <NxGridColumn Property="@(x => x.Department)" />
 </NxGrid>
 """;

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `ShowReadOnlyStyling` tints read-only cells in frozen columns too; before, frozen columns never showed the tint.
+
 ## [0.5.5] - 2026-11-10
 
 ### Fixed

@@ -175,7 +175,7 @@
         are automatically tinted with the <code>--nx-grid-readonly-bg</code> CSS variable, so users can tell which
         cells accept input without double-clicking around. This is on by default; set
         <code>ShowReadOnlyStyling="false"</code> to turn it off. A cell's own <code>CellStyle</code> background
-        always takes precedence over the tint.
+        always takes precedence over the tint. Frozen columns (Id here) are tinted the same way.
     </p>
     <div class="doc-controls">
         <label style="font-size:13px;"><input type="checkbox" @bind="showReadOnlyStyling" /> ShowReadOnlyStyling</label>
@@ -183,7 +183,7 @@
     <NxGrid T="Person" Data="@editPeople" OnUpdate="@HandleUpdate" Cursor="@NxGridCursor.Cell" RowGutter="NxGridRowGutter.Numbers"
             Editable="true" ShowReadOnlyStyling="@showReadOnlyStyling"
             CellEditableGetter="@((row, col) => row.Department != "Finance")">
-        <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" />
+        <NxGridColumn Property="@(x => x.Id)" MinWidth="50" MaxWidth="50" Editable="false" Frozen="true" />
         <NxGridColumn Property="@(x => x.FirstName)"  Width="140" />
         <NxGridColumn Property="@(x => x.LastName)"   Width="140" />
         <NxGridColumn Property="@(x => x.Department)" Width="140" />

@@ -38,19 +38,15 @@ public partial class NxGrid<T>
     private string GetCellStyle(T item, NxGridColumn<T> column, bool selected)
     {
         var baseStyle = column.CellStyle ?? "";
-        if (CellStyle != null)
-        {
-            var s = CellStyle(item, column);
-            if (s != null)
-                baseStyle += BuildCellStyleCss(s);
-        }
+        var custom = CellStyle != null ? BuildCellStyleCss(CellStyle(item, column)) ?? "" : "";
+        baseStyle += custom;
 
         // Painted as a background-image overlay (not background-color) so it composites on top
         // of whatever background-color is already active — row stripe, custom CellStyle color, or
         // the .nx-grid-cell-selected class — without needing to special-case selection at all.
-        // Only tint when the developer hasn't already set a background themselves — custom
-        // styles always win over the automatic readonly indicator.
-        if (!BgColorExtractRegex.IsMatch(baseStyle) && !BgImageExtractRegex.IsMatch(baseStyle) && IsCellReadOnly(item, column))
+        // Only the host's CellStyle can suppress it; a frozen column's own background-color:inherit must not.
+        var readOnlyTinted = !BgColorExtractRegex.IsMatch(custom) && !BgImageExtractRegex.IsMatch(custom) && IsCellReadOnly(item, column);
+        if (readOnlyTinted)
             baseStyle += "background-image:linear-gradient(var(--nx-grid-readonly-bg),var(--nx-grid-readonly-bg));";
 
         var isFrozen = column.StickyLeft != null || column.StickyRight != null;
@@ -121,7 +117,10 @@ public partial class NxGrid<T>
                 var selAlpha = selM.Success && selM.Groups[4].Success ? selM.Groups[4].Value : "1";
                 var selGradient = $"linear-gradient(rgba({selFrozen.r},{selFrozen.g},{selFrozen.b},{selAlpha}),rgba({selFrozen.r},{selFrozen.g},{selFrozen.b},{selAlpha}))";
                 var existingImg = BgImageExtractRegex.Match(baseStyle);
-                var bgImage = existingImg.Success ? $"{selGradient},{existingImg.Groups[1].Value.Trim()}" : selGradient;
+                // The read-only tint stays on top of the selection, as it does on unfrozen cells.
+                var bgImage = !existingImg.Success ? selGradient
+                    : readOnlyTinted ? $"{existingImg.Groups[1].Value.Trim()},{selGradient}"
+                    : $"{selGradient},{existingImg.Groups[1].Value.Trim()}";
                 var clean = BgImageRemoveRegex.Replace(RemoveBgColorFromStyle(baseStyle), "").Trim();
                 return clean + $"background-color:inherit;background-image:{bgImage};";
             }

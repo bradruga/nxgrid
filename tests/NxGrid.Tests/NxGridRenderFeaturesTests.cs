@@ -691,4 +691,66 @@ public class NxGridRenderFeaturesTests : BunitContext
         var wrap = cut.Find(".nx-grid-checkbox-wrap");
         Assert.That(wrap.ClassList, Does.Not.Contain("nx-grid-checkbox-checked"));
     }
+
+    // ── ShowReadOnlyStyling on frozen columns ─────────────────────────────────
+
+    private const string ReadOnlyTint = "linear-gradient(var(--nx-grid-readonly-bg)";
+
+    private IRenderedComponent<NxGrid<Row>> RenderFrozenReadOnly(bool frozen,
+        Func<Row, NxGridColumn<Row>, bool>? editableGetter = null,
+        Func<Row, NxGridColumn<Row>, NxGridCellStyle?>? cellStyle = null)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        return Render<NxGrid<Row>>(p =>
+        {
+            p.Add(x => x.Data, [new Row("Alice", 1), new Row("Bob", 2)]);
+            p.Add(x => x.Editable, true);
+            p.Add(x => x.OnUpdate, EventCallback.Factory.Create<NxGridUpdateArgs<Row>>(this, _ => { }));
+            if (editableGetter != null) p.Add(x => x.CellEditableGetter, editableGetter);
+            if (cellStyle != null) p.Add(x => x.CellStyle, cellStyle);
+            p.AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Display, r => r.Name)
+                .Add(x => x.Title, "Name")
+                .Add(x => x.Width, 100)
+                .Add(x => x.Frozen, frozen)
+                .Add(x => x.Editable, editableGetter != null));
+        });
+    }
+
+    private static List<string> FirstColumnStyles(IRenderedComponent<NxGrid<Row>> cut) =>
+        cut.FindAll(".nx-grid-row").Select(r => r.QuerySelector(".nx-grid-cell")?.GetAttribute("style") ?? "").ToList();
+
+    [Test]
+    public void ReadOnlyStyling_FrozenReadOnlyColumn_IsTinted()
+    {
+        var styles = FirstColumnStyles(RenderFrozenReadOnly(frozen: true));
+        Assert.That(styles, Has.Count.EqualTo(2));
+        Assert.That(styles, Has.All.Contain("position:sticky"));
+        Assert.That(styles, Has.All.Contain(ReadOnlyTint));
+    }
+
+    [Test]
+    public void ReadOnlyStyling_FrozenColumn_CellEditableGetter_TintsOnlyBlockedRow()
+    {
+        var styles = FirstColumnStyles(RenderFrozenReadOnly(frozen: true, editableGetter: (r, _) => r.Name != "Bob"));
+        Assert.That(styles[0], Does.Not.Contain(ReadOnlyTint));
+        Assert.That(styles[1], Does.Contain(ReadOnlyTint));
+    }
+
+    [Test]
+    public void ReadOnlyStyling_FrozenColumn_HostCellStyleBackgroundWins()
+    {
+        var styles = FirstColumnStyles(RenderFrozenReadOnly(frozen: true,
+            cellStyle: (_, _) => new NxGridCellStyle { Style = "background-color:red" }));
+        Assert.That(styles, Has.All.Contain("background-color:red"));
+        Assert.That(styles, Has.None.Contain(ReadOnlyTint));
+    }
+
+    [Test]
+    public void ReadOnlyStyling_UnfrozenReadOnlyColumn_IsTinted()
+    {
+        var styles = FirstColumnStyles(RenderFrozenReadOnly(frozen: false));
+        Assert.That(styles, Has.None.Contain("position:sticky"));
+        Assert.That(styles, Has.All.Contain(ReadOnlyTint));
+    }
 }
