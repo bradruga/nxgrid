@@ -946,6 +946,10 @@
 
     internal int? FitWidth { get; set; }
 
+    // Width the sticky offsets of neighbouring frozen columns assume; matches BuildWidthStyle except for flex growth.
+    internal int FrozenOffsetWidth =>
+        UserWidth ?? Math.Min(Math.Max((Sizing == NxGridColumnSizing.Fixed ? FitWidth : null) ?? Width ?? 100, MinWidth ?? 0), MaxWidth ?? int.MaxValue);
+
     private string BuildWidthStyle()
     {
         // Fixed sizing: exact pixel width — no flex growth or shrinkage regardless of mode.

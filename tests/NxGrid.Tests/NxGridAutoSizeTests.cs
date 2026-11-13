@@ -108,4 +108,30 @@ public class NxGridAutoSizeTests : BunitContext
         // Widest line is 31 chars; the \r and the other lines don't count.
         Assert.That(captured!.NewWidth, Is.EqualTo(31 * 8 + CellPadding));
     }
+
+    [Test]
+    public void FrozenOffsets_FixedColumnWithoutWidth_UseMeasuredWidth()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Setup<NxCharWidths?>("measureCharWidths", _ => true).SetResult(CharWidths());
+        var cut = Render<NxGrid<Row>>(p => p
+            .Add(x => x.Data, [new() { Issue = "1", Name = "Alice" }])
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Property, (Expression<Func<Row, object?>>)(r => r.Issue))
+                .Add(x => x.Width, 70).Add(x => x.Sizing, NxGridColumnSizing.Fixed).Add(x => x.Frozen, true))
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Property, (Expression<Func<Row, object?>>)(r => r.Name))
+                .Add(x => x.Title, "Name")
+                .Add(x => x.Sizing, NxGridColumnSizing.Fixed).Add(x => x.Frozen, true))
+            .AddChildContent<NxGridColumn<Row>>(col => col
+                .Add(x => x.Property, (Expression<Func<Row, object?>>)(r => r.Issue))
+                .Add(x => x.Width, 300).Add(x => x.Frozen, true)));
+
+        // "Name" header: 4 bold chars plus overhead and menu button beats "Alice" plus padding.
+        var fit = Math.Max(5 * 8 + CellPadding, 4 * 9 + HeaderFixedOverhead + MenuButtonWidth);
+        var cells = cut.Find(".nx-grid-row").QuerySelectorAll(".nx-grid-cell");
+        int Left(int i) => int.Parse(System.Text.RegularExpressions.Regex.Match(cells[i].GetAttribute("style")!, @"left:(\d+)px").Groups[1].Value);
+        Assert.That(cells[1].GetAttribute("style"), Does.Contain($"width:{fit}px"));
+        Assert.That(Left(2) - Left(1), Is.EqualTo(fit));
+    }
 }
